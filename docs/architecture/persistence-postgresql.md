@@ -4,8 +4,9 @@
 
 **Implementado na [#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60).**
 O código usa Npgsql/PostgreSQL e não há mais SQLite. A distribuição com Docker Compose é a
-[#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59), e a interface de backup,
-agenda e retenção é a [#31](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/31).
+[#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59), e backup, agenda, retenção e restauração
+são a [#31](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/31); a operação está em
+[docker-deployment.md](../web/docker-deployment.md).
 
 A aplicação roda num único computador da rede local, em uso por uma pessoa. A regra herdada do
 monólito modular é que cada módulo seja dono dos seus dados. O projeto não tinha uso real quando a
@@ -105,9 +106,9 @@ nenhuma outra pasta.
 
 ## Recuperação e atualização
 
-A [#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59) inclui backup sob demanda
-e ensaio de recuperação; a [#31](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/31)
-adiciona interface, agenda e retenção.
+Implementados na [#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59) (backup sob demanda e
+ensaio de recuperação) e na [#31](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/31) (interface, agenda,
+retenção e restauração em manutenção): `Ags.Finance.Web/Backup`, descritos em [docker-deployment.md](../web/docker-deployment.md).
 
 Usar pg_dump/pg_restore com versões compatíveis. O procedimento precisa preparar papéis e
 permissões, preservar arquivos associados e testar uma instalação vazia, conferindo login,

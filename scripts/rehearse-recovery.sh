@@ -36,6 +36,7 @@ AGS_DB_PASSWORD=$(openssl rand -hex 24)
 AGS_HOST_NAMES=localhost,127.0.0.1
 AGS_PORT=$port
 AGS_VERSION=0.0.0-rehearsal
+AGS_BACKUP_TIME=00:00
 AGS_BACKUP_DIR=$WORK/$instance-backups
 ENV
     chmod 600 "$WORK/$instance.env"
@@ -104,10 +105,21 @@ sign_in "$PORT_A" "$JAR_A" || fail "login na instalação A"
 authenticated "$JAR_A" "$PORT_A" || fail "sessão da instalação A não foi aceita"
 CERT_A=$(compose a exec -T app sh -c 'sha256sum /data/certs/ags-finance.pfx' | cut -d' ' -f1)
 
+log "Instalação A: o backup agendado (horário já passado hoje) é feito sozinho pela aplicação"
+for _ in $(seq 1 24); do
+    if compose a run --rm -T app backup list 2>/dev/null | grep -q ' scheduled '; then break; fi
+    sleep 5
+done
+compose a run --rm -T app backup list 2>/dev/null | grep -q ' scheduled ' || fail "o backup agendado não apareceu"
+
+log "Instalação A: recriar só os containers mantém os backups (a pasta é persistente)"
+compose a up -d --force-recreate --wait --wait-timeout 300 app
+compose a run --rm -T app backup list 2>/dev/null | grep -q ' scheduled ' || fail "o backup agendado sumiu após recriar o container"
+
 log "Instalação A: backup sob demanda (dump custom + arquivos da aplicação) e conferência"
 compose a run --rm -T app backup create
-NAME=$(compose a run --rm -T app backup list | head -1 | awk '{print $1}')
-[ -n "$NAME" ] || fail "nenhum backup listado"
+NAME=$(compose a run --rm -T app backup list 2>/dev/null | grep ' manual ' | head -1 | awk '{print $1}')
+[ -n "$NAME" ] || fail "nenhum backup manual listado"
 compose a run --rm -T app backup verify "$NAME"
 echo "Backup: $NAME"
 

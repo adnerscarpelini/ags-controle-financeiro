@@ -53,7 +53,7 @@ Módulos: `Identity`, `Accounts`, `Transactions`, `Invoices`, `Reimbursements`, 
 - Mapeamentos com `IEntityTypeConfiguration<T>` na `Infrastructure`; o domínio não tem atributos de persistência.
 - Valores monetários: `decimal` no código (`Money`), centavos em `BIGINT` no PostgreSQL. Nunca `float` ou `double`. Preservar `AccountingMonth` como inteiro `yyyyMM`.
 - O PostgreSQL tem volume persistente próprio. `DataDirectory` fica para certificados, chaves e arquivos da aplicação. Não manter dados ativos em pasta sincronizada.
-- Backup sob demanda com `pg_dump` e recuperação com `pg_restore`, incluindo preparação de papéis/permissões e arquivos associados. Validar recuperação em instalação vazia e guardar cópia fora da máquina. #59 entrega o fluxo mínimo; #31 adiciona interface, agenda e retenção. Volumes e CSV não equivalem a backup de desastre.
+- Backup sob demanda com `pg_dump` e recuperação com `pg_restore`, incluindo preparação de papéis/permissões e arquivos associados. Validar recuperação em instalação vazia e guardar cópia fora da máquina. O backup é um serviço da aplicação (`Ags.Finance.Web/Backup`): comandos `backup create|list|verify|restore`, agenda diária, retenção (30 + mensal preservado) e tela `/backups` com restauração em modo de manutenção (#59/#31). Volumes e CSV não equivalem a backup de desastre.
 
 ### Regras de negócio centrais
 

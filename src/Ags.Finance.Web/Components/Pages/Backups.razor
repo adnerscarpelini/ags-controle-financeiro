@@ -1,0 +1,179 @@
+@page "/backups"
+@using Ags.Finance.Web.Backup
+@inject BackupService Service
+@inject BackupSettings Settings
+@inject BackupStatus Status
+@inject RestoreCoordinator Coordinator
+
+<PageHeader Title="Backup e restauração" />
+
+<section class="panel" aria-labelledby="backup-title">
+    <h2 id="backup-title">Backups</h2>
+
+    @if (Settings.Directory is null)
+    {
+        <p class="form-error" role="alert">A pasta de backup não está configurada (Backup:Directory).</p>
+    }
+    else
+    {
+        <p>
+            Backup diário às @Settings.ScheduleTime.ToString("HH:mm") (@(Settings.ScheduleEnabled ? "ativo" : "desativado")),
+            com retenção de @Settings.RetentionDays backups e um backup mensal sempre preservado.
+        </p>
+        <p data-testid="backup-last">@LastResultText()</p>
+    }
+
+    @if (_message is not null)
+    {
+        <p class="@(_failed ? "form-error" : "form-success")" role="status" data-testid="backup-message">@_message</p>
+    }
+
+    <button class="button" type="button" @onclick="CreateAsync" disabled="@(_busy || Settings.Directory is null)">Fazer backup agora</button>
+    <p class="hint">Copie os backups concluídos para fora da máquina: o volume sozinho não protege contra a perda do computador.</p>
+</section>
+
+<section class="panel" aria-labelledby="backup-list-title">
+    <h2 id="backup-list-title">Backups disponíveis</h2>
+
+    @if (_pendingRestore is not null)
+    {
+        <div class="notice" role="alertdialog" aria-label="Confirmar restauração">
+            <p>
+                A restauração <strong>substitui todos os dados atuais</strong> pelos do backup @_pendingRestore.Name e reinicia a aplicação.
+                Um backup do estado atual é feito antes, e a aplicação fica em manutenção durante a operação.
+            </p>
+            <div class="field">
+                <label for="restore-confirmation">Digite o nome do backup para confirmar</label>
+                <input id="restore-confirmation" @bind="_confirmation" @bind:event="oninput" autocomplete="off" />
+            </div>
+            <button class="button" type="button" @onclick="RestoreAsync" disabled="@(_busy || _confirmation.Trim() != _pendingRestore.Name)">Restaurar este backup</button>
+            <button class="button" type="button" @onclick="CancelRestore" disabled="@_busy">Cancelar</button>
+        </div>
+    }
+
+    @if (_packages.Count == 0)
+    {
+        <p>Nenhum backup encontrado.</p>
+    }
+    else
+    {
+        <ul class="catalog-list">
+            @foreach (var package in _packages)
+            {
+                <li>
+                    <span>
+                        @package.Manifest.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @KindLabel(package.Manifest.Kind)@(package.Manifest.Monthly ? " · mensal" : string.Empty)
+                        · @FormatSize(package.Manifest) · PostgreSQL @package.Manifest.PostgresServerVersion
+                    </span>
+                    <div>
+                        <button class="button" type="button" @onclick="() => AskRestore(package)" disabled="@_busy">Restaurar</button>
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    private IReadOnlyList<BackupPackage> _packages = [];
+    private BackupPackage? _pendingRestore;
+    private string _confirmation = string.Empty;
+    private string? _message;
+    private bool _failed;
+    private bool _busy;
+
+    protected override void OnInitialized()
+    {
+        _packages = Service.List();
+    }
+
+    private async Task CreateAsync()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var result = await Service.CreateAsync(BackupService.KindManual, CancellationToken.None);
+            Status.Record(result, TimeProvider.System.GetUtcNow());
+            _failed = !result.Succeeded;
+            _message = result.Succeeded ? $"Backup concluído: {result.Package!.Name}." : $"O backup falhou: {result.Error}";
+            if (result.Succeeded)
+            {
+                await Service.ApplyRetentionAsync(CancellationToken.None);
+            }
+        }
+        finally
+        {
+            _busy = false;
+            _packages = Service.List();
+        }
+    }
+
+    private void AskRestore(BackupPackage package)
+    {
+        _pendingRestore = package;
+        _confirmation = string.Empty;
+        _message = null;
+    }
+
+    private void CancelRestore()
+    {
+        _pendingRestore = null;
+    }
+
+    private async Task RestoreAsync()
+    {
+        if (_pendingRestore is null || _confirmation.Trim() != _pendingRestore.Name)
+        {
+            return;
+        }
+
+        _busy = true;
+        _message = "Restauração em andamento. A aplicação está em manutenção e reiniciará ao terminar.";
+        _failed = false;
+        StateHasChanged();
+        try
+        {
+            var result = await Coordinator.RestoreAsync(_pendingRestore.Name, CancellationToken.None);
+            _failed = !result.Succeeded;
+            _message = result.Succeeded
+                ? "Restauração concluída. A aplicação está reiniciando; entre novamente em instantes."
+                : $"A restauração falhou: {result.Error}";
+            if (!result.Succeeded)
+            {
+                _busy = false;
+            }
+        }
+        finally
+        {
+            _pendingRestore = null;
+            _packages = Service.List();
+        }
+    }
+
+    private string LastResultText()
+    {
+        if (Status.LastError is not null)
+        {
+            return $"O último backup falhou: {Status.LastError}";
+        }
+
+        var latest = _packages.Count > 0 ? _packages[0].Manifest.CreatedAt : (DateTimeOffset?)null;
+        return latest is null ? "Nenhum backup concluído ainda." : $"Último backup concluído em {latest.Value.ToLocalTime():dd/MM/yyyy HH:mm}.";
+    }
+
+    private static string KindLabel(string kind) => kind switch
+    {
+        BackupService.KindManual => "manual",
+        BackupService.KindScheduled => "agendado",
+        BackupService.KindPreRestore => "antes de restaurar",
+        BackupService.KindPreUpdate => "antes de atualizar",
+        _ => kind,
+    };
+
+    private static string FormatSize(BackupManifest manifest)
+    {
+        var kib = manifest.Files.Sum(file => file.Bytes) / 1024.0;
+        return kib >= 1024 ? $"{kib / 1024:0.0} MiB" : $"{kib:0} KiB";
+    }
+}

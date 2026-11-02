@@ -13,8 +13,8 @@ namespace Ags.Finance.Web.Tests;
 public sealed class BackupServiceTests : IAsyncLifetime
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "ags-finance-backup-tests-" + Guid.NewGuid().ToString("N"));
-    private readonly FakeTools _tools = new();
-    private readonly FakeClock _clock = new(new DateTimeOffset(2027, 1, 15, 3, 0, 0, TimeSpan.Zero));
+    private readonly FakeBackupTools _tools = new();
+    private readonly FakeBackupClock _clock = new(new DateTimeOffset(2027, 1, 15, 3, 0, 0, TimeSpan.Zero));
     private PostgresTestDatabase? _database;
 
     private string BackupDirectory => Path.Combine(_root, "backups");
@@ -282,60 +282,5 @@ public sealed class BackupServiceTests : IAsyncLifetime
             _tools,
             _clock,
             NullLogger<BackupService>.Instance);
-    }
-
-    private sealed class FakeClock(DateTimeOffset now) : TimeProvider
-    {
-        public DateTimeOffset Now { get; set; } = now;
-
-        public override DateTimeOffset GetUtcNow()
-        {
-            return Now;
-        }
-    }
-
-    private sealed class FakeTools : IPostgresTools
-    {
-        public string ClientVersion { get; set; } = "18.0";
-
-        public bool DumpFails { get; set; }
-
-        public bool RestoreFails { get; set; }
-
-        public int DumpCalls { get; private set; }
-
-        public int RestoreCalls { get; private set; }
-
-        public string LastPreamble { get; private set; } = string.Empty;
-
-        public Task<string> GetClientVersionAsync(CancellationToken cancellationToken)
-        {
-            return Task.FromResult(ClientVersion);
-        }
-
-        public async Task<ToolResult> DumpAsync(NpgsqlConnectionStringBuilder connection, string file, CancellationToken cancellationToken)
-        {
-            DumpCalls++;
-            if (DumpFails)
-            {
-                await File.WriteAllTextAsync(file, "parcial", cancellationToken);
-                return new ToolResult(1, string.Empty, "pg_dump: erro simulado");
-            }
-
-            await File.WriteAllTextAsync(file, "PGDMP simulado", cancellationToken);
-            return new ToolResult(0, string.Empty, string.Empty);
-        }
-
-        public Task<ToolResult> ListAsync(string file, CancellationToken cancellationToken)
-        {
-            return Task.FromResult(new ToolResult(0, "listagem", string.Empty));
-        }
-
-        public Task<ToolResult> RestoreAsync(NpgsqlConnectionStringBuilder connection, string file, string preamble, CancellationToken cancellationToken)
-        {
-            RestoreCalls++;
-            LastPreamble = preamble;
-            return Task.FromResult(RestoreFails ? new ToolResult(3, string.Empty, "psql: erro simulado") : new ToolResult(0, string.Empty, string.Empty));
-        }
     }
 }

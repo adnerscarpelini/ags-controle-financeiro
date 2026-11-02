@@ -16,7 +16,7 @@ Requisitos, critérios de aceite e dúvidas permanecem nas issues.
 
 A persistência usa PostgreSQL (#60) e a distribuição é Docker Compose (#59), com backup e recuperação (#31).
 Não há migração de dados SQLite. O restante do produto continua nas issues,
-incluindo CSV oficial (#28/#29/#61/#62) e recuperação PostgreSQL (#31).
+incluindo o CSV oficial (#28/#29/#61/#62).
 
 ## Funcionalidades implementadas
 

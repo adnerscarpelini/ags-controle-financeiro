@@ -30,7 +30,7 @@ internal static class BackupCommandRunner
         using var loggerFactory = LoggerFactory.Create(builder => builder.AddSimpleConsole(options => options.SingleLine = true));
         var service = new BackupService(
             settings,
-            new BackupEnvironment(connectionString, dataDirectory, BackupCommands.AppVersion),
+            new BackupEnvironment(connectionString, dataDirectory, BackupEnvironment.CurrentAppVersion),
             new PostgresTools(settings),
             TimeProvider.System,
             loggerFactory.CreateLogger<BackupService>());

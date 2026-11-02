@@ -125,6 +125,22 @@ docker compose run --rm app backup verify NOME     # confere arquivos, SHA-256 e
 docker compose stop app && docker compose run --rm app backup restore NOME
 ```
 
+### Agenda, retenção e tela
+
+- **Backup agendado:** a aplicação faz um backup por dia no horário `AGS_BACKUP_TIME` (padrão `02:00`, no fuso da aplicação).
+  Se o computador estava desligado no horário, o backup devido é feito assim que a aplicação sobe; uma falha é registrada e
+  repetida em 1 hora. Sem `Backup__Directory`, a agenda fica desativada.
+- **Retenção:** mantém os `AGS_BACKUP_RETENTION` backups mais recentes (padrão 30). O **primeiro backup de cada mês** é marcado
+  como mensal e nunca é apagado; o backup mais recente também nunca é apagado. Só pastas que são backups válidos são tocadas.
+- **Tela:** em **Configurações > Backup e restauração** (`/backups`): agenda e retenção, último resultado, **Fazer backup agora**
+  e a lista de backups com **Restaurar**. A restauração pela tela exige digitar o nome do backup, coloca a aplicação em
+  **manutenção** (todas as requisições recebem 503 enquanto dura), faz um backup do estado atual, encerra as conexões ao banco,
+  restaura numa única transação e reinicia a aplicação (o Compose a sobe de novo, já com o certificado e as chaves restaurados).
+  Se falhar, a manutenção termina e o estado anterior permanece.
+- **Antes de atualizar:** `docker compose run --rm app backup create --pre-update` marca o backup como pré-atualização.
+- **Registro:** início, fim, sucesso ou falha e o nome do arquivo vão para o log da aplicação (`docker compose logs app`), sem
+  credenciais nem conteúdo financeiro.
+
 O ponto recuperável é o estado do **backup concluído**: não há recuperação por instante nem garantia de perda zero
 entre backups. CSV é troca de dados do sistema e não substitui o backup.
 
@@ -166,7 +182,7 @@ Rode-o a partir da raiz, em Linux ou no WSL: `scripts/rehearse-recovery.sh`.
 
 ## Atualização
 
-1. Faça um backup e copie-o para fora: `docker compose run --rm app backup create` (precisa terminar antes de atualizar).
+1. Faça um backup e copie-o para fora: `docker compose run --rm app backup create --pre-update` (precisa terminar antes de atualizar).
 2. Troque `AGS_VERSION` no `.env` para a nova versão publicada (por exemplo `0.2.0`) e rode `docker compose pull`.
 3. `docker compose up -d`: o novo container aplica as migrations pendentes e preserva os dados.
 
@@ -194,7 +210,7 @@ aplicação (padrão: pasta local do usuário). Testes relacionais: [persistênc
 ## Limites da validação
 
 Validado: construção da imagem, subida do Compose, papéis do banco, criação do usuário, login, recriação dos containers
-mantendo certificado, parada graciosa (código 0 em 1 s), falha clara com credencial errada e com banco indisponível,
+mantendo certificado e backups, backup agendado feito pela própria aplicação, parada graciosa (código 0 em 1 s), falha clara com credencial errada e com banco indisponível,
 fuso `America/Sao_Paulo` (01/01/2027 02:30 UTC = 31/12/2026 23:30), backup, verificação, restauração em instalação vazia
 e continuidade da sessão.
 

@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Reflection;
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Identity;
 using Ags.Finance.Modules.Invoices;
@@ -18,18 +17,16 @@ namespace Ags.Finance.Web.Commands;
 internal sealed class BackupCommands(BackupService service, BackupSettings settings, string connectionString, ITerminal terminal)
 {
     public const string Usage =
-        "Uso: Ags.Finance.Web backup <create | list | verify NOME | restore NOME [--force] [--yes]>";
-
-    public static string AppVersion =>
-        typeof(BackupCommands).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
-        ?? "desconhecida";
+        "Uso: Ags.Finance.Web backup <create [--pre-update] | list | verify NOME | restore NOME [--force] [--yes]>";
 
     public async Task<int> RunAsync(string[] arguments, CancellationToken cancellationToken)
     {
         switch (arguments)
         {
             case ["create"]:
-                return await CreateAsync(cancellationToken);
+                return await CreateAsync(BackupService.KindManual, cancellationToken);
+            case ["create", "--pre-update"]:
+                return await CreateAsync(BackupService.KindPreUpdate, cancellationToken);
             case ["list"]:
                 return List();
             case ["verify", var name]:
@@ -42,9 +39,9 @@ internal sealed class BackupCommands(BackupService service, BackupSettings setti
         }
     }
 
-    private async Task<int> CreateAsync(CancellationToken cancellationToken)
+    private async Task<int> CreateAsync(string kind, CancellationToken cancellationToken)
     {
-        var result = await service.CreateAsync(BackupService.KindManual, cancellationToken);
+        var result = await service.CreateAsync(kind, cancellationToken);
         if (!result.Succeeded)
         {
             terminal.WriteError($"Backup falhou: {result.Error}");
