@@ -30,8 +30,10 @@ dias se ajustam a 28/02. Em dezembro, o cálculo avança corretamente o ano.
 - Usa DateOnly: nenhuma dependência de fuso horário ou horário de processamento.
 - Cartões desativados continuam permitindo cálculo para dados históricos, embora
   não apareçam nas seleções de novos lançamentos.
-- O serviço não grava nem move lançamentos. O resultado é editável no cadastro
-  (#12) e depois de salvo (#14); a fatura escolhida manualmente será preservada.
+- O serviço não grava nem move lançamentos. A escolha manual e sua persistência
+  ainda serão implementadas no cadastro (#12) e na edição (#14), preservando a
+  data da compra e a fatura escolhida. Essas operações respeitarão a proteção
+  de faturas Fechadas/Pagas (#50); não são recursos já entregues pelo calculador.
 - Testes cobrem cada exemplo dos critérios, inclusão/exclusão do dia de fechamento,
   fevereiro comum/bissexto, meses de 30 dias, vencimento ajustado, virada de ano,
   coincidência dos dias e limite máximo de DateOnly. Integração testa o calendário

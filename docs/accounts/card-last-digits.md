@@ -2,6 +2,11 @@
 
 Origem: [issue #7](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/7).
 
+**Estado:** implementado. A tabela e os testes SQLite abaixo descrevem o provider atual,
+a substituir na [#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60).
+A reversibilidade de arquivamento da #53 foi aprovada para contas/cartões, sem ampliar
+automaticamente o escopo para finais.
+
 Em **Contas e cartões > Finais do cartão**, cadastrar ou editar quatro dígitos,
 uso Próprio, Compartilhado ou Assinatura, e rótulo livre opcional.
 O final é texto, preservando zeros à esquerda; aceita somente quatro caracteres de 0 a 9.

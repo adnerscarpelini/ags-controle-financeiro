@@ -4,19 +4,19 @@
 
 A aplicação é um **monólito modular**. Um único host web (`Ags.Finance.Web`, ASP.NET Core + Blazor) compõe módulos independentes, e cada módulo é uma class library organizada em Clean Architecture.
 
-**Estado:** aprovado. O esqueleto dos projetos está criado (issue #1); as pastas de cada módulo contêm apenas `DependencyInjection.cs` e `.gitkeep`.
+**Estado:** esqueleto e testes de arquitetura entregues (#1/#2). Identity tem usuário, login e senha; Accounts tem bancos, contas, cartões/finais e cálculo do mês contábil (#6–#8). Os demais módulos aguardam seus casos de uso. A migração PostgreSQL/Docker está aprovada, mas pendente na ordem #60 → #59. A tabela abaixo expressa responsabilidades, incluindo entregas futuras.
 
 ## Módulos
 
 | Módulo | Projeto | Responsável por | Pode consumir `Contracts` de |
 | --- | --- | --- | --- |
 | Identity | `Ags.Finance.Modules.Identity` | Usuário único, hash de senha, comandos `user create` e `user reset-password` | — |
-| Accounts | `Ags.Finance.Modules.Accounts` | Bancos, contas, cartões (bandeira, limite), finais de cartão, calendário de fatura | — |
-| Transactions | `Ags.Finance.Modules.Transactions` | Categorias, descrições, lançamentos, compras parceladas, lançamentos recorrentes, filtros salvos | Accounts |
-| Invoices | `Ags.Finance.Modules.Invoices` | Faturas por cartão e mês, pagamentos antecipados, cashback, descontos, antecipação de parcelas | Accounts, Transactions |
+| Accounts | `Ags.Finance.Modules.Accounts` | Bancos/logos, contas, cartões/finais, calendário e arquivamento cadastral | — |
+| Transactions | `Ags.Finance.Modules.Transactions` | Categorias, descrições, lançamentos, parcelas, recorrência, efetivação e filtros salvos | Accounts |
+| Invoices | `Ags.Finance.Modules.Invoices` | Faturas e suas situações, pagamentos, cashback, descontos, ajustes e antecipação de parcelas | Accounts, Transactions |
 | Reimbursements | `Ags.Finance.Modules.Reimbursements` | Pessoas, regras de rateio (filtro salvo + percentual), valores a receber e recebidos | Accounts, Transactions |
 | Reports | `Ags.Finance.Modules.Reports` | Dashboard e análises, somente leitura | todos |
-| Imports | `Ags.Finance.Modules.Imports` | Importação da planilha; depois, OFX e PDF de faturas | todos |
+| Imports | `Ags.Finance.Modules.Imports` | Importação/exportação CSV no layout oficial e versionado do sistema (#28/#29/#61/#62) | todos |
 
 As dependências apontam sempre na direção da tabela, sem ciclos. `Reports` e `Imports` consomem os cinco módulos de negócio (`Identity`, `Accounts`, `Transactions`, `Invoices`, `Reimbursements`), mas não um ao outro, para evitar ciclo. Uma dependência nova precisa ser registrada aqui.
 
@@ -34,7 +34,7 @@ Somente `Contracts` e `DependencyInjection` são públicos. Os testes de arquite
 
 ## Host
 
-`Ags.Finance.Web` é o composition root: registra os módulos, configura autenticação, HTTPS e a execução como serviço, contém as páginas e componentes Blazor e o serviço de backup. Componentes chamam casos de uso pelos `Contracts` e nunca acessam a `Infrastructure` de um módulo. Detalhes de hospedagem em [web-hosting.md](web-hosting.md).
+`Ags.Finance.Web` é o composition root: registra os módulos, configura autenticação, HTTPS e execução, contém páginas e componentes Blazor e será responsável pela operação de backup. O serviço nativo atual será substituído pela distribuição Docker na #59. Componentes usam os `Contracts`, nunca a `Infrastructure` de um módulo. Ver [hospedagem](web-hosting.md), [persistência aprovada](persistence-postgresql.md) e [consistência financeira](financial-consistency.md).
 
 ## Alternativas consideradas
 

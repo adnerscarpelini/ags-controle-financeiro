@@ -2,6 +2,11 @@
 
 Origem: [issue #6](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/6).
 
+**Estado:** cadastro e desativação estão implementados. Arquivar/desarquivar (#53),
+logo de banco (#54) e carteira visual (#55) são evoluções aprovadas, ainda pendentes.
+As tabelas e os testes SQLite mencionados abaixo descrevem o código atual; a #60
+substituirá o provider por [PostgreSQL](../architecture/persistence-postgresql.md).
+
 Em **Cadastros > Contas e cartões**, cadastrar bancos pelo nome; cadastrar e editar contas
 Corrente, Investimento (incluindo caixinhas e CDB, sem rendimento) ou Poupança.
 Cada conta exige um banco existente, nome de até 100 caracteres e cor da paleta.
@@ -11,7 +16,7 @@ ajustes serão tratados nas issues #46, #47 e #48.
 
 Cartões exigem conta corrente ativa, nome, bandeira Visa/Mastercard/Elo, limite não
 negativo, cor, fechamento e vencimento entre 1 e 31. A opção de incluir o dia do
-fechamento é explícita; deve ser conferida com o banco antes da importação.
+fechamento é explícita; conferir os valores com o emissor ao configurar o cartão.
 A paleta oferece verde, violeta, laranja, rosa e cinza, usando os tokens do tema.
 
 ## Decisões de design

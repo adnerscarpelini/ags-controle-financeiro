@@ -4,7 +4,7 @@ Implementa a issue [#2](https://github.com/adnerscarpelini/ags-controle-financei
 
 ## Contexto
 
-As camadas (`Domain`, `Application`, `Infrastructure`, `Contracts`) são pastas dentro de cada class library, então o compilador não impede que uma camada use outra. As regras de fronteira de [module-structure.md](module-structure.md) precisam ser verificadas automaticamente a cada build.
+As camadas (`Domain`, `Application`, `Infrastructure`, `Contracts`) são pastas dentro de cada class library, então o compilador não impede que uma camada use outra. As regras de fronteira de [module-structure.md](module-structure.md) são verificadas por `dotnet test` e no CI.
 
 ## Decisão
 
@@ -25,7 +25,7 @@ As regras usam `WithoutRequiringPositiveResults`: enquanto um módulo não tem t
 
 ## Alternativas
 
-- **NetArchTest.Rules:** API simples, mas a última versão (1.3.2) é de 2021 e o resultado devolve a lista de tipos que falharam, sem mensagem pronta (seria preciso montá-la a cada teste).
+- **NetArchTest.Rules:** na avaliação original, a versão considerada foi 1.3.2, de 2021; a equipe preferiu as mensagens e regras do ArchUnitNET. Esse registro é histórico, sem afirmar qual é a versão atual da alternativa.
 - **Reflexão pura:** serve para visibilidade de tipos (usada em `PublicSurfaceTests`), mas não enxerga dependências dentro do corpo dos métodos.
 
 ## Consequências

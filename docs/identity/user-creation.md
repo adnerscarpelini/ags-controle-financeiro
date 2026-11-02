@@ -4,6 +4,14 @@ Origem: [#35](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/
 
 A aplicação tem um único usuário, criado por linha de comando no computador do serviço. A aplicação web nunca oferece cadastro: assim, ninguém da rede consegue se cadastrar antes do dono.
 
+**Estado:** estes comandos e caminhos descrevem a instalação nativa atual com SQLite.
+A [#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60) muda a persistência
+para PostgreSQL e a [#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59)
+adapta sua execução via Compose, com terminal interativo e conexão correta. DataDirectory
+deixará de selecionar o banco e ficará para arquivos da aplicação; não confundir volume
+de arquivos com a conexão do usuário no PostgreSQL. Os nomes exatos dos serviços/comandos
+Compose serão documentados quando forem implementados.
+
 ## Comandos
 
 ```

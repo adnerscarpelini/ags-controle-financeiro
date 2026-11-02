@@ -1,5 +1,11 @@
 # Instalação como serviço
 
+**Código atual/legado:** esta entrega nativa (#34) será substituída pelo Docker Compose
+na [#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59), após a migração
+PostgreSQL [#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60).
+Os comandos abaixo ainda correspondem aos scripts existentes; não são o novo caminho
+de distribuição nem uma instrução para preservar dados SQLite na transição autorizada.
+
 Origem: [#34](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/34). Decisão geral em [web-hosting.md](../architecture/web-hosting.md).
 
 ## Publicar

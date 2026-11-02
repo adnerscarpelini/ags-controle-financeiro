@@ -2,6 +2,11 @@
 
 Origem: [#37](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/37). Decisão geral em [web-hosting.md](../architecture/web-hosting.md).
 
+**Estado:** o comportamento abaixo está implementado na execução nativa atual.
+Na [#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59), o certificado
+passará a usar endereços externos configurados do host e armazenamento persistente do container.
+A autodetecção interna descrita abaixo não comprova acesso HTTPS pela LAN no Docker/WSL.
+
 ## Comportamento
 
 - **Primeira execução:** a aplicação gera um certificado autoassinado (RSA 2048, SHA-256, validade de 5 anos) em `<DataDirectory>/certs/ags-finance.pfx`, mais a cópia pública `ags-finance.crt`. O nome (CN) e os nomes alternativos (SAN) são o nome do computador, `localhost`, `127.0.0.1`, `::1` e os IPv4 das interfaces ativas.
