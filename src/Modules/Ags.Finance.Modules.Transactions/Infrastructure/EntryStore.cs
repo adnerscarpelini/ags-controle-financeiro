@@ -5,7 +5,7 @@ using Npgsql;
 
 namespace Ags.Finance.Modules.Transactions.Infrastructure;
 
-internal sealed class EntryStore(IDbContextFactory<TransactionsDbContext> factory) : IEntryStore
+internal sealed partial class EntryStore(IDbContextFactory<TransactionsDbContext> factory) : IEntryStore
 {
     public async Task<IReadOnlyList<TransactionEntry>> GetAsync(CancellationToken cancellationToken)
     {

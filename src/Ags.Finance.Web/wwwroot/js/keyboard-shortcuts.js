@@ -13,4 +13,11 @@ document.addEventListener('keydown', event => {
         event.preventDefault();
         button.click();
     }
+    if (event.key.toLowerCase() === 'f') {
+        const search = document.querySelector('[data-entry-search]');
+        if (!search) return;
+        event.preventDefault();
+        search.focus();
+        search.select();
+    }
 });

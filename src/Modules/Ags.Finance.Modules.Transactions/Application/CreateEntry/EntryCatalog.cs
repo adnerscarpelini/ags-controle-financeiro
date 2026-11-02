@@ -102,10 +102,15 @@ internal sealed partial class EntryCatalog(IEntryStore store, IClassificationCat
 
     private async Task<IReadOnlyList<EntryDetails>> GetCoreAsync(CancellationToken cancellationToken)
     {
+        return await DescribeAsync(await store.GetAsync(cancellationToken), cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<EntryDetails>> DescribeAsync(IReadOnlyList<TransactionEntry> rows, CancellationToken cancellationToken)
+    {
         var purchases = (await store.GetPurchasesAsync(cancellationToken)).ToDictionary(x => x.ExternalId);
         var descriptions = (await merchants.FindAsync(activeOnly: false, cancellationToken: cancellationToken)).ToDictionary(x => x.ExternalId);
         var subcategories = (await classifications.GetSubcategoriesAsync(false, cancellationToken)).ToDictionary(x => x.ExternalId);
-        return (await store.GetAsync(cancellationToken)).Select(x =>
+        return rows.Select(x =>
         {
             var subcategory = subcategories[x.SubcategoryExternalId];
             return new EntryDetails(x.ExternalId, x.Date, x.Month, x.MerchantExternalId, descriptions[x.MerchantExternalId].Name,

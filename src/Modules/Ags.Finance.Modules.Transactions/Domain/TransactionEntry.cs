@@ -16,6 +16,7 @@ internal sealed class TransactionEntry : Entity
     public CategoryKind Kind { get; private set; }
     public Money Amount { get; private set; }
     public string Details { get; private set; } = string.Empty;
+    public string? NormalizedDetails { get; private set; }
     public bool IsEffective { get; private set; }
     public DateOnly? EffectiveDate { get; private set; }
     public DateTimeOffset? EffectiveAt { get; private set; }
@@ -42,6 +43,7 @@ internal sealed class TransactionEntry : Entity
         Kind = kind;
         Amount = kind == CategoryKind.Expense ? -amount : amount;
         Details = details.Trim();
+        NormalizedDetails = SearchText.Normalize(Details);
         return null;
     }
 
@@ -67,6 +69,7 @@ internal sealed class TransactionEntry : Entity
         Kind = prepared.Kind;
         if (!keepAmount) { Amount = prepared.Amount; }
         Details = prepared.Details;
+        NormalizedDetails = prepared.NormalizedDetails;
         if (IsEffective && dateChanged) { EffectiveDate = prepared.Date; }
     }
 

@@ -94,6 +94,16 @@ public sealed class TransactionPageTests
         page.Find("#delete-scope").Change(EntryChangeScope.ThisAndFollowing.ToString());
         await page.Find("[role=alertdialog] button").ClickAsync(new());
         Assert.Single((await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()), x => x.InstallmentNumber is not null);
+        page.Find("#filter-month").Change("2026-12");
+        await page.Find("#entry-filters").SubmitAsync(EventArgs.Empty);
+        Assert.Single(page.FindAll(".catalog-list li"));
+        Assert.Contains("-R$ 400,00", page.Find("[aria-label='Totais do filtro']").TextContent, StringComparison.Ordinal);
+        Assert.Single(page.FindAll(".entry-month-future"));
+        page.Find("#entry-search").Change("sem correspondencia");
+        await page.Find("#entry-filters").SubmitAsync(EventArgs.Empty);
+        Assert.Empty(page.FindAll(".catalog-list li"));
+        await page.FindAll("#entry-filters button").Single(x => x.TextContent == "Limpar filtros").ClickAsync(new());
+        Assert.Equal(3, page.FindAll(".catalog-list li").Count);
     }
 
     private sealed class PreviewClock : TimeProvider
