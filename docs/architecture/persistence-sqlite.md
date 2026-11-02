@@ -15,7 +15,7 @@ A aplicação roda como serviço num único computador da rede local e precisa d
 
 ## Implementação (issue #4)
 
-**Estado:** implementado nos módulos com persistência (Identity, Accounts, Transactions, Invoices e Reimbursements). Reports e Imports não têm tabelas. Nenhum módulo tem entidades ainda: cada um tem só a migration `Initial`, vazia, que cria o histórico. As tabelas chegam com as issues de cada módulo.
+**Estado:** implementado nos módulos com persistência (Identity, Accounts, Transactions, Invoices e Reimbursements). Reports e Imports não têm tabelas. Só o Identity tem entidade (`identity_users`, migration `CreateUsers`); os demais têm só a migration `Initial`, vazia, que cria o histórico. As tabelas chegam com as issues de cada módulo.
 
 ### Pasta de dados e inicialização
 

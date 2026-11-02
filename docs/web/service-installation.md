@@ -29,6 +29,6 @@ Os scripts podem ser executados de novo para atualizar os binários ou trocar a 
 ## Comportamento
 
 - **Porta:** `Hosting:Port` em `appsettings.json` (padrão 5280). Os scripts a definem pela variável `Hosting__Port` do serviço. O Kestrel escuta em todas as interfaces, em HTTPS (veja [https-certificate.md](https-certificate.md)).
-- **Usuário:** se o banco ainda não existe, os scripts chamam `Ags.Finance.Web user create` com a pasta de dados do serviço. O comando ainda não existe (Lote 04): a aplicação recusa `user ...` com código 2 e o script só avisa como rodá-lo depois.
+- **Usuário:** os scripts chamam `Ags.Finance.Web user create` a cada execução, com a pasta de dados do serviço, e tratam o código de saída 3 (usuário já existe) como normal. Veja [user-creation.md](../identity/user-creation.md).
 - **Porta em uso:** a aplicação registra o erro crítico e sai com código 1. No Windows não há ação de reinício, então o serviço fica parado. No Linux, `Restart=on-failure` com no máximo 5 tentativas em 5 minutos.
 - **Desinstalação:** remove serviço, regra de firewall e binários; a pasta de dados e o usuário `ags-finance` ficam.
