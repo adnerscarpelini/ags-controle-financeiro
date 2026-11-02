@@ -1,0 +1,116 @@
+@page "/cadastros/categorias"
+@using Ags.Finance.Modules.Transactions.Contracts
+@inject IClassificationCatalog Catalog
+
+<PageHeader Title="Categorias e subcategorias" />
+<p><a href="/cadastros">Cadastros</a> / Categorias e subcategorias</p>
+@if (_message is not null) { <p role="status">@_message</p> }
+@if (_pendingId is not null)
+{
+    <section class="panel" role="alertdialog" aria-label="Confirmar desativação">
+        <p>Desativar preserva o histórico e retira o cadastro das novas seleções.</p>
+        <button class="button" @onclick="ConfirmDeactivationAsync">Desativar</button>
+        <button class="button" @onclick="() => _pendingId = null">Cancelar</button>
+    </section>
+}
+<section class="panel">
+    <h2>@(_categoryId is null ? "Nova categoria" : "Editar categoria")</h2>
+    <form @onsubmit="SaveCategoryAsync" @onsubmit:preventDefault>
+        <div class="field"><label for="category-name">Nome</label><input id="category-name" @bind="_categoryName" maxlength="100" required /></div>
+        <div class="field"><label for="category-kind">Tipo</label><select id="category-kind" @bind="_kind">
+            <option value="@CategoryKind.Expense">Despesa</option><option value="@CategoryKind.Income">Receita</option><option value="@CategoryKind.Transfer">Transferência</option>
+        </select></div>
+        <button class="button" disabled="@_busy">Salvar categoria</button>
+        <button class="button" type="button" @onclick="ResetCategory">Limpar</button>
+    </form>
+    <ul class="catalog-list">
+        @foreach (var category in _categories)
+        {
+            <li><span>@category.Name · @KindLabel(category.Kind) · @(category.IsActive ? "Ativa" : "Desativada")</span>
+                <button class="button" @onclick="() => EditCategory(category)">Editar</button>
+                @if (category.IsActive) { <button class="button" @onclick="() => AskDeactivation(category.ExternalId, false)">Excluir / desativar</button> }
+            </li>
+        }
+    </ul>
+</section>
+<section class="panel">
+    <h2>@(_subcategoryId is null ? "Nova subcategoria" : "Editar subcategoria")</h2>
+    <form @onsubmit="SaveSubcategoryAsync" @onsubmit:preventDefault>
+        <div class="field"><label for="subcategory-category">Categoria</label><select id="subcategory-category" @bind="_parentId" required>
+            <option value="@Guid.Empty">Selecione</option>
+            @foreach (var category in _categories.Where(x => x.IsActive)) { <option value="@category.ExternalId">@category.Name</option> }
+        </select></div>
+        <div class="field"><label for="subcategory-name">Nome</label><input id="subcategory-name" @bind="_subcategoryName" maxlength="100" required /></div>
+        <button class="button" disabled="@_busy">Salvar subcategoria</button>
+        <button class="button" type="button" @onclick="ResetSubcategory">Limpar</button>
+    </form>
+    <ul class="catalog-list">
+        @foreach (var subcategory in _subcategories)
+        {
+            <li><span>@subcategory.DisplayName · @(subcategory.IsActive ? "Ativa" : "Desativada")</span>
+                <button class="button" @onclick="() => EditSubcategory(subcategory)">Editar</button>
+                @if (subcategory.IsActive) { <button class="button" @onclick="() => AskDeactivation(subcategory.ExternalId, true)">Excluir / desativar</button> }
+            </li>
+        }
+    </ul>
+</section>
+
+@code {
+    private IReadOnlyList<CategoryDetails> _categories = [];
+    private IReadOnlyList<SubcategoryDetails> _subcategories = [];
+    private Guid? _categoryId;
+    private Guid? _subcategoryId;
+    private Guid? _pendingId;
+    private Guid _parentId;
+    private string _categoryName = string.Empty;
+    private string _subcategoryName = string.Empty;
+    private CategoryKind _kind;
+    private bool _pendingSubcategory;
+    private bool _busy;
+    private string? _message;
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+    private async Task ReloadAsync()
+    {
+        _categories = await Catalog.GetCategoriesAsync(false);
+        _subcategories = await Catalog.GetSubcategoriesAsync(false);
+    }
+    private async Task SaveCategoryAsync()
+    {
+        if (_busy) { return; }
+        _busy = true;
+        try
+        {
+            var result = await Catalog.SaveCategoryAsync(_categoryId, _categoryName, _kind);
+            _message = result.Error ?? "Categoria salva.";
+            if (result.Succeeded) { ResetCategory(); await ReloadAsync(); }
+        }
+        finally { _busy = false; }
+    }
+    private async Task SaveSubcategoryAsync()
+    {
+        if (_busy) { return; }
+        _busy = true;
+        try
+        {
+            var result = await Catalog.SaveSubcategoryAsync(_subcategoryId, _parentId, _subcategoryName);
+            _message = result.Error ?? "Subcategoria salva.";
+            if (result.Succeeded) { ResetSubcategory(); await ReloadAsync(); }
+        }
+        finally { _busy = false; }
+    }
+    private void EditCategory(CategoryDetails category) { _categoryId = category.ExternalId; _categoryName = category.Name; _kind = category.Kind; }
+    private void EditSubcategory(SubcategoryDetails subcategory) { _subcategoryId = subcategory.ExternalId; _parentId = subcategory.CategoryExternalId; _subcategoryName = subcategory.Name; }
+    private void ResetCategory() { _categoryId = null; _categoryName = string.Empty; _kind = CategoryKind.Expense; }
+    private void ResetSubcategory() { _subcategoryId = null; _parentId = Guid.Empty; _subcategoryName = string.Empty; }
+    private void AskDeactivation(Guid externalId, bool subcategory) { _pendingId = externalId; _pendingSubcategory = subcategory; }
+    private async Task ConfirmDeactivationAsync()
+    {
+        if (_pendingId is not { } id) { return; }
+        var result = await Catalog.DeactivateAsync(id, _pendingSubcategory);
+        _message = result.Error ?? "Cadastro desativado.";
+        _pendingId = null;
+        await ReloadAsync();
+    }
+    private static string KindLabel(CategoryKind kind) => kind switch { CategoryKind.Income => "Receita", CategoryKind.Transfer => "Transferência", _ => "Despesa" };
+}

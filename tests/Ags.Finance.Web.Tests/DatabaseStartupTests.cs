@@ -44,7 +44,7 @@ public sealed class DatabaseStartupTests : IAsyncLifetime
         foreach (var module in s_modules)
         {
             Assert.Equal([module], await Database.QueryAsync($"SELECT schema_name FROM information_schema.schemata WHERE schema_name = '{module}'"));
-            Assert.Equal("1", await Database.ScalarAsync($"SELECT COUNT(*) FROM {module}.__ef_migrations"));
+            Assert.Equal(module == "transactions" ? "2" : "1", await Database.ScalarAsync($"SELECT COUNT(*) FROM {module}.__ef_migrations"));
         }
     }
 
@@ -56,7 +56,7 @@ public sealed class DatabaseStartupTests : IAsyncLifetime
 
         foreach (var module in s_modules)
         {
-            Assert.Equal("1", await Database.ScalarAsync($"SELECT COUNT(*) FROM {module}.__ef_migrations"));
+            Assert.Equal(module == "transactions" ? "2" : "1", await Database.ScalarAsync($"SELECT COUNT(*) FROM {module}.__ef_migrations"));
         }
     }
 
@@ -65,7 +65,12 @@ public sealed class DatabaseStartupTests : IAsyncLifetime
     {
         await StartApplicationAsync();
 
-        Assert.Equal("0", await Database.ScalarAsync("SELECT COUNT(*) FROM information_schema.table_constraints WHERE constraint_type = 'FOREIGN KEY'"));
+        Assert.Equal("0", await Database.ScalarAsync("""
+            SELECT COUNT(*) FROM pg_constraint c
+            JOIN pg_class source ON source.oid = c.conrelid
+            JOIN pg_class target ON target.oid = c.confrelid
+            WHERE c.contype = 'f' AND source.relnamespace <> target.relnamespace
+            """));
     }
 
     [Fact]
