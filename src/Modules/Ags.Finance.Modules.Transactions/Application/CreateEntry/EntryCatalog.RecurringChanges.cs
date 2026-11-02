@@ -52,12 +52,20 @@ internal sealed partial class EntryCatalog
         if (day is < 1 or > 31 || request.Month is { Year: 0 }) { return new(null, "Informe dia e mês válidos."); }
         if (scope != RecurringChangeScope.OnlyThis && change.Day is not null) { request = request with { Date = OccurrenceDate(request.Date, day) }; }
         var monthShift = request.Month is { } month ? MonthIndex(month.FirstDay) - MonthIndex(selected.Month.FirstDay) : 0;
+        var dateShift = MonthIndex(request.Date) - MonthIndex(baseline.Date);
+        var dateOffset = series.DateMonthOffset + dateShift;
         var dateChanged = request.Date != baseline.Date || day != series.Day;
         var preparedSelected = await PrepareAsync(request, cancellationToken, selected);
         if (preparedSelected.Entry is not { } selectedTemplate) { return new(null, preparedSelected.Error); }
         RecurringEntry? following = null;
         if (scope != RecurringChangeScope.OnlyThis)
         {
+            var startIndex = MonthIndex(scope == RecurringChangeScope.All ? series.StartDate : period) + dateOffset;
+            var selectedIndex = MonthIndex(period) + dateOffset;
+            if (startIndex is < 0 or >= 119988 || selectedIndex is < 0 or >= 119988 || (series.EndMonth is { } end && MonthIndex(end) + dateOffset is < 0 or >= 119988))
+            {
+                return new(null, "A alteração ultrapassa o calendário suportado.");
+            }
             // The selected occurrence may be an exception. Unchanged fields keep the series configuration.
             var templateRequest = ChangedRecurringRequest(request, baseline, new(series.StartDate, series.MerchantExternalId,
                 series.SubcategoryExternalId, series.AccountExternalId, series.Amount, series.Details,
@@ -65,10 +73,15 @@ internal sealed partial class EntryCatalog
             { Date = request.Date, Month = selectedTemplate.Month };
             var prepared = await PrepareAsync(templateRequest, cancellationToken, selected);
             if (prepared.Entry is not { } template) { return new(null, prepared.Error); }
-            var suggestion = await calendar.CalculateAsync(request.Date, template.CardExternalId, cancellationToken);
-            if (suggestion.Month is not { } calculated) { return new(null, suggestion.Error); }
-            var offset = monthShift == 0 && !dateChanged && request.CardExternalId == baseline.CardExternalId
-                ? series.AccountingMonthOffset : MonthIndex(template.Month.FirstDay) - MonthIndex(calculated.FirstDay);
+            var originalDate = OccurrenceDate(period.AddMonths(series.DateMonthOffset), series.Day);
+            var changedDate = OccurrenceDate(period.AddMonths(dateOffset), day);
+            var originalCalendar = await calendar.CalculateAsync(originalDate, series.CardExternalId, cancellationToken);
+            var changedCalendar = await calendar.CalculateAsync(changedDate, template.CardExternalId, cancellationToken);
+            if (originalCalendar.Month is not { } originalMonth || changedCalendar.Month is not { } changedMonth)
+            {
+                return new(null, originalCalendar.Error ?? changedCalendar.Error);
+            }
+            var offset = series.AccountingMonthOffset + monthShift - (MonthIndex(changedMonth.FirstDay) - MonthIndex(originalMonth.FirstDay));
             if (scope == RecurringChangeScope.ThisAndFollowing)
             {
                 var firstDate = OccurrenceDate(period, day);
@@ -79,19 +92,20 @@ internal sealed partial class EntryCatalog
                 if (template.CardExternalId is { } card) { prototype.SetCard(card, template.CardLastDigitsExternalId); }
                 following = RecurringEntry.Create(prototype, series.EndMonth);
                 if (following is null) { return new(null, "A ocorrência está após o término da série."); }
-                following.Configure(template, day, offset);
+                following.Configure(template, day, offset, dateOffset);
                 foreach (var excluded in series.ExcludedMonths.Where(x => x >= period)) { following.Exclude(excluded); }
                 series.StopBefore(period);
             }
-            else { series.Configure(template, day, offset); }
+            else { series.Configure(template, day, offset, dateOffset); }
         }
         foreach (var entry in affected)
         {
             var index = MonthIndex(entry.Month.FirstDay) + monthShift;
-            if (index is < 0 or >= 119988) { return new(null, "A alteração ultrapassa o calendário suportado."); }
+            var dateIndex = MonthIndex(entry.Date) + dateShift;
+            if (index is < 0 or >= 119988 || dateIndex is < 0 or >= 119988) { return new(null, "A alteração ultrapassa o calendário suportado."); }
             var changed = scope == RecurringChangeScope.OnlyThis ? request : ChangedRecurringRequest(request, baseline, ToRequest(entry)) with
             {
-                Date = dateChanged ? entry.ExternalId == externalId ? request.Date : OccurrenceDate(entry.OccurrenceMonth!.Value, day) : entry.Date,
+                Date = dateChanged ? entry.ExternalId == externalId ? request.Date : OccurrenceDate(new DateOnly(dateIndex / 12 + 1, dateIndex % 12 + 1, 1), day) : entry.Date,
                 Month = new AccountingMonth(index / 12 + 1, index % 12 + 1)
             };
             var prepared = await PrepareAsync(changed, cancellationToken, entry);
