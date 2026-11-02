@@ -1,3 +1,97 @@
 @page "/configuracoes"
+@using Ags.Finance.Web.Hosting
+@inject ServerCertificate ServerCertificate
 
 <PageHeader Title="Configurações" />
+
+<section class="panel" aria-labelledby="certificate-title">
+    <h2 id="certificate-title">Certificado HTTPS</h2>
+
+    @if (_info is null)
+    {
+        <p class="expense">Não foi possível carregar o certificado: @_error</p>
+    }
+    else
+    {
+        <p>
+            @(_info.IsSelfSigned
+                ? "Certificado autoassinado gerado por esta instalação."
+                : "Certificado próprio configurado em appsettings.json.")
+            Válido até @_info.ExpiresAt.ToString("dd/MM/yyyy").
+        </p>
+
+        <dl class="facts">
+            <dt>Impressão digital (SHA-256)</dt>
+            <dd class="fingerprint" data-testid="fingerprint">@_info.Fingerprint</dd>
+
+            <dt>Nomes e endereços</dt>
+            <dd>@string.Join(", ", _info.Names)</dd>
+
+            @if (_info.PublicCertificatePath is not null)
+            {
+                <dt>Arquivo para instalar nos dispositivos</dt>
+                <dd class="fingerprint">@_info.PublicCertificatePath</dd>
+            }
+        </dl>
+
+        <p>
+            Para o navegador deixar de avisar sobre o certificado, instale o arquivo acima como confiável em cada
+            dispositivo. Ao instalar, confira se a impressão digital é a mesma mostrada aqui. Se o IP do computador
+            mudar, o certificado é gerado de novo na próxima reinicialização do serviço e precisa ser instalado outra vez.
+        </p>
+
+        <details>
+            <summary>Windows</summary>
+            <ol>
+                <li>Copie o arquivo <strong>ags-finance.crt</strong> para o computador.</li>
+                <li>Dê dois cliques, escolha <strong>Instalar Certificado</strong> e <strong>Computador Local</strong>.</li>
+                <li>Selecione <strong>Colocar todos os certificados no repositório a seguir</strong> e escolha <strong>Autoridades de Certificação Raiz Confiáveis</strong>.</li>
+                <li>Conclua e reinicie o navegador.</li>
+            </ol>
+        </details>
+
+        <details>
+            <summary>Linux</summary>
+            <ol>
+                <li>Copie <strong>ags-finance.crt</strong> para <code>/usr/local/share/ca-certificates/</code> (Debian e Ubuntu) e execute <code>sudo update-ca-certificates</code>.</li>
+                <li>No Fedora, use <code>/etc/pki/ca-trust/source/anchors/</code> e <code>sudo update-ca-trust</code>.</li>
+                <li>O Firefox usa repositório próprio: em Configurações, Privacidade e segurança, Certificados, Importar.</li>
+            </ol>
+        </details>
+
+        <details>
+            <summary>Android</summary>
+            <ol>
+                <li>Envie <strong>ags-finance.crt</strong> para o celular.</li>
+                <li>Abra Configurações, Segurança e privacidade, Mais configurações de segurança, Criptografia e credenciais, <strong>Instalar um certificado</strong>, <strong>Certificado de CA</strong>. Os nomes variam conforme o fabricante.</li>
+                <li>Escolha o arquivo e confirme o aviso. Reinicie o navegador.</li>
+            </ol>
+        </details>
+
+        <details>
+            <summary>iPhone</summary>
+            <ol>
+                <li>Envie <strong>ags-finance.crt</strong> para o iPhone (AirDrop ou Arquivos) e abra-o.</li>
+                <li>Em Ajustes, toque em <strong>Perfil Baixado</strong> e em <strong>Instalar</strong>.</li>
+                <li>Em Ajustes, Geral, Sobre, <strong>Ajustes de Confiança de Certificado</strong>, ative a confiança total para o certificado.</li>
+            </ol>
+        </details>
+    }
+</section>
+
+@code {
+    private ServerCertificateInfo? _info;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            _info = ServerCertificate.Info;
+        }
+        catch (Exception exception) when (exception is IOException or System.Security.Cryptography.CryptographicException)
+        {
+            _error = exception.Message;
+        }
+    }
+}
