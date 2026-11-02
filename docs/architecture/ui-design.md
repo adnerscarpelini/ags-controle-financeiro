@@ -2,7 +2,7 @@
 
 ## Decisão
 
-Visual moderno e limpo, com **tema escuro como padrão** e um **verde "dinheiro"** como cor principal. A base é o `FluentTheme` do Avalonia com `RequestedThemeVariant="Dark"`. Todas as cores vêm de tokens num `ResourceDictionary` central.
+Visual moderno e limpo, com **tema escuro como padrão** e um **verde "dinheiro"** como cor principal, em Blazor. Todas as cores vêm de tokens declarados como variáveis CSS num único arquivo (`--color-accent`, `--color-background`…). A interface é responsiva (computador e celular) e instalável como PWA.
 
 ## Paleta
 
@@ -24,7 +24,9 @@ Cores de banco, só no texto: Itaú `#FB923C`, Nubank `#A78BFA`, Bradesco `#F871
 
 ## Regras
 
-- Fonte Inter, embarcada no app. Valores com dígitos tabulares e alinhados à direita.
+- Fonte Inter servida pela própria aplicação; nada é carregado de CDN.
+- Abaixo de 768 px de largura, o menu lateral vira uma gaveta e o conteúdo ocupa a tela inteira. Alvos de toque com pelo menos 44 px.
+- Gráficos com uma biblioteca web escolhida na issue que os introduz, usando as mesmas cores. Valores com dígitos tabulares e alinhados à direita.
 - Cultura `pt-BR`: `R$ 1.234,56` e `dd/MM/yyyy`.
 - Cantos arredondados de 8, espaçamento em múltiplos de 4, sem sombras pesadas nem gradientes.
 - Cor nunca é o único sinal: valores negativos também levam o sinal de menos.
