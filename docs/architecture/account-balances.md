@@ -11,7 +11,7 @@ com zero e referência de hoje. Contas anteriores à migration mantêm zero sem
 referência até sua configuração, preservando os dados existentes.
 
 A abertura registrada é preservada ao editar o cadastro; correções de saldo
-serão operações rastreáveis da #48, sem substituir a abertura.
+usam operações rastreáveis da #48, sem substituir a abertura.
 
 ## Integração de caixa implementada na #11
 
@@ -39,3 +39,10 @@ despesas. IEntryCatalog soma também esses movimentos no saldo efetivo, com a me
 regra de data e referência de abertura. Não há segundo cálculo nem saldo gravado
 em Accounts. Isso permite preservar o patrimônio entre contas e manter os totais
 do orçamento sem duplicidade. Ambos os lados usam a mesma operação financeira.
+
+## Ajustes rastreáveis (#48)
+
+Ajustar saldo calcula a diferença pelo mesmo IEntryCatalog, dentro da transação.
+AccountMovement conserva o saldo-alvo e a diferença, sem alterar a abertura.
+A configuração de prévia permite rejeitar um saldo que mudou antes da confirmação.
+O histórico de ajustes é preservado; correções são novos movimentos.

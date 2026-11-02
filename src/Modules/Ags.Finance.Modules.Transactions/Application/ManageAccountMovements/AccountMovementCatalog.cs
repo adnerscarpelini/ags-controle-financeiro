@@ -2,9 +2,9 @@ using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.Modules.Transactions.Domain;
 
-namespace Ags.Finance.Modules.Transactions.Application.TransferAccounts;
+namespace Ags.Finance.Modules.Transactions.Application.ManageAccountMovements;
 
-internal sealed class AccountMovementCatalog(IAccountMovementStore store, IAccountCatalog accounts, IFinancialOperation operations) : IAccountMovementCatalog
+internal sealed partial class AccountMovementCatalog(IAccountMovementStore store, IAccountCatalog accounts, IEntryCatalog entries, IFinancialOperation operations) : IAccountMovementCatalog
 {
     public Task<ClassificationResult> TransferAsync(TransferRequest request, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(async token =>
@@ -32,5 +32,5 @@ internal sealed class AccountMovementCatalog(IAccountMovementStore store, IAccou
         => operations.ExecuteAsync<IReadOnlyList<AccountMovementDetails>>(async token => (await store.GetAsync(token))
             .Where(x => accountExternalId is null || x.AccountExternalId == accountExternalId)
             .OrderByDescending(x => x.Date).ThenByDescending(x => x.Id)
-            .Select(x => new AccountMovementDetails(x.ExternalId, x.OperationExternalId, x.AccountExternalId, x.Date, x.Amount, (Contracts.AccountMovementKind)x.Kind, x.CreatedAt)).ToList(), _ => true, cancellationToken);
+            .Select(x => new AccountMovementDetails(x.ExternalId, x.OperationExternalId, x.AccountExternalId, x.Date, x.Amount, (Contracts.AccountMovementKind)x.Kind, x.CreatedAt, x.Kind == Domain.AccountMovementKind.BalanceAdjustment ? x.TargetBalance : null)).ToList(), _ => true, cancellationToken);
 }

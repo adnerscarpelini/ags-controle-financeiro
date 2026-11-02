@@ -23,6 +23,7 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.Property<Guid>("AccountExternalId").HasColumnType("uuid");
             b.Property<DateOnly>("Date").HasColumnType("date");
             b.Property<long>("Amount").HasColumnType("bigint");
+            b.Property<long>("TargetBalance").HasColumnType("bigint");
             b.Property<int>("Kind").HasColumnType("integer");
             b.HasKey("Id");
             b.HasIndex("ExternalId").IsUnique();
