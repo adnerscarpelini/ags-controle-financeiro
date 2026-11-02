@@ -21,5 +21,6 @@
     <Project Path="tests/Ags.Finance.Modules.Reimbursements.Tests/Ags.Finance.Modules.Reimbursements.Tests.csproj" />
     <Project Path="tests/Ags.Finance.Modules.Reports.Tests/Ags.Finance.Modules.Reports.Tests.csproj" />
     <Project Path="tests/Ags.Finance.Modules.Transactions.Tests/Ags.Finance.Modules.Transactions.Tests.csproj" />
+    <Project Path="tests/Ags.Finance.SharedKernel.Tests/Ags.Finance.SharedKernel.Tests.csproj" />
   </Folder>
 </Solution>
