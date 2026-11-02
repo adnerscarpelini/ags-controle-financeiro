@@ -1,5 +1,6 @@
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Accounts.Contracts;
+using Ags.Finance.Modules.Invoices;
 using Ags.Finance.Modules.Transactions;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
@@ -17,9 +18,10 @@ public sealed class TransactionPageTests
     {
         await using var database = await PostgresTestDatabase.CreateAsync();
         await using var context = new BunitContext();
-        context.Services.AddAccountsModule(database.ConnectionString).AddTransactionsModule(database.ConnectionString);
+        context.Services.AddSingleton<TimeProvider>(new PreviewClock()).AddAccountsModule(database.ConnectionString).AddTransactionsModule(database.ConnectionString).AddInvoicesModule(database.ConnectionString);
         await context.Services.MigrateAccountsModuleAsync();
         await context.Services.MigrateTransactionsModuleAsync();
+        await context.Services.MigrateInvoicesModuleAsync();
         var accounts = context.Services.GetRequiredService<IAccountCatalog>();
         var bank = await accounts.CreateBankAsync("Banco Exemplo");
         var account = await accounts.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta Exemplo", AccountKind.Checking, "green"));
@@ -54,5 +56,15 @@ public sealed class TransactionPageTests
         Assert.Equal(card.ExternalId, purchase.CardExternalId);
         Assert.Equal(new DateOnly(2026, 10, 2), purchase.Date);
         Assert.Equal(new AccountingMonth(2026, 11), purchase.Month);
+        var invoices = context.Render<Ags.Finance.Web.Components.Pages.Invoices>();
+        invoices.WaitForAssertion(() => Assert.Single(invoices.FindAll(".catalog-list li")));
+        invoices.Find(".catalog-list button").Click();
+        Assert.Contains("Loja Exemplo", invoices.Find("[aria-label='Composição da fatura']").TextContent, StringComparison.Ordinal);
+        Assert.Single(invoices.FindAll("[aria-label='Composição da fatura'] li"));
+    }
+
+    private sealed class PreviewClock : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => new(2026, 9, 1, 12, 0, 0, TimeSpan.Zero);
     }
 }

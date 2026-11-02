@@ -1,3 +1,5 @@
+using Ags.Finance.Modules.Invoices.Application.QueryInvoices;
+using Ags.Finance.Modules.Invoices.Contracts;
 using Ags.Finance.Modules.Invoices.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -19,6 +21,7 @@ public static class DependencyInjection
             .ConfigureWarnings(warnings => warnings.Ignore(CoreEventId.NoEntityTypeConfigurationsWarning))
             .AddInterceptors(provider.GetRequiredService<AuditTimestampsInterceptor>()));
 
+        services.AddScoped<IInvoiceCatalog, InvoiceCatalog>();
         return services;
     }
 

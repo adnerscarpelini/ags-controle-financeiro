@@ -1,3 +1,41 @@
 @page "/faturas"
+@using Ags.Finance.Modules.Invoices.Contracts
+@using Ags.Finance.SharedKernel
+@inject IInvoiceCatalog Catalog
 
 <PageHeader Title="Faturas" />
+<section class="panel">
+    <h2>Por cartão e mês contábil</h2>
+    @if (_invoices.Count == 0) { <p>Nenhuma fatura registrada.</p> }
+    <ul class="catalog-list">
+        @foreach (var invoice in _invoices)
+        {
+            <li><span>@invoice.CardName · @invoice.Month</span><span class="numeric">@invoice.Total</span>
+                <button class="button" @onclick="() => Select(invoice)">Ver composição</button>
+            </li>
+        }
+    </ul>
+</section>
+@if (_invoices.FirstOrDefault(x => x.CardExternalId == _selectedCard && x.Month == _selectedMonth) is { } selected)
+{
+    <section class="panel" aria-label="Composição da fatura">
+        <h2>@selected.CardName · @selected.Month</h2>
+        <ul class="catalog-list">
+            @foreach (var entry in selected.Entries)
+            {
+                <li><span>@entry.Date.ToString("dd/MM/yyyy") · @entry.MerchantName · @entry.Classification</span>
+                    <span class="numeric entry-expense">@entry.Amount</span><span>@entry.Details</span>
+                </li>
+            }
+        </ul>
+        <p>Total: <span class="numeric">@selected.Total</span></p>
+    </section>
+}
+
+@code {
+    private IReadOnlyList<InvoiceDetails> _invoices = [];
+    private Guid? _selectedCard;
+    private AccountingMonth? _selectedMonth;
+    protected override async Task OnInitializedAsync() => _invoices = await Catalog.GetAsync();
+    private void Select(InvoiceDetails invoice) { _selectedCard = invoice.CardExternalId; _selectedMonth = invoice.Month; }
+}
