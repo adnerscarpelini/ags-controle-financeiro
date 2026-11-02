@@ -21,7 +21,7 @@ public sealed class MigrationTests : IDisposable
 
         Assert.True(File.Exists(Path.Combine(_directory, "finance.db")));
         Assert.Contains(HistoryTable, await QueryAsync(connectionString, "SELECT name FROM sqlite_master WHERE type = 'table'"));
-        Assert.Equal(2, (await QueryAsync(connectionString, $"SELECT MigrationId FROM {HistoryTable}")).Count);
+        Assert.Equal(3, (await QueryAsync(connectionString, $"SELECT MigrationId FROM {HistoryTable}")).Count);
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public sealed class MigrationTests : IDisposable
         await provider.MigrateAccountsModuleAsync();
         await provider.MigrateAccountsModuleAsync();
 
-        Assert.Equal(2, (await QueryAsync(connectionString, $"SELECT MigrationId FROM {HistoryTable}")).Count);
+        Assert.Equal(3, (await QueryAsync(connectionString, $"SELECT MigrationId FROM {HistoryTable}")).Count);
     }
 
     /// <summary>A tabela de lock é interna do EF Core e compartilhada por todos os módulos; as demais seguem o prefixo.</summary>

@@ -1,0 +1,140 @@
+@using Ags.Finance.Modules.Accounts.Contracts
+@inject ICardLastDigitsCatalog Catalog
+
+<section class="panel">
+    <h2>Finais de @CardName</h2>
+    @if (_message is not null)
+    {
+        <p role="status" class="@(_failed ? "form-error" : "form-success")">@_message</p>
+    }
+    @if (_pendingId is not null)
+    {
+        <div class="notice" role="alertdialog" aria-label="Desativar final">
+            <p>Desativar em vez de excluir preserva os lançamentos existentes. O final deixará de aparecer nas seleções.</p>
+            <button class="button" @onclick="ConfirmDeactivationAsync">Desativar final</button>
+            <button class="button" @onclick="() => _pendingId = null">Cancelar</button>
+        </div>
+    }
+    <form @onsubmit="SaveAsync" @onsubmit:preventDefault>
+        <div class="catalog-fields">
+            <div class="field">
+                <label for="card-digits">Final (4 dígitos)</label>
+                <input id="card-digits" @bind="_digits" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" required />
+            </div>
+            <div class="field">
+                <label for="digits-usage">Tipo de uso</label>
+                <select id="digits-usage" @bind="_usage">
+                    <option value="@CardUsage.Own">Próprio</option>
+                    <option value="@CardUsage.Shared">Compartilhado</option>
+                    <option value="@CardUsage.Subscription">Assinatura</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="digits-label">Rótulo</label>
+                <input id="digits-label" @bind="_label" />
+            </div>
+        </div>
+        <button class="button" type="submit" disabled="@_busy">Salvar final</button>
+        <button class="button" type="button" @onclick="Reset">Limpar</button>
+    </form>
+    <ul class="catalog-list">
+        @foreach (var digits in _items)
+        {
+            <li>
+                <span>@digits.Digits · @UsageLabel(digits.Usage) · @digits.Label · @(digits.IsActive ? "Ativo" : "Desativado")</span>
+                <div>
+                    <button class="button" @onclick="() => Edit(digits)">Editar final</button>
+                    @if (digits.IsActive)
+                    {
+                        <button class="button" @onclick="() => _pendingId = digits.ExternalId">Excluir / desativar final</button>
+                    }
+                </div>
+            </li>
+        }
+    </ul>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public Guid CardExternalId { get; set; }
+    [Parameter, EditorRequired] public string CardName { get; set; } = string.Empty;
+    private IReadOnlyList<CardLastDigitsDetails> _items = [];
+    private Guid? _id;
+    private string _digits = string.Empty;
+    private CardUsage _usage;
+    private string _label = string.Empty;
+    private string? _message;
+    private bool _failed;
+    private bool _busy;
+    private Guid? _pendingId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Reset();
+        _pendingId = null;
+        _message = null;
+        await RefreshAsync();
+    }
+
+    private async Task RefreshAsync() => _items = await Catalog.GetAsync(CardExternalId, activeOnly: false);
+
+    private async Task SaveAsync()
+    {
+        if (_busy)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            var result = await Catalog.SaveAsync(new(_id, CardExternalId, _digits, _usage, _label));
+            _failed = !result.Succeeded;
+            _message = result.Error ?? "Final salvo.";
+            if (result.Succeeded)
+            {
+                Reset();
+                await RefreshAsync();
+            }
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Edit(CardLastDigitsDetails digits)
+    {
+        _id = digits.ExternalId;
+        _digits = digits.Digits;
+        _usage = digits.Usage;
+        _label = digits.Label;
+    }
+
+    private void Reset()
+    {
+        _id = null;
+        _digits = string.Empty;
+        _usage = CardUsage.Own;
+        _label = string.Empty;
+    }
+
+    private async Task ConfirmDeactivationAsync()
+    {
+        if (_pendingId is not Guid id)
+        {
+            return;
+        }
+        var result = await Catalog.DeactivateAsync(id);
+        _failed = !result.Succeeded;
+        _message = result.Error ?? "Final desativado.";
+        _pendingId = null;
+        await RefreshAsync();
+    }
+
+    private static string UsageLabel(CardUsage usage) => usage switch
+    {
+        CardUsage.Own => "Próprio",
+        CardUsage.Shared => "Compartilhado",
+        CardUsage.Subscription => "Assinatura",
+        _ => string.Empty
+    };
+}

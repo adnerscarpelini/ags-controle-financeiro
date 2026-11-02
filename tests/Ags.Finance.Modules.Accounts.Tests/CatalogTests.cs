@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Ags.Finance.Modules.Accounts.Tests;
 
-public sealed class CatalogTests : IAsyncLifetime
+public sealed partial class CatalogTests : IAsyncLifetime
 {
     private readonly string _directory = Directory.CreateTempSubdirectory("ags-accounts-tests-").FullName;
     private ServiceProvider? _provider;
