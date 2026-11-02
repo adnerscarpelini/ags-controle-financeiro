@@ -4,7 +4,7 @@
 
 A aplicação é um **monólito modular**. Um único host web (`Ags.Finance.Web`, ASP.NET Core + Blazor) compõe módulos independentes, e cada módulo é uma class library organizada em Clean Architecture.
 
-**Estado:** aprovado. Os projetos ainda não foram criados.
+**Estado:** aprovado. O esqueleto dos projetos está criado (issue #1); as pastas de cada módulo contêm apenas `DependencyInjection.cs` e `.gitkeep`.
 
 ## Módulos
 
@@ -18,7 +18,7 @@ A aplicação é um **monólito modular**. Um único host web (`Ags.Finance.Web`
 | Reports | `Ags.Finance.Modules.Reports` | Dashboard e análises, somente leitura | todos |
 | Imports | `Ags.Finance.Modules.Imports` | Importação da planilha; depois, OFX e PDF de faturas | todos |
 
-As dependências apontam sempre na direção da tabela, sem ciclos. Uma dependência nova precisa ser registrada aqui.
+As dependências apontam sempre na direção da tabela, sem ciclos. `Reports` e `Imports` consomem os cinco módulos de negócio (`Identity`, `Accounts`, `Transactions`, `Invoices`, `Reimbursements`), mas não um ao outro, para evitar ciclo. Uma dependência nova precisa ser registrada aqui.
 
 ## Camadas dentro de cada módulo
 

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Ags.Finance.SharedKernel\Ags.Finance.SharedKernel.csproj" />
+    <ProjectReference Include="..\Ags.Finance.Modules.Accounts\Ags.Finance.Modules.Accounts.csproj" />
+    <ProjectReference Include="..\Ags.Finance.Modules.Transactions\Ags.Finance.Modules.Transactions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ags.Finance.Modules.Invoices.Tests" />
+    <InternalsVisibleTo Include="Ags.Finance.ArchitectureTests" />
+  </ItemGroup>
+
+</Project>

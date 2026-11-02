@@ -28,13 +28,14 @@ Detalhes em [`docs/architecture`](docs/architecture/module-structure.md).
 
 ## Como executar
 
-> A solução ainda está sendo criada. Os comandos abaixo passam a valer a partir da primeira entrega.
-
 ```bash
 dotnet build Ags.Finance.slnx
 dotnet test Ags.Finance.slnx
+dotnet format Ags.Finance.slnx --verify-no-changes
 dotnet run --project src/Ags.Finance.Web
 ```
+
+A aplicação sobe em `http://localhost:5280` (porta configurável em `src/Ags.Finance.Web/appsettings.json`).
 
 Requer o SDK do .NET 10. A instalação como serviço (Windows e Linux) e a criação do usuário ficam documentadas em [`docs/architecture/web-hosting.md`](docs/architecture/web-hosting.md).
 
