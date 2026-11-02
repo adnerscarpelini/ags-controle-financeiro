@@ -1,3 +1,6 @@
+using Ags.Finance.Modules.Transactions.Application;
+using Ags.Finance.Modules.Transactions.Application.ManageClassifications;
+using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.Modules.Transactions.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -14,11 +17,13 @@ public static class DependencyInjection
 
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<AuditTimestampsInterceptor>();
-        services.AddDbContext<TransactionsDbContext>((provider, options) => options
+        services.AddDbContextFactory<TransactionsDbContext>((provider, options) => options
             .UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable(TransactionsDbContext.MigrationsHistoryTable, TransactionsDbContext.Schema))
             .ConfigureWarnings(warnings => warnings.Ignore(CoreEventId.NoEntityTypeConfigurationsWarning))
             .AddInterceptors(provider.GetRequiredService<AuditTimestampsInterceptor>()));
 
+        services.AddScoped<IClassificationStore, ClassificationStore>();
+        services.AddScoped<IClassificationCatalog, ClassificationCatalog>();
         return services;
     }
 

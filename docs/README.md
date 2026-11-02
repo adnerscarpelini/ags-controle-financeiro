@@ -1,5 +1,7 @@
 # Documentação
 
+- [Categorias e subcategorias (#9)](transactions/classifications.md)
+
 Esta pasta registra comportamento implementado e decisões de arquitetura.
 Requisitos, critérios de aceite e dúvidas permanecem nas issues.
 **Decisão aprovada não significa implementação concluída:** cada nota indica seu estado.
