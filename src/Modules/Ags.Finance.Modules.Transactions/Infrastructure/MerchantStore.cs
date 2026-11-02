@@ -54,6 +54,11 @@ internal sealed class MerchantStore(IDbContextFactory<TransactionsDbContext> fac
         {
             return "Selecione a descrição de origem e uma descrição ativa para manter.";
         }
+        var entries = await context.Set<TransactionEntry>().Where(x => x.MerchantExternalId == sourceExternalId).ToListAsync(cancellationToken);
+        foreach (var entry in entries)
+        {
+            entry.ReplaceMerchant(targetExternalId);
+        }
         context.Remove(source);
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);

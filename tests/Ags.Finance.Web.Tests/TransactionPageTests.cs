@@ -1,0 +1,45 @@
+using Ags.Finance.Modules.Accounts;
+using Ags.Finance.Modules.Accounts.Contracts;
+using Ags.Finance.Modules.Transactions;
+using Ags.Finance.Modules.Transactions.Contracts;
+using Ags.Finance.SharedKernel;
+using Ags.Finance.Tests.Support;
+using Ags.Finance.Web.Components.Pages;
+using Bunit;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Ags.Finance.Web.Tests;
+
+public sealed class TransactionPageTests
+{
+    [Fact]
+    public async Task QuickEntryUsesMerchantDefaultPersistsManualMonthAndKeepsDateForNextEntry()
+    {
+        await using var database = await PostgresTestDatabase.CreateAsync();
+        await using var context = new BunitContext();
+        context.Services.AddAccountsModule(database.ConnectionString).AddTransactionsModule(database.ConnectionString);
+        await context.Services.MigrateAccountsModuleAsync();
+        await context.Services.MigrateTransactionsModuleAsync();
+        var accounts = context.Services.GetRequiredService<IAccountCatalog>();
+        var bank = await accounts.CreateBankAsync("Banco Exemplo");
+        var account = await accounts.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta Exemplo", AccountKind.Checking, "green"));
+        var classifications = context.Services.GetRequiredService<IClassificationCatalog>();
+        var category = await classifications.SaveCategoryAsync(null, "Mercado", CategoryKind.Expense);
+        var subcategory = await classifications.SaveSubcategoryAsync(null, category.ExternalId!.Value, "Feira");
+        await context.Services.GetRequiredService<IMerchantCatalog>().SaveAsync(null, "Loja Exemplo", subcategory.ExternalId);
+        var page = context.Render<Transactions>();
+        page.WaitForAssertion(() => Assert.Contains("Feira", page.Find("#entry-subcategory").TextContent, StringComparison.Ordinal));
+        await page.Find("#entry-date").ChangeAsync("2026-10-05");
+        await page.Find("#entry-merchant").InputAsync("Loja Exemplo");
+        Assert.Equal(subcategory.ExternalId!.Value.ToString(), page.Find("#entry-subcategory").GetAttribute("value"));
+        page.Find("#entry-account").Change(account.ExternalId!.Value.ToString());
+        page.Find("#entry-amount").Change("150");
+        page.Find("#entry-month").Change("2026-11");
+        await page.Find("form").SubmitAsync(EventArgs.Empty);
+        var entry = Assert.Single(await context.Services.GetRequiredService<IEntryCatalog>().GetAsync());
+        Assert.Equal(new Money(-150), entry.Amount);
+        Assert.Equal(new AccountingMonth(2026, 11), entry.Month);
+        Assert.Equal("2026-10-05", page.Find("#entry-date").GetAttribute("value"));
+        Assert.Equal(string.Empty, page.Find("#entry-merchant").GetAttribute("value"));
+    }
+}

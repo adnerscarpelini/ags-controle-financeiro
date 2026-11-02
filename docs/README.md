@@ -1,5 +1,7 @@
 # Documentação
 
+- [Receitas e despesas avulsas (#11)](transactions/cash-entries.md)
+
 - [Saldo inicial e responsabilidade pelo saldo (#47)](architecture/account-balances.md)
 
 - [Categorias e subcategorias (#9)](transactions/classifications.md)

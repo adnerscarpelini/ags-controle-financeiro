@@ -1,4 +1,5 @@
 using Ags.Finance.Modules.Transactions.Application;
+using Ags.Finance.Modules.Transactions.Application.CreateEntry;
 using Ags.Finance.Modules.Transactions.Application.ManageClassifications;
 using Ags.Finance.Modules.Transactions.Application.ManageMerchants;
 using Ags.Finance.Modules.Transactions.Contracts;
@@ -27,6 +28,8 @@ public static class DependencyInjection
         services.AddScoped<IClassificationCatalog, ClassificationCatalog>();
         services.AddScoped<IMerchantStore, MerchantStore>();
         services.AddScoped<IMerchantCatalog, MerchantCatalog>();
+        services.AddScoped<IEntryStore, EntryStore>();
+        services.AddScoped<IEntryCatalog, EntryCatalog>();
         return services;
     }
 

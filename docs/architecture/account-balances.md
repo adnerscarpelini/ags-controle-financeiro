@@ -13,14 +13,15 @@ referência até sua configuração, preservando os dados existentes.
 A abertura registrada é preservada ao editar o cadastro; correções de saldo
 serão operações rastreáveis da #48, sem substituir a abertura.
 
-## Integração aprovada, a entregar nas próximas issues
+## Integração de caixa implementada na #11
 
 Transactions já pode consumir Contracts de Accounts. O cálculo de saldo efetivo
-usará a abertura e somente movimentos efetivados a partir da referência, inclusive
+usa a abertura e somente movimentos efetivados a partir da referência, inclusive
 o próprio dia. Movimentos anteriores continuam no histórico e no orçamento, mas
-não serão somados novamente ao saldo de abertura (#11/#56). Antes da referência,
-a abertura ainda não compõe o saldo consultado. Não haverá dependência inversa,
+não são somados novamente ao saldo de abertura (#11). Antes da referência,
+a abertura ainda não compõe o saldo consultado. Não há dependência inversa,
 FK ou consulta cruzada de tabelas, nem saldo mutável duplicado em Accounts.
+Ocorrências pendentes e baixa manual continuam previstas na #56.
 
 Alternativa descartada: registrar uma receita inicial confundiria patrimônio
 prévio e receitas do período. Consequência: consultas de caixa devem consumir
