@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Identity;
 using Ags.Finance.Modules.Imports;
@@ -31,13 +32,19 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseWindowsService(options => options.ServiceName = HostingSettings.WindowsServiceName);
 builder.Host.UseSystemd();
 
-var hosting = HostingSettings.FromConfiguration(builder.Configuration);
-builder.WebHost.ConfigureKestrel(kestrel => kestrel.ListenAnyIP(hosting.Port));
-
 var dataDirectory = DataDirectoryResolver.Resolve(
     builder.Configuration["DataDirectory"],
     DataDirectoryResolver.IsRunningAsService(),
     OperatingSystem.IsWindows());
+var hosting = HostingSettings.FromConfiguration(builder.Configuration);
+var serverCertificate = new ServerCertificate(
+    HttpsSettings.FromConfiguration(builder.Configuration),
+    dataDirectory,
+    TimeProvider.System);
+builder.Services.AddSingleton(serverCertificate);
+builder.WebHost.ConfigureKestrel(kestrel =>
+    kestrel.ListenAnyIP(hosting.Port, listen => HttpsEndpoint.Configure(listen, () => serverCertificate.Certificate)));
+
 var connectionString = DatabaseStartup.PrepareConnectionString(dataDirectory);
 
 builder.Services
@@ -73,9 +80,11 @@ app.MapRazorComponents<App>()
 // o host ao falhar, e o provedor do Event Log já não aceita mensagens nesse ponto.
 try
 {
+    // Gera ou valida o certificado agora, para um .pfx inválido falhar aqui, com log, e não na primeira conexão.
+    _ = serverCertificate.Certificate;
     await app.StartAsync();
 }
-catch (Exception exception) when (exception is IOException or InvalidOperationException)
+catch (Exception exception) when (exception is IOException or InvalidOperationException or CryptographicException)
 {
     StartupLog.StartFailed(app.Logger, exception, hosting.Port);
     return 1;
