@@ -104,6 +104,19 @@ public sealed class TransactionPageTests
         Assert.Empty(page.FindAll(".catalog-list li"));
         await page.FindAll("#entry-filters button").Single(x => x.TextContent == "Limpar filtros").ClickAsync(new());
         Assert.Equal(3, page.FindAll(".catalog-list li").Count);
+        await page.Find("#entry-card").ChangeAsync(Guid.Empty.ToString());
+        await page.Find("#entry-date").ChangeAsync("2026-09-10");
+        await page.Find("#entry-merchant").InputAsync("Loja Exemplo");
+        page.Find("#entry-amount").Change("50");
+        page.Find("#entry-repeat").Change(true);
+        page.Find("#entry-repeat-until").Change("2026-12");
+        await page.Find("form").SubmitAsync(EventArgs.Empty);
+        page.Find("#filter-month").Change("2026-10");
+        page.Find("#filter-effective").Change("false");
+        await page.Find("#entry-filters").SubmitAsync(EventArgs.Empty);
+        Assert.Single(page.FindAll(".catalog-list li"));
+        Assert.Contains("Recorrente", page.Find(".catalog-list").TextContent, StringComparison.Ordinal);
+        Assert.Contains("Pendente", page.Find(".catalog-list").TextContent, StringComparison.Ordinal);
     }
 
     private sealed class PreviewClock : TimeProvider

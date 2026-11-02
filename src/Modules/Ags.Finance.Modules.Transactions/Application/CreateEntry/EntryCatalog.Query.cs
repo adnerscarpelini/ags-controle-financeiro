@@ -5,7 +5,7 @@ namespace Ags.Finance.Modules.Transactions.Application.CreateEntry;
 internal sealed partial class EntryCatalog
 {
     public Task<EntryQueryResult> QueryAsync(EntryFilter filter, CancellationToken cancellationToken = default)
-        => operations.ExecuteAsync(token => QueryCoreAsync(filter, token), _ => true, cancellationToken);
+        => operations.ExecuteAsync(token => QueryCoreAsync(filter, token), x => x.Error is null, cancellationToken);
 
     private async Task<EntryQueryResult> QueryCoreAsync(EntryFilter filter, CancellationToken cancellationToken)
     {
@@ -14,6 +14,8 @@ internal sealed partial class EntryCatalog
         {
             return new([], default, default, default, 0, 1, 100, "Informe filtros válidos, intervalo ordenado e página de 1 a 200 registros.");
         }
+        var generated = await GenerateRecurringAsync(filter, cancellationToken);
+        if (!generated.Succeeded) { return new([], default, default, default, 0, 1, filter.PageSize, generated.Error); }
         var page = await store.QueryAsync(filter, cancellationToken);
         var described = await DescribeAsync(page.Entries, cancellationToken);
         return new(described, page.Income, page.Expenses, page.Income + page.Expenses, page.TotalCount, page.Page, filter.PageSize);

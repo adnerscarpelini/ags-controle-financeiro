@@ -14,8 +14,9 @@ A aplicação roda com **Docker Compose + PostgreSQL** ([#60](https://github.com
 O conceito central é o **mês contábil**, quando o valor pesa no orçamento. Cadastros de bancos,
 contas com saldo inicial, cartões/finais, categorias, descrições, calendário de compras,
 HTTPS e login estão implementados. Há lançamentos à vista e no cartão e consulta,
-fechamento e reabertura de faturas e compras parceladas. Recorrências com baixa manual,
-pagamentos, ajustes e reembolsos ainda têm entregas abertas nas issues.
+fechamento e reabertura de faturas, compras parceladas e séries mensais previstas.
+Edição de recorrências, baixa manual, pagamentos, ajustes e reembolsos ainda têm
+entregas abertas nas issues.
 
 Importação/exportação serão somente por **CSV no layout oficial do sistema**.
 Não há escopo de PDF, OFX, XLSX, layouts bancários ou migração da antiga planilha.

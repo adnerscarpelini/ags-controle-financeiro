@@ -102,6 +102,8 @@ internal sealed partial class EntryCatalog(IEntryStore store, IClassificationCat
 
     private async Task<IReadOnlyList<EntryDetails>> GetCoreAsync(CancellationToken cancellationToken)
     {
+        var generated = await GenerateRecurringAsync(new(), cancellationToken);
+        if (!generated.Succeeded) { throw new InvalidOperationException(generated.Error); }
         return await DescribeAsync(await store.GetAsync(cancellationToken), cancellationToken);
     }
 
@@ -116,7 +118,7 @@ internal sealed partial class EntryCatalog(IEntryStore store, IClassificationCat
             return new EntryDetails(x.ExternalId, x.Date, x.Month, x.MerchantExternalId, descriptions[x.MerchantExternalId].Name,
                 x.SubcategoryExternalId, subcategory.CategoryExternalId, subcategory.DisplayName, x.AccountExternalId, (Contracts.CategoryKind)x.Kind,
                 x.Amount, x.Details, x.IsEffective, x.EffectiveDate, x.EffectiveAt, x.CardExternalId, x.CardLastDigitsExternalId, x.InstallmentPurchaseExternalId, x.InstallmentNumber,
-                x.InstallmentPurchaseExternalId is { } purchaseId ? purchases[purchaseId].Count : null);
+                x.InstallmentPurchaseExternalId is { } purchaseId ? purchases[purchaseId].Count : null, x.RecurringEntryExternalId, x.OccurrenceMonth);
         }).ToList();
     }
 
