@@ -3,8 +3,9 @@
 ## Estado e contexto
 
 **Decisões aprovadas; implementações acompanhadas nas issues referenciadas.**
-O calendário de compras (#8) já está implementado. Lançamentos, recorrências, ciclo de faturas,
-pagamentos, ajustes, arquivamento reversível e visões financeiras ainda têm entregas abertas.
+O calendário de compras (#8), a abertura de contas (#47), lançamentos avulsos (#11/#12)
+e o ciclo de faturas (#18/#50) estão implementados. Recorrências, pagamentos, ajustes,
+arquivamento reversível e visões financeiras ainda têm entregas abertas.
 Esta nota registra as fronteiras entre conceitos; os critérios de aceite permanecem nas issues.
 
 ## Datas, orçamento e caixa
@@ -32,8 +33,10 @@ O seletor de mês contábil não desloca essa janela.
 
 - Situações exclusivas: **Aberta, Fechada e Paga** (#50). Pagamento parcial não cria outra situação.
 - Fechamento automático pelo dia configurado, com opção de fechamento manual (#50).
-  O horário de corte precisa respeitar o fuso de negócio e IncludesClosingDay; a issue deve
-  fechar esse detalhe antes de implementar o agendamento.
+  O corte usa meia-noite seguinte ao fechamento quando IncludesClosingDay=true, ou do próprio
+  dia quando false, no fuso de negócio. Limites de mês seguem a regra aprovada na
+  [implementação do ciclo](../invoices/lifecycle.md). A reabertura manual suprime novo
+  fechamento automático até o usuário fechar manualmente.
 - Compras em Fechada/Paga não podem ser editadas, excluídas ou movidas; novas compras também
   não entram nessas faturas por caminhos alternativos, como parcelas, recorrências ou CSV.
 - Reabrir é manual e só é permitido enquanto não existir pagamento confirmado.
@@ -75,5 +78,6 @@ Exportação é somente leitura. Recuperação de desastre pertence ao
 
 Invoices coordena suas operações consumindo Contracts permitidos de Accounts/Transactions.
 O bloqueio das alterações precisa funcionar nos casos de uso, não apenas no Blazor, sem criar
-ciclo Transactions → Invoices → Transactions. A solução técnica e a atomicidade devem ser
-registradas antes de implementar os casos que dependem delas.
+ciclo Transactions → Invoices → Transactions. A [operação financeira compartilhada](financial-operations.md)
+e o guard definido em Transactions implementam essa proteção na #50, com rollback entre
+DbContexts e conexões sequenciais na mesma transação PostgreSQL.

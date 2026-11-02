@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Npgsql;
 
 namespace Ags.Finance.Modules.Transactions;
 
@@ -18,9 +19,10 @@ public static class DependencyInjection
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
         services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton(_ => NpgsqlDataSource.Create(connectionString));
         services.AddSingleton<AuditTimestampsInterceptor>();
         services.AddDbContextFactory<TransactionsDbContext>((provider, options) => options
-            .UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable(TransactionsDbContext.MigrationsHistoryTable, TransactionsDbContext.Schema))
+            .UseNpgsql(provider.GetRequiredService<NpgsqlDataSource>(), npgsql => npgsql.MigrationsHistoryTable(TransactionsDbContext.MigrationsHistoryTable, TransactionsDbContext.Schema))
             .ConfigureWarnings(warnings => warnings.Ignore(CoreEventId.NoEntityTypeConfigurationsWarning))
             .AddInterceptors(provider.GetRequiredService<AuditTimestampsInterceptor>()));
 
@@ -30,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<IMerchantCatalog, MerchantCatalog>();
         services.AddScoped<IEntryStore, EntryStore>();
         services.AddScoped<IEntryCatalog, EntryCatalog>();
+        services.TryAddScoped<IInvoiceWriteGuard, OpenInvoiceWriteGuard>();
         return services;
     }
 

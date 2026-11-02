@@ -1,9 +1,38 @@
 @page "/faturas"
 @using Ags.Finance.Modules.Invoices.Contracts
 @using Ags.Finance.SharedKernel
+@using System.Globalization
+@using Ags.Finance.Modules.Accounts.Contracts
 @inject IInvoiceCatalog Catalog
+@inject IInvoiceLifecycle Lifecycle
+@inject IAccountCatalog Accounts
+@inject TimeProvider Clock
 
 <PageHeader Title="Faturas" />
+@if (_message is not null) { <p role="status">@_message</p> }
+@if (_pending is { } pending)
+{
+    <section class="panel" role="alertdialog" aria-label="Confirmar situação da fatura">
+        <h2>@(_reopen ? "Reabrir fatura" : "Fechar fatura")</h2>
+        <p>@pending.CardName · @pending.Month · Total @pending.Total</p>
+        <p>@(_reopen ? "A fatura ficará Aberta até novo fechamento manual. Pagamentos confirmados impedem a reabertura." : "Fechar protege as compras, sem registrar pagamento. Saldo zero ou crédito não marca a fatura como Paga.")</p>
+        <button class="button" @onclick="ConfirmAsync" disabled="@_busy">Confirmar</button>
+        <button class="button" @onclick="() => _pending = null" disabled="@_busy">Cancelar</button>
+    </section>
+}
+<section class="panel">
+    <h2>Fechar uma fatura</h2>
+    <form @onsubmit="AskManualClose" @onsubmit:preventDefault>
+        <div class="catalog-fields">
+            <div class="field"><label for="invoice-card">Cartão</label><select id="invoice-card" @bind="_cardId" required>
+                <option value="@Guid.Empty">Selecione</option>
+                @foreach (var card in _cards) { <option value="@card.ExternalId">@card.Name</option> }
+            </select></div>
+            <div class="field"><label for="invoice-month">Mês contábil</label><input id="invoice-month" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" required /></div>
+        </div>
+        <button class="button">Revisar fechamento</button>
+    </form>
+</section>
 <section class="panel">
     <h2>Por cartão e mês contábil</h2>
     @if (_invoices.Count == 0) { <p>Nenhuma fatura registrada.</p> }
@@ -11,7 +40,10 @@
         @foreach (var invoice in _invoices)
         {
             <li><span>@invoice.CardName · @invoice.Month</span><span class="numeric">@invoice.Total</span>
+                <span>@StatusLabel(invoice.Status)</span>
                 <button class="button" @onclick="() => Select(invoice)">Ver composição</button>
+                @if (invoice.Status == InvoiceStatus.Open) { <button class="button" @onclick="() => Ask(invoice, false)">Fechar</button> }
+                @if (invoice.Status == InvoiceStatus.Closed) { <button class="button" @onclick="() => Ask(invoice, true)">Reabrir</button> }
             </li>
         }
     </ul>
@@ -20,6 +52,7 @@
 {
     <section class="panel" aria-label="Composição da fatura">
         <h2>@selected.CardName · @selected.Month</h2>
+        <p>Situação: @StatusLabel(selected.Status)</p>
         <ul class="catalog-list">
             @foreach (var entry in selected.Entries)
             {
@@ -34,8 +67,45 @@
 
 @code {
     private IReadOnlyList<InvoiceDetails> _invoices = [];
+    private IReadOnlyList<CreditCardDetails> _cards = [];
+    private InvoiceDetails? _pending;
+    private bool _reopen;
+    private bool _busy;
+    private string? _message;
+    private Guid _cardId;
+    private string _month = string.Empty;
     private Guid? _selectedCard;
     private AccountingMonth? _selectedMonth;
-    protected override async Task OnInitializedAsync() => _invoices = await Catalog.GetAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        _month = Clock.GetLocalNow().ToString("yyyy-MM", CultureInfo.InvariantCulture);
+        _cards = await Accounts.GetCreditCardsAsync(false);
+        _invoices = await Catalog.GetAsync();
+    }
     private void Select(InvoiceDetails invoice) { _selectedCard = invoice.CardExternalId; _selectedMonth = invoice.Month; }
+    private void Ask(InvoiceDetails invoice, bool reopen) { _pending = invoice; _reopen = reopen; }
+    private void AskManualClose()
+    {
+        var card = _cards.FirstOrDefault(x => x.ExternalId == _cardId);
+        if (card is null || !DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        {
+            _message = "Selecione cartão e mês válidos."; return;
+        }
+        var month = AccountingMonth.FromDate(date);
+        Ask(_invoices.FirstOrDefault(x => x.CardExternalId == card.ExternalId && x.Month == month) ?? new(card.ExternalId, card.Name, month, Money.Zero, []), false);
+    }
+    private async Task ConfirmAsync()
+    {
+        if (_pending is not { } pending || _busy) { return; }
+        _busy = true;
+        try
+        {
+            var result = _reopen ? await Lifecycle.ReopenAsync(pending.CardExternalId, pending.Month) : await Lifecycle.CloseAsync(pending.CardExternalId, pending.Month);
+            _message = result.Error ?? "Situação atualizada.";
+            _pending = null;
+            _invoices = await Catalog.GetAsync();
+        }
+        finally { _busy = false; }
+    }
+    private static string StatusLabel(InvoiceStatus status) => status switch { InvoiceStatus.Closed => "Fechada", InvoiceStatus.Paid => "Paga", _ => "Aberta" };
 }

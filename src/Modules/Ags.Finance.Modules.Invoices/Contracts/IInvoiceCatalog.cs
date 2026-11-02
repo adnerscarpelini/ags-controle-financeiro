@@ -3,7 +3,7 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Invoices.Contracts;
 
-public sealed record InvoiceDetails(Guid CardExternalId, string CardName, AccountingMonth Month, Money Total, IReadOnlyList<EntryDetails> Entries);
+public sealed record InvoiceDetails(Guid CardExternalId, string CardName, AccountingMonth Month, Money Total, IReadOnlyList<EntryDetails> Entries, InvoiceStatus Status = InvoiceStatus.Open, Guid? ExternalId = null);
 
 public interface IInvoiceCatalog
 {

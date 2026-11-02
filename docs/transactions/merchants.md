@@ -12,4 +12,4 @@ concorrentes. Busca e sugestões usam a mesma normalização, por parte do nome.
 Excluir oferece desativação com confirmação para preservar histórico. Mesclar
 remove a origem e mantém a identidade do destino ativo numa transação. A mesclagem
 transfere as referências dos lançamentos na mesma transação (#11). A proteção
-das faturas será integrada na #50.
+da #50 rejeita integralmente uma mesclagem que alcance compras em fatura protegida.

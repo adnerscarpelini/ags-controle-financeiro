@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Npgsql;
 
 namespace Ags.Finance.Modules.Accounts;
 
@@ -18,9 +19,11 @@ public static class DependencyInjection
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
         services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton(_ => NpgsqlDataSource.Create(connectionString));
+        services.TryAddSingleton<IFinancialOperation, FinancialOperation>();
         services.AddSingleton<AuditTimestampsInterceptor>();
         services.AddDbContextFactory<AccountsDbContext>((provider, options) => options
-            .UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable(AccountsDbContext.MigrationsHistoryTable, AccountsDbContext.Schema))
+            .UseNpgsql(provider.GetRequiredService<NpgsqlDataSource>(), npgsql => npgsql.MigrationsHistoryTable(AccountsDbContext.MigrationsHistoryTable, AccountsDbContext.Schema))
             .ConfigureWarnings(warnings => warnings.Ignore(CoreEventId.NoEntityTypeConfigurationsWarning))
             .AddInterceptors(provider.GetRequiredService<AuditTimestampsInterceptor>()));
 

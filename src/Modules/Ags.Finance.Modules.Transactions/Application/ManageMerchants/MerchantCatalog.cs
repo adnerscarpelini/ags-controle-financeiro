@@ -1,9 +1,10 @@
+using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.Modules.Transactions.Domain;
 
 namespace Ags.Finance.Modules.Transactions.Application.ManageMerchants;
 
-internal sealed class MerchantCatalog(IMerchantStore store, IClassificationCatalog classifications) : IMerchantCatalog
+internal sealed class MerchantCatalog(IMerchantStore store, IClassificationCatalog classifications, IEntryStore entries, IInvoiceWriteGuard invoices, IFinancialOperation? operations = null) : IMerchantCatalog
 {
     public async Task<IReadOnlyList<MerchantDetails>> FindAsync(string search = "", bool activeOnly = true, CancellationToken cancellationToken = default)
     {
@@ -48,11 +49,22 @@ internal sealed class MerchantCatalog(IMerchantStore store, IClassificationCatal
         return await SaveAsync(merchant, cancellationToken);
     }
 
-    public async Task<ClassificationResult> MergeAsync(Guid sourceExternalId, Guid targetExternalId, CancellationToken cancellationToken = default)
+    public Task<ClassificationResult> MergeAsync(Guid sourceExternalId, Guid targetExternalId, CancellationToken cancellationToken = default)
+        => operations is null ? MergeCoreAsync(sourceExternalId, targetExternalId, cancellationToken)
+            : operations.ExecuteAsync(token => MergeCoreAsync(sourceExternalId, targetExternalId, token), x => x.Succeeded, cancellationToken);
+
+    private async Task<ClassificationResult> MergeCoreAsync(Guid sourceExternalId, Guid targetExternalId, CancellationToken cancellationToken)
     {
         if (sourceExternalId == targetExternalId)
         {
             return new(null, "Escolha duas descrições diferentes.");
+        }
+        var affected = (await entries.GetAsync(cancellationToken)).Where(x => x.MerchantExternalId == sourceExternalId && x.CardExternalId is not null)
+            .Select(x => (Card: x.CardExternalId!.Value, x.Month)).Distinct();
+        foreach (var invoice in affected)
+        {
+            var conflict = await invoices.RequireOpenAsync(invoice.Card, invoice.Month, cancellationToken);
+            if (conflict is not null) { return new(null, conflict); }
         }
         var error = await store.MergeAsync(sourceExternalId, targetExternalId, cancellationToken);
         return new(error is null ? targetExternalId : null, error);
