@@ -1,6 +1,6 @@
 # Documentação
 
-- [Séries, ocorrências e edição por alcance (#16/#17)](transactions/recurrences.md)
+- [Séries, ocorrências, alcance e baixa manual (#16/#17/#56)](transactions/recurrences.md)
 
 - [Filtros e totais dos lançamentos (#15)](transactions/entry-filters.md)
 

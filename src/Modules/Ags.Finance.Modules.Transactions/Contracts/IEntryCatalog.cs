@@ -15,6 +15,7 @@ public interface IEntryCatalog
     Task<ClassificationResult> EditAsync(Guid externalId, CreateEntryRequest request, EntryChangeScope scope, CancellationToken cancellationToken = default);
     Task<ClassificationResult> DeleteAsync(Guid externalId, EntryChangeScope scope, CancellationToken cancellationToken = default);
     Task<ClassificationResult> DuplicateAsync(Guid externalId, CancellationToken cancellationToken = default);
+    Task<ClassificationResult> ConfirmEffectiveAsync(Guid externalId, DateOnly effectiveDate, CancellationToken cancellationToken = default);
     Task<ClassificationResult> CreateRecurringAsync(CreateRecurringEntryRequest request, CancellationToken cancellationToken = default);
     Task<ClassificationResult> EditRecurringAsync(Guid externalId, EditRecurringEntryRequest request, CancellationToken cancellationToken = default);
     Task<ClassificationResult> DeleteRecurringAsync(Guid externalId, RecurringChangeScope scope, CancellationToken cancellationToken = default);

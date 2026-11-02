@@ -21,7 +21,12 @@ o próprio dia. Movimentos anteriores continuam no histórico e no orçamento, m
 não são somados novamente ao saldo de abertura (#11). Antes da referência,
 a abertura ainda não compõe o saldo consultado. Não há dependência inversa,
 FK ou consulta cruzada de tabelas, nem saldo mutável duplicado em Accounts.
-Ocorrências pendentes e baixa manual continuam previstas na #56.
+A #56 integra ocorrências pendentes e baixa manual. A confirmação grava o estado,
+a data efetiva e o instante na própria ocorrência. O saldo deriva desses dados,
+sem uma segunda escrita de valor acumulado. A operação financeira serializa
+confirmações concorrentes; repetir retorna a confirmação original.
+O orçamento continua usando Month, enquanto o saldo usa EffectiveDate.
+Edições/exclusões autorizadas recalculam o saldo derivado.
 
 Alternativa descartada: registrar uma receita inicial confundiria patrimônio
 prévio e receitas do período. Consequência: consultas de caixa devem consumir
