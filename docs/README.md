@@ -12,4 +12,6 @@ Esta pasta descreve o comportamento implementado e as decisões de arquitetura. 
 
 ## Funcionalidades
 
-Nenhuma funcionalidade implementada ainda. Cada entrega adiciona uma nota em `docs/<module>/`.
+Cada entrega adiciona uma nota em `docs/<module>/`.
+
+- SharedKernel: [Money e AccountingMonth](shared-kernel/money-and-accounting-month.md)
