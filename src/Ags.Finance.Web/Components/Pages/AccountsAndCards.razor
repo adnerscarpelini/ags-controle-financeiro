@@ -132,6 +132,7 @@
                 <span>Fecha dia @card.ClosingDay · vence dia @card.DueDay · @(card.IncludesClosingDay ? "Inclui" : "Não inclui") o dia do fechamento</span>
                 <div>
                     <button class="button" @onclick="() => EditCard(card)">Editar</button>
+                    <button class="button" @onclick="() => _digitsCard = card">Finais do cartão</button>
                     @if (card.IsActive) { <button class="button" @onclick="() => AskDeactivation(card.ExternalId, true)">Excluir / desativar</button> }
                 </div>
             </li>
@@ -139,7 +140,13 @@
     </ul>
 </section>
 
+@if (_digitsCard is not null)
+{
+    <CardLastDigitsPanel @key="_digitsCard.ExternalId" CardExternalId="_digitsCard.ExternalId" CardName="_digitsCard.Name" />
+}
+
 @code {
+    private CreditCardDetails? _digitsCard;
     private IReadOnlyList<BankDetails> _banks = [];
     private IReadOnlyList<AccountDetails> _accounts = [];
     private IReadOnlyList<CreditCardDetails> _cards = [];

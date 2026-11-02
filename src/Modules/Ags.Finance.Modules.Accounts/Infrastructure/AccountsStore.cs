@@ -22,6 +22,12 @@ internal sealed class AccountsStore(IDbContextFactory<AccountsDbContext> factory
         await using var context = await factory.CreateDbContextAsync(cancellationToken);
         return await context.Set<CreditCard>().AsNoTracking().OrderBy(x => x.Name).ToListAsync(cancellationToken);
     }
+    public async Task<IReadOnlyList<CardLastDigits>> GetCardLastDigitsAsync(CancellationToken cancellationToken)
+    {
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
+        return await context.Set<CardLastDigits>().AsNoTracking().OrderBy(x => x.Digits).ToListAsync(cancellationToken);
+    }
+
     public async Task<bool> SaveAsync(Entity entity, CancellationToken cancellationToken)
     {
         await using var context = await factory.CreateDbContextAsync(cancellationToken);

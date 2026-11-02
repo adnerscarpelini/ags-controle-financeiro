@@ -22,3 +22,4 @@ Cada entrega adiciona uma nota em `docs/<module>/`.
 - Identity: [Criação e redefinição do usuário](identity/user-creation.md)
 - Identity: [Login com usuário e senha](identity/login.md)
 - Accounts: [Bancos, contas e cartões](accounts/banks-accounts-and-cards.md)
+- Accounts: [Finais de cartão](accounts/card-last-digits.md)

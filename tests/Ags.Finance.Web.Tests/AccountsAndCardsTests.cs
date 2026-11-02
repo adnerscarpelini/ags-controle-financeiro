@@ -1,5 +1,7 @@
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Accounts.Contracts;
+using Ags.Finance.SharedKernel;
+using Ags.Finance.Web.Components;
 using Ags.Finance.Web.Components.Pages;
 using Bunit;
 using Microsoft.Data.Sqlite;
@@ -56,12 +58,36 @@ public sealed class AccountsAndCardsTests : IAsyncLifetime, IDisposable
         page.Find("#card-color").Change("violet");
         page.FindAll("form")[2].Submit();
         page.WaitForAssertion(() => Assert.Contains("Mastercard", page.FindAll(".catalog-list")[1].TextContent, StringComparison.Ordinal));
-        page.FindAll(".catalog-list")[1].QuerySelectorAll("button")[1].Click();
+        page.FindAll(".catalog-list")[1].QuerySelectorAll("button")[2].Click();
         page.WaitForAssertion(() => Assert.Contains("Desativar em vez de excluir", page.Find("[role=alertdialog]").TextContent, StringComparison.Ordinal));
         page.Find("[role=alertdialog] button").Click();
         page.WaitForAssertion(() => Assert.Contains("Desativado", page.FindAll(".catalog-list")[1].TextContent, StringComparison.Ordinal));
         Assert.Empty(await catalog.GetCreditCardsAsync());
         Assert.Single(await catalog.GetCreditCardsAsync(false));
+    }
+
+    [Fact]
+    public async Task FinalFormCreatesSubscriptionAndConfirmsDeactivation()
+    {
+        var catalog = _context.Services.GetRequiredService<IAccountCatalog>();
+        var bank = await catalog.CreateBankAsync("Banco Exemplo");
+        var account = await catalog.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta Exemplo", AccountKind.Checking, "green"));
+        var card = await catalog.SaveCreditCardAsync(new(null, account.ExternalId!.Value, "Cartão Exemplo", CardBrand.Visa, new Money(1000), 3, 10, false, "green"));
+        var panel = _context.Render<CardLastDigitsPanel>(parameters => parameters
+            .Add(component => component.CardExternalId, card.ExternalId!.Value)
+            .Add(component => component.CardName, "Cartão Exemplo"));
+
+        panel.Find("#card-digits").Change("1234");
+        panel.Find("#digits-usage").Change(CardUsage.Subscription.ToString());
+        panel.Find("#digits-label").Change("Serviços");
+        panel.Find("form").Submit();
+        panel.WaitForAssertion(() => Assert.Contains("1234 · Assinatura · Serviços", panel.Find(".catalog-list").TextContent, StringComparison.Ordinal));
+
+        panel.FindAll(".catalog-list button")[1].Click();
+        panel.WaitForAssertion(() => Assert.Contains("preserva os lançamentos", panel.Find("[role=alertdialog]").TextContent, StringComparison.Ordinal));
+        panel.Find("[role=alertdialog] button").Click();
+        panel.WaitForAssertion(() => Assert.Contains("Desativado", panel.Find(".catalog-list").TextContent, StringComparison.Ordinal));
+        Assert.Empty(await _context.Services.GetRequiredService<ICardLastDigitsCatalog>().GetAsync(card.ExternalId!.Value));
     }
 
     [Fact]

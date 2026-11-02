@@ -1,4 +1,5 @@
 using Ags.Finance.Modules.Accounts.Application;
+using Ags.Finance.Modules.Accounts.Application.ManageCardLastDigits;
 using Ags.Finance.Modules.Accounts.Application.ManageCatalog;
 using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Accounts.Infrastructure;
@@ -24,6 +25,7 @@ public static class DependencyInjection
 
         services.AddScoped<IAccountsStore, AccountsStore>();
         services.AddScoped<IAccountCatalog, AccountCatalog>();
+        services.AddScoped<ICardLastDigitsCatalog, CardLastDigitsCatalog>();
         return services;
     }
 

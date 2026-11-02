@@ -9,6 +9,22 @@ internal sealed class AccountsDbContextModelSnapshot : ModelSnapshot
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
         modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
+        modelBuilder.Entity("Ags.Finance.Modules.Accounts.Domain.CardLastDigits", b =>
+        {
+            b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("INTEGER");
+            b.Property<Guid>("ExternalId").HasColumnType("TEXT");
+            b.Property<Guid>("CardExternalId").HasColumnType("TEXT");
+            b.Property<string>("Digits").IsRequired().HasMaxLength(4).HasColumnType("TEXT");
+            b.Property<int>("Usage").HasColumnType("INTEGER");
+            b.Property<string>("Label").IsRequired().HasColumnType("TEXT");
+            b.Property<bool>("IsActive").HasColumnType("INTEGER");
+            b.Property<DateTimeOffset>("CreatedAt").HasColumnType("TEXT");
+            b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("TEXT");
+            b.HasKey("Id");
+            b.HasIndex("ExternalId").IsUnique();
+            b.HasIndex("CardExternalId", "Digits").IsUnique();
+            b.ToTable("accounts_card_last_digits");
+        });
         modelBuilder.Entity("Ags.Finance.Modules.Accounts.Domain.Bank", b =>
         {
             b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("INTEGER");
