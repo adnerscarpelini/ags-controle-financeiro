@@ -17,6 +17,7 @@ internal sealed partial class EntryCatalog
         {
             return new(null, "Selecione um lançamento existente e um alcance válido.");
         }
+        if (selected.RecurringEntryExternalId is not null) { return new(null, "Escolha o alcance da recorrência para alterar esta ocorrência."); }
         var affected = Affected(all, selected, scope);
         var month = request.Month ?? selected.Month;
         if (month.Year == 0) { return new(null, "Informe um mês contábil válido."); }
@@ -59,6 +60,7 @@ internal sealed partial class EntryCatalog
         {
             return new(null, "Selecione um lançamento existente e um alcance válido.");
         }
+        if (selected.RecurringEntryExternalId is not null) { return new(null, "Escolha o alcance da recorrência para alterar esta ocorrência."); }
         var affected = Affected(all, selected, scope);
         foreach (var entry in affected)
         {

@@ -47,6 +47,7 @@ public partial class Transactions
 
     private async Task ReloadQueryAsync()
     {
+        _currentMonth = AccountingMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime));
         AccountingMonth? month = null;
         if (_filterMonth.Length > 0)
         {

@@ -87,6 +87,8 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.Property<long>("Amount").HasColumnType("bigint");
             b.Property<string>("Details").IsRequired().HasMaxLength(1000).HasColumnType("character varying(1000)");
             b.Property<string>("NormalizedDetails").HasColumnType("text");
+            b.Property<Guid?>("RecurringEntryExternalId").HasColumnType("uuid");
+            b.Property<DateOnly?>("OccurrenceMonth").HasColumnType("date");
             b.Property<bool>("IsEffective").HasColumnType("boolean");
             b.Property<DateOnly?>("EffectiveDate").HasColumnType("date");
             b.Property<DateTimeOffset?>("EffectiveAt").HasColumnType("timestamp with time zone");
@@ -97,6 +99,7 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.HasIndex("InstallmentPurchaseExternalId", "InstallmentNumber").IsUnique();
             b.HasIndex("CardExternalId", "Month");
             b.HasIndex("Date", "Id");
+            b.HasIndex("RecurringEntryExternalId", "OccurrenceMonth").IsUnique();
             b.HasIndex("MerchantExternalId");
             b.HasIndex("SubcategoryExternalId");
             b.ToTable("entries", "transactions");
@@ -124,6 +127,40 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.TransactionEntry", b =>
         {
             b.HasOne("Ags.Finance.Modules.Transactions.Domain.InstallmentPurchase", null).WithMany().HasForeignKey("InstallmentPurchaseExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.RecurringEntry", b =>
+        {
+            b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint").HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+            b.Property<Guid>("ExternalId").HasColumnType("uuid");
+            b.Property<DateTimeOffset>("CreatedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateOnly>("StartDate").HasColumnType("date");
+            b.Property<int>("Day").HasColumnType("integer");
+            b.Property<DateOnly?>("EndMonth").HasColumnType("date");
+            b.Property<Guid>("MerchantExternalId").HasColumnType("uuid");
+            b.Property<Guid>("SubcategoryExternalId").HasColumnType("uuid");
+            b.Property<Guid>("AccountExternalId").HasColumnType("uuid");
+            b.Property<Guid?>("CardExternalId").HasColumnType("uuid");
+            b.Property<Guid?>("CardLastDigitsExternalId").HasColumnType("uuid");
+            b.Property<long>("Amount").HasColumnType("bigint");
+            b.Property<int>("Kind").HasColumnType("integer");
+            b.Property<string>("Details").IsRequired().HasMaxLength(1000).HasColumnType("character varying(1000)");
+            b.Property<bool>("IsActive").HasColumnType("boolean");
+            b.HasKey("Id");
+            b.HasAlternateKey("ExternalId");
+            b.HasIndex("ExternalId").IsUnique();
+            b.HasIndex("MerchantExternalId");
+            b.HasIndex("SubcategoryExternalId");
+            b.ToTable("recurring_entries", "transactions");
+        });
+        modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.RecurringEntry", b =>
+        {
+            b.HasOne("Ags.Finance.Modules.Transactions.Domain.Merchant", null).WithMany().HasForeignKey("MerchantExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+            b.HasOne("Ags.Finance.Modules.Transactions.Domain.Subcategory", null).WithMany().HasForeignKey("SubcategoryExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+        });
+        modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.TransactionEntry", b =>
+        {
+            b.HasOne("Ags.Finance.Modules.Transactions.Domain.RecurringEntry", null).WithMany().HasForeignKey("RecurringEntryExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

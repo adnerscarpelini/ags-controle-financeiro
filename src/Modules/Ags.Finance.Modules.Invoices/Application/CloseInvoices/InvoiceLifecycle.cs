@@ -21,6 +21,12 @@ internal sealed class InvoiceLifecycle(IInvoiceStore store, IAccountCatalog acco
         }
         var invoice = await store.FindAsync(cardExternalId, month, cancellationToken);
         if (invoice is null && reopen) { return new("Fatura não encontrada."); }
+        if (!reopen && (invoice is null || invoice.Status == Domain.InvoiceStatus.Open))
+        {
+            var generated = await entries.EnsureRecurringMonthAsync(month, cancellationToken);
+            if (!generated.Succeeded) { return new(generated.Error); }
+            invoice = await store.FindAsync(cardExternalId, month, cancellationToken);
+        }
         invoice ??= Invoice.Create(cardExternalId, month);
         var error = reopen ? invoice.Reopen() : invoice.Close(clock.GetUtcNow());
         if (error is not null) { return new(error); }
@@ -34,9 +40,10 @@ internal sealed class InvoiceLifecycle(IInvoiceStore store, IAccountCatalog acco
     private async Task<int> CloseDueCoreAsync(CancellationToken cancellationToken)
     {
         var cards = (await accounts.GetCreditCardsAsync(false, cancellationToken)).ToDictionary(x => x.ExternalId);
+        var sourceEntries = await entries.GetAsync(cancellationToken);
         var invoices = (await store.GetAsync(cancellationToken)).ToList();
         var keys = invoices.Select(x => (x.CardExternalId, x.Month)).ToHashSet();
-        foreach (var entry in (await entries.GetAsync(cancellationToken)).Where(x => x.CardExternalId is not null))
+        foreach (var entry in sourceEntries.Where(x => x.CardExternalId is not null))
         {
             if (keys.Add((entry.CardExternalId!.Value, entry.Month))) { invoices.Add(Invoice.Create(entry.CardExternalId.Value, entry.Month)); }
         }

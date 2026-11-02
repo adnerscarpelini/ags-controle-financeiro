@@ -9,6 +9,13 @@
 @inject TimeProvider Clock
 
 <PageHeader Title="Faturas" />
+<section class="panel">
+    <h2>Consultar mês</h2>
+    <form id="invoice-filter" @onsubmit="ReloadInvoicesAsync" @onsubmit:preventDefault>
+        <div class="field"><label for="invoice-view-month">Mês contábil (vazio para todos os registrados)</label><input id="invoice-view-month" type="month" value="@_viewMonth" @onchange="args => _viewMonth = args.Value?.ToString() ?? string.Empty" /></div>
+        <button class="button" disabled="@_busy">Consultar</button>
+    </form>
+</section>
 @if (_message is not null) { <p role="status">@_message</p> }
 @if (_pending is { } pending)
 {
@@ -59,6 +66,7 @@
                 <li><span>@entry.Date.ToString("dd/MM/yyyy") · @entry.MerchantName · @entry.Classification</span>
                     <span class="numeric entry-expense">@entry.Amount</span><span>@entry.Details</span>
                     @if (entry.InstallmentNumber is not null) { <span>Parcela @entry.InstallmentNumber/@entry.InstallmentCount</span> }
+                    @if (entry.RecurringEntryExternalId is not null) { <span>Recorrente @(entry.Date > DateOnly.FromDateTime(Clock.GetLocalNow().DateTime) ? "· prevista" : string.Empty)</span> }
                 </li>
             }
         </ul>
@@ -75,13 +83,14 @@
     private string? _message;
     private Guid _cardId;
     private string _month = string.Empty;
+    private string _viewMonth = string.Empty;
     private Guid? _selectedCard;
     private AccountingMonth? _selectedMonth;
     protected override async Task OnInitializedAsync()
     {
         _month = Clock.GetLocalNow().ToString("yyyy-MM", CultureInfo.InvariantCulture);
         _cards = await Accounts.GetCreditCardsAsync(false);
-        _invoices = await Catalog.GetAsync();
+        await ReloadInvoicesAsync();
     }
     private void Select(InvoiceDetails invoice) { _selectedCard = invoice.CardExternalId; _selectedMonth = invoice.Month; }
     private void Ask(InvoiceDetails invoice, bool reopen) { _pending = invoice; _reopen = reopen; }
@@ -104,9 +113,18 @@
             var result = _reopen ? await Lifecycle.ReopenAsync(pending.CardExternalId, pending.Month) : await Lifecycle.CloseAsync(pending.CardExternalId, pending.Month);
             _message = result.Error ?? "Situação atualizada.";
             _pending = null;
-            _invoices = await Catalog.GetAsync();
+            await ReloadInvoicesAsync();
         }
         finally { _busy = false; }
     }
     private static string StatusLabel(InvoiceStatus status) => status switch { InvoiceStatus.Closed => "Fechada", InvoiceStatus.Paid => "Paga", _ => "Aberta" };
+    private async Task ReloadInvoicesAsync()
+    {
+        if (_viewMonth.Length == 0) { _invoices = await Catalog.GetAsync(); return; }
+        if (!DateOnly.TryParseExact(_viewMonth + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        {
+            _message = "Informe um mês válido para consulta."; return;
+        }
+        _invoices = await Catalog.GetMonthAsync(AccountingMonth.FromDate(date));
+    }
 }

@@ -12,4 +12,7 @@ internal interface IEntryStore
     Task<bool> AddPurchaseAsync(InstallmentPurchase purchase, IReadOnlyList<TransactionEntry> entries, CancellationToken cancellationToken);
     Task<bool> SaveEntriesAsync(IReadOnlyList<TransactionEntry> entries, CancellationToken cancellationToken);
     Task DeleteEntriesAsync(IReadOnlyList<TransactionEntry> entries, CancellationToken cancellationToken);
+    Task<IReadOnlyList<RecurringEntry>> GetRecurringAsync(CancellationToken cancellationToken);
+    Task AddRecurringAsync(RecurringEntry series, TransactionEntry first, CancellationToken cancellationToken);
+    Task AddOccurrencesAsync(IReadOnlyList<TransactionEntry> entries, CancellationToken cancellationToken);
 }

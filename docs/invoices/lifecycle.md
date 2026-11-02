@@ -28,7 +28,7 @@ antes de registrar compras nela. Consultas não criam faturas artificiais.
 Novas compras, parcelas, edição, exclusão, movimentação e mesclagem de descrições
 são protegidas pelos casos de uso.
 Operações que atinjam uma fatura protegida falham integralmente, sem sucesso
-parcial. Recorrências e CSV usarão o mesmo guard nas próximas etapas.
+parcial. Recorrências também usam essa proteção (#16); CSV a consumirá nas próximas etapas.
 O limite de [operação financeira](../architecture/financial-operations.md)
 serializa validação e gravação, sem dependência inversa entre módulos.
 
@@ -39,3 +39,8 @@ não recalcula nem move compras. O histórico de pagamentos será integrado nas
 
 O fechamento automático pausa durante a manutenção de restauração. Logs de falha
 não incluem dados financeiros. Cancelar um diálogo não chama o caso de uso.
+
+Antes de fechar, o caso de uso materializa os planos recorrentes daquele mês.
+Planos cadastrados antes do corte podem completar uma fatura que continua Aberta
+após um período desligado; não podem modificar Fechada/Paga. Ver as
+[regras de recorrência](../transactions/recurrences.md).

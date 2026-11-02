@@ -60,6 +60,8 @@ internal sealed class MerchantStore(IDbContextFactory<TransactionsDbContext> fac
         {
             entry.ReplaceMerchant(targetExternalId);
         }
+        var series = await context.Set<RecurringEntry>().Where(x => x.MerchantExternalId == sourceExternalId).ToListAsync(cancellationToken);
+        foreach (var definition in series) { definition.ReplaceMerchant(targetExternalId); }
         context.Remove(source);
         await context.SaveChangesAsync(cancellationToken);
         if (transaction is not null) { await transaction.CommitAsync(cancellationToken); }

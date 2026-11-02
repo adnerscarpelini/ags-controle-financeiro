@@ -13,6 +13,8 @@ internal sealed class TransactionEntry : Entity
     public Guid? CardLastDigitsExternalId { get; private set; }
     public Guid? InstallmentPurchaseExternalId { get; private set; }
     public int? InstallmentNumber { get; private set; }
+    public Guid? RecurringEntryExternalId { get; private set; }
+    public DateOnly? OccurrenceMonth { get; private set; }
     public CategoryKind Kind { get; private set; }
     public Money Amount { get; private set; }
     public string Details { get; private set; } = string.Empty;
@@ -52,6 +54,19 @@ internal sealed class TransactionEntry : Entity
         IsEffective = true;
         EffectiveDate = date;
         EffectiveAt = confirmedAt;
+    }
+
+    public void SetPending()
+    {
+        IsEffective = false;
+        EffectiveDate = null;
+        EffectiveAt = null;
+    }
+
+    public void SetRecurring(Guid recurringEntryExternalId, DateOnly occurrenceMonth)
+    {
+        RecurringEntryExternalId = recurringEntryExternalId;
+        OccurrenceMonth = occurrenceMonth;
     }
 
     public void ReplaceMerchant(Guid merchantExternalId) => MerchantExternalId = merchantExternalId;

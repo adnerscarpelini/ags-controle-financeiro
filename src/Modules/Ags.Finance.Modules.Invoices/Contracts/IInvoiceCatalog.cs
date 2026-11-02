@@ -8,4 +8,5 @@ public sealed record InvoiceDetails(Guid CardExternalId, string CardName, Accoun
 public interface IInvoiceCatalog
 {
     Task<IReadOnlyList<InvoiceDetails>> GetAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<InvoiceDetails>> GetMonthAsync(AccountingMonth month, CancellationToken cancellationToken = default);
 }
