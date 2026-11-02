@@ -4,9 +4,9 @@ Instruções para agentes de IA que trabalham neste repositório. Leia este arqu
 
 ## O projeto
 
-`ags-controle-financeiro` é um aplicativo desktop pessoal de controle financeiro, para Windows e Linux, que substitui uma planilha do Google Sheets. Tem um único usuário e funciona offline.
+`ags-controle-financeiro` é uma aplicação web pessoal de controle financeiro que substitui uma planilha do Google Sheets. Ela roda como **serviço** no Windows ou no Linux (como o Syncthing) e é acessada pelo navegador do computador e do celular na **rede local**. Tem um único usuário e não depende de internet.
 
-- **Stack:** .NET 10, C#, Avalonia UI 11 (MVVM com CommunityToolkit.Mvvm), EF Core com SQLite, xUnit.
+- **Stack:** .NET 10, C#, ASP.NET Core com Blazor Web App (render mode Interactive Server), EF Core com SQLite, xUnit. Roda como Windows Service ou serviço systemd, servindo HTTPS na rede local.
 - **Repositório público:** nunca versione dados financeiros reais, nomes de estabelecimentos reais do usuário, extratos, faturas, planilhas ou o arquivo do banco. Testes e exemplos usam somente dados fictícios.
 - **Idioma:** converse, escreva issues, PRs, commits e documentação em **português**. Escreva **todo o código em inglês** (tipos, propriedades, métodos, variáveis, tabelas, colunas, testes), seguindo as convenções oficiais da Microsoft para C#/.NET. Textos exibidos na interface ficam em português.
 
@@ -16,7 +16,7 @@ Monólito modular com Clean Architecture dentro de cada módulo. A fonte de verd
 
 ```
 src/
-  Ags.Finance.Desktop/            # host Avalonia: composition root, Views, ViewModels, backup
+  Ags.Finance.Web/                # host ASP.NET Core + Blazor: composition root, páginas, componentes, serviço, backup
   Ags.Finance.SharedKernel/       # somente Money e AccountingMonth
   Modules/
     Ags.Finance.Modules.<Module>/
@@ -30,15 +30,15 @@ tests/
   Ags.Finance.ArchitectureTests/
 ```
 
-Módulos: `Accounts`, `Transactions`, `Invoices`, `Reimbursements`, `Reports` e `Imports`. Responsabilidades e dependências permitidas estão em `docs/architecture/module-structure.md`.
+Módulos: `Identity`, `Accounts`, `Transactions`, `Invoices`, `Reimbursements`, `Reports` e `Imports`. Responsabilidades e dependências permitidas estão em `docs/architecture/module-structure.md`.
 
 ### Regras de fronteira
 
 - `internal` e `sealed` por padrão. Só são `public` a classe `DependencyInjection` e os tipos em `Contracts`. Testes acessam tipos internos via `InternalsVisibleTo`.
 - Um módulo só referencia outro pelos `Contracts`, numa direção única e sem ciclos. Uma nova dependência entre módulos precisa ser registrada em `docs/architecture/`.
 - `Contracts` expõe DTOs e interfaces pequenas, com o `ExternalId` (`Guid`). Nunca exponha entidades ou o `Id` interno.
-- `Domain` não depende de EF Core, Avalonia nem de outras pastas. `Application` depende de `Domain` e de `Contracts`.
-- Os ViewModels chamam casos de uso (`Application`) via `Contracts` ou interfaces do módulo, nunca a `Infrastructure`.
+- `Domain` não depende de EF Core, ASP.NET Core, Blazor nem de outras pastas. `Application` depende de `Domain` e de `Contracts`.
+- Páginas e componentes Blazor chamam casos de uso pelos `Contracts` dos módulos, nunca a `Infrastructure`. Regra de negócio não fica em componente.
 - O `SharedKernel` contém apenas `Money` e `AccountingMonth`. Não adicione nada a ele sem uma decisão registrada.
 - Não adote CQRS, MediatR, Repository genérico, Unit of Work extra ou mensageria sem um problema concreto discutido antes.
 
@@ -49,7 +49,7 @@ Módulos: `Accounts`, `Transactions`, `Invoices`, `Reimbursements`, `Reports` e 
 - Toda entidade com tabela própria tem `Id` (`long`, chave primária), `ExternalId` (`Guid`, gerado no domínio com `Guid.CreateVersion7()`, índice único), `CreatedAt` e `UpdatedAt` (`DateTimeOffset` UTC, vindos de `TimeProvider`, preenchidos por um interceptor do módulo).
 - Mapeamentos com `IEntityTypeConfiguration<T>` na `Infrastructure`; o domínio não tem atributos de persistência.
 - Valores monetários: `decimal` no código (`Money`), centavos em `INTEGER` no banco. Nunca `float` ou `double`.
-- O arquivo do banco fica na pasta de dados local do usuário, nunca numa pasta sincronizada. Backup é feito pela API de backup do SQLite.
+- O arquivo do banco fica na pasta de dados do serviço (`DataDirectory`; padrão `%ProgramData%\AgsFinance` no Windows e `/var/lib/ags-finance` no Linux), nunca numa pasta sincronizada. Backup é feito pela API de backup do SQLite.
 
 ### Regras de negócio centrais
 
@@ -74,7 +74,7 @@ Não invente regras de negócio. Se uma issue não define um comportamento, perg
 
 ## Design da interface
 
-Tema **escuro por padrão**, visual moderno e limpo, com um verde "dinheiro" como cor principal. Os tokens ficam num `ResourceDictionary` central; não use cores soltas nas Views. Detalhes em `docs/architecture/ui-design.md`.
+Tema **escuro por padrão**, visual moderno e limpo, com um verde "dinheiro" como cor principal. Os tokens ficam como variáveis CSS num único arquivo; não use cores soltas nos componentes. A interface é responsiva: funciona no computador e no celular, e pode ser instalada como PWA. Detalhes em `docs/architecture/ui-design.md`.
 
 | Token | Cor | Uso |
 | --- | --- | --- |
@@ -90,11 +90,20 @@ Tema **escuro por padrão**, visual moderno e limpo, com um verde "dinheiro" com
 | `Expense` | `#F87171` | despesas e valores negativos |
 | `Warning` | `#FBBF24` | alertas (teto estourado, fatura em aberto) |
 
-- Base: `FluentTheme` do Avalonia com `RequestedThemeVariant="Dark"`; o tema claro pode existir depois, mas o escuro é o padrão.
-- Fonte Inter (embarcada), números com dígitos tabulares e alinhados à direita. Valores em `R$ 1.234,56`, datas em `dd/MM/yyyy` (cultura `pt-BR`).
+- CSS próprio com os tokens; biblioteca de componentes só se justificada numa issue. O tema claro pode existir depois, mas o escuro é o padrão.
+- Nada carregado de CDN: fontes, scripts e ícones são servidos pela própria aplicação.
+- Fonte Inter (servida localmente), números com dígitos tabulares e alinhados à direita. Valores em `R$ 1.234,56`, datas em `dd/MM/yyyy` (cultura `pt-BR`).
 - Cantos arredondados (8), espaçamento em múltiplos de 4, sem sombras pesadas nem gradientes.
 - O verde é a cor de marca; receitas usam o verde claro e despesas o vermelho. Não use cor como único sinal: valores negativos também levam o sinal.
 - Cores de banco só no texto, em peso normal: Itaú `#FB923C`, Nubank `#A78BFA`, Bradesco `#F87171`.
+
+## Segurança
+
+- Toda página e endpoint exige login, exceto a página de login e os arquivos estáticos.
+- O único usuário é criado pelo comando `user create` no computador do serviço (chamado pelo script de instalação). A aplicação web nunca oferece cadastro de usuário; a senha é trocada logado ou pelo comando `user reset-password`.
+- Senhas só em hash (`PasswordHasher` do ASP.NET Core Identity). Bloqueio temporário após tentativas erradas.
+- HTTPS com certificado local gerado na primeira execução; HTTP redireciona para HTTPS.
+- Não registre senhas, cookies ou dados financeiros em logs.
 
 ## Testes e validação
 

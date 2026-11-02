@@ -2,7 +2,7 @@
 
 ## Decisão
 
-O aplicativo é um **monólito modular**. Um único executável (`Ags.Finance.Desktop`, Avalonia) compõe módulos independentes, e cada módulo é uma class library organizada em Clean Architecture.
+A aplicação é um **monólito modular**. Um único host web (`Ags.Finance.Web`, ASP.NET Core + Blazor) compõe módulos independentes, e cada módulo é uma class library organizada em Clean Architecture.
 
 **Estado:** aprovado. Os projetos ainda não foram criados.
 
@@ -10,10 +10,11 @@ O aplicativo é um **monólito modular**. Um único executável (`Ags.Finance.De
 
 | Módulo | Projeto | Responsável por | Pode consumir `Contracts` de |
 | --- | --- | --- | --- |
-| Accounts | `Ags.Finance.Modules.Accounts` | Contas, cartões, finais de cartão, calendário de fatura (fechamento e vencimento) | — |
-| Transactions | `Ags.Finance.Modules.Transactions` | Categorias, estabelecimentos, lançamentos, compras parceladas, contas fixas | Accounts |
-| Invoices | `Ags.Finance.Modules.Invoices` | Faturas por cartão e mês, pagamentos antecipados, cashback e descontos | Accounts, Transactions |
-| Reimbursements | `Ags.Finance.Modules.Reimbursements` | Pessoas, regras de rateio, valores a receber e recebidos | Accounts, Transactions |
+| Identity | `Ags.Finance.Modules.Identity` | Usuário único, hash de senha, comandos `user create` e `user reset-password` | — |
+| Accounts | `Ags.Finance.Modules.Accounts` | Bancos, contas, cartões (bandeira, limite), finais de cartão, calendário de fatura | — |
+| Transactions | `Ags.Finance.Modules.Transactions` | Categorias, descrições, lançamentos, compras parceladas, lançamentos recorrentes, filtros salvos | Accounts |
+| Invoices | `Ags.Finance.Modules.Invoices` | Faturas por cartão e mês, pagamentos antecipados, cashback, descontos, antecipação de parcelas | Accounts, Transactions |
+| Reimbursements | `Ags.Finance.Modules.Reimbursements` | Pessoas, regras de rateio (filtro salvo + percentual), valores a receber e recebidos | Accounts, Transactions |
 | Reports | `Ags.Finance.Modules.Reports` | Dashboard e análises, somente leitura | todos |
 | Imports | `Ags.Finance.Modules.Imports` | Importação da planilha; depois, OFX e PDF de faturas | todos |
 
@@ -33,10 +34,11 @@ Somente `Contracts` e `DependencyInjection` são públicos. Os testes de arquite
 
 ## Host
 
-`Ags.Finance.Desktop` é o composition root: registra os módulos, contém Views e ViewModels (MVVM) e o serviço de backup. ViewModels chamam casos de uso e nunca acessam a `Infrastructure` de um módulo.
+`Ags.Finance.Web` é o composition root: registra os módulos, configura autenticação, HTTPS e a execução como serviço, contém as páginas e componentes Blazor e o serviço de backup. Componentes chamam casos de uso pelos `Contracts` e nunca acessam a `Infrastructure` de um módulo. Detalhes de hospedagem em [web-hosting.md](web-hosting.md).
 
 ## Alternativas consideradas
 
 - **Projeto único com pastas por camada:** mais simples, mas sem fronteiras verificáveis entre domínios.
-- **Microsserviços:** sem sentido para um app desktop de um usuário.
+- **Microsserviços:** sem sentido para uma aplicação de um usuário.
+- **Host desktop (Avalonia):** foi a primeira escolha; trocado por web para permitir o acesso pelo celular na rede local.
 - **Menos módulos** (Catálogo dentro de Transactions, Reembolsos dentro de Invoices): considerado; mantidos separados porque têm regras e motivos de mudança distintos.

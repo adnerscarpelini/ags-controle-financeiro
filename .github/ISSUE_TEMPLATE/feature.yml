@@ -8,13 +8,14 @@ body:
     attributes:
       label: Módulo
       options:
+        - Identity
         - Accounts
         - Transactions
         - Invoices
         - Reimbursements
         - Reports
         - Imports
-        - Desktop
+        - Web
         - Transversal
     validations:
       required: true

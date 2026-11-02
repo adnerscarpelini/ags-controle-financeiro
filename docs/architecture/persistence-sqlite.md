@@ -2,12 +2,12 @@
 
 ## Contexto
 
-O app roda offline num único computador e precisa de um banco em arquivo, fácil de copiar para backup. A regra herdada do monólito modular é que cada módulo seja dono dos seus dados.
+A aplicação roda como serviço num único computador da rede local e precisa de um banco em arquivo, fácil de copiar para backup. A regra herdada do monólito modular é que cada módulo seja dono dos seus dados.
 
 ## Decisão
 
-- Um único arquivo SQLite, na pasta de dados local do usuário (`%LOCALAPPDATA%` no Windows, `~/.local/share` no Linux). Nunca numa pasta sincronizada (Google Drive, OneDrive): a sincronização durante uma gravação pode corromper o arquivo.
-- Como o SQLite não tem schemas, cada módulo tem seu `DbContext`, um **prefixo de tabela** (`accounts_`, `transactions_`, `invoices_`, `reimbursements_`) e sua **própria tabela de histórico de migrations** (`__ef_migrations_<module>`).
+- Um único arquivo SQLite (`finance.db`) na pasta de dados configurável `DataDirectory`. Padrões: `%ProgramData%\AgsFinance` no Windows e `/var/lib/ags-finance` no Linux quando roda como serviço; a pasta local do usuário em desenvolvimento. Nunca numa pasta sincronizada (Google Drive, OneDrive): a sincronização durante uma gravação pode corromper o arquivo.
+- Como o SQLite não tem schemas, cada módulo tem seu `DbContext`, um **prefixo de tabela** (`identity_`, `accounts_`, `transactions_`, `invoices_`, `reimbursements_`) e sua **própria tabela de histórico de migrations** (`__ef_migrations_<module>`).
 - Sem FK, JOIN ou SQL entre tabelas de módulos diferentes. Uma referência a outro módulo guarda o `ExternalId`.
 - Valores monetários em centavos (`INTEGER`), convertidos para `Money` no mapeamento.
 - Modo WAL ativado.

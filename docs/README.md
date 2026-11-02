@@ -8,6 +8,7 @@ Esta pasta descreve o comportamento implementado e as decisões de arquitetura. 
 - [Persistência com SQLite](architecture/persistence-sqlite.md)
 - [SharedKernel](architecture/shared-kernel.md)
 - [Design da interface](architecture/ui-design.md)
+- [Hospedagem web, serviço e segurança](architecture/web-hosting.md)
 
 ## Funcionalidades
 

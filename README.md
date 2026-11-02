@@ -1,6 +1,6 @@
 # ags-controle-financeiro
 
-Aplicativo desktop de controle financeiro pessoal, para Windows e Linux, feito em .NET 10 com Avalonia UI e SQLite.
+Aplicação web de controle financeiro pessoal, feita em .NET 10 com ASP.NET Core, Blazor e SQLite. Roda como serviço no Windows ou no Linux, como o Syncthing, e é acessada pelo navegador do computador e do celular na rede local.
 
 Substitui uma planilha de receitas e despesas e mantém a mesma lógica: **mês contábil** (o mês em que o valor pesa no orçamento), cadastros fechados, contas fixas, faturas de cartão com pagamentos antecipados e reembolsos rateados.
 
@@ -12,6 +12,7 @@ Monólito modular com Clean Architecture em cada módulo:
 
 | Módulo | Responsável por |
 | --- | --- |
+| `Identity` | Usuário, login e senha |
 | `Accounts` | Contas, cartões e calendário de fatura |
 | `Transactions` | Categorias, estabelecimentos, lançamentos, parcelas e contas fixas |
 | `Invoices` | Faturas por cartão, pagamentos antecipados e cashback |
@@ -28,10 +29,10 @@ Detalhes em [`docs/architecture`](docs/architecture/module-structure.md).
 ```bash
 dotnet build Ags.Finance.slnx
 dotnet test Ags.Finance.slnx
-dotnet run --project src/Ags.Finance.Desktop
+dotnet run --project src/Ags.Finance.Web
 ```
 
-Requer o SDK do .NET 10.
+Requer o SDK do .NET 10. A instalação como serviço (Windows e Linux) e a criação do usuário ficam documentadas em [`docs/architecture/web-hosting.md`](docs/architecture/web-hosting.md).
 
 ## Como contribuir
 
