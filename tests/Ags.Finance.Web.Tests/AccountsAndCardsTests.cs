@@ -47,9 +47,13 @@ public sealed class AccountsAndCardsTests : IAsyncLifetime, IDisposable
         page.Find("#account-bank").Change(bank.ExternalId.ToString());
         page.Find("#account-name").Change("Conta Exemplo");
         page.Find("#account-color").Change("green");
+        page.Find("#opening-balance").Change("1250.50");
+        page.Find("#opening-date").Change("2026-11-01");
         await page.FindAll("form")[1].SubmitAsync(EventArgs.Empty);
         page.WaitForAssertion(() => Assert.Contains("Conta Exemplo", page.Find(".catalog-list").TextContent, StringComparison.Ordinal));
         var account = Assert.Single(await catalog.GetAccountsAsync());
+        Assert.Equal(new Money(1250.50m), account.OpeningBalance);
+        Assert.Equal(new DateOnly(2026, 11, 1), account.OpeningDate);
         page.Find("#card-name").Change("Cartão Exemplo");
         page.Find("#card-account").Change(account.ExternalId.ToString());
         page.Find("#card-brand").Change(CardBrand.Mastercard.ToString());

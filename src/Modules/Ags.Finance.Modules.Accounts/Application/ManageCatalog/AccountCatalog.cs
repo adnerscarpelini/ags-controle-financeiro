@@ -5,14 +5,14 @@ using CardBrand = Ags.Finance.Modules.Accounts.Domain.CardBrand;
 
 namespace Ags.Finance.Modules.Accounts.Application.ManageCatalog;
 
-internal sealed class AccountCatalog(IAccountsStore store) : IAccountCatalog
+internal sealed class AccountCatalog(IAccountsStore store, TimeProvider clock) : IAccountCatalog
 {
     public async Task<IReadOnlyList<BankDetails>> GetBanksAsync(CancellationToken cancellationToken = default)
         => (await store.GetBanksAsync(cancellationToken)).Select(x => new BankDetails(x.ExternalId, x.Name)).ToList();
 
     public async Task<IReadOnlyList<AccountDetails>> GetAccountsAsync(bool activeOnly = true, CancellationToken cancellationToken = default)
         => (await store.GetAccountsAsync(cancellationToken)).Where(x => !activeOnly || x.IsActive)
-            .Select(x => new AccountDetails(x.ExternalId, x.BankExternalId, x.Name, (Contracts.AccountKind)x.Kind, x.Color, x.IsActive)).ToList();
+            .Select(x => new AccountDetails(x.ExternalId, x.BankExternalId, x.Name, (Contracts.AccountKind)x.Kind, x.Color, x.IsActive, x.OpeningBalance, x.OpeningDate)).ToList();
 
     public async Task<IReadOnlyList<CreditCardDetails>> GetCreditCardsAsync(bool activeOnly = true, CancellationToken cancellationToken = default)
     {
@@ -57,7 +57,15 @@ internal sealed class AccountCatalog(IAccountsStore store) : IAccountCatalog
         {
             return new(null, "Uma conta vinculada a cartão deve continuar sendo corrente.");
         }
-        return await PersistAsync(account, cancellationToken);
+        if (request.OpeningBalance is { } openingBalance)
+        {
+            error = account.SetOpeningBalance(openingBalance, request.OpeningDate);
+        }
+        else if (request.ExternalId is null && account.Kind == AccountKind.Checking)
+        {
+            error = account.SetOpeningBalance(default, request.OpeningDate ?? DateOnly.FromDateTime(clock.GetLocalNow().DateTime));
+        }
+        return error is null ? await PersistAsync(account, cancellationToken) : new(null, error);
     }
 
     public async Task<CatalogResult> SaveCreditCardAsync(SaveCreditCardRequest request, CancellationToken cancellationToken = default)

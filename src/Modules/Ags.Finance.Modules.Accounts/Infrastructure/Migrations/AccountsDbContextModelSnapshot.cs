@@ -30,6 +30,8 @@ internal sealed class AccountsDbContextModelSnapshot : ModelSnapshot
             b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint")
                 .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
             b.Property<Guid>("BankExternalId").HasColumnType("uuid");
+            b.Property<long>("OpeningBalance").HasColumnType("bigint");
+            b.Property<DateOnly?>("OpeningDate").HasColumnType("date");
             b.Property<string>("Name").IsRequired().HasMaxLength(100).HasColumnType("character varying(100)");
             b.Property<string>("NormalizedName").IsRequired().HasMaxLength(100).HasColumnType("character varying(100)");
             b.Property<int>("Kind").HasColumnType("integer");
