@@ -2,12 +2,13 @@ using Ags.Finance.Modules.Identity;
 using Ags.Finance.Web.Persistence;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Ags.Finance.Web.Commands;
 
 /// <summary>
 /// Executa <c>user create</c> e <c>user reset-password</c> sem subir o servidor web: monta só o módulo Identity
-/// sobre o mesmo banco do serviço e termina com um código de saída que os scripts de instalação interpretam.
+/// sobre o mesmo PostgreSQL da aplicação e termina com um código de saída que os scripts de instalação interpretam.
 /// </summary>
 internal static class UserCommandRunner
 {
@@ -26,11 +27,26 @@ internal static class UserCommandRunner
             return UserCommands.Usage;
         }
 
-        var dataDirectory = DataDirectoryResolver.Resolve(
-            configuration["DataDirectory"],
-            DataDirectoryResolver.IsRunningAsService(),
-            OperatingSystem.IsWindows());
-        var connectionString = DatabaseStartup.PrepareConnectionString(dataDirectory);
+        string connectionString;
+        try
+        {
+            connectionString = DatabaseStartup.GetConnectionString(configuration);
+        }
+        catch (InvalidOperationException exception)
+        {
+            terminal.WriteError(exception.Message);
+            return UserCommands.Failed;
+        }
+
+        try
+        {
+            await DatabaseStartup.WaitUntilReadyAsync(connectionString, DatabaseStartup.GetReadyTimeout(configuration), NullLogger.Instance, cancellationToken);
+        }
+        catch (InvalidOperationException exception)
+        {
+            terminal.WriteError(exception.Message);
+            return UserCommands.Failed;
+        }
 
         await using var provider = new ServiceCollection()
             .AddIdentityModule(connectionString)

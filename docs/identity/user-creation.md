@@ -4,13 +4,11 @@ Origem: [#35](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/
 
 A aplicação tem um único usuário, criado por linha de comando no computador do serviço. A aplicação web nunca oferece cadastro: assim, ninguém da rede consegue se cadastrar antes do dono.
 
-**Estado:** estes comandos e caminhos descrevem a instalação nativa atual com SQLite.
-A [#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60) muda a persistência
-para PostgreSQL e a [#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59)
-adapta sua execução via Compose, com terminal interativo e conexão correta. DataDirectory
-deixará de selecionar o banco e ficará para arquivos da aplicação; não confundir volume
-de arquivos com a conexão do usuário no PostgreSQL. Os nomes exatos dos serviços/comandos
-Compose serão documentados quando forem implementados.
+**Estado:** os comandos usam o PostgreSQL configurado em `ConnectionStrings__Finance`
+([#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60)); sem a conexão, ou com credenciais
+erradas, terminam com código 1 e uma mensagem sem a senha. Os scripts de instalação nativa abaixo são legado e
+saem na [#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59), que documenta a execução
+via Compose, com terminal interativo.
 
 ## Comandos
 
@@ -19,7 +17,7 @@ Ags.Finance.Web user create
 Ags.Finance.Web user reset-password
 ```
 
-Os comandos não sobem o servidor web: abrem o banco da pasta de dados (`DataDirectory`, veja [service-installation.md](../web/service-installation.md)), aplicam as migrations do módulo Identity, fazem a pergunta e saem. Podem rodar com o serviço ligado.
+Os comandos não sobem o servidor web: conectam ao PostgreSQL (`ConnectionStrings__Finance`), aplicam as migrations do módulo Identity, fazem a pergunta e saem. Podem rodar com o serviço ligado.
 
 | Comando | O que faz |
 | --- | --- |
@@ -54,7 +52,7 @@ $env:DataDirectory = "$env:ProgramData\AgsFinance"; & "$env:ProgramFiles\AgsFina
 
 ## Persistência
 
-Tabela `identity_users` (migration `CreateUsers`), com `Id`, `ExternalId`, `CreatedAt`, `UpdatedAt` e:
+Tabela `identity.users` (migration `Initial` do módulo), com `Id`, `ExternalId`, `CreatedAt`, `UpdatedAt` e:
 
 | Coluna | Uso |
 | --- | --- |

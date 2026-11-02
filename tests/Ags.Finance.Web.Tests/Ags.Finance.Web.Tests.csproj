@@ -14,6 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Ags.Finance.Tests.Support\Ags.Finance.Tests.Support.csproj" />
     <ProjectReference Include="..\..\src\Ags.Finance.Web\Ags.Finance.Web.csproj" />
   </ItemGroup>
 

@@ -8,15 +8,14 @@ Requisitos, critérios de aceite e dúvidas permanecem nas issues.
 
 - [Estrutura e estado dos módulos](architecture/module-structure.md)
 - [Testes de arquitetura](architecture/architecture-tests.md)
-- [Persistência PostgreSQL — aprovada, pendente #60](architecture/persistence-postgresql.md)
-- [Persistência SQLite — código atual/legado em transição](architecture/persistence-sqlite.md)
+- [Persistência PostgreSQL — implementada (#60)](architecture/persistence-postgresql.md)
 - [SharedKernel](architecture/shared-kernel.md)
 - [Design da interface](architecture/ui-design.md)
 - [Hospedagem e distribuição Docker — aprovada, pendente #59](architecture/web-hosting.md)
 - [Consistência financeira — decisões e fronteiras de domínio](architecture/financial-consistency.md)
 
-A próxima entrega é #60 → #59. Não há migração de dados SQLite; os dados de desenvolvimento
-podem ser recriados dentro do escopo autorizado. O restante do produto continua nas issues,
+A persistência já usa PostgreSQL (#60); a distribuição Docker (#59) é a etapa seguinte. Não há migração
+de dados SQLite. O restante do produto continua nas issues,
 incluindo CSV oficial (#28/#29/#61/#62) e recuperação PostgreSQL (#31).
 
 ## Funcionalidades implementadas

@@ -2,8 +2,8 @@
 
 Origem: [issue #7](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/7).
 
-**Estado:** implementado. A tabela e os testes SQLite abaixo descrevem o provider atual,
-a substituir na [#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60).
+**Estado:** implementado; persistido em [PostgreSQL](../architecture/persistence-postgresql.md)
+(#60).
 A reversibilidade de arquivamento da #53 foi aprovada para contas/cartões, sem ampliar
 automaticamente o escopo para finais.
 
@@ -16,7 +16,7 @@ mesmo quando desativado.
 ## Decisões de design
 
 - Entidade própria CardLastDigits, com ExternalId v7, auditoria UTC e tabela
-  accounts_card_last_digits. Índice único por cartão e dígitos protege a duplicidade.
+  accounts.card_last_digits. Índice único por cartão e dígitos protege a duplicidade.
 - O contrato ICardLastDigitsCatalog consulta finais por ExternalId do cartão,
   filtrando ativos por padrão e permitindo consulta histórica explícita.
   Cartão/conta inativos retiram os finais das seleções.
@@ -26,4 +26,4 @@ mesmo quando desativado.
   Um final existente não pode ser transferido para outro cartão pela edição.
 
 Testes cobrem os três tipos, zeros à esquerda, formatos inválidos, duplicidade,
-edição, desativação e consulta histórica com SQLite real.
+edição, desativação e consulta histórica com PostgreSQL real.

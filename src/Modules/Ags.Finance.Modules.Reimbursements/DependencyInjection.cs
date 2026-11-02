@@ -15,7 +15,7 @@ public static class DependencyInjection
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<AuditTimestampsInterceptor>();
         services.AddDbContext<ReimbursementsDbContext>((provider, options) => options
-            .UseSqlite(connectionString, sqlite => sqlite.MigrationsHistoryTable(ReimbursementsDbContext.MigrationsHistoryTable))
+            .UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable(ReimbursementsDbContext.MigrationsHistoryTable, ReimbursementsDbContext.Schema))
             .ConfigureWarnings(warnings => warnings.Ignore(CoreEventId.NoEntityTypeConfigurationsWarning))
             .AddInterceptors(provider.GetRequiredService<AuditTimestampsInterceptor>()));
 

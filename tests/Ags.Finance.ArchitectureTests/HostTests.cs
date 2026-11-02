@@ -37,4 +37,17 @@ public sealed class HostTests
 
         Assert.NotEmpty(componentTypes);
     }
+
+    [Fact]
+    public void SolutionDoesNotDependOnSqlite()
+    {
+        var root = ProjectFiles.FindRepositoryRoot();
+        var files = Directory.EnumerateFiles(Path.Combine(root, "src"), "*.csproj", SearchOption.AllDirectories)
+            .Concat(Directory.EnumerateFiles(Path.Combine(root, "tests"), "*.csproj", SearchOption.AllDirectories))
+            .Append(Path.Combine(root, "Directory.Packages.props"));
+
+        var offenders = files.Where(file => File.ReadAllText(file).Contains("Sqlite", StringComparison.OrdinalIgnoreCase)).ToList();
+
+        Assert.True(offenders.Count == 0, "PostgreSQL é o único banco suportado, mas há referência a SQLite em: " + string.Join(", ", offenders));
+    }
 }

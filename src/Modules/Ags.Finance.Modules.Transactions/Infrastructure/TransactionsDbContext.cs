@@ -4,8 +4,8 @@ namespace Ags.Finance.Modules.Transactions.Infrastructure;
 
 internal sealed class TransactionsDbContext : DbContext
 {
-    public const string TablePrefix = "transactions_";
-    public const string MigrationsHistoryTable = "__ef_migrations_transactions";
+    public const string Schema = "transactions";
+    public const string MigrationsHistoryTable = "__ef_migrations";
 
     public TransactionsDbContext(DbContextOptions<TransactionsDbContext> options)
         : base(options)
@@ -19,8 +19,9 @@ internal sealed class TransactionsDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasDefaultSchema(Schema);
         PersistenceConventions.IgnoreEntityBase(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(TransactionsDbContext).Assembly);
-        PersistenceConventions.ApplyEntityRules(modelBuilder, TablePrefix);
+        PersistenceConventions.ApplyEntityRules(modelBuilder);
     }
 }

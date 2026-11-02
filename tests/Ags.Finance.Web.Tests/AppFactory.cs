@@ -1,14 +1,14 @@
 using Ags.Finance.Modules.Identity.Contracts;
+using Ags.Finance.Tests.Support;
 using Ags.Finance.Web.Components;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Ags.Finance.Web.Tests;
 
-/// <summary>A aplicação inteira com uma pasta de dados temporária, apagada no fim.</summary>
+/// <summary>A aplicação inteira com um PostgreSQL vazio e uma pasta de dados temporária, ambos apagados no fim.</summary>
 internal sealed class AppFactory : WebApplicationFactory<App>
 {
     public const string UserName = "maria";
@@ -16,6 +16,7 @@ internal sealed class AppFactory : WebApplicationFactory<App>
 
     private readonly string _dataDirectory = Path.Combine(Path.GetTempPath(), "ags-finance-tests-" + Guid.NewGuid().ToString("N"));
     private readonly ILoggerProvider? _loggerProvider;
+    private readonly PostgresTestDatabase _database = PostgresTestDatabase.CreateAsync().GetAwaiter().GetResult();
 
     public AppFactory(ILoggerProvider? loggerProvider = null)
     {
@@ -60,6 +61,7 @@ internal sealed class AppFactory : WebApplicationFactory<App>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("DataDirectory", _dataDirectory);
+        builder.UseSetting("ConnectionStrings:Finance", _database.ConnectionString);
 
         if (_loggerProvider is not null)
         {
@@ -77,7 +79,7 @@ internal sealed class AppFactory : WebApplicationFactory<App>
 
         if (disposing)
         {
-            SqliteConnection.ClearAllPools();
+            _database.DisposeAsync().AsTask().GetAwaiter().GetResult();
             if (Directory.Exists(_dataDirectory))
             {
                 Directory.Delete(_dataDirectory, recursive: true);

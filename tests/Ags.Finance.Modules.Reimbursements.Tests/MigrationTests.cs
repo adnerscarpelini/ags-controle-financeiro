@@ -1,83 +1,75 @@
-using Microsoft.Data.Sqlite;
+using Ags.Finance.Modules.Reimbursements.Infrastructure;
+using Ags.Finance.Tests.Support;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ags.Finance.Modules.Reimbursements.Tests;
 
-public sealed class MigrationTests : IDisposable
+public sealed class MigrationTests : IAsyncLifetime
 {
-    private const string HistoryTable = "__ef_migrations_reimbursements";
-    private const string EfLockTable = "__EFMigrationsLock";
-    private const string TablePrefix = "reimbursements_";
+    private const string Schema = "reimbursements";
+    private const string HistoryTable = "__ef_migrations";
 
-    private readonly string _directory = Directory.CreateTempSubdirectory("ags-finance-tests-").FullName;
+    private PostgresTestDatabase? _database;
+
+    private PostgresTestDatabase Database => _database ?? throw new InvalidOperationException("Fixture not initialized.");
+
+    public async Task InitializeAsync()
+    {
+        _database = await PostgresTestDatabase.CreateAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        if (_database is not null)
+        {
+            await _database.DisposeAsync();
+        }
+    }
 
     [Fact]
-    public async Task MigratingCreatesTheDatabaseFileAndTheModuleHistoryTable()
+    public async Task MigratingAnEmptyDatabaseCreatesTheModuleSchemaAndItsOwnHistoryTable()
     {
-        var connectionString = ConnectionString();
-        await using var provider = new ServiceCollection().AddReimbursementsModule(connectionString).BuildServiceProvider();
+        await using var provider = new ServiceCollection().AddReimbursementsModule(Database.ConnectionString).BuildServiceProvider();
 
         await provider.MigrateReimbursementsModuleAsync();
 
-        Assert.True(File.Exists(Path.Combine(_directory, "finance.db")));
-        Assert.Contains(HistoryTable, await QueryAsync(connectionString, "SELECT name FROM sqlite_master WHERE type = 'table'"));
-        Assert.Single(await QueryAsync(connectionString, $"SELECT MigrationId FROM {HistoryTable}"));
+        Assert.Equal([Schema], await Database.QueryAsync($"SELECT schema_name FROM information_schema.schemata WHERE schema_name = '{Schema}'"));
+        Assert.Equal(1, int.Parse(await Database.ScalarAsync($"SELECT COUNT(*) FROM {Schema}.{HistoryTable}"), System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Fact]
     public async Task MigratingAnExistingDatabaseAppliesOnlyPendingMigrations()
     {
-        var connectionString = ConnectionString();
-        await using var provider = new ServiceCollection().AddReimbursementsModule(connectionString).BuildServiceProvider();
+        await using var provider = new ServiceCollection().AddReimbursementsModule(Database.ConnectionString).BuildServiceProvider();
 
         await provider.MigrateReimbursementsModuleAsync();
         await provider.MigrateReimbursementsModuleAsync();
 
-        Assert.Single(await QueryAsync(connectionString, $"SELECT MigrationId FROM {HistoryTable}"));
+        Assert.Equal(1, int.Parse(await Database.ScalarAsync($"SELECT COUNT(*) FROM {Schema}.{HistoryTable}"), System.Globalization.CultureInfo.InvariantCulture));
     }
 
-    /// <summary>A tabela de lock é interna do EF Core e compartilhada por todos os módulos; as demais seguem o prefixo.</summary>
     [Fact]
-    public async Task EveryTableOfTheModuleUsesTheModulePrefix()
+    public async Task EveryTableOfTheModuleLivesInTheModuleSchema()
     {
-        var connectionString = ConnectionString();
-        await using var provider = new ServiceCollection().AddReimbursementsModule(connectionString).BuildServiceProvider();
+        await using var provider = new ServiceCollection().AddReimbursementsModule(Database.ConnectionString).BuildServiceProvider();
 
         await provider.MigrateReimbursementsModuleAsync();
 
-        var tables = await QueryAsync(
-            connectionString,
-            "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite%'");
-        Assert.All(tables, table => Assert.True(
-            table is HistoryTable or EfLockTable || table.StartsWith(TablePrefix, StringComparison.Ordinal),
-            $"Tabela fora do padrão do módulo: {table}"));
+        var tables = await Database.QueryAsync(
+            "SELECT table_schema FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema')");
+        Assert.NotEmpty(tables);
+        Assert.All(tables, schema => Assert.Equal(Schema, schema));
     }
 
-    public void Dispose()
+    /// <summary>O snapshot e a migration escritos à mão precisam descrever exatamente o modelo atual.</summary>
+    [Fact]
+    public void TheMigrationsMatchTheCurrentModel()
     {
-        SqliteConnection.ClearAllPools();
-        Directory.Delete(_directory, recursive: true);
-    }
+        using var provider = new ServiceCollection().AddReimbursementsModule(Database.ConnectionString).BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ReimbursementsDbContext>();
 
-    private static async Task<List<string>> QueryAsync(string connectionString, string sql)
-    {
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
-        await using var command = connection.CreateCommand();
-        command.CommandText = sql;
-        await using var reader = await command.ExecuteReaderAsync();
-
-        var values = new List<string>();
-        while (await reader.ReadAsync())
-        {
-            values.Add(reader.GetString(0));
-        }
-
-        return values;
-    }
-
-    private string ConnectionString()
-    {
-        return new SqliteConnectionStringBuilder { DataSource = Path.Combine(_directory, "finance.db") }.ToString();
+        Assert.False(context.Database.HasPendingModelChanges());
     }
 }

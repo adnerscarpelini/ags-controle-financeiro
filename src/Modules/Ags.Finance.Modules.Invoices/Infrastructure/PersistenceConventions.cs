@@ -19,20 +19,11 @@ internal static class PersistenceConventions
         modelBuilder.Ignore<Entity>();
     }
 
-    /// <summary>
-    /// Chave, índice único de <see cref="Entity.ExternalId"/> e prefixo de tabela do módulo. Chamar depois de
-    /// aplicar os mapeamentos, que informam o nome da tabela sem o prefixo.
-    /// </summary>
-    public static void ApplyEntityRules(ModelBuilder modelBuilder, string tablePrefix)
+    /// <summary>Chave primária e índice único de <see cref="Entity.ExternalId"/>. Chamar depois de aplicar os mapeamentos.</summary>
+    public static void ApplyEntityRules(ModelBuilder modelBuilder)
     {
         foreach (var entityType in modelBuilder.Model.GetEntityTypes().ToList())
         {
-            var tableName = entityType.GetTableName();
-            if (tableName is not null && !tableName.StartsWith(tablePrefix, StringComparison.Ordinal))
-            {
-                entityType.SetTableName(tablePrefix + tableName);
-            }
-
             if (typeof(Entity).IsAssignableFrom(entityType.ClrType))
             {
                 modelBuilder.Entity(entityType.ClrType, entity =>

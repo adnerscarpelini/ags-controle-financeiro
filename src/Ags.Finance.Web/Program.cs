@@ -49,7 +49,18 @@ builder.Services.AddSingleton(serverCertificate);
 builder.WebHost.ConfigureKestrel(kestrel =>
     kestrel.ListenAnyIP(hosting.Port, listen => HttpsEndpoint.Configure(listen, () => serverCertificate.Certificate)));
 
-var connectionString = DatabaseStartup.PrepareConnectionString(dataDirectory);
+string connectionString;
+TimeSpan databaseReadyTimeout;
+try
+{
+    connectionString = DatabaseStartup.GetConnectionString(builder.Configuration);
+    databaseReadyTimeout = DatabaseStartup.GetReadyTimeout(builder.Configuration);
+}
+catch (InvalidOperationException exception)
+{
+    await Console.Error.WriteLineAsync(exception.Message);
+    return 1;
+}
 
 builder.Services
     .AddIdentityModule(connectionString)
@@ -67,7 +78,16 @@ builder.Services.AddSessionAuthentication();
 
 await using var app = builder.Build();
 
-await DatabaseStartup.InitializeAsync(app.Services, connectionString);
+// Sem banco pronto e migrado a aplicação não atende: nada de servir com o banco parcial. O Compose reinicia o processo.
+try
+{
+    await DatabaseStartup.InitializeAsync(app.Services, connectionString, databaseReadyTimeout, app.Logger);
+}
+catch (Exception exception) when (exception is InvalidOperationException or Npgsql.NpgsqlException)
+{
+    StartupLog.DatabaseFailed(app.Logger, exception);
+    return 1;
+}
 
 if (!app.Environment.IsDevelopment())
 {

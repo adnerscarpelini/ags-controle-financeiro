@@ -1,28 +1,50 @@
+using Ags.Finance.Tests.Support;
 using Ags.Finance.Web.Components;
+using Ags.Finance.Web.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
+using Npgsql;
 
 namespace Ags.Finance.Web.Tests;
 
-/// <summary>Sobe a aplicação inteira com uma pasta de dados temporária e confere o banco criado.</summary>
-public sealed class DatabaseStartupTests : IDisposable
+/// <summary>Sobe a aplicação inteira sobre um PostgreSQL real e vazio e confere o banco criado.</summary>
+public sealed class DatabaseStartupTests : IAsyncLifetime
 {
     private static readonly string[] s_modules = ["identity", "accounts", "transactions", "invoices", "reimbursements"];
 
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "ags-finance-tests-" + Guid.NewGuid().ToString("N"));
+    private PostgresTestDatabase? _database;
+
+    private PostgresTestDatabase Database => _database ?? throw new InvalidOperationException("Fixture not initialized.");
+
+    public async Task InitializeAsync()
+    {
+        _database = await PostgresTestDatabase.CreateAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        if (_database is not null)
+        {
+            await _database.DisposeAsync();
+        }
+
+        if (Directory.Exists(_directory))
+        {
+            Directory.Delete(_directory, recursive: true);
+        }
+    }
 
     [Fact]
-    public async Task StartingWithoutADatabaseCreatesItInTheConfiguredDirectoryAndMigratesEveryModule()
+    public async Task StartingOnAnEmptyDatabaseCreatesASchemaWithItsOwnHistoryForEveryModule()
     {
         await StartApplicationAsync();
 
-        var databasePath = Path.Combine(_directory, "finance.db");
-        Assert.True(File.Exists(databasePath));
-
-        var tables = await QueryAsync(databasePath, "SELECT name FROM sqlite_master WHERE type = 'table'");
         foreach (var module in s_modules)
         {
-            Assert.Contains($"__ef_migrations_{module}", tables);
+            Assert.Equal([module], await Database.QueryAsync($"SELECT schema_name FROM information_schema.schemata WHERE schema_name = '{module}'"));
+            Assert.Equal("1", await Database.ScalarAsync($"SELECT COUNT(*) FROM {module}.__ef_migrations"));
         }
     }
 
@@ -32,55 +54,102 @@ public sealed class DatabaseStartupTests : IDisposable
         await StartApplicationAsync();
         await StartApplicationAsync();
 
-        var databasePath = Path.Combine(_directory, "finance.db");
         foreach (var module in s_modules)
         {
-            var applied = await QueryAsync(databasePath, $"SELECT MigrationId FROM __ef_migrations_{module}");
-            Assert.Equal(module == "accounts" ? 3 : module == "identity" ? 2 : 1, applied.Count);
+            Assert.Equal("1", await Database.ScalarAsync($"SELECT COUNT(*) FROM {module}.__ef_migrations"));
         }
     }
 
     [Fact]
-    public async Task TheDatabaseRunsInWalMode()
+    public async Task NoTableCrossesModulesWithAForeignKey()
     {
         await StartApplicationAsync();
 
-        var mode = await QueryAsync(Path.Combine(_directory, "finance.db"), "PRAGMA journal_mode");
-
-        Assert.Equal(["wal"], mode);
+        Assert.Equal("0", await Database.ScalarAsync("SELECT COUNT(*) FROM information_schema.table_constraints WHERE constraint_type = 'FOREIGN KEY'"));
     }
 
-    public void Dispose()
+    [Fact]
+    public void ConnectionStringComesFromTheConfiguredFinanceEntry()
     {
-        SqliteConnection.ClearAllPools();
-        if (Directory.Exists(_directory))
-        {
-            Directory.Delete(_directory, recursive: true);
-        }
+        var configuration = Configure(Database.ConnectionString);
+
+        Assert.Equal(
+            new NpgsqlConnectionStringBuilder(Database.ConnectionString).Database,
+            new NpgsqlConnectionStringBuilder(DatabaseStartup.GetConnectionString(configuration)).Database);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void MissingConnectionStringIsReportedClearly(string? value)
+    {
+        var exception = Assert.Throws<InvalidOperationException>(() => DatabaseStartup.GetConnectionString(Configure(value)));
+
+        Assert.Contains("ConnectionStrings__Finance", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InvalidConnectionStringIsReportedWithoutEchoingThePassword()
+    {
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => DatabaseStartup.GetConnectionString(Configure("Host=db;Password=segredo-123;Opcao-Inexistente=1")));
+
+        Assert.DoesNotContain("segredo-123", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ConnectionStringWithoutDatabaseOrUserIsRejected()
+    {
+        Assert.Throws<InvalidOperationException>(() => DatabaseStartup.GetConnectionString(Configure("Host=db;Password=x")));
+    }
+
+    [Fact]
+    public async Task WrongCredentialsFailImmediatelyAndNeverEchoThePassword()
+    {
+        var wrong = new NpgsqlConnectionStringBuilder(Database.ConnectionString) { Password = "senha-errada-xyz" }.ToString();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => DatabaseStartup.WaitUntilReadyAsync(wrong, TimeSpan.FromSeconds(30), NullLogger.Instance));
+
+        Assert.DoesNotContain("senha-errada-xyz", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task UnavailableDatabaseGivesUpAfterTheTimeoutWithAClearMessage()
+    {
+        var unreachable = new NpgsqlConnectionStringBuilder(Database.ConnectionString) { Host = "127.0.0.1", Port = 1, Timeout = 1 }.ToString();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => DatabaseStartup.WaitUntilReadyAsync(unreachable, TimeSpan.FromSeconds(1), NullLogger.Instance));
+
+        Assert.Contains("não ficou disponível", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReadyTimeoutDefaultsAndRejectsInvalidValues()
+    {
+        Assert.Equal(TimeSpan.FromSeconds(60), DatabaseStartup.GetReadyTimeout(new ConfigurationBuilder().Build()));
+        Assert.Throws<InvalidOperationException>(() => DatabaseStartup.GetReadyTimeout(
+            new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { [DatabaseStartup.ReadyTimeoutKey] = "0" }).Build()));
+    }
+
+    private static IConfiguration Configure(string? connectionString)
+    {
+        return new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:Finance"] = connectionString })
+            .Build();
     }
 
     private async Task StartApplicationAsync()
     {
-        await using var factory = new WebApplicationFactory<App>().WithWebHostBuilder(builder => builder.UseSetting("DataDirectory", _directory));
+        await using var factory = new WebApplicationFactory<App>().WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("DataDirectory", _directory);
+            builder.UseSetting("ConnectionStrings:Finance", Database.ConnectionString);
+        });
         using var client = factory.CreateClient();
         using var response = await client.GetAsync(new Uri("/", UriKind.Relative));
         response.EnsureSuccessStatusCode();
-    }
-
-    private static async Task<List<string>> QueryAsync(string databasePath, string sql)
-    {
-        await using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = databasePath, Mode = SqliteOpenMode.ReadOnly }.ToString());
-        await connection.OpenAsync();
-        await using var command = connection.CreateCommand();
-        command.CommandText = sql;
-        await using var reader = await command.ExecuteReaderAsync();
-
-        var values = new List<string>();
-        while (await reader.ReadAsync())
-        {
-            values.Add(reader.GetString(0));
-        }
-
-        return values;
     }
 }

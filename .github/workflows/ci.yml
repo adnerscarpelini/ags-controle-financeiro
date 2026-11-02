@@ -14,13 +14,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Linux: solução completa, incluindo os testes relacionais contra um PostgreSQL real.
   build:
-    name: build-and-test (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
+    name: build-and-test (ubuntu-latest)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.6-alpine
+        env:
+          # Senha descartável do PostgreSQL de teste do CI; o serviço só existe durante o job.
+          POSTGRES_PASSWORD: ags_test_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      AGS_TEST_POSTGRES: Host=localhost;Port=5432;Username=postgres;Password=ags_test_only
     steps:
       - uses: actions/checkout@v4
 
@@ -48,5 +60,30 @@ jobs:
         run: dotnet test Ags.Finance.slnx --no-build --configuration Release
 
       - name: Format
-        if: steps.solution.outputs.exists == 'true' && matrix.os == 'ubuntu-latest'
+        if: steps.solution.outputs.exists == 'true'
         run: dotnet format Ags.Finance.slnx --verify-no-changes --no-restore
+
+  # Windows: compila a solução e roda os testes que não dependem do PostgreSQL (domínio e arquitetura).
+  # Os testes relacionais exigem um servidor Linux e rodam no job acima; no Windows local, use o WSL 2.
+  build-windows:
+    name: build-and-test (windows-latest)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore Ags.Finance.slnx
+
+      - name: Build
+        run: dotnet build Ags.Finance.slnx --no-restore --configuration Release
+
+      - name: Test (domínio e arquitetura)
+        shell: bash
+        run: |
+          for project in tests/Ags.Finance.ArchitectureTests tests/Ags.Finance.SharedKernel.Tests tests/Ags.Finance.Modules.Imports.Tests tests/Ags.Finance.Modules.Reports.Tests; do
+            dotnet test "$project" --no-build --configuration Release
+          done
