@@ -1,3 +1,6 @@
+using Ags.Finance.Modules.Accounts.Application;
+using Ags.Finance.Modules.Accounts.Application.ManageCatalog;
+using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Accounts.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -14,11 +17,13 @@ public static class DependencyInjection
 
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<AuditTimestampsInterceptor>();
-        services.AddDbContext<AccountsDbContext>((provider, options) => options
+        services.AddDbContextFactory<AccountsDbContext>((provider, options) => options
             .UseSqlite(connectionString, sqlite => sqlite.MigrationsHistoryTable(AccountsDbContext.MigrationsHistoryTable))
             .ConfigureWarnings(warnings => warnings.Ignore(CoreEventId.NoEntityTypeConfigurationsWarning))
             .AddInterceptors(provider.GetRequiredService<AuditTimestampsInterceptor>()));
 
+        services.AddScoped<IAccountsStore, AccountsStore>();
+        services.AddScoped<IAccountCatalog, AccountCatalog>();
         return services;
     }
 

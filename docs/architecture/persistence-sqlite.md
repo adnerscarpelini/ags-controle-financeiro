@@ -15,7 +15,10 @@ A aplicação roda como serviço num único computador da rede local e precisa d
 
 ## Implementação (issue #4)
 
-**Estado:** implementado nos módulos com persistência (Identity, Accounts, Transactions, Invoices e Reimbursements). Reports e Imports não têm tabelas. Só o Identity tem entidade (`identity_users`, migration `CreateUsers`); os demais têm só a migration `Initial`, vazia, que cria o histórico. As tabelas chegam com as issues de cada módulo.
+**Estado:** implementado nos módulos com persistência (Identity, Accounts, Transactions, Invoices e Reimbursements). Reports e Imports não têm tabelas. Identity tem `identity_users`; Accounts tem bancos, contas e cartões (migration `CreateCatalog`, #6). Os demais têm só a migration `Initial`, vazia, que cria o histórico.
+
+Accounts usa `AddDbContextFactory` e contextos curtos por operação para os cadastros
+interativos, evitando compartilhar o rastreamento durante o circuito Blazor.
 
 ### Pasta de dados e inicialização
 
