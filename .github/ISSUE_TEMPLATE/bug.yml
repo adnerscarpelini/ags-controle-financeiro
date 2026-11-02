@@ -1,0 +1,34 @@
+name: Bug
+description: Um comportamento implementado que não funciona como deveria.
+title: "[<Module>] Corrigir <problema>"
+labels: ["bug"]
+body:
+  - type: input
+    id: module
+    attributes:
+      label: Módulo
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos para reproduzir
+      description: Use dados fictícios.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamento esperado
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportamento obtido
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Commit ou versão

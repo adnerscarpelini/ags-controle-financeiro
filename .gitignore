@@ -1,0 +1,44 @@
+# Build
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+publish/
+artifacts/
+*.user
+*.suo
+*.userprefs
+
+# IDEs
+.vs/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.DotSettings.user
+
+# Testes
+TestResults/
+coverage*/
+*.coverage
+*.trx
+
+# SO
+.DS_Store
+Thumbs.db
+
+# Dados financeiros reais: nunca versionar
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite
+*.csv
+*.xlsx
+*.xls
+*.ofx
+*.pdf
+data/
+backups/
+
+# Fixtures fictícias de teste são permitidas
+!tests/**/Fixtures/**

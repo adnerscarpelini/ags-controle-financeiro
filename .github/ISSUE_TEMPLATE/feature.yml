@@ -1,0 +1,53 @@
+name: Funcionalidade
+description: Um comportamento novo ou alterado, pequeno o bastante para um PR.
+title: "[<Module>] <ação no infinitivo>"
+labels: ["feature"]
+body:
+  - type: dropdown
+    id: module
+    attributes:
+      label: Módulo
+      options:
+        - Accounts
+        - Transactions
+        - Invoices
+        - Reimbursements
+        - Reports
+        - Imports
+        - Desktop
+        - Transversal
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto
+      description: Problema e por que ele importa.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Comportamento esperado
+      description: O que o sistema deve fazer, com as regras de negócio.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceite
+      description: Formato Dado / Quando / Então, incluindo falhas e limites.
+      value: |
+        - [ ] Dado <estado>, quando <ação>, então <resultado>.
+        - [ ] Dado <entrada inválida>, quando <ação>, então <erro esperado>.
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Fora do escopo
+  - type: textarea
+    id: notes
+    attributes:
+      label: Observações
+      description: Dependências (Depende de #N), referências e dúvidas em aberto.

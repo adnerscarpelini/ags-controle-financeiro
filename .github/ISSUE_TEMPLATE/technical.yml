@@ -1,0 +1,39 @@
+name: Tarefa técnica
+description: Arquitetura, refatoração, CI, configuração ou manutenção.
+title: "[Transversal] <ação no infinitivo>"
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Tipo
+      options:
+        - architecture
+        - refactor
+        - maintenance
+    validations:
+      required: true
+  - type: input
+    id: module
+    attributes:
+      label: Módulo
+      value: Transversal
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivação
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposta
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Critérios de conclusão
+      value: |
+        - [ ] 
+    validations:
+      required: true
