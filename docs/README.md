@@ -23,3 +23,4 @@ Cada entrega adiciona uma nota em `docs/<module>/`.
 - Identity: [Login com usuário e senha](identity/login.md)
 - Accounts: [Bancos, contas e cartões](accounts/banks-accounts-and-cards.md)
 - Accounts: [Finais de cartão](accounts/card-last-digits.md)
+- Accounts: [Mês contábil de uma compra](accounts/purchase-accounting-month.md)
