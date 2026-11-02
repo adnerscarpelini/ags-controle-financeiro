@@ -27,7 +27,7 @@
                 <option value="@Guid.Empty">Selecione</option>
                 @foreach (var item in _subcategories.Where(x => x.Kind != CategoryKind.Transfer)) { <option value="@item.ExternalId">@item.DisplayName</option> }
             </select></div>
-            <div class="field"><label for="entry-amount">Valor (R$)</label><input id="entry-amount" type="number" step="0.01" min="0.01" @bind="_amount" required /></div>
+            <div class="field"><label for="entry-amount">@(_installments > 1 ? "Valor total (R$)" : "Valor (R$)")</label><input id="entry-amount" type="number" step="0.01" min="0.01" @bind="_amount" required /></div>
             <div class="field"><label for="entry-card">Cartão (opcional)</label><select id="entry-card" @bind="_cardId" @bind:after="CardChangedAsync">
                 <option value="@Guid.Empty">Sem cartão</option>
                 @foreach (var card in _cards) { <option value="@card.ExternalId">@card.Name</option> }
@@ -38,6 +38,7 @@
                     <option value="@Guid.Empty">Sem final</option>
                     @foreach (var final in _finals) { <option value="@final.ExternalId">@final.Digits · @final.Label</option> }
                 </select></div>
+                <div class="field"><label for="entry-installments">Parcelas (1 para compra avulsa)</label><input id="entry-installments" type="number" min="1" max="48" @bind="_installments" required /></div>
             }
             <div class="field"><label for="entry-account">Conta</label><select id="entry-account" @bind="_accountId" disabled="@(_cardId != Guid.Empty)" required>
                 <option value="@Guid.Empty">Selecione</option>
@@ -58,6 +59,7 @@
             <li><span>@entry.Date.ToString("dd/MM/yyyy") · @entry.MerchantName · @entry.Classification</span>
                 <span class="numeric @(entry.Amount.IsNegative ? "entry-expense" : "entry-income")">@(entry.Amount.IsNegative ? string.Empty : "+")@entry.Amount</span>
                 <span>Mês @entry.Month · @(entry.CardExternalId is not null ? "Compra no cartão" : entry.IsEffective ? "Efetivado" : "Pendente") · @entry.Details</span>
+                @if (entry.InstallmentNumber is not null) { <span>Parcela @entry.InstallmentNumber/@entry.InstallmentCount</span> }
             </li>
         }
     </ul>
@@ -79,6 +81,7 @@
     private Guid _cardId;
     private Guid _finalId;
     private decimal _amount;
+    private int _installments = 1;
     private string _details = string.Empty;
     private string _month = string.Empty;
     private string _suggestedMonth = string.Empty;
@@ -104,6 +107,7 @@
     }
     private async Task CardChangedAsync()
     {
+        _installments = 1;
         _finalId = Guid.Empty;
         _finals = _cardId == Guid.Empty ? [] : await CardDigits.GetAsync(_cardId);
         var card = _cards.FirstOrDefault(x => x.ExternalId == _cardId);
@@ -141,8 +145,9 @@
         _busy = true;
         try
         {
-            var result = await Entries.CreateAsync(new(_date, _merchantId, _subcategoryId, _accountId, new Money(_amount), _details, AccountingMonth.FromDate(monthDate),
-                _cardId == Guid.Empty ? null : _cardId, _finalId == Guid.Empty ? null : _finalId));
+            var request = new CreateEntryRequest(_date, _merchantId, _subcategoryId, _accountId, new Money(_amount), _details, AccountingMonth.FromDate(monthDate),
+                _cardId == Guid.Empty ? null : _cardId, _finalId == Guid.Empty ? null : _finalId);
+            var result = _installments == 1 ? await Entries.CreateAsync(request) : await Entries.CreateInstallmentsAsync(request, _installments);
             _message = result.Error ?? "Lançamento salvo.";
             if (result.Succeeded) { Reset(); _entries = await Entries.GetAsync(); }
         }
@@ -153,5 +158,7 @@
         _merchantName = string.Empty; _merchantId = Guid.Empty; _subcategoryId = Guid.Empty; _amount = 0; _details = string.Empty;
         _month = _suggestedMonth;
         _suggestions = _merchants;
+        _installments = 1;
+        _installments = 1;
     }
 }

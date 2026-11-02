@@ -15,6 +15,34 @@ public sealed partial class InvoiceTests
     private static readonly AccountingMonth s_october = new(2026, 10);
 
     [Fact]
+    public async Task ConcurrentInvoiceQueryAndInstallmentsNeverExposePartialComposition()
+    {
+        var creating = Provider.GetRequiredService<IEntryCatalog>().CreateInstallmentsAsync(Purchase(1000), 3);
+        var querying = Catalog.GetAsync();
+        await Task.WhenAll((Task)creating, querying);
+        Assert.True((await creating).Succeeded);
+        var observed = await querying;
+        Assert.True(observed.Count is 0 or 3);
+        foreach (var invoice in observed)
+        {
+            Assert.Equal(3, Assert.Single(invoice.Entries).InstallmentCount);
+        }
+        Assert.Equal(3, (await Catalog.GetAsync()).Count);
+    }
+
+    [Fact]
+    public async Task InstallmentsReachingProtectedDestinationRollBackPurchaseAndNewInvoiceRegistrations()
+    {
+        await Lifecycle.CloseAsync(_cardId, new AccountingMonth(2026, 11));
+        var entries = Provider.GetRequiredService<IEntryCatalog>();
+        Assert.False((await entries.CreateInstallmentsAsync(Purchase(1000), 3)).Succeeded);
+        Assert.Empty(await entries.GetAsync());
+        var invoice = Assert.Single(await Catalog.GetAsync());
+        Assert.Equal(new AccountingMonth(2026, 11), invoice.Month);
+        Assert.Equal(InvoiceStatus.Closed, invoice.Status);
+    }
+
+    [Fact]
     public async Task ManualCloseProtectsNewPurchasesAndReopeningRequiresAnotherManualClose()
     {
         var entries = Provider.GetRequiredService<IEntryCatalog>();

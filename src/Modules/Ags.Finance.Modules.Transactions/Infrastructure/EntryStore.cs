@@ -27,4 +27,26 @@ internal sealed class EntryStore(IDbContextFactory<TransactionsDbContext> factor
             return false;
         }
     }
+
+    public async Task<IReadOnlyList<InstallmentPurchase>> GetPurchasesAsync(CancellationToken cancellationToken)
+    {
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
+        return await context.Set<InstallmentPurchase>().AsNoTracking().ToListAsync(cancellationToken);
+    }
+
+    public async Task<bool> AddPurchaseAsync(InstallmentPurchase purchase, IReadOnlyList<TransactionEntry> entries, CancellationToken cancellationToken)
+    {
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
+        context.Add(purchase);
+        context.AddRange(entries);
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation })
+        {
+            return false;
+        }
+    }
 }

@@ -67,6 +67,15 @@ public sealed class TransactionPageTests
         invoices.FindAll(".catalog-list button").Single(x => x.TextContent == "Fechar").Click();
         await invoices.Find("[role=alertdialog] button").ClickAsync(new());
         Assert.Contains("Fechada", invoices.Find("[aria-label='Composição da fatura']").TextContent, StringComparison.Ordinal);
+        await page.Find("#entry-merchant").InputAsync("Loja Exemplo");
+        page.Find("#entry-month").Change("2026-12");
+        page.Find("#entry-amount").Change("1000");
+        page.Find("#entry-installments").Change("3");
+        await page.Find("form").SubmitAsync(EventArgs.Empty);
+        var installments = (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Where(x => x.InstallmentNumber is not null).ToList();
+        Assert.Equal(3, installments.Count);
+        Assert.Equal(-1000m, installments.Sum(x => x.Amount.Amount));
+        Assert.Contains("Parcela 1/3", page.Markup, StringComparison.Ordinal);
     }
 
     private sealed class PreviewClock : TimeProvider

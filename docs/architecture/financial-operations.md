@@ -19,6 +19,9 @@ nesse cenário, evitando transação distribuída; ver a
 [documentação oficial](https://www.npgsql.org/doc/basic-usage.html#systemtransactions-and-distributed-transactions).
 Um retorno de falha ou exceção deixa o escopo sem Complete e desfaz tudo.
 Não paralelizar chamadas de persistência dentro desse limite.
+Consultas de lançamentos, saldo e faturas que reúnem referências de várias tabelas
+também usam esse limite: uma gravação concorrente não pode introduzir uma parcela
+cuja compra ainda não apareça no conjunto de referências já lido pela consulta.
 
 Transactions publica IInvoiceWriteGuard, implementado por Invoices e composto
 na injeção de dependência. A validação de abertura ocorre dentro da mesma operação

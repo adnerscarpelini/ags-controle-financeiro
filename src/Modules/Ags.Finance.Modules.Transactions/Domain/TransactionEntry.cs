@@ -11,6 +11,8 @@ internal sealed class TransactionEntry : Entity
     public Guid AccountExternalId { get; private set; }
     public Guid? CardExternalId { get; private set; }
     public Guid? CardLastDigitsExternalId { get; private set; }
+    public Guid? InstallmentPurchaseExternalId { get; private set; }
+    public int? InstallmentNumber { get; private set; }
     public CategoryKind Kind { get; private set; }
     public Money Amount { get; private set; }
     public string Details { get; private set; } = string.Empty;
@@ -56,5 +58,12 @@ internal sealed class TransactionEntry : Entity
     {
         CardExternalId = cardExternalId;
         CardLastDigitsExternalId = cardLastDigitsExternalId;
+    }
+
+    public void SetInstallment(Guid purchaseExternalId, int number, Money part)
+    {
+        InstallmentPurchaseExternalId = purchaseExternalId;
+        InstallmentNumber = number;
+        Amount = -part;
     }
 }

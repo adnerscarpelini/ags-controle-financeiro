@@ -79,6 +79,8 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.Property<Guid>("MerchantExternalId").HasColumnType("uuid");
             b.Property<Guid>("SubcategoryExternalId").HasColumnType("uuid");
             b.Property<Guid>("AccountExternalId").HasColumnType("uuid");
+            b.Property<Guid?>("InstallmentPurchaseExternalId").HasColumnType("uuid");
+            b.Property<int?>("InstallmentNumber").HasColumnType("integer");
             b.Property<Guid?>("CardExternalId").HasColumnType("uuid");
             b.Property<Guid?>("CardLastDigitsExternalId").HasColumnType("uuid");
             b.Property<int>("Kind").HasColumnType("integer");
@@ -91,6 +93,7 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.HasIndex("ExternalId").IsUnique();
             b.HasIndex("Month");
             b.HasIndex("AccountExternalId", "EffectiveDate");
+            b.HasIndex("InstallmentPurchaseExternalId", "InstallmentNumber").IsUnique();
             b.HasIndex("CardExternalId", "Month");
             b.HasIndex("MerchantExternalId");
             b.HasIndex("SubcategoryExternalId");
@@ -100,6 +103,25 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
         {
             b.HasOne("Ags.Finance.Modules.Transactions.Domain.Merchant", null).WithMany().HasForeignKey("MerchantExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict).IsRequired();
             b.HasOne("Ags.Finance.Modules.Transactions.Domain.Subcategory", null).WithMany().HasForeignKey("SubcategoryExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+        });
+        modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.InstallmentPurchase", b =>
+        {
+            b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint").HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+            b.Property<Guid>("ExternalId").HasColumnType("uuid");
+            b.Property<DateTimeOffset>("CreatedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("timestamp with time zone");
+            b.Property<Guid>("CardExternalId").HasColumnType("uuid");
+            b.Property<int>("FirstMonth").HasColumnType("integer");
+            b.Property<long>("Total").HasColumnType("bigint");
+            b.Property<int>("Count").HasColumnType("integer");
+            b.HasKey("Id");
+            b.HasAlternateKey("ExternalId");
+            b.HasIndex("ExternalId").IsUnique();
+            b.ToTable("installment_purchases", "transactions");
+        });
+        modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.TransactionEntry", b =>
+        {
+            b.HasOne("Ags.Finance.Modules.Transactions.Domain.InstallmentPurchase", null).WithMany().HasForeignKey("InstallmentPurchaseExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
