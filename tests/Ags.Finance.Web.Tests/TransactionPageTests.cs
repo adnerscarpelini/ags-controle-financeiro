@@ -76,6 +76,24 @@ public sealed class TransactionPageTests
         Assert.Equal(3, installments.Count);
         Assert.Equal(-1000m, installments.Sum(x => x.Amount.Amount));
         Assert.Contains("Parcela 1/3", page.Markup, StringComparison.Ordinal);
+        var firstRow = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 1/3", StringComparison.Ordinal));
+        await firstRow.QuerySelectorAll("button")[1].ClickAsync(new());
+        Assert.Equal("2026-12", page.Find("#entry-month").GetAttribute("value"));
+        page.Find("#entry-amount").Change("400");
+        await page.Find("form").SubmitAsync(EventArgs.Empty);
+        Assert.Contains("Escolha o alcance", page.Find("[role=status]").TextContent, StringComparison.Ordinal);
+        page.Find("#entry-scope").Change(EntryChangeScope.OnlyThis.ToString());
+        await page.Find("form").SubmitAsync(EventArgs.Empty);
+        Assert.Equal(new Money(-400), (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.InstallmentNumber == 1).Amount);
+        var secondRow = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 2/3", StringComparison.Ordinal));
+        secondRow.QuerySelectorAll("button")[2].Click();
+        page.FindAll("[role=alertdialog] button")[1].Click();
+        Assert.Equal(3, (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Count(x => x.InstallmentNumber is not null));
+        secondRow = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 2/3", StringComparison.Ordinal));
+        secondRow.QuerySelectorAll("button")[2].Click();
+        page.Find("#delete-scope").Change(EntryChangeScope.ThisAndFollowing.ToString());
+        await page.Find("[role=alertdialog] button").ClickAsync(new());
+        Assert.Single((await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()), x => x.InstallmentNumber is not null);
     }
 
     private sealed class PreviewClock : TimeProvider

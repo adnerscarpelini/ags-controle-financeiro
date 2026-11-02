@@ -20,13 +20,13 @@ internal sealed class TransactionEntry : Entity
     public DateOnly? EffectiveDate { get; private set; }
     public DateTimeOffset? EffectiveAt { get; private set; }
 
-    public string? Update(DateOnly date, AccountingMonth month, Guid merchantExternalId, Guid subcategoryExternalId, Guid accountExternalId, CategoryKind kind, Money amount, string details)
+    public string? Update(DateOnly date, AccountingMonth month, Guid merchantExternalId, Guid subcategoryExternalId, Guid accountExternalId, CategoryKind kind, Money amount, string details, bool allowZeroAmount = false)
     {
         if (date == DateOnly.MinValue || month.Year == 0 || merchantExternalId == Guid.Empty || subcategoryExternalId == Guid.Empty || accountExternalId == Guid.Empty)
         {
             return "Informe data, mês contábil, descrição, subcategoria e conta válidos.";
         }
-        if (amount <= Money.Zero || amount.Amount > 92233720368547758.07m || kind is not (CategoryKind.Income or CategoryKind.Expense))
+        if (amount.IsNegative || (amount.IsZero && !allowZeroAmount) || amount.Amount > 92233720368547758.07m || kind is not (CategoryKind.Income or CategoryKind.Expense))
         {
             return "Informe valor positivo e classificação de receita ou despesa. Transferências usam uma operação própria.";
         }
@@ -53,6 +53,22 @@ internal sealed class TransactionEntry : Entity
     }
 
     public void ReplaceMerchant(Guid merchantExternalId) => MerchantExternalId = merchantExternalId;
+
+    public void ApplyChange(TransactionEntry prepared, bool keepAmount)
+    {
+        var dateChanged = Date != prepared.Date;
+        Date = prepared.Date;
+        Month = prepared.Month;
+        MerchantExternalId = prepared.MerchantExternalId;
+        SubcategoryExternalId = prepared.SubcategoryExternalId;
+        AccountExternalId = prepared.AccountExternalId;
+        CardExternalId = prepared.CardExternalId;
+        CardLastDigitsExternalId = prepared.CardLastDigitsExternalId;
+        Kind = prepared.Kind;
+        if (!keepAmount) { Amount = prepared.Amount; }
+        Details = prepared.Details;
+        if (IsEffective && dateChanged) { EffectiveDate = prepared.Date; }
+    }
 
     public void SetCard(Guid cardExternalId, Guid? cardLastDigitsExternalId)
     {

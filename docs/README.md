@@ -1,5 +1,7 @@
 # Documentação
 
+- [Edição, exclusão e movimentação de lançamentos (#14)](transactions/entry-changes.md)
+
 - [Compras parceladas (#13)](transactions/installments.md)
 
 - [Situação e fechamento de faturas (#50)](invoices/lifecycle.md)

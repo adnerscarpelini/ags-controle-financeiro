@@ -5,7 +5,7 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Transactions.Application.CreateEntry;
 
-internal sealed class EntryCatalog(IEntryStore store, IClassificationCatalog classifications, IMerchantCatalog merchants, IAccountCatalog accounts, ICardLastDigitsCatalog cardDigits, IAccountingMonthCalculator calendar, TimeProvider clock, IFinancialOperation operations, IInvoiceWriteGuard invoices) : IEntryCatalog
+internal sealed partial class EntryCatalog(IEntryStore store, IClassificationCatalog classifications, IMerchantCatalog merchants, IAccountCatalog accounts, ICardLastDigitsCatalog cardDigits, IAccountingMonthCalculator calendar, TimeProvider clock, IFinancialOperation operations, IInvoiceWriteGuard invoices) : IEntryCatalog
 {
     public Task<ClassificationResult> CreateAsync(CreateEntryRequest request, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(token => CreateCoreAsync(request, token), x => x.Succeeded, cancellationToken);
@@ -46,37 +46,43 @@ internal sealed class EntryCatalog(IEntryStore store, IClassificationCatalog cla
         return await store.AddPurchaseAsync(purchase, generated, cancellationToken) ? new(purchase.ExternalId, null) : new(null, "Não foi possível gravar a compra parcelada.");
     }
 
-    private async Task<(TransactionEntry? Entry, string? Error)> PrepareAsync(CreateEntryRequest request, CancellationToken cancellationToken)
+    private async Task<(TransactionEntry? Entry, string? Error)> PrepareAsync(CreateEntryRequest request, CancellationToken cancellationToken, TransactionEntry? original = null)
     {
-        var merchant = (await merchants.FindAsync(cancellationToken: cancellationToken)).FirstOrDefault(x => x.ExternalId == request.MerchantExternalId);
+        var merchant = (await merchants.FindAsync(activeOnly: false, cancellationToken: cancellationToken)).FirstOrDefault(x => x.ExternalId == request.MerchantExternalId && (x.IsActive || x.ExternalId == original?.MerchantExternalId));
         var subcategoryId = request.SubcategoryExternalId == Guid.Empty ? merchant?.DefaultSubcategoryExternalId : request.SubcategoryExternalId;
-        var subcategory = (await classifications.GetSubcategoriesAsync(cancellationToken: cancellationToken)).FirstOrDefault(x => x.ExternalId == subcategoryId);
+        var subcategory = (await classifications.GetSubcategoriesAsync(false, cancellationToken)).FirstOrDefault(x => x.ExternalId == subcategoryId && (x.IsActive || x.ExternalId == original?.SubcategoryExternalId));
         var card = request.CardExternalId is null ? null : (await accounts.GetCreditCardsAsync(cancellationToken: cancellationToken)).FirstOrDefault(x => x.ExternalId == request.CardExternalId);
+        if (card is null && request.CardExternalId is not null && request.CardExternalId == original?.CardExternalId)
+        {
+            card = (await accounts.GetCreditCardsAsync(false, cancellationToken)).FirstOrDefault(x => x.ExternalId == request.CardExternalId);
+        }
         if (request.CardExternalId is not null && card is null)
         {
             return (null, "Selecione um cartão ativo cadastrado.");
         }
-        if (request.CardLastDigitsExternalId is { } digitsId && (card is null || !(await cardDigits.GetAsync(card.ExternalId, cancellationToken: cancellationToken)).Any(x => x.ExternalId == digitsId)))
+        if (request.CardLastDigitsExternalId is { } digitsId && (card is null || !(await cardDigits.GetAsync(card.ExternalId, false, cancellationToken)).Any(x => x.ExternalId == digitsId && (x.IsActive || (original is not null && x.ExternalId == original.CardLastDigitsExternalId && card.ExternalId == original.CardExternalId)))))
         {
             return (null, "Selecione um final ativo pertencente ao cartão escolhido.");
         }
-        if (card is not null && subcategory?.Kind != Contracts.CategoryKind.Expense)
+        if (card is not null && subcategory?.Kind != Contracts.CategoryKind.Expense && !(original is not null && original.SubcategoryExternalId == subcategory?.ExternalId && original.Kind == Domain.CategoryKind.Expense))
         {
             return (null, "Compras no cartão exigem classificação de despesa.");
         }
-        var accountId = card?.AccountExternalId ?? request.AccountExternalId;
-        var account = (await accounts.GetAccountsAsync(cancellationToken: cancellationToken)).FirstOrDefault(x => x.ExternalId == accountId);
+        var accountId = card is not null && !(original is not null && card.ExternalId == original.CardExternalId && request.AccountExternalId == original.AccountExternalId)
+            ? card.AccountExternalId : request.AccountExternalId;
+        var account = (await accounts.GetAccountsAsync(false, cancellationToken)).FirstOrDefault(x => x.ExternalId == accountId && (x.IsActive || x.ExternalId == original?.AccountExternalId));
         if (merchant is null || subcategory is null || account is null)
         {
             return (null, "Selecione descrição, subcategoria e conta ativas cadastradas.");
         }
-        var suggestion = await calendar.CalculateAsync(request.Date, card?.ExternalId, cancellationToken);
+        var suggestion = request.Month is { } selectedMonth ? new AccountingMonthSuggestion(selectedMonth, null) : await calendar.CalculateAsync(request.Date, card?.ExternalId, cancellationToken);
         if (!suggestion.Succeeded)
         {
             return (null, suggestion.Error);
         }
         var entry = new TransactionEntry();
-        var error = entry.Update(request.Date, request.Month ?? suggestion.Month!.Value, merchant.ExternalId, subcategory.ExternalId, account.ExternalId, (Domain.CategoryKind)subcategory.Kind, request.Amount, request.Details);
+        var kind = original is not null && original.SubcategoryExternalId == subcategory.ExternalId ? original.Kind : (Domain.CategoryKind)subcategory.Kind;
+        var error = entry.Update(request.Date, request.Month ?? suggestion.Month!.Value, merchant.ExternalId, subcategory.ExternalId, account.ExternalId, kind, request.Amount, request.Details, allowZeroAmount: original?.InstallmentPurchaseExternalId is not null && request.Amount.IsZero);
         if (error is not null)
         {
             return (null, error);
