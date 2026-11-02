@@ -1,0 +1,118 @@
+using Ags.Finance.Modules.Transactions.Contracts;
+using Ags.Finance.Modules.Transactions.Domain;
+using Ags.Finance.SharedKernel;
+
+namespace Ags.Finance.Modules.Transactions.Application.CreateEntry;
+
+internal sealed partial class EntryCatalog
+{
+    public Task<ClassificationResult> EditRecurringAsync(Guid externalId, EditRecurringEntryRequest request, CancellationToken cancellationToken = default)
+        => operations.ExecuteAsync(token => ChangeRecurringAsync(externalId, request.Scope, request, token), x => x.Succeeded, cancellationToken);
+
+    public Task<ClassificationResult> DeleteRecurringAsync(Guid externalId, RecurringChangeScope scope, CancellationToken cancellationToken = default)
+        => operations.ExecuteAsync(token => ChangeRecurringAsync(externalId, scope, null, token), x => x.Succeeded, cancellationToken);
+
+    private async Task<ClassificationResult> ChangeRecurringAsync(Guid externalId, RecurringChangeScope scope, EditRecurringEntryRequest? change, CancellationToken cancellationToken)
+    {
+        if (!Enum.IsDefined(scope)) { return new(null, "Escolha o alcance da recorrência."); }
+        var generation = await GenerateRecurringAsync(new(), cancellationToken);
+        if (!generation.Succeeded) { return new(null, generation.Error); }
+        var all = await store.GetAsync(cancellationToken);
+        var selected = all.FirstOrDefault(x => x.ExternalId == externalId);
+        if (selected?.RecurringEntryExternalId is not { } seriesId || selected.OccurrenceMonth is not { } period)
+        {
+            return new(null, "Ocorrência recorrente não encontrada.");
+        }
+        var sourceError = await RequireSourceOpenAsync(selected, cancellationToken);
+        if (sourceError is not null) { return new(null, sourceError); }
+        var series = (await store.GetRecurringAsync(cancellationToken)).Single(x => x.ExternalId == seriesId);
+        var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
+        var affected = all.Where(x => x.RecurringEntryExternalId == seriesId && (scope switch
+        {
+            RecurringChangeScope.OnlyThis => x.ExternalId == externalId,
+            RecurringChangeScope.ThisAndFollowing => x.OccurrenceMonth >= period,
+            _ => !(x.IsEffective && x.Date < today)
+        })).ToList();
+        foreach (var entry in affected)
+        {
+            var error = await RequireSourceOpenAsync(entry, cancellationToken);
+            if (error is not null) { return new(null, error); }
+        }
+        if (change is null)
+        {
+            if (scope == RecurringChangeScope.OnlyThis) { series.Exclude(period); }
+            else if (scope == RecurringChangeScope.ThisAndFollowing) { series.StopBefore(period); }
+            else { series.Deactivate(); }
+            await store.SaveRecurringChangesAsync(series, null, [], affected, cancellationToken);
+            return new(externalId, null);
+        }
+        var request = change.Entry;
+        var baseline = ToRequest(selected);
+        var day = change.Day ?? (request.Date == baseline.Date ? series.Day : request.Date.Day);
+        if (day is < 1 or > 31 || request.Month is { Year: 0 }) { return new(null, "Informe dia e mês válidos."); }
+        if (scope != RecurringChangeScope.OnlyThis && change.Day is not null) { request = request with { Date = OccurrenceDate(request.Date, day) }; }
+        var monthShift = request.Month is { } month ? MonthIndex(month.FirstDay) - MonthIndex(selected.Month.FirstDay) : 0;
+        var dateChanged = request.Date != baseline.Date || day != series.Day;
+        var preparedSelected = await PrepareAsync(request, cancellationToken, selected);
+        if (preparedSelected.Entry is not { } selectedTemplate) { return new(null, preparedSelected.Error); }
+        RecurringEntry? following = null;
+        if (scope != RecurringChangeScope.OnlyThis)
+        {
+            // The selected occurrence may be an exception. Unchanged fields keep the series configuration.
+            var templateRequest = ChangedRecurringRequest(request, baseline, new(series.StartDate, series.MerchantExternalId,
+                series.SubcategoryExternalId, series.AccountExternalId, series.Amount, series.Details,
+                selected.Month, series.CardExternalId, series.CardLastDigitsExternalId)) with
+            { Date = request.Date, Month = selectedTemplate.Month };
+            var prepared = await PrepareAsync(templateRequest, cancellationToken, selected);
+            if (prepared.Entry is not { } template) { return new(null, prepared.Error); }
+            var suggestion = await calendar.CalculateAsync(request.Date, template.CardExternalId, cancellationToken);
+            if (suggestion.Month is not { } calculated) { return new(null, suggestion.Error); }
+            var offset = monthShift == 0 && !dateChanged && request.CardExternalId == baseline.CardExternalId
+                ? series.AccountingMonthOffset : MonthIndex(template.Month.FirstDay) - MonthIndex(calculated.FirstDay);
+            if (scope == RecurringChangeScope.ThisAndFollowing)
+            {
+                var firstDate = OccurrenceDate(period, day);
+                var prototype = new TransactionEntry();
+                var error = prototype.Update(firstDate, template.Month, template.MerchantExternalId, template.SubcategoryExternalId,
+                    template.AccountExternalId, template.Kind, new Money(Math.Abs(template.Amount.Amount)), template.Details);
+                if (error is not null) { return new(null, error); }
+                if (template.CardExternalId is { } card) { prototype.SetCard(card, template.CardLastDigitsExternalId); }
+                following = RecurringEntry.Create(prototype, series.EndMonth);
+                if (following is null) { return new(null, "A ocorrência está após o término da série."); }
+                following.Configure(template, day, offset);
+                foreach (var excluded in series.ExcludedMonths.Where(x => x >= period)) { following.Exclude(excluded); }
+                series.StopBefore(period);
+            }
+            else { series.Configure(template, day, offset); }
+        }
+        foreach (var entry in affected)
+        {
+            var index = MonthIndex(entry.Month.FirstDay) + monthShift;
+            if (index is < 0 or >= 119988) { return new(null, "A alteração ultrapassa o calendário suportado."); }
+            var changed = scope == RecurringChangeScope.OnlyThis ? request : ChangedRecurringRequest(request, baseline, ToRequest(entry)) with
+            {
+                Date = dateChanged ? entry.ExternalId == externalId ? request.Date : OccurrenceDate(entry.OccurrenceMonth!.Value, day) : entry.Date,
+                Month = new AccountingMonth(index / 12 + 1, index % 12 + 1)
+            };
+            var prepared = await PrepareAsync(changed, cancellationToken, entry);
+            if (prepared.Entry is not { } updated) { return new(null, prepared.Error); }
+            entry.ApplyChange(updated, false);
+            if (following is not null) { entry.SetRecurring(following.ExternalId, entry.OccurrenceMonth!.Value); }
+        }
+        await store.SaveRecurringChangesAsync(series, following, affected, [], cancellationToken);
+        return new(externalId, null);
+    }
+
+    private static DateOnly OccurrenceDate(DateOnly period, int day) => new(period.Year, period.Month, Math.Min(day, DateTime.DaysInMonth(period.Year, period.Month)));
+
+    private static CreateEntryRequest ChangedRecurringRequest(CreateEntryRequest request, CreateEntryRequest baseline, CreateEntryRequest original) => original with
+    {
+        MerchantExternalId = request.MerchantExternalId == baseline.MerchantExternalId ? original.MerchantExternalId : request.MerchantExternalId,
+        SubcategoryExternalId = request.SubcategoryExternalId == baseline.SubcategoryExternalId ? original.SubcategoryExternalId : request.SubcategoryExternalId,
+        AccountExternalId = request.AccountExternalId == baseline.AccountExternalId ? original.AccountExternalId : request.AccountExternalId,
+        CardExternalId = request.CardExternalId == baseline.CardExternalId ? original.CardExternalId : request.CardExternalId,
+        CardLastDigitsExternalId = request.CardLastDigitsExternalId == baseline.CardLastDigitsExternalId ? original.CardLastDigitsExternalId : request.CardLastDigitsExternalId,
+        Amount = request.Amount == baseline.Amount ? original.Amount : request.Amount,
+        Details = request.Details == baseline.Details ? original.Details : request.Details
+    };
+}

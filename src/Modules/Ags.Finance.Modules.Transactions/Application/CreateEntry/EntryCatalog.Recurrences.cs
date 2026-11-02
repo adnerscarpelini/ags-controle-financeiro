@@ -48,8 +48,8 @@ internal sealed partial class EntryCatalog
         foreach (var series in definitions)
         {
             var first = MonthIndex(series.StartDate);
-            var from = filter.Month is { } month ? Math.Max(0, MonthIndex(month.FirstDay) - 2) : filter.FromDate is { } fromDate ? MonthIndex(fromDate) : first;
-            var to = filter.Month is { } target ? MonthIndex(target.FirstDay) : filter.ToDate is { } toDate ? MonthIndex(toDate) : Math.Max(MonthIndex(current), from);
+            var from = filter.Month is { } month ? Math.Max(0, MonthIndex(month.FirstDay) - series.AccountingMonthOffset - 2) : filter.FromDate is { } fromDate ? MonthIndex(fromDate) : first;
+            var to = filter.Month is { } target ? Math.Min(119987, MonthIndex(target.FirstDay) - series.AccountingMonthOffset) : filter.ToDate is { } toDate ? MonthIndex(toDate) : Math.Max(MonthIndex(current), from);
             if (filter.FromDate is { } lower) { from = Math.Max(from, MonthIndex(lower)); }
             if (filter.ToDate is { } upper) { to = Math.Min(to, MonthIndex(upper)); }
             from = Math.Max(from, first);
@@ -57,7 +57,7 @@ internal sealed partial class EntryCatalog
             for (var index = from; index <= to; index++)
             {
                 var period = new DateOnly(index / 12 + 1, index % 12 + 1, 1);
-                if (existing.Contains((series.ExternalId, period))) { continue; }
+                if (existing.Contains((series.ExternalId, period)) || series.ExcludedMonths.Contains(period)) { continue; }
                 var date = new DateOnly(period.Year, period.Month, Math.Min(series.Day, DateTime.DaysInMonth(period.Year, period.Month)));
                 var suggestion = await calendar.CalculateAsync(date, series.CardExternalId, cancellationToken);
                 if (suggestion.Month is not { } accountingMonth)
@@ -65,6 +65,9 @@ internal sealed partial class EntryCatalog
                     if (series.CardExternalId is not null && period.Year == 9999 && period.Month == 12) { continue; }
                     return new(0, 0, suggestion.Error);
                 }
+                var shifted = MonthIndex(accountingMonth.FirstDay) + series.AccountingMonthOffset;
+                if (shifted is < 0 or >= 119988) { continue; }
+                accountingMonth = new AccountingMonth(shifted / 12 + 1, shifted % 12 + 1);
                 if (filter.Month is { } requested && accountingMonth != requested) { continue; }
                 if (series.CardExternalId is { } card)
                 {
