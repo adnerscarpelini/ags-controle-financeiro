@@ -11,4 +11,5 @@ enviada no formulário. Os vínculos são ExternalId, sem consultas cruzadas de 
 
 As despesas de cartão aparecem no orçamento e nas faturas, mas não movimentam
 diretamente o saldo efetivo da conta. O débito pertence ao pagamento de fatura (#51).
-A proteção de faturas Fechadas/Pagas será integrada na #50, após a consulta #18.
+A proteção de faturas Fechadas/Pagas e do horário de corte está integrada na
+[#50](../invoices/lifecycle.md), inclusive para a escolha manual de outra fatura.

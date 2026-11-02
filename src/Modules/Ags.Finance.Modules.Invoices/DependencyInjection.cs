@@ -1,10 +1,14 @@
+using Ags.Finance.Modules.Invoices.Application;
+using Ags.Finance.Modules.Invoices.Application.CloseInvoices;
 using Ags.Finance.Modules.Invoices.Application.QueryInvoices;
 using Ags.Finance.Modules.Invoices.Contracts;
 using Ags.Finance.Modules.Invoices.Infrastructure;
+using Ags.Finance.Modules.Transactions.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Npgsql;
 
 namespace Ags.Finance.Modules.Invoices;
 
@@ -15,13 +19,17 @@ public static class DependencyInjection
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
         services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton(_ => NpgsqlDataSource.Create(connectionString));
         services.AddSingleton<AuditTimestampsInterceptor>();
-        services.AddDbContext<InvoicesDbContext>((provider, options) => options
-            .UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable(InvoicesDbContext.MigrationsHistoryTable, InvoicesDbContext.Schema))
+        services.AddDbContextFactory<InvoicesDbContext>((provider, options) => options
+            .UseNpgsql(provider.GetRequiredService<NpgsqlDataSource>(), npgsql => npgsql.MigrationsHistoryTable(InvoicesDbContext.MigrationsHistoryTable, InvoicesDbContext.Schema))
             .ConfigureWarnings(warnings => warnings.Ignore(CoreEventId.NoEntityTypeConfigurationsWarning))
             .AddInterceptors(provider.GetRequiredService<AuditTimestampsInterceptor>()));
 
         services.AddScoped<IInvoiceCatalog, InvoiceCatalog>();
+        services.AddScoped<IInvoiceStore, InvoiceStore>();
+        services.AddScoped<IInvoiceLifecycle, InvoiceLifecycle>();
+        services.AddScoped<IInvoiceWriteGuard, InvoiceWriteGuard>();
         return services;
     }
 

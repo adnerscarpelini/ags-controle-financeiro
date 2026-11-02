@@ -61,6 +61,12 @@ public sealed class TransactionPageTests
         invoices.Find(".catalog-list button").Click();
         Assert.Contains("Loja Exemplo", invoices.Find("[aria-label='Composição da fatura']").TextContent, StringComparison.Ordinal);
         Assert.Single(invoices.FindAll("[aria-label='Composição da fatura'] li"));
+        invoices.FindAll(".catalog-list button").Single(x => x.TextContent == "Fechar").Click();
+        invoices.FindAll("[role=alertdialog] button")[1].Click();
+        Assert.Empty(invoices.FindAll("[role=alertdialog]"));
+        invoices.FindAll(".catalog-list button").Single(x => x.TextContent == "Fechar").Click();
+        await invoices.Find("[role=alertdialog] button").ClickAsync(new());
+        Assert.Contains("Fechada", invoices.Find("[aria-label='Composição da fatura']").TextContent, StringComparison.Ordinal);
     }
 
     private sealed class PreviewClock : TimeProvider

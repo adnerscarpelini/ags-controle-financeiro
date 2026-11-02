@@ -5,9 +5,12 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Transactions.Application.CreateEntry;
 
-internal sealed class EntryCatalog(IEntryStore store, IClassificationCatalog classifications, IMerchantCatalog merchants, IAccountCatalog accounts, ICardLastDigitsCatalog cardDigits, IAccountingMonthCalculator calendar, TimeProvider clock) : IEntryCatalog
+internal sealed class EntryCatalog(IEntryStore store, IClassificationCatalog classifications, IMerchantCatalog merchants, IAccountCatalog accounts, ICardLastDigitsCatalog cardDigits, IAccountingMonthCalculator calendar, TimeProvider clock, IFinancialOperation operations, IInvoiceWriteGuard invoices) : IEntryCatalog
 {
-    public async Task<ClassificationResult> CreateAsync(CreateEntryRequest request, CancellationToken cancellationToken = default)
+    public Task<ClassificationResult> CreateAsync(CreateEntryRequest request, CancellationToken cancellationToken = default)
+        => operations.ExecuteAsync(token => CreateCoreAsync(request, token), x => x.Succeeded, cancellationToken);
+
+    private async Task<ClassificationResult> CreateCoreAsync(CreateEntryRequest request, CancellationToken cancellationToken)
     {
         var merchant = (await merchants.FindAsync(cancellationToken: cancellationToken)).FirstOrDefault(x => x.ExternalId == request.MerchantExternalId);
         var subcategoryId = request.SubcategoryExternalId == Guid.Empty ? merchant?.DefaultSubcategoryExternalId : request.SubcategoryExternalId;
@@ -41,6 +44,11 @@ internal sealed class EntryCatalog(IEntryStore store, IClassificationCatalog cla
         if (error is not null)
         {
             return new(null, error);
+        }
+        if (card is not null)
+        {
+            error = await invoices.RequireOpenAsync(card.ExternalId, entry.Month, cancellationToken);
+            if (error is not null) { return new(null, error); }
         }
         entry.SetEffective(request.Date, clock.GetUtcNow());
         if (card is not null) { entry.SetCard(card.ExternalId, request.CardLastDigitsExternalId); }

@@ -4,7 +4,7 @@
 
 A aplicação é um **monólito modular**. Um único host web (`Ags.Finance.Web`, ASP.NET Core + Blazor) compõe módulos independentes, e cada módulo é uma class library organizada em Clean Architecture.
 
-**Estado:** esqueleto e testes de arquitetura entregues (#1/#2). Identity tem usuário, login e senha; Accounts tem bancos, contas, cartões/finais e cálculo do mês contábil (#6–#8). Os demais módulos aguardam seus casos de uso. A persistência PostgreSQL (#60) está implementada, com um schema por módulo; a distribuição Docker (#59) também está entregue. A tabela abaixo expressa responsabilidades, incluindo entregas futuras.
+**Estado:** esqueleto e testes de arquitetura entregues (#1/#2). Identity tem usuário, login e senha; Accounts tem bancos, contas com abertura, cartões/finais e calendário (#6–#8/#47). Transactions tem classificações, descrições e lançamentos avulsos (#9–#12); Invoices tem consulta e ciclo de faturas (#18/#50). As demais operações continuam nas issues. PostgreSQL por schema (#60), distribuição Docker (#59) e backup (#31) estão implementados. A tabela abaixo inclui responsabilidades futuras.
 
 ## Módulos
 

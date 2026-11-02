@@ -9,5 +9,6 @@ Receitas/despesas à vista não compõem faturas. O total é a soma exata dos it
 cartões sem composição ou registro não geram linhas artificiais. Cadastros
 inativos continuam identificando o histórico. Consultar não modifica os dados.
 
-Situação e fechamento (#50), abatimentos/pagamentos (#19/#51), parcelas futuras
-(#20) e ajustes (#52) serão integrados nas respectivas etapas do lote.
+Situação e fechamento estão implementados na [#50](lifecycle.md). Faturas registradas
+manualmente também aparecem, mesmo sem compras. Abatimentos/pagamentos (#19/#51),
+parcelas futuras (#20) e ajustes (#52) serão integrados nas próximas etapas.

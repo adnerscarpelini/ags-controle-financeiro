@@ -5,7 +5,7 @@ using CardBrand = Ags.Finance.Modules.Accounts.Domain.CardBrand;
 
 namespace Ags.Finance.Modules.Accounts.Application.ManageCatalog;
 
-internal sealed class AccountCatalog(IAccountsStore store, TimeProvider clock) : IAccountCatalog
+internal sealed class AccountCatalog(IAccountsStore store, TimeProvider clock, IFinancialOperation operations) : IAccountCatalog
 {
     public async Task<IReadOnlyList<BankDetails>> GetBanksAsync(CancellationToken cancellationToken = default)
         => (await store.GetBanksAsync(cancellationToken)).Select(x => new BankDetails(x.ExternalId, x.Name)).ToList();
@@ -32,7 +32,10 @@ internal sealed class AccountCatalog(IAccountsStore store, TimeProvider clock) :
         return await PersistAsync(bank, cancellationToken);
     }
 
-    public async Task<CatalogResult> SaveAccountAsync(SaveAccountRequest request, CancellationToken cancellationToken = default)
+    public Task<CatalogResult> SaveAccountAsync(SaveAccountRequest request, CancellationToken cancellationToken = default)
+        => operations.ExecuteAsync(token => SaveAccountCoreAsync(request, token), x => x.Succeeded, cancellationToken);
+
+    private async Task<CatalogResult> SaveAccountCoreAsync(SaveAccountRequest request, CancellationToken cancellationToken)
     {
         var accounts = await store.GetAccountsAsync(cancellationToken);
         var account = request.ExternalId is null ? Account.Create() : accounts.FirstOrDefault(x => x.ExternalId == request.ExternalId);
@@ -68,7 +71,10 @@ internal sealed class AccountCatalog(IAccountsStore store, TimeProvider clock) :
         return error is null ? await PersistAsync(account, cancellationToken) : new(null, error);
     }
 
-    public async Task<CatalogResult> SaveCreditCardAsync(SaveCreditCardRequest request, CancellationToken cancellationToken = default)
+    public Task<CatalogResult> SaveCreditCardAsync(SaveCreditCardRequest request, CancellationToken cancellationToken = default)
+        => operations.ExecuteAsync(token => SaveCreditCardCoreAsync(request, token), x => x.Succeeded, cancellationToken);
+
+    private async Task<CatalogResult> SaveCreditCardCoreAsync(SaveCreditCardRequest request, CancellationToken cancellationToken)
     {
         var card = request.ExternalId is null ? CreditCard.Create() : (await store.GetCreditCardsAsync(cancellationToken)).FirstOrDefault(x => x.ExternalId == request.ExternalId);
         if (card is null)
@@ -84,7 +90,10 @@ internal sealed class AccountCatalog(IAccountsStore store, TimeProvider clock) :
         return error is null ? await PersistAsync(card, cancellationToken) : new(null, error);
     }
 
-    public async Task<CatalogResult> DeactivateAccountAsync(Guid externalId, CancellationToken cancellationToken = default)
+    public Task<CatalogResult> DeactivateAccountAsync(Guid externalId, CancellationToken cancellationToken = default)
+        => operations.ExecuteAsync(token => DeactivateAccountCoreAsync(externalId, token), x => x.Succeeded, cancellationToken);
+
+    private async Task<CatalogResult> DeactivateAccountCoreAsync(Guid externalId, CancellationToken cancellationToken)
     {
         var account = (await store.GetAccountsAsync(cancellationToken)).FirstOrDefault(x => x.ExternalId == externalId);
         if (account is null)
@@ -95,7 +104,10 @@ internal sealed class AccountCatalog(IAccountsStore store, TimeProvider clock) :
         return await PersistAsync(account, cancellationToken);
     }
 
-    public async Task<CatalogResult> DeactivateCreditCardAsync(Guid externalId, CancellationToken cancellationToken = default)
+    public Task<CatalogResult> DeactivateCreditCardAsync(Guid externalId, CancellationToken cancellationToken = default)
+        => operations.ExecuteAsync(token => DeactivateCreditCardCoreAsync(externalId, token), x => x.Succeeded, cancellationToken);
+
+    private async Task<CatalogResult> DeactivateCreditCardCoreAsync(Guid externalId, CancellationToken cancellationToken)
     {
         var card = (await store.GetCreditCardsAsync(cancellationToken)).FirstOrDefault(x => x.ExternalId == externalId);
         if (card is null)

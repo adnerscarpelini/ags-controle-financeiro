@@ -47,7 +47,8 @@ internal sealed class MerchantStore(IDbContextFactory<TransactionsDbContext> fac
     private async Task<string?> MergeCoreAsync(Guid sourceExternalId, Guid targetExternalId, CancellationToken cancellationToken)
     {
         await using var context = await factory.CreateDbContextAsync(cancellationToken);
-        await using var transaction = await context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+        await using var transaction = System.Transactions.Transaction.Current is null
+            ? await context.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken) : null;
         var source = await context.Set<Merchant>().SingleOrDefaultAsync(x => x.ExternalId == sourceExternalId, cancellationToken);
         var target = await context.Set<Merchant>().SingleOrDefaultAsync(x => x.ExternalId == targetExternalId, cancellationToken);
         if (source is null || target is null || !target.IsActive)
@@ -61,7 +62,7 @@ internal sealed class MerchantStore(IDbContextFactory<TransactionsDbContext> fac
         }
         context.Remove(source);
         await context.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        if (transaction is not null) { await transaction.CommitAsync(cancellationToken); }
         return null;
     }
 }

@@ -76,6 +76,7 @@ builder.Services
     .AddReimbursementsModule(connectionString)
     .AddReportsModule()
     .AddImportsModule();
+builder.Services.AddHostedService<Ags.Finance.Web.Invoices.InvoiceClosingScheduler>();
 
 // Sem as chaves em disco, recriar o container invalidaria o cookie de sessão e o antiforgery.
 builder.Services.AddDataProtection()

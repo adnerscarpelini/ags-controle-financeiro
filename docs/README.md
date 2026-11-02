@@ -1,5 +1,9 @@
 # Documentação
 
+- [Situação e fechamento de faturas (#50)](invoices/lifecycle.md)
+
+- [Atomicidade e proteção entre módulos (#50)](architecture/financial-operations.md)
+
 - [Consulta e composição de faturas (#18)](invoices/composition.md)
 
 - [Compras no cartão e escolha de fatura (#12)](transactions/card-entries.md)
