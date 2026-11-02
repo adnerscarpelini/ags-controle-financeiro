@@ -1,5 +1,7 @@
 # Documentação
 
+- [Compras no cartão e escolha de fatura (#12)](transactions/card-entries.md)
+
 - [Receitas e despesas avulsas (#11)](transactions/cash-entries.md)
 
 - [Saldo inicial e responsabilidade pelo saldo (#47)](architecture/account-balances.md)
