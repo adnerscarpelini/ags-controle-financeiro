@@ -16,3 +16,4 @@ Esta pasta descreve o comportamento implementado e as decisões de arquitetura. 
 Cada entrega adiciona uma nota em `docs/<module>/`.
 
 - SharedKernel: [Money e AccountingMonth](shared-kernel/money-and-accounting-month.md)
+- Web: [Layout e navegação](web/layout-and-navigation.md)

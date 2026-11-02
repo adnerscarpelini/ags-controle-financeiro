@@ -1,3 +1,4 @@
+using System.Globalization;
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Identity;
 using Ags.Finance.Modules.Imports;
@@ -7,6 +8,12 @@ using Ags.Finance.Modules.Reports;
 using Ags.Finance.Modules.Transactions;
 using Ags.Finance.Web.Components;
 using Ags.Finance.Web.Persistence;
+
+// Aplicação de um único usuário no Brasil: valores e datas saem como R$ 1.234,56 e dd/MM/yyyy
+// em todos os circuitos, independentemente da cultura do sistema ou do navegador.
+var culture = new CultureInfo("pt-BR");
+CultureInfo.DefaultThreadCurrentCulture = culture;
+CultureInfo.DefaultThreadCurrentUICulture = culture;
 
 var builder = WebApplication.CreateBuilder(args);
 

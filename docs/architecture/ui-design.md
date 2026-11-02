@@ -4,6 +4,8 @@
 
 Visual moderno e limpo, com **tema escuro como padrão** e um **verde "dinheiro"** como cor principal, em Blazor. Todas as cores vêm de tokens declarados como variáveis CSS num único arquivo (`--color-accent`, `--color-background`…). A interface é responsiva (computador e celular) e instalável como PWA.
 
+**Estado:** layout, tokens e navegação implementados (issue #5); ver [layout-and-navigation.md](../web/layout-and-navigation.md).
+
 ## Paleta
 
 | Token | Cor | Uso |

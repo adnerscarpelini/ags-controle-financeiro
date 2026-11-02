@@ -1,5 +1,9 @@
 @page "/"
+@inject NavigationManager Navigation
 
-<PageTitle>AGS Finanças</PageTitle>
-
-<h1>AGS Finanças</h1>
+@code {
+    protected override void OnInitialized()
+    {
+        Navigation.NavigateTo("dashboard", replace: true);
+    }
+}
