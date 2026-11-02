@@ -1,0 +1,272 @@
+@page "/cadastros/contas-cartoes"
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.SharedKernel
+@inject IAccountCatalog Catalog
+
+<PageHeader Title="Contas e cartões" />
+<p><a href="/cadastros">Cadastros</a> / Contas e cartões</p>
+
+@if (_message is not null)
+{
+    <p role="status" class="@(_failed ? "form-error" : "form-success")">@_message</p>
+}
+
+@if (_pendingId is not null)
+{
+    <section class="panel" role="alertdialog" aria-labelledby="deactivate-title">
+        <h2 id="deactivate-title">Desativar em vez de excluir</h2>
+        <p>Para preservar o histórico, este cadastro será mantido e deixará de aparecer nas seleções.</p>
+        <button class="button" @onclick="ConfirmDeactivationAsync">Desativar</button>
+        <button class="button" @onclick="() => _pendingId = null">Cancelar</button>
+    </section>
+}
+
+<section class="panel">
+    <h2>Bancos</h2>
+    <form @onsubmit="SaveBankAsync" @onsubmit:preventDefault>
+        <div class="field">
+            <label for="bank-name">Nome do banco</label>
+            <input id="bank-name" @bind="_bankName" maxlength="100" required />
+        </div>
+        <button class="button" type="submit" disabled="@_busy">Cadastrar banco</button>
+    </form>
+    <ul>
+        @foreach (var bank in _banks)
+        {
+            <li>@bank.Name</li>
+        }
+    </ul>
+</section>
+
+<section class="panel">
+    <h2>@(_accountId is null ? "Nova conta" : "Editar conta")</h2>
+    <form @onsubmit="SaveAccountAsync" @onsubmit:preventDefault>
+        <div class="catalog-fields">
+            <div class="field">
+                <label for="account-bank">Banco</label>
+                <select id="account-bank" @bind="_accountBank" required>
+                    <option value="@Guid.Empty">Selecione</option>
+                    @foreach (var bank in _banks) { <option value="@bank.ExternalId">@bank.Name</option> }
+                </select>
+            </div>
+            <div class="field">
+                <label for="account-name">Nome da conta</label>
+                <input id="account-name" @bind="_accountName" maxlength="100" required />
+            </div>
+            <div class="field">
+                <label for="account-kind">Tipo</label>
+                <select id="account-kind" @bind="_accountKind">
+                    <option value="@AccountKind.Checking">Corrente</option>
+                    <option value="@AccountKind.Investment">Investimento</option>
+                    <option value="@AccountKind.Savings">Poupança</option>
+                </select>
+            </div>
+            <CatalogColor Id="account-color" @bind-Value="_accountColor" />
+        </div>
+        <button class="button" type="submit" disabled="@_busy">Salvar conta</button>
+        <button class="button" type="button" @onclick="ResetAccount">Limpar</button>
+    </form>
+    <ul class="catalog-list">
+        @foreach (var account in _accounts)
+        {
+            <li>
+                <span class="catalog-color color-@account.Color">@account.Name</span>
+                <span>@(_banks.FirstOrDefault(x => x.ExternalId == account.BankExternalId)?.Name) · @KindLabel(account.Kind) · @(account.IsActive ? "Ativa" : "Desativada")</span>
+                <div>
+                    <button class="button" @onclick="() => EditAccount(account)">Editar</button>
+                    @if (account.IsActive) { <button class="button" @onclick="() => AskDeactivation(account.ExternalId, false)">Excluir / desativar</button> }
+                </div>
+            </li>
+        }
+    </ul>
+</section>
+
+<section class="panel">
+    <h2>@(_cardId is null ? "Novo cartão" : "Editar cartão")</h2>
+    <form @onsubmit="SaveCardAsync" @onsubmit:preventDefault>
+        <div class="catalog-fields">
+            <div class="field">
+                <label for="card-name">Nome do cartão</label>
+                <input id="card-name" @bind="_cardName" maxlength="100" required />
+            </div>
+            <div class="field">
+                <label for="card-account">Conta corrente para pagamento</label>
+                <select id="card-account" @bind="_cardAccount" required>
+                    <option value="@Guid.Empty">Selecione</option>
+                    @foreach (var account in _accounts.Where(x => x.IsActive && x.Kind == AccountKind.Checking))
+                    { <option value="@account.ExternalId">@account.Name</option> }
+                </select>
+            </div>
+            <div class="field">
+                <label for="card-brand">Bandeira</label>
+                <select id="card-brand" @bind="_cardBrand">
+                    <option value="@CardBrand.Visa">Visa</option>
+                    <option value="@CardBrand.Mastercard">Mastercard</option>
+                    <option value="@CardBrand.Elo">Elo</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="card-limit">Limite (R$)</label>
+                <input id="card-limit" type="number" step="0.01" min="0" @bind="_creditLimit" required />
+            </div>
+            <div class="field">
+                <label for="closing-day">Dia de fechamento</label>
+                <input id="closing-day" type="number" min="1" max="31" @bind="_closingDay" required />
+            </div>
+            <div class="field">
+                <label for="due-day">Dia de vencimento</label>
+                <input id="due-day" type="number" min="1" max="31" @bind="_dueDay" required />
+            </div>
+            <CatalogColor Id="card-color" @bind-Value="_cardColor" />
+        </div>
+        <label class="checkbox"><input type="checkbox" @bind="_includesClosingDay" />Compras no dia do fechamento entram na fatura que fecha</label>
+        <button class="button" type="submit" disabled="@_busy">Salvar cartão</button>
+        <button class="button" type="button" @onclick="ResetCard">Limpar</button>
+    </form>
+    <ul class="catalog-list">
+        @foreach (var card in _cards)
+        {
+            <li>
+                <span class="catalog-color color-@card.Color">@card.Name</span>
+                <span>@card.Brand · <span class="numeric">@card.CreditLimit</span> · @(card.IsActive ? "Ativo" : "Desativado")</span>
+                <span>Fecha dia @card.ClosingDay · vence dia @card.DueDay · @(card.IncludesClosingDay ? "Inclui" : "Não inclui") o dia do fechamento</span>
+                <div>
+                    <button class="button" @onclick="() => EditCard(card)">Editar</button>
+                    @if (card.IsActive) { <button class="button" @onclick="() => AskDeactivation(card.ExternalId, true)">Excluir / desativar</button> }
+                </div>
+            </li>
+        }
+    </ul>
+</section>
+
+@code {
+    private IReadOnlyList<BankDetails> _banks = [];
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private IReadOnlyList<CreditCardDetails> _cards = [];
+    private string _bankName = string.Empty;
+    private Guid? _accountId;
+    private Guid _accountBank;
+    private string _accountName = string.Empty;
+    private AccountKind _accountKind;
+    private string _accountColor = string.Empty;
+    private Guid? _cardId;
+    private Guid _cardAccount;
+    private string _cardName = string.Empty;
+    private CardBrand _cardBrand;
+    private decimal _creditLimit;
+    private int _closingDay = 3;
+    private int _dueDay = 10;
+    private bool _includesClosingDay;
+    private string _cardColor = string.Empty;
+    private string? _message;
+    private bool _failed;
+    private bool _busy;
+    private Guid? _pendingId;
+    private bool _pendingCard;
+
+    protected override async Task OnInitializedAsync() => await RefreshAsync();
+
+    private async Task RefreshAsync()
+    {
+        _banks = await Catalog.GetBanksAsync();
+        _accounts = await Catalog.GetAccountsAsync(activeOnly: false);
+        _cards = await Catalog.GetCreditCardsAsync(activeOnly: false);
+    }
+
+    private async Task ApplyAsync(Func<Task<CatalogResult>> operation)
+    {
+        if (_busy) { return; }
+        _busy = true;
+        try
+        {
+            var result = await operation();
+            _failed = !result.Succeeded;
+            _message = result.Error ?? "Cadastro salvo.";
+            await RefreshAsync();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task SaveBankAsync()
+    {
+        await ApplyAsync(() => Catalog.CreateBankAsync(_bankName));
+        if (!_failed) { _bankName = string.Empty; }
+    }
+
+    private async Task SaveAccountAsync()
+    {
+        await ApplyAsync(() => Catalog.SaveAccountAsync(new(_accountId, _accountBank, _accountName, _accountKind, _accountColor)));
+        if (!_failed) { ResetAccount(); }
+    }
+
+    private async Task SaveCardAsync()
+    {
+        await ApplyAsync(() => Catalog.SaveCreditCardAsync(new(_cardId, _cardAccount, _cardName, _cardBrand, new Money(_creditLimit), _closingDay, _dueDay, _includesClosingDay, _cardColor)));
+        if (!_failed) { ResetCard(); }
+    }
+
+    private void EditAccount(AccountDetails account)
+    {
+        _accountId = account.ExternalId;
+        _accountBank = account.BankExternalId;
+        _accountName = account.Name;
+        _accountKind = account.Kind;
+        _accountColor = account.Color;
+    }
+
+    private void EditCard(CreditCardDetails card)
+    {
+        _cardId = card.ExternalId;
+        _cardAccount = card.AccountExternalId;
+        _cardName = card.Name;
+        _cardBrand = card.Brand;
+        _creditLimit = card.CreditLimit.Amount;
+        _closingDay = card.ClosingDay;
+        _dueDay = card.DueDay;
+        _includesClosingDay = card.IncludesClosingDay;
+        _cardColor = card.Color;
+    }
+
+    private void ResetAccount()
+    {
+        _accountId = null;
+        _accountBank = Guid.Empty;
+        _accountName = string.Empty;
+        _accountKind = AccountKind.Checking;
+        _accountColor = string.Empty;
+    }
+
+    private void ResetCard()
+    {
+        _cardId = null;
+        _cardAccount = Guid.Empty;
+        _cardName = string.Empty;
+        _cardBrand = CardBrand.Visa;
+        _creditLimit = 0;
+        _closingDay = 3;
+        _dueDay = 10;
+        _includesClosingDay = false;
+        _cardColor = string.Empty;
+    }
+
+    private void AskDeactivation(Guid id, bool isCard)
+    {
+        _pendingId = id;
+        _pendingCard = isCard;
+    }
+
+    private async Task ConfirmDeactivationAsync()
+    {
+        if (_pendingId is not Guid id) { return; }
+        await ApplyAsync(() => _pendingCard ? Catalog.DeactivateCreditCardAsync(id) : Catalog.DeactivateAccountAsync(id));
+        _pendingId = null;
+    }
+
+    private static string KindLabel(AccountKind kind) => kind switch
+    {
+        AccountKind.Checking => "Corrente",
+        AccountKind.Investment => "Investimento",
+        AccountKind.Savings => "Poupança",
+        _ => string.Empty
+    };
+}

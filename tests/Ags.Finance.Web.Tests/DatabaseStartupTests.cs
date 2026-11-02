@@ -36,7 +36,7 @@ public sealed class DatabaseStartupTests : IDisposable
         foreach (var module in s_modules)
         {
             var applied = await QueryAsync(databasePath, $"SELECT MigrationId FROM __ef_migrations_{module}");
-            Assert.Equal(module == "identity" ? 2 : 1, applied.Count);
+            Assert.Equal(module is "identity" or "accounts" ? 2 : 1, applied.Count);
         }
     }
 

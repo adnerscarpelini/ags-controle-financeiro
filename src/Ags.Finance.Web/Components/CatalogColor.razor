@@ -1,0 +1,18 @@
+<div class="field">
+    <label for="@Id">Cor</label>
+    <select id="@Id" value="@Value" @onchange="ChangeAsync" required>
+        <option value="">Selecione</option>
+        <option value="green">Verde</option>
+        <option value="violet">Violeta</option>
+        <option value="orange">Laranja</option>
+        <option value="rose">Rosa</option>
+        <option value="slate">Cinza</option>
+    </select>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Id { get; set; } = string.Empty;
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    private Task ChangeAsync(ChangeEventArgs args) => ValueChanged.InvokeAsync(args.Value?.ToString() ?? string.Empty);
+}
