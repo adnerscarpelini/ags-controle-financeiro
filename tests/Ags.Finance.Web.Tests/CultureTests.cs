@@ -9,8 +9,8 @@ public sealed class CultureTests
     public async Task ApplicationUsesPortugueseBrazilForValuesAndDates()
     {
         using var factory = new AppFactory();
-        using var client = factory.CreateClient();
-        using var response = await client.GetAsync(new Uri("/dashboard", UriKind.Relative));
+        using var browser = await factory.CreateSignedInBrowserAsync();
+        using var response = await browser.GetAsync("/dashboard");
         response.EnsureSuccessStatusCode();
 
         var culture = CultureInfo.DefaultThreadCurrentCulture;

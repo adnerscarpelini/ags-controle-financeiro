@@ -1,6 +1,11 @@
 @using System.Net.Http
 @using static Microsoft.AspNetCore.Components.Web.RenderMode
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Components.Web
 @using Ags.Finance.Web.Components
 @using Ags.Finance.Web.Components.Layout
+@* Toda página exige login. A página de login declara [AllowAnonymous]; nenhuma outra deve declarar. *@
+@attribute [Authorize]

@@ -12,8 +12,8 @@ public sealed partial class SettingsCertificateTests : IDisposable
     [Fact]
     public async Task SettingsShowsTheFingerprintAndTrustInstructionsForEveryPlatform()
     {
-        using var client = _factory.CreateClient();
-        var html = WebUtility.HtmlDecode(await client.GetStringAsync(new Uri("/configuracoes", UriKind.Relative)));
+        using var browser = await _factory.CreateSignedInBrowserAsync();
+        var html = await browser.GetHtmlAsync("/configuracoes");
         var expected = _factory.Services.GetRequiredService<ServerCertificate>().Info.Fingerprint;
 
         var shown = FingerprintRegex().Match(html);

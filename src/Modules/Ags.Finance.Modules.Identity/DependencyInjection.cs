@@ -1,7 +1,10 @@
 using Ags.Finance.Modules.Identity.Application;
+using Ags.Finance.Modules.Identity.Application.ChangePassword;
 using Ags.Finance.Modules.Identity.Application.CreateUser;
 using Ags.Finance.Modules.Identity.Application.ResetPassword;
+using Ags.Finance.Modules.Identity.Application.SignIn;
 using Ags.Finance.Modules.Identity.Application.UserExists;
+using Ags.Finance.Modules.Identity.Application.ValidateSession;
 using Ags.Finance.Modules.Identity.Contracts;
 using Ags.Finance.Modules.Identity.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +31,9 @@ public static class DependencyInjection
         services.AddScoped<IUserStore, UserStore>();
         services.AddScoped<ICreateUser, CreateUserHandler>();
         services.AddScoped<IResetPassword, ResetPasswordHandler>();
+        services.AddScoped<IChangePassword, ChangePasswordHandler>();
+        services.AddScoped<ISignIn, SignInHandler>();
+        services.AddScoped<IValidateSession, ValidateSessionHandler>();
         services.AddScoped<IUserExists, UserExistsHandler>();
 
         return services;

@@ -52,9 +52,9 @@ public sealed partial class LayoutPagesTests : IDisposable
     [Fact]
     public async Task RootRedirectsToTheDashboard()
     {
-        using var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        using var browser = await _factory.CreateSignedInBrowserAsync();
 
-        using var response = await client.GetAsync(new Uri("/", UriKind.Relative));
+        using var response = await browser.GetAsync("/");
 
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         Assert.EndsWith("/dashboard", response.Headers.Location?.ToString(), StringComparison.Ordinal);
@@ -111,8 +111,7 @@ public sealed partial class LayoutPagesTests : IDisposable
 
     private async Task<string> GetHtmlAsync(string path)
     {
-        using var client = _factory.CreateClient();
-        var html = await client.GetStringAsync(new Uri(path, UriKind.Relative));
-        return WebUtility.HtmlDecode(html);
+        using var browser = await _factory.CreateSignedInBrowserAsync();
+        return await browser.GetHtmlAsync(path);
     }
 }
