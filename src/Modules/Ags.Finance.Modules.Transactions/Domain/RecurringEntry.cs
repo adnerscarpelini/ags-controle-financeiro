@@ -19,6 +19,7 @@ internal sealed class RecurringEntry : Entity
     public bool IsActive { get; private set; } = true;
     public DateOnly[] ExcludedMonths { get; private set; } = [];
     public int AccountingMonthOffset { get; private set; }
+    public int DateMonthOffset { get; private set; }
 
     public static RecurringEntry? Create(TransactionEntry first, DateOnly? endMonth)
     {
@@ -52,7 +53,7 @@ internal sealed class RecurringEntry : Entity
 
     public void Deactivate() => IsActive = false;
 
-    public void Configure(TransactionEntry template, int day, int accountingMonthOffset)
+    public void Configure(TransactionEntry template, int day, int accountingMonthOffset, int dateMonthOffset)
     {
         Day = day;
         MerchantExternalId = template.MerchantExternalId;
@@ -64,5 +65,6 @@ internal sealed class RecurringEntry : Entity
         Kind = template.Kind;
         Details = template.Details;
         AccountingMonthOffset = accountingMonthOffset;
+        DateMonthOffset = dateMonthOffset;
     }
 }

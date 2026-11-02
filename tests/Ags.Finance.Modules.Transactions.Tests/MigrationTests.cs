@@ -35,7 +35,7 @@ public sealed class MigrationTests : IAsyncLifetime
         await provider.MigrateTransactionsModuleAsync();
 
         Assert.Equal([Schema], await Database.QueryAsync($"SELECT schema_name FROM information_schema.schemata WHERE schema_name = '{Schema}'"));
-        Assert.Equal(11, int.Parse(await Database.ScalarAsync($"SELECT COUNT(*) FROM {Schema}.{HistoryTable}"), System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(12, int.Parse(await Database.ScalarAsync($"SELECT COUNT(*) FROM {Schema}.{HistoryTable}"), System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed class MigrationTests : IAsyncLifetime
         await provider.MigrateTransactionsModuleAsync();
         await provider.MigrateTransactionsModuleAsync();
 
-        Assert.Equal(11, int.Parse(await Database.ScalarAsync($"SELECT COUNT(*) FROM {Schema}.{HistoryTable}"), System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(12, int.Parse(await Database.ScalarAsync($"SELECT COUNT(*) FROM {Schema}.{HistoryTable}"), System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Fact]

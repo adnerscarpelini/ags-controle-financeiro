@@ -58,6 +58,11 @@ O dia configurado é separado da data de uma ocorrência: fevereiro não transfo
 um plano de dia 31 em plano de dia 28. Alterações de mês contábil da série guardam
 um deslocamento em relação ao calendário, aplicado também aos meses ainda não
 materializados. Exceções que não foram alteradas conservam os seus campos.
+Se a nova data atravessa o mês, o plano mantém também esse deslocamento de data,
+inclusive ao gerar períodos futuros ou consultar por intervalo. Início e término
+consultados refletem as datas deslocadas; a chave da agenda permanece estável.
+Uma exceção manual de faturamento não vira configuração de todos os meses: o
+deslocamento solicitado é aplicado ao plano, preservando as exceções individuais.
 
 Origem e destino de todas as ocorrências afetadas precisam permitir a alteração.
 Uma fatura protegida faz a operação inteira falhar, com rollback, sem reabertura

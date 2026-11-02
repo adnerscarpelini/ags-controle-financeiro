@@ -26,9 +26,10 @@ internal sealed partial class EntryCatalog
         => operations.ExecuteAsync(async token =>
         {
             var series = (await store.GetRecurringAsync(token)).FirstOrDefault(x => x.ExternalId == externalId);
-            return series is null ? null : new RecurringEntryDetails(series.ExternalId, series.StartDate, series.Day,
-                series.EndMonth is { } end ? AccountingMonth.FromDate(end) : null, series.IsActive,
-                new(series.StartDate, series.MerchantExternalId, series.SubcategoryExternalId, series.AccountExternalId, series.Amount,
+            var start = series is null ? default : OccurrenceDate(series.StartDate.AddMonths(series.DateMonthOffset), series.Day);
+            return series is null ? null : new RecurringEntryDetails(series.ExternalId, start, series.Day,
+                series.EndMonth is { } end ? AccountingMonth.FromDate(end.AddMonths(series.DateMonthOffset)) : null, series.IsActive,
+                new(start, series.MerchantExternalId, series.SubcategoryExternalId, series.AccountExternalId, series.Amount,
                     series.Details, CardExternalId: series.CardExternalId, CardLastDigitsExternalId: series.CardLastDigitsExternalId));
         }, _ => true, cancellationToken);
 
@@ -48,17 +49,21 @@ internal sealed partial class EntryCatalog
         foreach (var series in definitions)
         {
             var first = MonthIndex(series.StartDate);
-            var from = filter.Month is { } month ? Math.Max(0, MonthIndex(month.FirstDay) - series.AccountingMonthOffset - 2) : filter.FromDate is { } fromDate ? MonthIndex(fromDate) : first;
-            var to = filter.Month is { } target ? Math.Min(119987, MonthIndex(target.FirstDay) - series.AccountingMonthOffset) : filter.ToDate is { } toDate ? MonthIndex(toDate) : Math.Max(MonthIndex(current), from);
-            if (filter.FromDate is { } lower) { from = Math.Max(from, MonthIndex(lower)); }
-            if (filter.ToDate is { } upper) { to = Math.Min(to, MonthIndex(upper)); }
+            var from = filter.Month is { } month ? MonthIndex(month.FirstDay) - series.AccountingMonthOffset - series.DateMonthOffset - 2 : filter.FromDate is { } fromDate ? MonthIndex(fromDate) - series.DateMonthOffset : first;
+            var to = filter.Month is { } target ? MonthIndex(target.FirstDay) - series.AccountingMonthOffset - series.DateMonthOffset : filter.ToDate is { } toDate ? MonthIndex(toDate) - series.DateMonthOffset : Math.Max(MonthIndex(current) - series.DateMonthOffset, from);
+            if (filter.FromDate is { } lower) { from = Math.Max(from, MonthIndex(lower) - series.DateMonthOffset); }
+            if (filter.ToDate is { } upper) { to = Math.Min(to, MonthIndex(upper) - series.DateMonthOffset); }
+            from = Math.Max(0, from);
+            to = Math.Min(119987, to);
             from = Math.Max(from, first);
             if (series.EndMonth is { } end) { to = Math.Min(to, MonthIndex(end)); }
             for (var index = from; index <= to; index++)
             {
                 var period = new DateOnly(index / 12 + 1, index % 12 + 1, 1);
                 if (existing.Contains((series.ExternalId, period)) || series.ExcludedMonths.Contains(period)) { continue; }
-                var date = new DateOnly(period.Year, period.Month, Math.Min(series.Day, DateTime.DaysInMonth(period.Year, period.Month)));
+                var dateIndex = index + series.DateMonthOffset;
+                if (dateIndex is < 0 or >= 119988) { continue; }
+                var date = OccurrenceDate(new DateOnly(dateIndex / 12 + 1, dateIndex % 12 + 1, 1), series.Day);
                 var suggestion = await calendar.CalculateAsync(date, series.CardExternalId, cancellationToken);
                 if (suggestion.Month is not { } accountingMonth)
                 {
