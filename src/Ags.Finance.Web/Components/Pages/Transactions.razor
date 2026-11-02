@@ -18,7 +18,13 @@
     <section class="panel" role="alertdialog" aria-label="Confirmar exclusão">
         <h2>Excluir lançamento</h2>
         <p>@deleting.MerchantName · @deleting.Date.ToString("dd/MM/yyyy") · @deleting.Amount</p>
-        @if (deleting.InstallmentPurchaseExternalId is not null)
+        @if (deleting.RecurringEntryExternalId is not null)
+        {
+            <div class="field"><label for="delete-recurring-scope">Alcance da exclusão</label><select id="delete-recurring-scope" @bind="_deleteRecurringScope">
+                <option value="">Escolha o alcance</option><option value="@RecurringChangeScope.OnlyThis">Somente esta</option><option value="@RecurringChangeScope.ThisAndFollowing">Esta e as seguintes</option><option value="@RecurringChangeScope.All">Todas</option>
+            </select></div>
+        }
+        else if (deleting.InstallmentPurchaseExternalId is not null)
         {
             <div class="field"><label for="delete-scope">Alcance da exclusão</label><select id="delete-scope" @bind="_deleteScope">
                 <option value="">Escolha o alcance</option><option value="@EntryChangeScope.OnlyThis">Somente esta parcela</option><option value="@EntryChangeScope.ThisAndFollowing">Esta e as futuras</option>
@@ -33,7 +39,7 @@
     <p>Ctrl+N inicia um lançamento. Enter confirma. Informe o valor sem sinal.</p>
     <form @onsubmit="SaveAsync" @onsubmit:preventDefault>
         <div class="catalog-fields">
-            <div class="field"><label for="entry-date">Data</label><input id="entry-date" type="date" @bind="_date" @bind:after="SuggestMonthAsync" required /></div>
+            <div class="field"><label for="entry-date">Data</label><input id="entry-date" type="date" @bind="_date" @bind:after="DateChangedAsync" required /></div>
             <div class="field"><label for="entry-merchant">Descrição</label><input id="entry-merchant" value="@_merchantName" @oninput="SearchMerchantAsync" list="entry-merchants" maxlength="100" required />
                 <datalist id="entry-merchants">@foreach (var merchant in _suggestions) { <option value="@merchant.Name"></option> }</datalist>
                 <button class="button" type="button" @onclick="CreateMerchantAsync" disabled="@_busy">Cadastrar nova descrição</button>
@@ -61,7 +67,17 @@
             </select></div>
             <div class="field"><label for="entry-month">Mês contábil</label><input id="entry-month" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" required /></div>
             <div class="field"><label for="entry-details">Detalhes</label><input id="entry-details" @bind="_details" maxlength="1000" /></div>
-            @if (_editingInstallment)
+            @if (_editingRecurring)
+            {
+                <div class="field"><label for="entry-recurring-scope">Alcance da alteração</label><select id="entry-recurring-scope" @bind="_recurringScope" required>
+                    <option value="">Escolha o alcance</option><option value="@RecurringChangeScope.OnlyThis">Somente esta</option><option value="@RecurringChangeScope.ThisAndFollowing">Esta e as seguintes</option><option value="@RecurringChangeScope.All">Todas</option>
+                </select></div>
+                @if (_recurringScope is RecurringChangeScope.ThisAndFollowing or RecurringChangeScope.All)
+                {
+                    <div class="field"><label for="entry-recurring-day">Dia das próximas ocorrências</label><input id="entry-recurring-day" type="number" min="1" max="31" @bind="_recurringDay" required /></div>
+                }
+            }
+            else if (_editingInstallment)
             {
                 <div class="field"><label for="entry-scope">Alcance da alteração</label><select id="entry-scope" @bind="_scope" required>
                     <option value="">Escolha o alcance</option><option value="@EntryChangeScope.OnlyThis">Somente esta parcela</option><option value="@EntryChangeScope.ThisAndFollowing">Esta e as futuras</option>
@@ -123,11 +139,8 @@
                 @if (entry.RecurringEntryExternalId is not null) { <span>Recorrente @(entry.Date > DateOnly.FromDateTime(Clock.GetLocalNow().DateTime) ? "· prevista" : string.Empty)</span> }
                 <div>
                     <button class="button" @onclick="() => _selectedId = entry.ExternalId">@(_selectedId == entry.ExternalId ? "Selecionado" : "Selecionar")</button>
-                    @if (entry.RecurringEntryExternalId is null)
-                    {
                         <button class="button" @onclick="() => EditEntryAsync(entry)" disabled="@_busy">Editar</button>
                         <button class="button" @onclick="() => AskDelete(entry)" disabled="@_busy">Excluir</button>
-                    }
                 </div>
             </li>
         }
@@ -170,6 +183,10 @@
     private Guid? _editingId;
     private Guid? _selectedId;
     private bool _editingInstallment;
+    private bool _editingRecurring;
+    private RecurringChangeScope? _recurringScope;
+    private RecurringChangeScope? _deleteRecurringScope;
+    private int _recurringDay;
     private EntryChangeScope? _scope;
     private EntryDetails? _deleteEntry;
     private EntryChangeScope? _deleteScope;
@@ -187,6 +204,7 @@
         await InitializeFiltersAsync();
         await ReloadQueryAsync();
     }
+    private async Task DateChangedAsync() { _recurringDay = _date.Day; await SuggestMonthAsync(); }
     private async Task SuggestMonthAsync()
     {
         var suggestion = await Calendar.CalculateAsync(_date, _cardId == Guid.Empty ? null : _cardId);
@@ -226,6 +244,7 @@
     private async Task SaveAsync()
     {
         if (_busy) { return; }
+        if (_editingRecurring && _recurringScope is null) { _message = "Escolha o alcance da alteração."; return; }
         if (_editingInstallment && _scope is null) { _message = "Escolha o alcance da alteração."; return; }
         if (!DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var monthDate))
         {
@@ -245,7 +264,9 @@
                 }
                 until = AccountingMonth.FromDate(endDate);
             }
-            var result = _editingId is { } editingId ? await Entries.EditAsync(editingId, request, _scope ?? EntryChangeScope.OnlyThis)
+            var result = _editingId is { } editingId ? _editingRecurring
+                ? await Entries.EditRecurringAsync(editingId, new(request, _recurringScope!.Value, _recurringDay))
+                : await Entries.EditAsync(editingId, request, _scope ?? EntryChangeScope.OnlyThis)
                 : _repeat ? await Entries.CreateRecurringAsync(new(request, until))
                 : _installments == 1 ? await Entries.CreateAsync(request) : await Entries.CreateInstallmentsAsync(request, _installments);
             _message = result.Error ?? "Lançamento salvo.";
@@ -256,11 +277,10 @@
     private void Reset()
     {
         _repeat = false; _repeatUntil = string.Empty;
-        _editingId = null; _editingInstallment = false; _scope = null;
+        _editingId = null; _editingInstallment = false; _scope = null; _editingRecurring = false; _recurringScope = null;
         _merchantName = string.Empty; _merchantId = Guid.Empty; _subcategoryId = Guid.Empty; _amount = 0; _details = string.Empty;
         _month = _suggestedMonth;
         _suggestions = _merchants;
-        _installments = 1;
         _installments = 1;
         _accounts = _accounts.Where(x => x.IsActive).ToList();
         _subcategories = _subcategories.Where(x => x.IsActive).ToList();
@@ -281,6 +301,9 @@
         try
         {
             _editingId = entry.ExternalId; _selectedId = entry.ExternalId;
+            _editingRecurring = entry.RecurringEntryExternalId is not null;
+            _recurringScope = null;
+            _recurringDay = entry.RecurringEntryExternalId is { } seriesId ? (await Entries.GetRecurringAsync(seriesId))?.Day ?? entry.Date.Day : entry.Date.Day;
             _editingInstallment = entry.InstallmentPurchaseExternalId is not null;
             _scope = _editingInstallment ? null : EntryChangeScope.OnlyThis;
             _accounts = (await Accounts.GetAccountsAsync(false)).Where(x => x.IsActive || x.ExternalId == entry.AccountExternalId).ToList();
@@ -301,15 +324,16 @@
         }
         finally { _busy = false; }
     }
-    private void AskDelete(EntryDetails entry) { _deleteEntry = entry; _deleteScope = entry.InstallmentPurchaseExternalId is null ? EntryChangeScope.OnlyThis : null; }
+    private void AskDelete(EntryDetails entry) { _deleteEntry = entry; _deleteRecurringScope = null; _deleteScope = entry.InstallmentPurchaseExternalId is null ? EntryChangeScope.OnlyThis : null; }
     private async Task ConfirmDeleteAsync()
     {
         if (_deleteEntry is not { } entry || _busy) { return; }
+        if (entry.RecurringEntryExternalId is not null && _deleteRecurringScope is null) { _message = "Escolha o alcance da exclusão."; return; }
         if (_deleteScope is not { } scope) { _message = "Escolha o alcance da exclusão."; return; }
         _busy = true;
         try
         {
-            var result = await Entries.DeleteAsync(entry.ExternalId, scope);
+            var result = entry.RecurringEntryExternalId is not null ? await Entries.DeleteRecurringAsync(entry.ExternalId, _deleteRecurringScope!.Value) : await Entries.DeleteAsync(entry.ExternalId, scope);
             _message = result.Error ?? "Lançamento excluído.";
             _deleteEntry = null;
             if (result.Succeeded) { Reset(); await ReloadQueryAsync(); }

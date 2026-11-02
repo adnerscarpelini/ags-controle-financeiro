@@ -151,6 +151,8 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.HasIndex("ExternalId").IsUnique();
             b.HasIndex("MerchantExternalId");
             b.HasIndex("SubcategoryExternalId");
+            b.Property<DateOnly[]>("ExcludedMonths").IsRequired().HasColumnType("date[]");
+            b.Property<int>("AccountingMonthOffset").HasColumnType("integer");
             b.ToTable("recurring_entries", "transactions");
         });
         modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.RecurringEntry", b =>

@@ -17,6 +17,8 @@ internal sealed class RecurringEntry : Entity
     public CategoryKind Kind { get; private set; }
     public string Details { get; private set; } = string.Empty;
     public bool IsActive { get; private set; } = true;
+    public DateOnly[] ExcludedMonths { get; private set; } = [];
+    public int AccountingMonthOffset { get; private set; }
 
     public static RecurringEntry? Create(TransactionEntry first, DateOnly? endMonth)
     {
@@ -39,4 +41,28 @@ internal sealed class RecurringEntry : Entity
     }
 
     public void ReplaceMerchant(Guid merchantExternalId) => MerchantExternalId = merchantExternalId;
+
+    public void Exclude(DateOnly month) => ExcludedMonths = [.. ExcludedMonths.Append(month).Distinct()];
+
+    public void StopBefore(DateOnly month)
+    {
+        if (month <= new DateOnly(StartDate.Year, StartDate.Month, 1)) { IsActive = false; }
+        else { EndMonth = month.AddMonths(-1); }
+    }
+
+    public void Deactivate() => IsActive = false;
+
+    public void Configure(TransactionEntry template, int day, int accountingMonthOffset)
+    {
+        Day = day;
+        MerchantExternalId = template.MerchantExternalId;
+        SubcategoryExternalId = template.SubcategoryExternalId;
+        AccountExternalId = template.AccountExternalId;
+        CardExternalId = template.CardExternalId;
+        CardLastDigitsExternalId = template.CardLastDigitsExternalId;
+        Amount = new Money(Math.Abs(template.Amount.Amount));
+        Kind = template.Kind;
+        Details = template.Details;
+        AccountingMonthOffset = accountingMonthOffset;
+    }
 }

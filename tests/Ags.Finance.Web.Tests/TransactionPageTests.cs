@@ -117,6 +117,23 @@ public sealed class TransactionPageTests
         Assert.Single(page.FindAll(".catalog-list li"));
         Assert.Contains("Recorrente", page.Find(".catalog-list").TextContent, StringComparison.Ordinal);
         Assert.Contains("Pendente", page.Find(".catalog-list").TextContent, StringComparison.Ordinal);
+        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Editar").ClickAsync(new());
+        page.Find("#entry-amount").Change("60");
+        await page.Find("form").SubmitAsync(EventArgs.Empty);
+        Assert.Contains("Escolha o alcance", page.Find("[role=status]").TextContent, StringComparison.Ordinal);
+        page.Find("#entry-recurring-scope").Change(RecurringChangeScope.OnlyThis.ToString());
+        await page.Find("form").SubmitAsync(EventArgs.Empty);
+        Assert.Contains("-R$ 60,00", page.Find(".catalog-list").TextContent, StringComparison.Ordinal);
+        page.FindAll(".catalog-list button").Single(x => x.TextContent == "Excluir").Click();
+        Assert.Equal(4, page.FindAll("#delete-recurring-scope option").Count);
+        page.FindAll("[role=alertdialog] button")[1].Click();
+        Assert.Single(page.FindAll(".catalog-list li"));
+        page.FindAll(".catalog-list button").Single(x => x.TextContent == "Excluir").Click();
+        await page.Find("[role=alertdialog] button").ClickAsync(new());
+        Assert.Contains("Escolha o alcance", page.Find("[role=status]").TextContent, StringComparison.Ordinal);
+        page.Find("#delete-recurring-scope").Change(RecurringChangeScope.OnlyThis.ToString());
+        await page.Find("[role=alertdialog] button").ClickAsync(new());
+        Assert.Empty(page.FindAll(".catalog-list li"));
     }
 
     private sealed class PreviewClock : TimeProvider

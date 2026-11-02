@@ -40,5 +40,26 @@ representa o plano já existente, sem permitir uma compra avulsa nova após o co
 Uma série criada após o corte não usa esse caminho; uma fatura já Fechada/Paga
 nunca o permite. As verificações e gravações usam a mesma transação da #50.
 
-Editar/excluir ocorrências exige o caso de uso de alcance da #17. A edição
-genérica de avulsos não serve como atalho para modificar a recorrência.
+## Edição e exclusão com alcance
+
+A [#17](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/17)
+exige escolher Somente esta, Esta e as seguintes ou Todas antes de salvar qualquer
+campo ou excluir. Cancelar mantém os dados. A edição genérica de avulsos rejeita
+recorrências, inclusive quando chamada diretamente por outro consumidor.
+
+Somente esta mantém a chave original da agenda mesmo se a data mudar. Excluir
+registra o mês excluído na definição; consultas posteriores não o recriam.
+Esta e as seguintes encerra o plano anterior e cria outro a partir do mês da
+ocorrência, mantendo as identidades e situações dos registros existentes.
+Todas conserva ocorrências passadas já efetivadas e altera as demais. Excluir
+Todas desativa o plano e conserva esse histórico confirmado.
+
+O dia configurado é separado da data de uma ocorrência: fevereiro não transforma
+um plano de dia 31 em plano de dia 28. Alterações de mês contábil da série guardam
+um deslocamento em relação ao calendário, aplicado também aos meses ainda não
+materializados. Exceções que não foram alteradas conservam os seus campos.
+
+Origem e destino de todas as ocorrências afetadas precisam permitir a alteração.
+Uma fatura protegida faz a operação inteira falhar, com rollback, sem reabertura
+ou atualização parcial. Editar a configuração preserva a situação e a confirmação
+de cada ocorrência; nunca registra uma baixa.
