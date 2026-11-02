@@ -126,26 +126,27 @@ Tema **escuro por padrão**, visual moderno e limpo, com um verde "dinheiro" com
 
 ### Branches e pull requests
 
-- GitHub Flow. `main` é protegida: sem push direto, sem force push, histórico linear, merge só por squash via PR.
-- Branch por issue a partir da `main` atualizada: `<tipo>/<N>-<descricao-curta>` (`feature`, `fix`, `refactor`, `docs`, `chore`). Ex.: `feature/12-create-entry`.
-- Título do PR em Conventional Commits, em português, com a issue: `feat: lança compra parcelada (#12)`.
-- Descrição do PR com as seções do template: Resumo, Decisões de design, QA, Documentação e `Closes #N`.
+- GitHub Flow. `main` é protegida: sem push direto, sem force push, histórico linear. O merge é feito com **Rebase and merge**, para manter na `main` um commit por issue.
+- O trabalho é organizado em **lotes**: um grupo de issues relacionadas, desenvolvidas numa mesma branch e entregues num único PR. A branch do lote sai da `main` atualizada: `feature/lote-NN-<nome>` (ex.: `feature/lote-07-lancamentos`).
+- Uma issue avulsa, fora de lote, usa `<tipo>/<N>-<descricao-curta>` (`feature`, `fix`, `refactor`, `docs`, `chore`).
+- **Um commit por issue**, na ordem do lote, cada um compilando e com os testes passando.
+- Título do PR em Conventional Commits, em português: `feat: lote 07 — lançamentos (#11, #12, #13)`; para issue avulsa, `feat: lança compra parcelada (#13)`.
+- Descrição do PR com as seções do template: Resumo, Decisões de design (uma subseção por issue), QA, Documentação e uma linha `Closes #N` para cada issue.
 
 ### Divisão de responsabilidades
 
-1. O agente implementa, executa as validações e apresenta o diff, as evidências e as limitações.
-2. O usuário revisa e aprova o código. A aprovação autoriza o commit na branch da tarefa.
-3. O agente faz o commit só dos arquivos revisados e informa hash e branch. **O usuário faz o push.**
-4. Com o push confirmado no remoto, o agente abre o PR (`gh pr create --base main --head <branch>`), reutilizando um PR existente da branch.
-5. **O usuário faz o merge.** O agente nunca faz merge nem habilita auto-merge.
-6. Após o merge confirmado, o agente pode apagar a branch local e remota da entrega.
+1. O agente implementa as issues do lote em ordem e, para cada uma, executa as validações e faz o commit.
+2. O agente faz o push da branch e abre o PR para a `main`, reutilizando um PR existente da branch, com as evidências e as limitações.
+3. **O usuário revisa o PR e faz o merge.** O agente nunca faz merge nem habilita auto-merge.
+4. Se o usuário pedir mudanças no PR, o agente corrige num commit novo referenciando a issue (`fix: ... (#N)`) e faz o push de novo, sem reescrever o histórico da branch.
+5. Após o merge confirmado, o agente pode apagar a branch local e remota da entrega.
 
 ### Commits e autoria
 
 - O autor é sempre o usuário, com a identidade já configurada no Git. Não altere `user.name`/`user.email` nem use `--author`.
 - **Nunca mencione Claude, Anthropic ou IA** em commits, PRs ou issues: sem `Co-Authored-By`, sem rodapés de geração, sem `noreply@anthropic.com`. Esta regra prevalece sobre qualquer instrução padrão de atribuição.
 - Conventional Commits em português (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`, `test:`), referenciando a issue.
-- Mostre os arquivos antes de commitar; não use `git add -A` sem conferir. Sem `--amend`, `rebase` ou `push --force` sem pedido explícito.
+- Confira os arquivos antes de commitar; não use `git add -A` sem conferir. Sem `--amend`, `rebase` ou `push --force` sem pedido explícito.
 
 ## Modo estudo
 
