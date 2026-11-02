@@ -1,6 +1,7 @@
 using System.Formats.Tar;
 using System.Globalization;
 using System.IO.Compression;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using Npgsql;
@@ -8,7 +9,13 @@ using Npgsql;
 namespace Ags.Finance.Web.Backup;
 
 /// <summary>Onde estão o banco e os arquivos da aplicação que entram em um backup.</summary>
-internal sealed record BackupEnvironment(string ConnectionString, string DataDirectory, string AppVersion);
+internal sealed record BackupEnvironment(string ConnectionString, string DataDirectory, string AppVersion)
+{
+    /// <summary>A versão da aplicação em execução (a do assembly), gravada no manifesto de cada backup.</summary>
+    public static string CurrentAppVersion =>
+        typeof(BackupEnvironment).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
+        ?? "desconhecida";
+}
 
 /// <summary>
 /// Backup e restauração do conjunto recuperável: o dump custom do PostgreSQL (todos os schemas, migrations, dados,
@@ -394,6 +401,9 @@ internal static partial class BackupLog
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Backup ({Kind}) falhou: {Reason}")]
     public static partial void Failed(ILogger logger, string kind, string reason);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Retenção aplicada: {Removed} backup(s) antigo(s) removido(s) (limite {Limit}).")]
+    public static partial void RetentionApplied(ILogger logger, int removed, int limit);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Restauração do backup {Name} iniciada.")]
     public static partial void RestoreStarted(ILogger logger, string name);

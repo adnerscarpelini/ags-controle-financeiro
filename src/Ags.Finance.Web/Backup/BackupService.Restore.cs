@@ -192,7 +192,13 @@ internal sealed partial class BackupService
         try
         {
             Directory.CreateDirectory(staging);
-            await using (var file = File.OpenRead(Path.Combine(package.Path, BackupManifest.AppFilesName)))
+            var archivePath = Path.Combine(package.Path, BackupManifest.AppFilesName);
+            if (IsEmptyArchive(archivePath))
+            {
+                return;
+            }
+
+            await using (var file = File.OpenRead(archivePath))
             await using (var gzip = new GZipStream(file, CompressionMode.Decompress))
             {
                 await TarFile.ExtractToDirectoryAsync(gzip, staging, overwriteFiles: true, cancellationToken);
@@ -210,5 +216,13 @@ internal sealed partial class BackupService
         {
             DeleteQuietly(staging);
         }
+    }
+
+    /// <summary>Uma pasta de dados vazia vira um tar sem nenhum byte: não há o que extrair.</summary>
+    private static bool IsEmptyArchive(string path)
+    {
+        using var file = File.OpenRead(path);
+        using var gzip = new GZipStream(file, CompressionMode.Decompress);
+        return gzip.ReadByte() < 0;
     }
 }
