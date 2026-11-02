@@ -2,7 +2,7 @@
 
 Origem: [#35](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/35). Decisão geral em [web-hosting.md](../architecture/web-hosting.md).
 
-A aplicação tem um único usuário, criado por linha de comando no computador do serviço. A aplicação web nunca oferece cadastro: assim, ninguém da rede consegue se cadastrar antes do dono.
+A aplicação tem um único usuário, criado por linha de comando no computador da instalação. A aplicação web nunca oferece cadastro: assim, ninguém da rede consegue se cadastrar antes do dono.
 
 **Estado:** os comandos usam o PostgreSQL configurado em `ConnectionStrings__Finance`
 ([#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60)); sem a conexão, ou com credenciais
@@ -36,19 +36,21 @@ Senha curta (menos de 8 caracteres) ou confirmação diferente são recusadas e 
 | 3 | `user create`: já existe um usuário |
 | 4 | `user reset-password`: não há usuário |
 
-Os scripts de instalação chamam `user create` a cada execução e tratam o código 3 como normal (instalação já tinha usuário). Veja [service-installation.md](../web/service-installation.md).
+Um script de instalação pode chamar `user create` a cada execução e tratar o código 3 como normal (a instalação já tinha usuário).
 
-### Pasta de dados
+### Conexão e execução no Compose
 
-O comando usa a mesma regra de resolução da aplicação: `DataDirectory` por variável de ambiente, argumento de linha de comando ou `appsettings.json`; sem isso, a pasta local do usuário que executa. Os scripts de instalação definem `DataDirectory` com a pasta do serviço, para o banco ficar no lugar e com o dono certos. Para rodar à mão depois da instalação:
+O comando usa a mesma configuração da aplicação: `ConnectionStrings__Finance` (variável de ambiente), `appsettings.json` ou
+linha de comando. No Docker, o serviço `app` já traz a conexão certa; rode pelo Compose, com terminal interativo (a senha
+não é ecoada nem passa por argumento ou variável):
 
+```bash
+docker compose run --rm app user create
+docker compose run --rm app user reset-password
 ```
-# Linux
-sudo runuser -u ags-finance -- env DataDirectory=/var/lib/ags-finance /opt/ags-finance/Ags.Finance.Web user reset-password
 
-# Windows (PowerShell como administrador)
-$env:DataDirectory = "$env:ProgramData\AgsFinance"; & "$env:ProgramFiles\AgsFinance\Ags.Finance.Web.exe" user reset-password
-```
+Fora do Docker (`dotnet run`), exporte `ConnectionStrings__Finance` e rode `dotnet run --project src/Ags.Finance.Web -- user create`.
+Detalhes da instalação: [docker-deployment.md](../web/docker-deployment.md).
 
 ## Persistência
 
@@ -73,4 +75,4 @@ Tabela `identity.users` (migration `Initial` do módulo), com `Id`, `ExternalId`
 
 ## Login
 
-A orientação "rode `user create` no computador do serviço" na tela de login (sem usuário cadastrado) e o bloqueio das páginas de dados sem sessão estão em [login.md](login.md) ([#36](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/36)).
+A orientação "rode `user create` no computador da instalação" na tela de login (sem usuário cadastrado) e o bloqueio das páginas de dados sem sessão estão em [login.md](login.md) ([#36](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/36)).

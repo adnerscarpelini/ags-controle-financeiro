@@ -7,8 +7,9 @@
 Aplicação web pessoal em .NET 10, ASP.NET Core e Blazor, acessada pelo computador e celular na rede local.
 
 O destino aprovado é **Docker Compose + PostgreSQL**, no Linux ou Windows via WSL 2.
-A persistência já usa PostgreSQL ([#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60));
-o Compose da aplicação ([#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59)) vem a seguir.
+A aplicação roda com **Docker Compose + PostgreSQL** ([#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60),
+[#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59)), com backup e recuperação
+([#31](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/31)).
 
 O conceito central é o **mês contábil**, quando o valor pesa no orçamento. Cadastros de bancos,
 contas, cartões/finais, calendário de compras, HTTPS e login estão implementados.
@@ -37,11 +38,24 @@ Monólito modular com Clean Architecture em cada módulo. As responsabilidades a
 
 [Estado e fronteiras dos módulos](docs/architecture/module-structure.md).
 
-## Executar o código atual
+## Instalar e executar
 
-Até a #59, a aplicação roda com `dotnet run` contra um PostgreSQL que você sobe à parte. Os testes
-relacionais também exigem um PostgreSQL real
-([detalhes](docs/architecture/persistence-postgresql.md#testes-relacionais)).
+Com Docker Engine e Compose (Linux, ou Windows com Docker Engine no WSL 2; Docker Desktop não é necessário):
+
+```bash
+cp .env.example .env && chmod 600 .env      # preencha as senhas e AGS_HOST_NAMES
+sudo install -d -o 1654 -g 1654 -m 0750 backups
+docker compose up -d --wait
+docker compose run --rm app user create
+```
+
+Acesse `https://<nome-ou-ip>:5280` e confie no certificado. Instalação completa, rede no WSL, inicialização automática,
+atualização e backup/recuperação: [docs/web/docker-deployment.md](docs/web/docker-deployment.md).
+
+### Desenvolvimento
+
+Requer o SDK .NET 10 e um PostgreSQL. Os testes relacionais usam PostgreSQL real
+([detalhes](docs/architecture/persistence-postgresql.md#testes-relacionais)):
 
 ```bash
 docker compose -f tests/postgres/compose.yaml up -d --wait
@@ -49,25 +63,15 @@ export AGS_TEST_POSTGRES="Host=127.0.0.1;Port=54329;Username=postgres;Password=a
 dotnet build Ags.Finance.slnx
 dotnet test Ags.Finance.slnx
 dotnet format Ags.Finance.slnx --verify-no-changes
-export ConnectionStrings__Finance="Host=127.0.0.1;Port=54329;Database=ags_finance_dev;Username=postgres;Password=ags_test_only"
-dotnet run --project src/Ags.Finance.Web
 ```
 
-Esse PostgreSQL de testes é descartável e vale só para desenvolvimento (crie o banco `ags_finance_dev` antes do
-`dotnet run`). Requer o SDK .NET 10 e Docker Engine (no Windows, dentro do WSL 2). A aplicação atende em `https://localhost:5280`; a porta é configurável.
-HTTP redireciona para HTTPS e o certificado local precisa ser confiado no dispositivo.
-Crie o usuário por [comando](docs/identity/user-creation.md). A
-[hospedagem](docs/architecture/web-hosting.md) distingue execução atual e destino aprovado;
-os scripts nativos são legado a substituir na #59.
+Para `dotnet run`, crie um banco (`CREATE DATABASE ags_finance_dev`) nesse mesmo servidor de testes e exporte
+`ConnectionStrings__Finance="Host=127.0.0.1;Port=54329;Database=ags_finance_dev;Username=postgres;Password=ags_test_only"`
+(descartável; só para desenvolvimento) antes de `dotnet run --project src/Ags.Finance.Web`. Em desenvolvimento a aplicação
+atende em `https://localhost:5280`.
 
-## Próxima entrega
-
-A [#59, fixada como próxima prioridade](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59),
-é concluída após #60: volumes persistentes, backup sob demanda e teste real
-de recuperação em instalação vazia. Não haverá migração SQLite nem suporte duplo.
-
-Decisões: [persistência PostgreSQL](docs/architecture/persistence-postgresql.md) e
-[consistência financeira](docs/architecture/financial-consistency.md).
+Decisões: [persistência PostgreSQL](docs/architecture/persistence-postgresql.md),
+[hospedagem](docs/architecture/web-hosting.md) e [consistência financeira](docs/architecture/financial-consistency.md).
 Requisitos e dúvidas ainda abertas permanecem nas issues.
 
 ## Como contribuir

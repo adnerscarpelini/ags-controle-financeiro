@@ -12,9 +12,9 @@ A autodetecção interna descrita abaixo não comprova acesso HTTPS pela LAN no 
 - **Primeira execução:** a aplicação gera um certificado autoassinado (RSA 2048, SHA-256, validade de 5 anos) em `<DataDirectory>/certs/ags-finance.pfx`, mais a cópia pública `ags-finance.crt`. O nome (CN) e os nomes alternativos (SAN) são o nome do computador, `localhost`, `127.0.0.1`, `::1` e os IPv4 das interfaces ativas.
 - **Reaproveitamento:** nas execuções seguintes o mesmo arquivo é usado, então a impressão digital não muda.
 - **Regeneração:** o certificado é gerado de novo quando falta algum nome ou IP atual da máquina (por exemplo, o IP mudou), quando faltam menos de 30 dias para vencer ou quando o arquivo está corrompido. Um IP que deixou de existir não força a regeneração, para que adaptadores virtuais que aparecem e somem não troquem o certificado a cada reinício. Depois de regenerado, o `.crt` novo precisa ser instalado de novo nos dispositivos.
-- **Certificado próprio:** `Https:CertificatePath` (arquivo `.pfx`) e `Https:CertificatePassword` em `appsettings.json` (ou `Https__CertificatePath` e `Https__CertificatePassword` no ambiente do serviço). Com o caminho preenchido, nada é gerado.
-- **Falha:** `.pfx` ausente, senha errada ou arquivo inválido registram um erro crítico no log e o serviço encerra com código 1.
-- **Chave privada:** o `.pfx` é gravado sem senha, com modo 600 no Linux. No Windows vale a ACL da pasta de dados, restrita pelo script de instalação.
+- **Certificado próprio:** `Https:CertificatePath` (arquivo `.pfx`) e `Https:CertificatePassword` em `appsettings.json` (ou `Https__CertificatePath` e `Https__CertificatePassword` no ambiente do container). Com o caminho preenchido, nada é gerado.
+- **Falha:** `.pfx` ausente, senha errada ou arquivo inválido registram um erro crítico no log e a aplicação encerra com código 1.
+- **Chave privada:** o `.pfx` é gravado sem senha, com modo 600 no Linux. No Docker, a pasta `/data` pertence ao usuário `app` da imagem (modo 0750).
 
 ## HTTP e HTTPS na mesma porta
 

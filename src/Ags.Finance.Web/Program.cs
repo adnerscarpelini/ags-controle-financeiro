@@ -12,6 +12,7 @@ using Ags.Finance.Web.Commands;
 using Ags.Finance.Web.Components;
 using Ags.Finance.Web.Hosting;
 using Ags.Finance.Web.Persistence;
+using Microsoft.AspNetCore.DataProtection;
 
 // Aplicação de um único usuário no Brasil: valores e datas saem como R$ 1.234,56 e dd/MM/yyyy
 // em todos os circuitos, independentemente da cultura do sistema ou do navegador.
@@ -29,21 +30,25 @@ if (args is ["user", .. var commandArguments])
         new ConsoleTerminal());
 }
 
-var builder = WebApplication.CreateBuilder(args);
+// Comandos de manutenção do backup (backup create|list|verify|restore): também rodam sem o servidor web.
+if (args is ["backup", .. var backupArguments])
+{
+    return await BackupCommandRunner.RunAsync(
+        backupArguments,
+        UserCommandRunner.BuildConfiguration(backupArguments),
+        new ConsoleTerminal());
+}
 
-// Sem sessão de serviço, as duas chamadas não fazem nada e o processo roda normalmente (dotnet run).
-// No Windows Service o log vai para o Event Log; no systemd, para o journal.
-builder.Host.UseWindowsService(options => options.ServiceName = HostingSettings.WindowsServiceName);
-builder.Host.UseSystemd();
+var builder = WebApplication.CreateBuilder(args);
 
 var dataDirectory = DataDirectoryResolver.Resolve(
     builder.Configuration["DataDirectory"],
-    DataDirectoryResolver.IsRunningAsService(),
     OperatingSystem.IsWindows());
 var hosting = HostingSettings.FromConfiguration(builder.Configuration);
 var serverCertificate = new ServerCertificate(
     HttpsSettings.FromConfiguration(builder.Configuration),
     dataDirectory,
+    LocalNames.Resolve(builder.Configuration),
     TimeProvider.System);
 builder.Services.AddSingleton(serverCertificate);
 builder.WebHost.ConfigureKestrel(kestrel =>
@@ -70,6 +75,11 @@ builder.Services
     .AddReimbursementsModule(connectionString)
     .AddReportsModule()
     .AddImportsModule();
+
+// Sem as chaves em disco, recriar o container invalidaria o cookie de sessão e o antiforgery.
+builder.Services.AddDataProtection()
+    .SetApplicationName("ags-finance")
+    .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(dataDirectory, "data-protection-keys")));
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -105,9 +115,8 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 // Porta ocupada ou outra falha de inicialização: registra o erro e sai com código 1, sem exceção não tratada.
-// O Windows Service não tem ação de reinício automática configurada e o systemd limita as tentativas
-// (StartLimitBurst), então a falha não vira loop. Usa StartAsync em vez de RunAsync porque o RunAsync descarta
-// o host ao falhar, e o provedor do Event Log já não aceita mensagens nesse ponto.
+// O Compose reinicia o container conforme a política de restart. Usa StartAsync em vez de RunAsync porque o
+// RunAsync descarta o host ao falhar.
 try
 {
     // Gera ou valida o certificado agora, para um .pfx inválido falhar aqui, com log, e não na primeira conexão.

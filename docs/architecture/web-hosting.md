@@ -10,14 +10,14 @@ O host ASP.NET Core/Blazor, HTTPS e autenticação já estão implementados
 [#37](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/37)).
 A PWA ainda está pendente na [#38](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/38).
 
-**Destino aprovado, ainda não implementado:** Docker Compose com aplicação e PostgreSQL,
-na ordem [#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60) →
-[#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59).
-A [instalação nativa](../web/service-installation.md) documenta o código atual e será substituída.
-O banco já é o [PostgreSQL](persistence-postgresql.md) (#60). Não usar a entrega histórica como decisão
-para perpetuar duas distribuições.
+**Implementado:** Docker Compose com aplicação e PostgreSQL, na ordem
+[#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60) →
+[#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59), com backup e recuperação na
+[#31](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/31). O guia de instalação e operação é
+[docker-deployment.md](../web/docker-deployment.md). O serviço nativo (Windows Service/systemd) e seus scripts foram removidos;
+não há dois caminhos de instalação.
 
-## Decisão aprovada
+## Decisão
 
 - Um container Linux da aplicação e outro PostgreSQL, com versões explícitas.
   Linux usa Docker Engine nativo; Windows usa Docker Engine dentro do WSL 2.
@@ -44,8 +44,9 @@ para perpetuar duas distribuições.
 
 O host usa Blazor Interactive Server e Kestrel em todas as interfaces. Na mesma porta,
 a conexão TLS segue para HTTPS; HTTP recebe 307 para a URL HTTPS equivalente.
-Certificados locais atuais usam os nomes/IPs detectados da máquina; a configuração de
-endereços externos para Docker será adaptada na #59.
+Os nomes/IPs do certificado vêm de `Hosting:Names` (`AGS_HOST_NAMES` no Compose); sem configuração (`dotnet run`),
+são detectados pelas interfaces da máquina. As chaves do Data Protection ficam em `DataDirectory`, para a sessão sobreviver
+à recriação do container.
 
 Há [login](../identity/login.md), usuário por [comando](../identity/user-creation.md) e
 [página de certificado](../web/https-certificate.md). Somente login, seu endpoint de entrada
@@ -57,9 +58,9 @@ Docker acrescenta operação de volumes, rede e credenciais, padronizando instal
 O certificado ainda precisa ser confiado nos dispositivos. A aplicação funciona sem internet
 após obter as imagens; buscar uma nova versão pode exigir acesso ao registro.
 
-O serviço nativo foi a escolha inicial, superada por Docker. A hipótese anterior de que
-Docker no Windows exigiria Docker Desktop foi descartada. A #59 deve comprovar o caminho WSL
-em ambiente real, incluindo firewall e inicialização.
+O serviço nativo foi a escolha inicial, superada por Docker e removida. A hipótese anterior de que
+Docker no Windows exigiria Docker Desktop foi descartada: o Docker Engine roda dentro do WSL 2. O que ainda precisa de teste
+em campo (reinício do Windows, celular na LAN) está em [Limites da validação](../web/docker-deployment.md#limites-da-validação).
 
 Desktop com Avalonia não atendia ao acesso pelo celular. SPA/WebAssembly e microsserviços
 acrescentariam peças sem necessidade demonstrada. Acesso pela internet, Kubernetes e

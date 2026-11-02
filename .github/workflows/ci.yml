@@ -87,3 +87,17 @@ jobs:
           for project in tests/Ags.Finance.ArchitectureTests tests/Ags.Finance.SharedKernel.Tests tests/Ags.Finance.Modules.Imports.Tests tests/Ags.Finance.Modules.Reports.Tests; do
             dotnet test "$project" --no-build --configuration Release
           done
+
+  # Imagem e Compose: constrói a imagem, sobe aplicação e PostgreSQL e exercita backup e restauração em instalação
+  # vazia (scripts/rehearse-recovery.sh). Valida sem publicar nada; a publicação é feita só por tag (release.yml).
+  docker:
+    name: docker-image-and-recovery
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validar o Compose
+        run: POSTGRES_PASSWORD=ci AGS_DB_PASSWORD=ci AGS_HOST_NAMES=localhost docker compose config --quiet
+
+      - name: Ensaio de recuperação (dados fictícios)
+        run: scripts/rehearse-recovery.sh

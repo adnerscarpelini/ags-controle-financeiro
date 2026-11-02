@@ -64,6 +64,15 @@ public sealed class PostgresTestDatabase : IAsyncDisposable
         return values;
     }
 
+    public async Task ExecuteAsync(string sql)
+    {
+        await using var connection = new NpgsqlConnection(ConnectionString);
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        await command.ExecuteNonQueryAsync();
+    }
+
     public async Task<string> ScalarAsync(string sql)
     {
         var values = await QueryAsync(sql);

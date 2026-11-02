@@ -11,18 +11,18 @@ Requisitos, critérios de aceite e dúvidas permanecem nas issues.
 - [Persistência PostgreSQL — implementada (#60)](architecture/persistence-postgresql.md)
 - [SharedKernel](architecture/shared-kernel.md)
 - [Design da interface](architecture/ui-design.md)
-- [Hospedagem e distribuição Docker — aprovada, pendente #59](architecture/web-hosting.md)
+- [Hospedagem e distribuição Docker — implementada (#59)](architecture/web-hosting.md)
 - [Consistência financeira — decisões e fronteiras de domínio](architecture/financial-consistency.md)
 
-A persistência já usa PostgreSQL (#60); a distribuição Docker (#59) é a etapa seguinte. Não há migração
-de dados SQLite. O restante do produto continua nas issues,
+A persistência usa PostgreSQL (#60) e a distribuição é Docker Compose (#59), com backup e recuperação (#31).
+Não há migração de dados SQLite. O restante do produto continua nas issues,
 incluindo CSV oficial (#28/#29/#61/#62) e recuperação PostgreSQL (#31).
 
 ## Funcionalidades implementadas
 
 - SharedKernel: [Money e AccountingMonth](shared-kernel/money-and-accounting-month.md)
 - Web: [Layout e navegação](web/layout-and-navigation.md)
-- Web: [Instalação nativa atual — substituição prevista #59](web/service-installation.md)
+- Web: [Instalação com Docker Compose e backup (#59/#31)](web/docker-deployment.md)
 - Web: [Certificado HTTPS](web/https-certificate.md)
 - Identity: [Criação e redefinição do usuário](identity/user-creation.md)
 - Identity: [Login com usuário e senha](identity/login.md)
