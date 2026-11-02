@@ -13,6 +13,23 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
         modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
         modelBuilder.HasAnnotation("Relational:MaxIdentifierLength", 63);
         NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+        modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.AccountMovement", b =>
+        {
+            b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint").HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+            b.Property<Guid>("ExternalId").HasColumnType("uuid");
+            b.Property<DateTimeOffset>("CreatedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("timestamp with time zone");
+            b.Property<Guid>("OperationExternalId").HasColumnType("uuid");
+            b.Property<Guid>("AccountExternalId").HasColumnType("uuid");
+            b.Property<DateOnly>("Date").HasColumnType("date");
+            b.Property<long>("Amount").HasColumnType("bigint");
+            b.Property<int>("Kind").HasColumnType("integer");
+            b.HasKey("Id");
+            b.HasIndex("ExternalId").IsUnique();
+            b.HasIndex("OperationExternalId", "AccountExternalId").IsUnique();
+            b.HasIndex("AccountExternalId", "Date");
+            b.ToTable("account_movements", "transactions");
+        });
         modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.Category", b =>
         {
             b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint").HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);

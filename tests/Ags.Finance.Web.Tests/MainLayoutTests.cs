@@ -75,14 +75,14 @@ public sealed class MainLayoutTests : IDisposable
     }
 
     [Fact]
-    public void MenuHasTheSevenSectionsInOrder()
+    public void MenuHasTheSectionsInOrder()
     {
         var layout = RenderLayout();
 
         var labels = layout.FindAll(".nav-link span").Select(span => span.TextContent).ToList();
 
         Assert.Equal(
-            ["Lançamentos", "Faturas", "Cashback", "Reembolsos", "Dashboard", "Cadastros", "Configurações"],
+            ["Lançamentos", "Transferências e saldos", "Faturas", "Cashback", "Reembolsos", "Dashboard", "Cadastros", "Configurações"],
             labels);
     }
 

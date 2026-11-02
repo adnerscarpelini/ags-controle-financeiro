@@ -1,0 +1,98 @@
+@page "/transferencias"
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+@inject IAccountCatalog Accounts
+@inject IAccountMovementCatalog Movements
+@inject IEntryCatalog Entries
+@inject TimeProvider Clock
+
+<PageHeader Title="Transferências e saldos" />
+@if (_message is not null) { <p role="status">@_message</p> }
+@if (_confirmation is { } transfer)
+{
+    <section class="panel" role="alertdialog" aria-label="Confirmar transferência">
+        <h2>Confirmar transferência</h2>
+        <p>@Name(transfer.SourceAccountExternalId) → @Name(transfer.DestinationAccountExternalId)</p>
+        <p>@transfer.Date.ToString("dd/MM/yyyy") · @transfer.Amount</p>
+        <button class="button" @onclick="ConfirmTransferAsync" disabled="@_busy">Confirmar transferência</button>
+        <button class="button" @onclick="() => _confirmation = null" disabled="@_busy">Cancelar</button>
+    </section>
+}
+<section class="panel">
+    <h2>Transferir da corrente para investimento ou poupança</h2>
+    <form @onsubmit="AskTransfer" @onsubmit:preventDefault>
+        <div class="catalog-fields">
+            <div class="field"><label for="transfer-source">Conta corrente de origem</label><select id="transfer-source" @bind="_source" required>
+                <option value="@Guid.Empty">Selecione</option>@foreach (var account in _accounts.Where(x => x.IsActive && x.Kind == AccountKind.Checking)) { <option value="@account.ExternalId">@account.Name</option> }
+            </select></div>
+            <div class="field"><label for="transfer-destination">Conta de destino</label><select id="transfer-destination" @bind="_destination" required>
+                <option value="@Guid.Empty">Selecione</option>@foreach (var account in _accounts.Where(x => x.IsActive && x.Kind is AccountKind.Investment or AccountKind.Savings)) { <option value="@account.ExternalId">@account.Name</option> }
+            </select></div>
+            <div class="field"><label for="transfer-date">Data</label><input id="transfer-date" type="date" @bind="_date" required /></div>
+            <div class="field"><label for="transfer-amount">Valor (R$)</label><input id="transfer-amount" type="number" step="0.01" min="0.01" @bind="_amount" required /></div>
+        </div>
+        <button class="button" disabled="@(_busy || _confirmation is not null)">Transferir</button>
+    </form>
+</section>
+<section class="panel">
+    <h2>Saldos efetivos em @_today.ToString("dd/MM/yyyy")</h2>
+    <ul class="catalog-list">@foreach (var account in _accounts)
+    {
+        <li><span>@account.Name @(!account.IsActive ? "(arquivada)" : string.Empty)</span><span class="numeric">@_balances.GetValueOrDefault(account.ExternalId)</span></li>
+    }</ul>
+</section>
+<section class="panel">
+    <h2>Histórico de movimentações entre contas</h2>
+    <p>Transferências não são receitas nem despesas. Os dois movimentos têm a mesma identificação.</p>
+    <ul class="catalog-list" aria-label="Movimentações de contas">@foreach (var movement in _movements)
+    {
+        <li><span>@movement.Date.ToString("dd/MM/yyyy") · @Name(movement.AccountExternalId) · Transferência</span>
+            <span class="numeric">@(movement.Amount.IsNegative ? string.Empty : "+")@movement.Amount</span>
+            <span>Transferência @movement.OperationExternalId</span></li>
+    }</ul>
+</section>
+
+@code {
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private IReadOnlyList<AccountMovementDetails> _movements = [];
+    private readonly Dictionary<Guid, Money> _balances = [];
+    private Guid _source;
+    private Guid _destination;
+    private DateOnly _date;
+    private DateOnly _today;
+    private decimal _amount;
+    private bool _busy;
+    private string? _message;
+    private TransferRequest? _confirmation;
+    protected override async Task OnInitializedAsync()
+    {
+        _today = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+        _date = _today;
+        await ReloadAsync();
+    }
+    private async Task ReloadAsync()
+    {
+        _accounts = await Accounts.GetAccountsAsync(false);
+        _movements = await Movements.GetAsync();
+        foreach (var account in _accounts) { _balances[account.ExternalId] = (await Entries.GetBalanceAsync(account.ExternalId, _today))?.EffectiveBalance ?? Money.Zero; }
+    }
+    private string Name(Guid id) => _accounts.FirstOrDefault(x => x.ExternalId == id)?.Name ?? "Conta registrada";
+    private void AskTransfer()
+    {
+        if (_busy || _confirmation is not null) { return; }
+        _confirmation = new(Guid.CreateVersion7(), _source, _destination, _date, new Money(_amount));
+    }
+    private async Task ConfirmTransferAsync()
+    {
+        if (_busy || _confirmation is not { } request) { return; }
+        _busy = true;
+        try
+        {
+            var result = await Movements.TransferAsync(request);
+            _message = result.Error ?? "Transferência registrada.";
+            if (result.Succeeded) { _confirmation = null; _amount = 0; await ReloadAsync(); }
+        }
+        finally { _busy = false; }
+    }
+}
