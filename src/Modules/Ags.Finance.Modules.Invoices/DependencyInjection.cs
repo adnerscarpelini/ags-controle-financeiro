@@ -1,5 +1,6 @@
 using Ags.Finance.Modules.Invoices.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -15,6 +16,7 @@ public static class DependencyInjection
         services.AddSingleton<AuditTimestampsInterceptor>();
         services.AddDbContext<InvoicesDbContext>((provider, options) => options
             .UseSqlite(connectionString, sqlite => sqlite.MigrationsHistoryTable(InvoicesDbContext.MigrationsHistoryTable))
+            .ConfigureWarnings(warnings => warnings.Ignore(CoreEventId.NoEntityTypeConfigurationsWarning))
             .AddInterceptors(provider.GetRequiredService<AuditTimestampsInterceptor>()));
 
         return services;

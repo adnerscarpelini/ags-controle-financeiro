@@ -47,6 +47,7 @@ Como usar numa entidade nova:
 ### Detalhes e armadilhas
 
 - O EF Core cria no SQLite a tabela `__EFMigrationsLock`, interna e compartilhada por todos os módulos, para serializar migrations. Ela é a única tabela sem prefixo além dos históricos `__ef_migrations_<module>`.
+- Enquanto um módulo não tem `IEntityTypeConfiguration`, o EF avisa que não encontrou mapeamentos; o registro do módulo ignora esse aviso (`CoreEventId.NoEntityTypeConfigurationsWarning`). O log do EF fica em `Warning` no `appsettings.json`, para não registrar cada comando SQL.
 - As migrations dos módulos rodam em sequência no startup, não em paralelo.
 - `DateTimeOffset` é gravado como texto pelo provedor SQLite; como tudo é UTC, a leitura devolve o mesmo valor.
 - Testes: `MigrationTests` (em cada módulo) provam o arquivo criado, o histórico próprio e o prefixo; `PersistenceConventionsTests` (Transactions) prova centavos, `yyyyMM`, `ExternalId` v7 com índice único e carimbos de um relógio falso; `DatabaseStartupTests` (Web) sobe a aplicação com uma pasta temporária e confere criação, migrations de todos os módulos, reinício sem duplicar e WAL.
