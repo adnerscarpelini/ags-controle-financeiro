@@ -434,6 +434,8 @@ a:hover {
     margin: var(--space-1);
 }
 .catalog-color { font-weight: 400; }
+.entry-expense { color: var(--color-expense); }
+.entry-income { color: var(--color-income); }
 .color-green { color: var(--color-accent-hover); }
 .color-violet { color: var(--color-bank-nubank); }
 .color-orange { color: var(--color-bank-itau); }

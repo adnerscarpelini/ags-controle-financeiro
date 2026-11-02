@@ -1,3 +1,130 @@
 @page "/lancamentos"
+@using System.Globalization
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+@inject IEntryCatalog Entries
+@inject IAccountCatalog Accounts
+@inject IMerchantCatalog Merchants
+@inject IClassificationCatalog Classifications
+@inject IAccountingMonthCalculator Calendar
+@inject TimeProvider Clock
 
 <PageHeader Title="Lançamentos" />
+@if (_message is not null) { <p role="status">@_message</p> }
+<section class="panel">
+    <h2>Novo lançamento</h2>
+    <p>Ctrl+N inicia um lançamento. Enter confirma. Informe o valor sem sinal.</p>
+    <form @onsubmit="SaveAsync" @onsubmit:preventDefault>
+        <div class="catalog-fields">
+            <div class="field"><label for="entry-date">Data</label><input id="entry-date" type="date" @bind="_date" @bind:after="SuggestMonthAsync" required /></div>
+            <div class="field"><label for="entry-merchant">Descrição</label><input id="entry-merchant" value="@_merchantName" @oninput="SearchMerchantAsync" list="entry-merchants" maxlength="100" required />
+                <datalist id="entry-merchants">@foreach (var merchant in _suggestions) { <option value="@merchant.Name"></option> }</datalist>
+                <button class="button" type="button" @onclick="CreateMerchantAsync" disabled="@_busy">Cadastrar nova descrição</button>
+            </div>
+            <div class="field"><label for="entry-subcategory">Classificação</label><select id="entry-subcategory" @bind="_subcategoryId" required>
+                <option value="@Guid.Empty">Selecione</option>
+                @foreach (var item in _subcategories.Where(x => x.Kind != CategoryKind.Transfer)) { <option value="@item.ExternalId">@item.DisplayName</option> }
+            </select></div>
+            <div class="field"><label for="entry-amount">Valor (R$)</label><input id="entry-amount" type="number" step="0.01" min="0.01" @bind="_amount" required /></div>
+            <div class="field"><label for="entry-account">Conta</label><select id="entry-account" @bind="_accountId" required>
+                <option value="@Guid.Empty">Selecione</option>
+                @foreach (var account in _accounts) { <option value="@account.ExternalId">@account.Name</option> }
+            </select></div>
+            <div class="field"><label for="entry-month">Mês contábil</label><input id="entry-month" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" required /></div>
+            <div class="field"><label for="entry-details">Detalhes</label><input id="entry-details" @bind="_details" maxlength="1000" /></div>
+        </div>
+        <button class="button" disabled="@_busy">Salvar lançamento</button>
+        <button class="button" type="button" data-new-entry @onclick="Reset">Novo / limpar</button>
+    </form>
+</section>
+<section class="panel">
+    <h2>Histórico</h2>
+    <ul class="catalog-list">
+        @foreach (var entry in _entries)
+        {
+            <li><span>@entry.Date.ToString("dd/MM/yyyy") · @entry.MerchantName · @entry.Classification</span>
+                <span class="numeric @(entry.Amount.IsNegative ? "entry-expense" : "entry-income")">@(entry.Amount.IsNegative ? string.Empty : "+")@entry.Amount</span>
+                <span>Mês @entry.Month · @(entry.IsEffective ? "Efetivado" : "Pendente") · @entry.Details</span>
+            </li>
+        }
+    </ul>
+</section>
+
+@code {
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private IReadOnlyList<MerchantDetails> _merchants = [];
+    private IReadOnlyList<MerchantDetails> _suggestions = [];
+    private IReadOnlyList<SubcategoryDetails> _subcategories = [];
+    private IReadOnlyList<EntryDetails> _entries = [];
+    private DateOnly _date;
+    private string _merchantName = string.Empty;
+    private Guid _merchantId;
+    private Guid _subcategoryId;
+    private Guid _accountId;
+    private decimal _amount;
+    private string _details = string.Empty;
+    private string _month = string.Empty;
+    private string? _message;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _date = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+        _accounts = await Accounts.GetAccountsAsync();
+        _merchants = await Merchants.FindAsync();
+        _suggestions = _merchants;
+        _subcategories = await Classifications.GetSubcategoriesAsync();
+        await SuggestMonthAsync();
+        _entries = await Entries.GetAsync();
+    }
+    private async Task SuggestMonthAsync()
+    {
+        var suggestion = await Calendar.CalculateAsync(_date);
+        if (suggestion.Month is { } month) { _month = month.FirstDay.ToString("yyyy-MM", CultureInfo.InvariantCulture); }
+        else { _message = suggestion.Error; }
+    }
+    private async Task SearchMerchantAsync(ChangeEventArgs args)
+    {
+        _merchantName = args.Value?.ToString() ?? string.Empty;
+        _merchantId = _merchants.FirstOrDefault(x => string.Equals(x.Name, _merchantName, StringComparison.OrdinalIgnoreCase))?.ExternalId ?? Guid.Empty;
+        var selected = _merchants.FirstOrDefault(x => x.ExternalId == _merchantId);
+        if (selected?.DefaultSubcategoryExternalId is { } subcategory) { _subcategoryId = subcategory; }
+        _suggestions = await Merchants.FindAsync(_merchantName);
+    }
+    private async Task CreateMerchantAsync()
+    {
+        if (_busy) { return; }
+        _busy = true;
+        try
+        {
+            var result = await Merchants.SaveAsync(null, _merchantName, _subcategoryId == Guid.Empty ? null : _subcategoryId);
+            _message = result.Error ?? "Descrição cadastrada. Continue o lançamento.";
+            _merchants = await Merchants.FindAsync();
+            if (result.Succeeded) { _merchantId = result.ExternalId ?? Guid.Empty; }
+        }
+        finally { _busy = false; }
+    }
+    private async Task SaveAsync()
+    {
+        if (_busy) { return; }
+        if (!DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var monthDate))
+        {
+            _message = "Informe um mês contábil válido."; return;
+        }
+        _busy = true;
+        try
+        {
+            var result = await Entries.CreateAsync(new(_date, _merchantId, _subcategoryId, _accountId, new Money(_amount), _details, AccountingMonth.FromDate(monthDate)));
+            _message = result.Error ?? "Lançamento salvo.";
+            if (result.Succeeded) { Reset(); _entries = await Entries.GetAsync(); }
+        }
+        finally { _busy = false; }
+    }
+    private void Reset()
+    {
+        _merchantName = string.Empty; _merchantId = Guid.Empty; _subcategoryId = Guid.Empty; _amount = 0; _details = string.Empty;
+        _month = AccountingMonth.FromDate(_date).FirstDay.ToString("yyyy-MM", CultureInfo.InvariantCulture);
+        _suggestions = _merchants;
+    }
+}

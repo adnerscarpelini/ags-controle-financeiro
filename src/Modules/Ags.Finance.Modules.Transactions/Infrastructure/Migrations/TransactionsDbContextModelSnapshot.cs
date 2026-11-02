@@ -55,6 +55,7 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.Property<bool>("IsActive").HasColumnType("boolean");
             b.HasKey("Id");
             b.HasIndex("ExternalId").IsUnique();
+            b.HasAlternateKey("ExternalId");
             b.HasIndex("NormalizedName").IsUnique();
             b.HasIndex("DefaultSubcategoryExternalId");
             b.ToTable("merchants", "transactions");
@@ -66,6 +67,36 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.Subcategory", b =>
         {
             b.HasOne("Ags.Finance.Modules.Transactions.Domain.Category", null).WithMany().HasForeignKey("CategoryExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+        });
+        modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.TransactionEntry", b =>
+        {
+            b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint").HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+            b.Property<Guid>("ExternalId").HasColumnType("uuid");
+            b.Property<DateTimeOffset>("CreatedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateOnly>("Date").HasColumnType("date");
+            b.Property<int>("Month").HasColumnType("integer");
+            b.Property<Guid>("MerchantExternalId").HasColumnType("uuid");
+            b.Property<Guid>("SubcategoryExternalId").HasColumnType("uuid");
+            b.Property<Guid>("AccountExternalId").HasColumnType("uuid");
+            b.Property<int>("Kind").HasColumnType("integer");
+            b.Property<long>("Amount").HasColumnType("bigint");
+            b.Property<string>("Details").IsRequired().HasMaxLength(1000).HasColumnType("character varying(1000)");
+            b.Property<bool>("IsEffective").HasColumnType("boolean");
+            b.Property<DateOnly?>("EffectiveDate").HasColumnType("date");
+            b.Property<DateTimeOffset?>("EffectiveAt").HasColumnType("timestamp with time zone");
+            b.HasKey("Id");
+            b.HasIndex("ExternalId").IsUnique();
+            b.HasIndex("Month");
+            b.HasIndex("AccountExternalId", "EffectiveDate");
+            b.HasIndex("MerchantExternalId");
+            b.HasIndex("SubcategoryExternalId");
+            b.ToTable("entries", "transactions");
+        });
+        modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.TransactionEntry", b =>
+        {
+            b.HasOne("Ags.Finance.Modules.Transactions.Domain.Merchant", null).WithMany().HasForeignKey("MerchantExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+            b.HasOne("Ags.Finance.Modules.Transactions.Domain.Subcategory", null).WithMany().HasForeignKey("SubcategoryExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict).IsRequired();
         });
     }
 }
