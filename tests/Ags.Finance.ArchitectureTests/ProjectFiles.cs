@@ -20,7 +20,7 @@ internal static class ProjectFiles
             .ToList();
     }
 
-    private static string FindRepositoryRoot()
+    public static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Ags.Finance.slnx")))

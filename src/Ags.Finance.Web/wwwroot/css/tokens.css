@@ -1,0 +1,45 @@
+/*
+ * Tokens de design: o único arquivo com valores literais de cor.
+ * Componentes e demais CSS usam só as variáveis abaixo. Fonte: docs/architecture/ui-design.md.
+ */
+:root {
+    color-scheme: dark;
+
+    /* Paleta */
+    --color-background: #0E1311;
+    --color-surface: #151C19;
+    --color-surface-raised: #1C2521;
+    --color-border: #27332E;
+    --color-text-primary: #E6EDE9;
+    --color-text-secondary: #93A39B;
+    --color-accent: #10B981;
+    --color-accent-hover: #34D399;
+    --color-income: #34D399;
+    --color-expense: #F87171;
+    --color-warning: #FBBF24;
+
+    /* Cores de banco: somente em texto, em peso normal */
+    --color-bank-itau: #FB923C;
+    --color-bank-nubank: #A78BFA;
+    --color-bank-bradesco: #F87171;
+
+    /* Película que escurece o conteúdo atrás da gaveta de navegação */
+    --color-scrim: rgb(0 0 0 / 0.6);
+
+    /* Forma e espaçamento (múltiplos de 4) */
+    --radius: 8px;
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+
+    /* Tipografia */
+    --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+    /* Layout */
+    --sidebar-width: 240px;
+    --touch-target: 44px;
+}

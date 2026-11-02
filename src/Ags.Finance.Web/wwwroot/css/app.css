@@ -1,0 +1,228 @@
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("../fonts/inter-latin-variable.woff2") format("woff2");
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--color-background);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+}
+
+h1 {
+    margin: 0 0 var(--space-6);
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+h1:focus {
+    outline: none;
+}
+
+a {
+    color: var(--color-accent);
+}
+
+a:hover {
+    color: var(--color-accent-hover);
+}
+
+:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+/* Valores monetários e datas: dígitos tabulares, alinhados à direita */
+.numeric {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.income {
+    color: var(--color-income);
+}
+
+.expense {
+    color: var(--color-expense);
+}
+
+/* Estrutura: menu lateral + conteúdo */
+.app-shell {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    min-height: 100vh;
+}
+
+.sidebar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    height: 100vh;
+    padding: var(--space-4);
+    overflow-y: auto;
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+}
+
+.content {
+    min-width: 0;
+    padding: var(--space-8);
+}
+
+.topbar,
+.scrim {
+    display: none;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-1) var(--space-2);
+    color: var(--color-text-primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.brand:hover {
+    color: var(--color-text-primary);
+}
+
+.brand img {
+    width: 32px;
+    height: 32px;
+}
+
+.nav-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: var(--touch-target);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius);
+    color: var(--color-text-secondary);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.nav-link:hover {
+    background: var(--color-surface-raised);
+    color: var(--color-text-primary);
+}
+
+.nav-link.active {
+    background: var(--color-surface-raised);
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
+.nav-icon {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--touch-target);
+    height: var(--touch-target);
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    cursor: pointer;
+}
+
+.icon-button:hover {
+    background: var(--color-surface-raised);
+    color: var(--color-accent-hover);
+}
+
+/* Celular: o menu vira uma gaveta e o conteúdo ocupa a tela inteira */
+@media (max-width: 767.98px) {
+    .app-shell {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-2) var(--space-4);
+        background: var(--color-surface);
+        border-bottom: 1px solid var(--color-border);
+        font-weight: 600;
+    }
+
+    .sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        z-index: 30;
+        width: min(280px, 85vw);
+        transform: translateX(-100%);
+        visibility: hidden;
+        transition: transform 0.2s ease, visibility 0.2s;
+    }
+
+    .drawer-open .sidebar {
+        transform: none;
+        visibility: visible;
+    }
+
+    .drawer-open .scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        display: block;
+        background: var(--color-scrim);
+    }
+
+    .content {
+        padding: var(--space-4);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sidebar {
+        transition: none;
+    }
+}
