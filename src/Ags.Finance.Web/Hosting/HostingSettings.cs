@@ -5,7 +5,6 @@ internal sealed record HostingSettings(int Port)
 {
     public const int DefaultPort = 5280;
     public const string PortKey = "Hosting:Port";
-    public const string WindowsServiceName = "AgsFinance";
 
     /// <summary>Lê <c>Hosting:Port</c> (variável <c>Hosting__Port</c>); sem valor, usa <see cref="DefaultPort"/>.</summary>
     /// <exception cref="InvalidOperationException">A porta informada não é um número entre 1 e 65535.</exception>

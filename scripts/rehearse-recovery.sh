@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+# Ensaio de recuperação de desastre (#59/#31), com dados fictícios e instalações descartáveis:
+#   instalação A: cria usuário e dados -> backup
+#   instalação B (vazia, senhas novas, sem o volume original): restaura -> confere login, registros, vínculos e totais.
+#
+# Roda em Linux ou dentro do WSL 2, com Docker Engine e Compose, a partir da raiz do repositório:
+#   scripts/rehearse-recovery.sh
+# Usa projetos Compose próprios (ags-rehearsal-a/b), portas altas e pastas temporárias; ao final apaga só o que criou.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+ROOT=$(pwd)
+WORK=$(mktemp -d /var/tmp/ags-rehearsal.XXXXXX)
+PORT_A=${REHEARSAL_PORT_A:-5391}
+PORT_B=${REHEARSAL_PORT_B:-5392}
+USER_NAME=ensaio
+USER_PASSWORD=$(openssl rand -hex 12)
+FAILED=1
+
+log() { printf '\n==> %s\n' "$*"; }
+fail() { printf 'FALHOU: %s\n' "$*" >&2; exit 1; }
+
+compose() { # compose <instância> <argumentos...>
+    local instance=$1; shift
+    docker compose -p "ags-rehearsal-$instance" --env-file "$WORK/$instance.env" "$@"
+}
+
+write_env() { # write_env <instância> <porta>
+    local instance=$1 port=$2
+    install -d -m 0700 "$WORK/$instance-backups"
+    # O processo da imagem roda como o UID 1654 (usuário "app") e precisa ser dono da pasta de backup.
+    docker run --rm -v "$WORK/$instance-backups:/d" alpine:3 chown 1654:1654 /d
+    cat > "$WORK/$instance.env" <<ENV
+POSTGRES_PASSWORD=$(openssl rand -hex 24)
+AGS_DB_PASSWORD=$(openssl rand -hex 24)
+AGS_HOST_NAMES=localhost,127.0.0.1
+AGS_PORT=$port
+AGS_VERSION=0.0.0-rehearsal
+AGS_BACKUP_DIR=$WORK/$instance-backups
+ENV
+    chmod 600 "$WORK/$instance.env"
+}
+
+cleanup() {
+    log "Limpando as instalações do ensaio"
+    for instance in a b; do
+        [ -f "$WORK/$instance.env" ] && compose "$instance" down -v --remove-orphans >/dev/null 2>&1 || true
+    done
+    # Os backups pertencem ao UID 1654 (usuário da imagem); apaga por um container para não depender de sudo.
+    docker run --rm -v "$WORK:/work" alpine:3 sh -c 'rm -rf /work/* /work/.[!.]*' >/dev/null 2>&1 || true
+    rmdir "$WORK" 2>/dev/null || true
+    if [ "$FAILED" -eq 0 ]; then echo "ENSAIO CONCLUÍDO COM SUCESSO"; else echo "ENSAIO FALHOU"; fi
+}
+trap cleanup EXIT
+
+psql_app() { # psql_app <instância> <sql>  -> saída sem formatação
+    compose "$1" exec -T db sh -c 'PGPASSWORD="$AGS_DB_PASSWORD" psql -X -At -U "$AGS_DB_USER" -d "$AGS_DB_NAME" -c "$0"' "$2"
+}
+
+sign_in() { # sign_in <porta> <jar>  -> 0 se o login funcionou
+    local port=$1 jar=$2 page token status
+    page=$(curl -ksS -c "$jar" "https://localhost:$port/login")
+    token=$(printf '%s' "$page" | grep -o 'name="__RequestVerificationToken"[^>]*value="[^"]*"' | head -1 | sed 's/.*value="//; s/"$//')
+    [ -n "$token" ] || fail "token antifalsificação não encontrado na página de login"
+    status=$(curl -ksS -b "$jar" -c "$jar" -o /dev/null -w '%{http_code}' \
+        --data-urlencode "UserName=$USER_NAME" --data-urlencode "Password=$USER_PASSWORD" \
+        --data-urlencode "__RequestVerificationToken=$token" "https://localhost:$port/account/sign-in")
+    [ "$status" = "302" ] || [ "$status" = "303" ]
+}
+
+authenticated() { # authenticated <jar> <porta> -> 0 se a sessão do jar é aceita (uma página protegida responde 200)
+    local code
+    code=$(curl -ksS -b "$1" -o /dev/null -w '%{http_code}' "https://localhost:$2/configuracoes")
+    [ "$code" = "200" ]
+}
+
+log "Instalação A: sobe aplicação e banco novos"
+write_env a "$PORT_A"
+compose a up -d --build --wait --wait-timeout 300
+
+log "Instalação A: cria o usuário pelo comando (senha por stdin, sem eco)"
+printf '%s\n%s\n%s\n' "$USER_NAME" "$USER_PASSWORD" "$USER_PASSWORD" | compose a run --rm -T app user create
+
+log "Instalação A: dados fictícios em vários registros e vínculos"
+psql_app a "
+INSERT INTO accounts.banks (\"Name\", \"ExternalId\", \"CreatedAt\", \"UpdatedAt\")
+  VALUES ('Banco Ensaio', '019e0000-0000-7000-8000-000000000001', now(), now());
+INSERT INTO accounts.accounts (\"BankExternalId\", \"Name\", \"NormalizedName\", \"Kind\", \"Color\", \"IsActive\", \"ExternalId\", \"CreatedAt\", \"UpdatedAt\")
+  VALUES ('019e0000-0000-7000-8000-000000000001', 'Conta Ensaio', 'CONTA ENSAIO', 0, 'green', true, '019e0000-0000-7000-8000-000000000002', now(), now());
+INSERT INTO accounts.credit_cards (\"AccountExternalId\", \"Name\", \"Brand\", \"CreditLimit\", \"ClosingDay\", \"DueDay\", \"IncludesClosingDay\", \"Color\", \"IsActive\", \"ExternalId\", \"CreatedAt\", \"UpdatedAt\")
+  VALUES ('019e0000-0000-7000-8000-000000000002', 'Cartão Ensaio', 0, 1234567, 3, 10, false, 'green', true, '019e0000-0000-7000-8000-000000000003', now(), now()),
+         ('019e0000-0000-7000-8000-000000000002', 'Cartão Dois', 1, 765433, 5, 12, true, 'green', true, '019e0000-0000-7000-8000-000000000004', now(), now());
+INSERT INTO accounts.card_last_digits (\"CardExternalId\", \"Digits\", \"Usage\", \"Label\", \"IsActive\", \"ExternalId\", \"CreatedAt\", \"UpdatedAt\")
+  VALUES ('019e0000-0000-7000-8000-000000000003', '1234', 0, 'Titular', true, '019e0000-0000-7000-8000-000000000005', now(), now());" >/dev/null
+
+SUMMARY_SQL="SELECT (SELECT count(*) FROM identity.users) || '|' || (SELECT count(*) FROM accounts.banks) || '|' || (SELECT count(*) FROM accounts.accounts) || '|' || (SELECT count(*) FROM accounts.credit_cards) || '|' || (SELECT sum(\"CreditLimit\") FROM accounts.credit_cards) || '|' || (SELECT count(*) FROM accounts.card_last_digits) || '|' || (SELECT string_agg(c.\"Name\", ',' ORDER BY c.\"Name\") FROM accounts.credit_cards c JOIN accounts.accounts a ON a.\"ExternalId\" = c.\"AccountExternalId\")"
+BEFORE=$(psql_app a "$SUMMARY_SQL")
+echo "Resumo antes: $BEFORE"
+[ "$BEFORE" = "1|1|1|2|2000000|1|Cartão Dois,Cartão Ensaio" ] || fail "dados fictícios inesperados: $BEFORE"
+
+log "Instalação A: login e sessão"
+JAR_A="$WORK/jar-a"
+sign_in "$PORT_A" "$JAR_A" || fail "login na instalação A"
+authenticated "$JAR_A" "$PORT_A" || fail "sessão da instalação A não foi aceita"
+CERT_A=$(compose a exec -T app sh -c 'sha256sum /data/certs/ags-finance.pfx' | cut -d' ' -f1)
+
+log "Instalação A: backup sob demanda (dump custom + arquivos da aplicação) e conferência"
+compose a run --rm -T app backup create
+NAME=$(compose a run --rm -T app backup list | head -1 | awk '{print $1}')
+[ -n "$NAME" ] || fail "nenhum backup listado"
+compose a run --rm -T app backup verify "$NAME"
+echo "Backup: $NAME"
+
+log "Cópia do backup para fora das instalações (como seria para outro disco/máquina)"
+docker run --rm -v "$WORK/a-backups:/from:ro" -v "$WORK/b-backups:/to" alpine:3 sh -c 'cp -a /from/. /to/ && chown -R 1654:1654 /to'
+
+log "Instalação A destruída com todos os volumes"
+compose a down -v --remove-orphans
+
+log "Instalação B: máquina nova, banco vazio e senhas novas"
+write_env b "$PORT_B"
+compose b up -d --wait --wait-timeout 300 db
+[ "$(psql_app b "SELECT count(*) FROM information_schema.schemata WHERE schema_name = 'identity'")" = "0" ] || fail "instalação B deveria começar vazia"
+
+log "Instalação B: restauração"
+compose b run --rm -T app backup restore "$NAME" --yes
+compose b up -d --wait --wait-timeout 300 app
+
+log "Instalação B: confere registros, vínculos e totais"
+AFTER=$(psql_app b "$SUMMARY_SQL")
+echo "Resumo depois: $AFTER"
+[ "$AFTER" = "$BEFORE" ] || fail "dados divergentes: antes=$BEFORE depois=$AFTER"
+[ "$(psql_app b "SELECT count(*) FROM information_schema.table_constraints WHERE constraint_type = 'FOREIGN KEY' AND table_schema <> 'pg_catalog'")" = "0" ] || fail "FK inesperada"
+[ "$(psql_app b "SELECT last_value > 0 FROM pg_sequences WHERE schemaname = 'accounts' AND sequencename = 'credit_cards_Id_seq'")" = "t" ] || fail "sequência do banco não restaurada"
+
+log "Instalação B: login com a mesma senha e continuidade da sessão (chaves de Data Protection restauradas)"
+sign_in "$PORT_B" "$WORK/jar-b" || fail "login na instalação B"
+authenticated "$JAR_A" "$PORT_B" || fail "a sessão da instalação A deveria continuar válida com as chaves restauradas"
+
+log "Instalação B: certificado restaurado"
+CERT_B=$(compose b exec -T app sh -c 'sha256sum /data/certs/ags-finance.pfx' | cut -d' ' -f1)
+[ "$CERT_A" = "$CERT_B" ] || fail "o certificado restaurado difere do original"
+
+log "Instalação B: novas gravações funcionam (sequências continuam sem colidir)"
+psql_app b "INSERT INTO accounts.banks (\"Name\", \"ExternalId\", \"CreatedAt\", \"UpdatedAt\") VALUES ('Banco Novo', '019e0000-0000-7000-8000-000000000009', now(), now())" >/dev/null
+
+FAILED=0

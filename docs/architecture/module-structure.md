@@ -4,7 +4,7 @@
 
 A aplicação é um **monólito modular**. Um único host web (`Ags.Finance.Web`, ASP.NET Core + Blazor) compõe módulos independentes, e cada módulo é uma class library organizada em Clean Architecture.
 
-**Estado:** esqueleto e testes de arquitetura entregues (#1/#2). Identity tem usuário, login e senha; Accounts tem bancos, contas, cartões/finais e cálculo do mês contábil (#6–#8). Os demais módulos aguardam seus casos de uso. A persistência PostgreSQL (#60) está implementada, com um schema por módulo; a distribuição Docker (#59) vem a seguir. A tabela abaixo expressa responsabilidades, incluindo entregas futuras.
+**Estado:** esqueleto e testes de arquitetura entregues (#1/#2). Identity tem usuário, login e senha; Accounts tem bancos, contas, cartões/finais e cálculo do mês contábil (#6–#8). Os demais módulos aguardam seus casos de uso. A persistência PostgreSQL (#60) está implementada, com um schema por módulo; a distribuição Docker (#59) também está entregue. A tabela abaixo expressa responsabilidades, incluindo entregas futuras.
 
 ## Módulos
 
@@ -34,7 +34,7 @@ Somente `Contracts` e `DependencyInjection` são públicos. Os testes de arquite
 
 ## Host
 
-`Ags.Finance.Web` é o composition root: registra os módulos, configura autenticação, HTTPS e execução, contém páginas e componentes Blazor e será responsável pela operação de backup. O serviço nativo atual será substituído pela distribuição Docker na #59. Componentes usam os `Contracts`, nunca a `Infrastructure` de um módulo. Ver [hospedagem](web-hosting.md), [persistência aprovada](persistence-postgresql.md) e [consistência financeira](financial-consistency.md).
+`Ags.Finance.Web` é o composition root: registra os módulos, configura autenticação, HTTPS e execução, contém páginas e componentes Blazor e será responsável pela operação de backup. A distribuição é Docker Compose (#59), com backup e recuperação (#31). Componentes usam os `Contracts`, nunca a `Infrastructure` de um módulo. Ver [hospedagem](web-hosting.md), [persistência aprovada](persistence-postgresql.md) e [consistência financeira](financial-consistency.md).
 
 ## Alternativas consideradas
 

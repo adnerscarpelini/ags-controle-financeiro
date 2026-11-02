@@ -7,7 +7,7 @@ Instruções para agentes de IA que trabalham neste repositório. Leia este arqu
 `ags-controle-financeiro` é uma aplicação web pessoal de controle financeiro, acessada pelo navegador do computador e do celular na **rede local**. Tem um único usuário e funciona sem internet depois de obtidas as imagens de distribuição.
 
 - **Destino aprovado:** .NET 10, C#, ASP.NET Core com Blazor Web App (Interactive Server), EF Core com **PostgreSQL como único banco**, xUnit e **Docker Compose**. Mesma imagem Linux no Docker Engine nativo ou no Windows via WSL 2; Docker Desktop não é obrigatório.
-- **Estado do código:** a persistência já é **PostgreSQL** (#60). O serviço nativo ainda existe até a #59 entregar o Docker Compose. A entrega em andamento é o lote 06 (**#60 → #59 → #31**). Não afirmar que o Docker funciona antes de implementar e validar a #59.
+- **Estado do código:** persistência **PostgreSQL** (#60) e distribuição por **Docker Compose** (#59), com backup e recuperação (#31), no lote 06. Serviço nativo e SQLite foram removidos. Guia em `docs/web/docker-deployment.md`. Reinício real do Windows e celular na LAN ainda precisam de teste em campo; não afirmar que foram comprovados.
 - **Dados de desenvolvimento:** o usuário autorizou descartar os dados deste projeto, recriar migrations e remover infraestrutura obsoleta na #60/#59 (o SQLite já foi removido). Não desenvolver migração SQLite → PostgreSQL nem suporte duplo. Conferir alvos de limpeza; a autorização não alcança outros projetos nem apaga o histórico Git.
 - **Troca de arquivos:** somente importação/exportação de cadastros e lançamentos por **CSV no layout oficial e versionado do sistema** (#28, #29, #61, #62). PDF, OFX, XLS/XLSX, OCR, layouts bancários e migração da antiga planilha não fazem parte do produto. CSV não substitui backup.
 - **Repositório público:** nunca versione dados financeiros reais, nomes de estabelecimentos reais do usuário, extratos, faturas, planilhas ou o arquivo do banco. Testes e exemplos usam somente dados fictícios.
@@ -113,7 +113,7 @@ Tema **escuro por padrão**, visual moderno e limpo, com um verde "dinheiro" com
 ## Segurança
 
 - Toda página e endpoint exige login, exceto login, o endpoint necessário de entrada (`POST /account/sign-in`) e arquivos estáticos. Não ampliar exceções sem necessidade registrada.
-- O único usuário é criado pelo comando `user create`; no destino Docker, executar pelo Compose com a conexão PostgreSQL correta e terminal interativo. A aplicação web nunca oferece cadastro de usuário; a senha é trocada logado ou pelo comando `user reset-password`.
+- O único usuário é criado pelo comando `user create`, executado pelo Compose com terminal interativo (`docker compose run --rm app user create`). A aplicação web nunca oferece cadastro de usuário; a senha é trocada logado ou pelo comando `user reset-password`.
 - Senhas só em hash (`PasswordHasher` do ASP.NET Core Identity). Bloqueio temporário após tentativas erradas.
 - HTTPS com certificado local gerado na primeira execução; HTTP redireciona para HTTPS.
 - Não registre senhas, cookies ou dados financeiros em logs.

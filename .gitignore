@@ -45,3 +45,7 @@ backups/
 
 # Publicação local (dotnet publish)
 artifacts/
+
+# Instalação Docker: configuração com segredos e backups ficam fora do Git
+.env
+backups/
