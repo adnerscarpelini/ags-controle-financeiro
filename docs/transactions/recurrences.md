@@ -21,7 +21,7 @@ registradas, como as que contêm parcelas.
 Ocorrências de caixa, de receita ou despesa, nascem Pendentes mesmo quando a data
 já passou. Futuras aparecem como previstas. Passar o tempo não registra baixa,
 não cria outro lançamento e não movimenta saldo efetivo. O orçamento inclui os
-valores previstos; efetivar uma ocorrência será a operação específica da #56.
+valores previstos; efetivar uma ocorrência usa a operação específica da #56.
 Compras recorrentes no cartão seguem a composição da fatura e não debitam caixa.
 
 Planos existentes preservam suas referências mesmo após desativação cadastral;
@@ -63,3 +63,18 @@ Origem e destino de todas as ocorrências afetadas precisam permitir a alteraç�
 Uma fatura protegida faz a operação inteira falhar, com rollback, sem reabertura
 ou atualização parcial. Editar a configuração preserva a situação e a confirmação
 de cada ocorrência; nunca registra uma baixa.
+
+## Baixa manual por ocorrência
+
+A [#56](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/56)
+permite confirmar a baixa com a data efetiva, sugerindo hoje no fuso do negócio.
+Valor, conta e mês contábil vêm da ocorrência. Uma conta arquivada permanece como
+origem, identificada na confirmação; não é trocada silenciosamente.
+A confirmação atualiza a ocorrência existente e grava data e instante de auditoria.
+Repetir a confirmação retorna sucesso sem alterar a baixa original ou movimentar
+novamente o saldo. Cartões são rejeitados por essa operação.
+
+O saldo usa a data efetiva e o estado da própria ocorrência, na mesma transação:
+não há lançamento de caixa duplicado nem acumulador que possa ficar divergente.
+Ocorrências efetivadas ainda podem ser editadas/excluídas pelo alcance autorizado,
+recalculando o saldo derivado. Todas preserva o passado já confirmado.

@@ -134,6 +134,17 @@ public sealed class TransactionPageTests
         page.Find("#delete-recurring-scope").Change(RecurringChangeScope.OnlyThis.ToString());
         await page.Find("[role=alertdialog] button").ClickAsync(new());
         Assert.Empty(page.FindAll(".catalog-list li"));
+        page.Find("#filter-month").Change("2026-11");
+        await page.Find("#entry-filters").SubmitAsync(EventArgs.Empty);
+        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Registrar baixa manual").ClickAsync(new());
+        await page.FindAll("[aria-label='Registrar baixa manual'] button")[1].ClickAsync(new());
+        Assert.Single(page.FindAll(".catalog-list li"));
+        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Registrar baixa manual").ClickAsync(new());
+        await page.WaitForElement("#effective-date").ChangeAsync("2026-11-12");
+        await page.Find("[aria-label='Registrar baixa manual'] button").ClickAsync(new());
+        Assert.Empty(page.FindAll(".catalog-list li"));
+        var confirmed = (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.RecurringEntryExternalId is not null && x.IsEffective);
+        Assert.Equal(new DateOnly(2026, 11, 12), confirmed.EffectiveDate);
     }
 
     private sealed class PreviewClock : TimeProvider

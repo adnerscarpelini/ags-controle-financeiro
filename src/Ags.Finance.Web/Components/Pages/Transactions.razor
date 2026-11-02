@@ -13,6 +13,10 @@
 
 <PageHeader Title="Lançamentos" />
 @if (_message is not null) { <p role="status">@_message</p> }
+@if (_effectiveEntry is { } pending)
+{
+    <EffectiveEntryDialog @key="pending.ExternalId" Entry="pending" Confirmed="EffectiveConfirmedAsync" Cancelled="() => _effectiveEntry = null" />
+}
 @if (_deleteEntry is { } deleting)
 {
     <section class="panel" role="alertdialog" aria-label="Confirmar exclusão">
@@ -118,7 +122,7 @@
             <div class="field"><label for="filter-subcategory">Subcategoria</label><select id="filter-subcategory" @bind="_filterSubcategory">
                 <option value="@Guid.Empty">Todas</option>@foreach (var item in _filterSubcategories) { <option value="@item.ExternalId">@item.DisplayName</option> }
             </select></div>
-            <div class="field"><label for="filter-effective">Situação</label><select id="filter-effective" @bind="_filterEffective">
+            <div class="field"><label for="filter-effective">Situação</label><select id="filter-effective" value="@(_filterEffective?.ToString().ToLowerInvariant() ?? string.Empty)" @onchange="args => _filterEffective = bool.TryParse(args.Value?.ToString(), out var effective) ? effective : null">
                 <option value="">Todas</option><option value="true">Efetivado</option><option value="false">Pendente</option>
             </select></div>
             <div class="field"><label for="entry-search">Buscar descrição ou detalhes (Ctrl+F)</label><input id="entry-search" data-entry-search @bind="_filterText" maxlength="200" /></div>
@@ -141,6 +145,11 @@
                     <button class="button" @onclick="() => _selectedId = entry.ExternalId">@(_selectedId == entry.ExternalId ? "Selecionado" : "Selecionar")</button>
                         <button class="button" @onclick="() => EditEntryAsync(entry)" disabled="@_busy">Editar</button>
                         <button class="button" @onclick="() => AskDelete(entry)" disabled="@_busy">Excluir</button>
+                    @if (!entry.IsEffective && entry.CardExternalId is null && entry.RecurringEntryExternalId is not null)
+                    {
+                        <button class="button" @onclick="() => _effectiveEntry = entry" disabled="@_busy">Registrar baixa manual</button>
+                    }
+                    @if (entry.IsEffective && entry.CardExternalId is null) { <span>Baixa em @entry.EffectiveDate?.ToString("dd/MM/yyyy") · Confirmada em @entry.EffectiveAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span> }
                 </div>
             </li>
         }
@@ -189,6 +198,8 @@
     private int _recurringDay;
     private EntryChangeScope? _scope;
     private EntryDetails? _deleteEntry;
+    private EntryDetails? _effectiveEntry;
+    private async Task EffectiveConfirmedAsync() { _effectiveEntry = null; _message = "Baixa registrada."; await ReloadQueryAsync(); }
     private EntryChangeScope? _deleteScope;
 
     protected override async Task OnInitializedAsync()
