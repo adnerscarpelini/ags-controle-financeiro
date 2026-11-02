@@ -1,5 +1,7 @@
 # Documentação
 
+- [Compras parceladas (#13)](transactions/installments.md)
+
 - [Situação e fechamento de faturas (#50)](invoices/lifecycle.md)
 
 - [Atomicidade e proteção entre módulos (#50)](architecture/financial-operations.md)

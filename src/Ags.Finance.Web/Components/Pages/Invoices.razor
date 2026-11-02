@@ -58,6 +58,7 @@
             {
                 <li><span>@entry.Date.ToString("dd/MM/yyyy") · @entry.MerchantName · @entry.Classification</span>
                     <span class="numeric entry-expense">@entry.Amount</span><span>@entry.Details</span>
+                    @if (entry.InstallmentNumber is not null) { <span>Parcela @entry.InstallmentNumber/@entry.InstallmentCount</span> }
                 </li>
             }
         </ul>

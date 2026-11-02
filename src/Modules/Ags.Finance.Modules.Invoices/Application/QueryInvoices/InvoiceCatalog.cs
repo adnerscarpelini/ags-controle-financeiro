@@ -5,9 +5,12 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Invoices.Application.QueryInvoices;
 
-internal sealed class InvoiceCatalog(IEntryCatalog entries, IAccountCatalog accounts, IInvoiceStore store) : IInvoiceCatalog
+internal sealed class InvoiceCatalog(IEntryCatalog entries, IAccountCatalog accounts, IInvoiceStore store, IFinancialOperation operations) : IInvoiceCatalog
 {
-    public async Task<IReadOnlyList<InvoiceDetails>> GetAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<InvoiceDetails>> GetAsync(CancellationToken cancellationToken = default)
+        => operations.ExecuteAsync(GetCoreAsync, _ => true, cancellationToken);
+
+    private async Task<IReadOnlyList<InvoiceDetails>> GetCoreAsync(CancellationToken cancellationToken)
     {
         var cards = (await accounts.GetCreditCardsAsync(false, cancellationToken)).ToDictionary(x => x.ExternalId);
         var states = (await store.GetAsync(cancellationToken)).ToDictionary(x => (x.CardExternalId, x.Month));

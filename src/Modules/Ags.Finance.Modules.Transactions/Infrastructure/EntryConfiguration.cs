@@ -15,5 +15,7 @@ internal sealed class EntryConfiguration : IEntityTypeConfiguration<TransactionE
         builder.HasIndex(x => new { x.AccountExternalId, x.EffectiveDate });
         builder.HasOne<Merchant>().WithMany().HasForeignKey(x => x.MerchantExternalId).HasPrincipalKey(x => x.ExternalId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Subcategory>().WithMany().HasForeignKey(x => x.SubcategoryExternalId).HasPrincipalKey(x => x.ExternalId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<InstallmentPurchase>().WithMany().HasForeignKey(x => x.InstallmentPurchaseExternalId).HasPrincipalKey(x => x.ExternalId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(x => new { x.InstallmentPurchaseExternalId, x.InstallmentNumber }).IsUnique();
     }
 }
