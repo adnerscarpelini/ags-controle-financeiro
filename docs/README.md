@@ -1,6 +1,7 @@
 # Documentação
 
 - [Categorias e subcategorias (#9)](transactions/classifications.md)
+- [Descrições sem duplicidade (#10)](transactions/merchants.md)
 
 Esta pasta registra comportamento implementado e decisões de arquitetura.
 Requisitos, critérios de aceite e dúvidas permanecem nas issues.

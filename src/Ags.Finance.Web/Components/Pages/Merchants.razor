@@ -1,0 +1,120 @@
+@page "/cadastros/descricoes"
+@using Ags.Finance.Modules.Transactions.Contracts
+@inject IMerchantCatalog Catalog
+@inject IClassificationCatalog Classifications
+
+<PageHeader Title="Descrições" />
+<p><a href="/cadastros">Cadastros</a> / Descrições</p>
+@if (_message is not null) { <p role="status">@_message</p> }
+@if (_pendingId is not null)
+{
+    <section class="panel" role="alertdialog" aria-label="Confirmar operação">
+        <p>@(_merge ? "Mesclar transfere as referências para a descrição mantida e remove a origem." : "Desativar preserva os lançamentos e retira a descrição das novas seleções.")</p>
+        <p>Origem: @_allMerchants.FirstOrDefault(x => x.ExternalId == _pendingId)?.Name</p>
+        @if (_merge) { <p>Manter: @_allMerchants.FirstOrDefault(x => x.ExternalId == _pendingTargetId)?.Name</p> }
+        <button class="button" @onclick="ConfirmAsync" disabled="@_busy">Confirmar</button>
+        <button class="button" @onclick="() => _pendingId = null">Cancelar</button>
+    </section>
+}
+<section class="panel">
+    <h2>@(_externalId is null ? "Nova descrição" : "Editar descrição")</h2>
+    <form @onsubmit="SaveAsync" @onsubmit:preventDefault>
+        <div class="field"><label for="merchant-name">Nome</label><input id="merchant-name" value="@_name" @oninput="SuggestAsync" maxlength="100" required /></div>
+        @if (_suggestions.Count > 0)
+        {
+            <p>Descrições parecidas já cadastradas:</p>
+            <ul aria-label="Sugestões">@foreach (var item in _suggestions) { <li><button class="button" type="button" @onclick="() => Edit(item)">@item.Name</button></li> }</ul>
+        }
+        <div class="field"><label for="merchant-subcategory">Subcategoria padrão (opcional)</label><select id="merchant-subcategory" @bind="_subcategoryId">
+            <option value="@Guid.Empty">Sem padrão</option>
+            @foreach (var item in _subcategories) { <option value="@item.ExternalId">@item.DisplayName</option> }
+        </select></div>
+        <button class="button" disabled="@_busy">Salvar descrição</button>
+        <button class="button" type="button" @onclick="Reset">Limpar</button>
+    </form>
+</section>
+<section class="panel">
+    <h2>Descrições cadastradas</h2>
+    <div class="field"><label for="merchant-search">Buscar por nome</label><input id="merchant-search" @bind="_search" @bind:after="ReloadAsync" /></div>
+    <ul class="catalog-list">
+        @foreach (var item in _merchants)
+        {
+            <li><span>@item.Name · @(item.IsActive ? "Ativa" : "Desativada")</span>
+                <span>@_subcategories.FirstOrDefault(x => x.ExternalId == item.DefaultSubcategoryExternalId)?.DisplayName</span>
+                <button class="button" @onclick="() => Edit(item)">Editar</button>
+                @if (item.IsActive) { <button class="button" @onclick="() => Ask(item.ExternalId, false)">Excluir / desativar</button> }
+                <button class="button" @onclick="() => _sourceId = item.ExternalId">Mesclar como origem</button>
+            </li>
+        }
+    </ul>
+    <div class="field"><label for="merge-target">Descrição a manter</label><select id="merge-target" @bind="_targetId">
+        <option value="@Guid.Empty">Selecione</option>
+        @foreach (var item in _allMerchants.Where(x => x.IsActive && x.ExternalId != _sourceId)) { <option value="@item.ExternalId">@item.Name</option> }
+    </select></div>
+    <p>Origem: @_allMerchants.FirstOrDefault(x => x.ExternalId == _sourceId)?.Name</p>
+    <button class="button" disabled="@(_sourceId == Guid.Empty || _targetId == Guid.Empty)" @onclick="() => Ask(_sourceId, true)">Mesclar descrições</button>
+</section>
+
+@code {
+    private IReadOnlyList<MerchantDetails> _merchants = [];
+    private IReadOnlyList<MerchantDetails> _allMerchants = [];
+    private IReadOnlyList<MerchantDetails> _suggestions = [];
+    private IReadOnlyList<SubcategoryDetails> _subcategories = [];
+    private Guid? _externalId;
+    private Guid? _pendingId;
+    private Guid _subcategoryId;
+    private Guid _sourceId;
+    private Guid _targetId;
+    private Guid _pendingTargetId;
+    private string _name = string.Empty;
+    private string _search = string.Empty;
+    private string? _message;
+    private bool _merge;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _subcategories = await Classifications.GetSubcategoriesAsync();
+        await ReloadAsync();
+    }
+    private async Task ReloadAsync()
+    {
+        _merchants = await Catalog.FindAsync(_search, false);
+        _allMerchants = await Catalog.FindAsync(activeOnly: false);
+    }
+    private async Task SuggestAsync(ChangeEventArgs args)
+    {
+        _name = args.Value?.ToString() ?? string.Empty;
+        var search = _name;
+        var suggestions = search.Length > 1 ? await Catalog.FindAsync(search, false) : [];
+        if (_name == search) { _suggestions = suggestions.Where(x => x.ExternalId != _externalId).ToList(); }
+    }
+    private async Task SaveAsync()
+    {
+        if (_busy) { return; }
+        _busy = true;
+        try
+        {
+            var result = await Catalog.SaveAsync(_externalId, _name, _subcategoryId == Guid.Empty ? null : _subcategoryId);
+            _message = result.Error ?? "Descrição salva.";
+            if (result.Succeeded) { Reset(); await ReloadAsync(); }
+        }
+        finally { _busy = false; }
+    }
+    private void Edit(MerchantDetails item) { _externalId = item.ExternalId; _name = item.Name; _subcategoryId = item.DefaultSubcategoryExternalId ?? Guid.Empty; _suggestions = []; }
+    private void Reset() { _externalId = null; _name = string.Empty; _subcategoryId = Guid.Empty; _suggestions = []; }
+    private void Ask(Guid externalId, bool merge) { _pendingId = externalId; _merge = merge; _pendingTargetId = _targetId; }
+    private async Task ConfirmAsync()
+    {
+        if (_pendingId is not { } id || _busy) { return; }
+        _busy = true;
+        try
+        {
+            var result = _merge ? await Catalog.MergeAsync(id, _pendingTargetId) : await Catalog.DeactivateAsync(id);
+            _message = result.Error ?? "Operação concluída.";
+            _pendingId = null;
+            if (result.Succeeded) { Reset(); _sourceId = Guid.Empty; _targetId = Guid.Empty; await ReloadAsync(); }
+        }
+        finally { _busy = false; }
+    }
+}
