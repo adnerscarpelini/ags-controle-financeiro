@@ -31,3 +31,11 @@ Edições/exclusões autorizadas recalculam o saldo derivado.
 Alternativa descartada: registrar uma receita inicial confundiria patrimônio
 prévio e receitas do período. Consequência: consultas de caixa devem consumir
 explicitamente a abertura, enquanto consultas de orçamento usam os lançamentos.
+
+## Movimentos sem orçamento (#46)
+
+Transferências usam AccountMovement em Transactions, separados das receitas e
+despesas. IEntryCatalog soma também esses movimentos no saldo efetivo, com a mesma
+regra de data e referência de abertura. Não há segundo cálculo nem saldo gravado
+em Accounts. Isso permite preservar o patrimônio entre contas e manter os totais
+do orçamento sem duplicidade. Ambos os lados usam a mesma operação financeira.

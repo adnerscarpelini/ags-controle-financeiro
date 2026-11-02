@@ -5,7 +5,7 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Transactions.Application.CreateEntry;
 
-internal sealed partial class EntryCatalog(IEntryStore store, IClassificationCatalog classifications, IMerchantCatalog merchants, IAccountCatalog accounts, ICardLastDigitsCatalog cardDigits, IAccountingMonthCalculator calendar, TimeProvider clock, IFinancialOperation operations, IInvoiceWriteGuard invoices) : IEntryCatalog
+internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementStore cashMovements, IClassificationCatalog classifications, IMerchantCatalog merchants, IAccountCatalog accounts, ICardLastDigitsCatalog cardDigits, IAccountingMonthCalculator calendar, TimeProvider clock, IFinancialOperation operations, IInvoiceWriteGuard invoices) : IEntryCatalog
 {
     public Task<ClassificationResult> CreateAsync(CreateEntryRequest request, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(token => CreateCoreAsync(request, token), x => x.Succeeded, cancellationToken);
@@ -132,6 +132,8 @@ internal sealed partial class EntryCatalog(IEntryStore store, IClassificationCat
         var opening = account.OpeningDate is null || account.OpeningDate <= referenceDate ? account.OpeningBalance : Money.Zero;
         var movements = (await store.GetAsync(cancellationToken)).Where(x => x.AccountExternalId == accountExternalId && x.CardExternalId is null && x.IsEffective
             && x.EffectiveDate <= referenceDate && (account.OpeningDate is null || x.EffectiveDate >= account.OpeningDate)).Sum(x => x.Amount.Amount);
-        return new(accountExternalId, referenceDate, opening, opening + new Money(movements));
+        var nonBudget = (await cashMovements.GetAsync(cancellationToken)).Where(x => x.AccountExternalId == accountExternalId
+            && x.Date <= referenceDate && (account.OpeningDate is null || x.Date >= account.OpeningDate)).Sum(x => x.Amount.Amount);
+        return new(accountExternalId, referenceDate, opening, opening + new Money(movements + nonBudget));
     }
 }
