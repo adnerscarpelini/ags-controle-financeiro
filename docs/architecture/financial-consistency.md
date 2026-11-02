@@ -5,8 +5,10 @@
 **Decisões aprovadas; implementações acompanhadas nas issues referenciadas.**
 O calendário de compras (#8), a abertura de contas (#47), lançamentos avulsos (#11/#12)
 e o ciclo de faturas (#18/#50) estão implementados. Séries mensais e ocorrências (#16)
-também estão entregues; edição/baixa, pagamentos, ajustes, arquivamento reversível e
-visões financeiras ainda têm entregas abertas.
+também estão entregues, com edição por alcance (#17), baixa manual (#56),
+transferências (#46), ajustes de saldo (#48) e consulta de pendências (#57).
+Pagamentos, ajustes de fatura, arquivamento reversível e outras visões financeiras
+ainda têm entregas abertas.
 Esta nota registra as fronteiras entre conceitos; os critérios de aceite permanecem nas issues.
 
 ## Datas, orçamento e caixa

@@ -23,5 +23,6 @@ public interface IEntryCatalog
     Task<OccurrenceGenerationResult> EnsureRecurringMonthAsync(AccountingMonth month, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EntryDetails>> GetAsync(CancellationToken cancellationToken = default);
     Task<EntryQueryResult> QueryAsync(EntryFilter filter, CancellationToken cancellationToken = default);
+    Task<EntryQueryResult> QueryPendingAsync(EntryFilter filter, CancellationToken cancellationToken = default);
     Task<AccountBalance?> GetBalanceAsync(Guid accountExternalId, DateOnly referenceDate, CancellationToken cancellationToken = default);
 }

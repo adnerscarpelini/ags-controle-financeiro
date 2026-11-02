@@ -38,7 +38,7 @@ internal sealed partial class EntryCatalog
 
     private async Task<OccurrenceGenerationResult> GenerateRecurringAsync(EntryFilter filter, CancellationToken cancellationToken)
     {
-        var definitions = (await store.GetRecurringAsync(cancellationToken)).Where(x => x.IsActive).ToList();
+        var definitions = (await store.GetRecurringAsync(cancellationToken)).Where(x => x.IsActive && (!filter.PendingRecurringOnly || x.CardExternalId is null)).ToList();
         if (definitions.Count == 0) { return new(0, 0); }
         var existing = (await store.GetAsync(cancellationToken)).Where(x => x.RecurringEntryExternalId is not null && x.OccurrenceMonth is not null)
             .Select(x => (Series: x.RecurringEntryExternalId!.Value, Month: x.OccurrenceMonth!.Value)).ToHashSet();

@@ -4,6 +4,9 @@ namespace Ags.Finance.Modules.Transactions.Application.CreateEntry;
 
 internal sealed partial class EntryCatalog
 {
+    public Task<EntryQueryResult> QueryPendingAsync(EntryFilter filter, CancellationToken cancellationToken = default)
+        => QueryAsync(filter with { PendingRecurringOnly = true }, cancellationToken);
+
     public Task<EntryQueryResult> QueryAsync(EntryFilter filter, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(token => QueryCoreAsync(filter, token), x => x.Error is null, cancellationToken);
 
