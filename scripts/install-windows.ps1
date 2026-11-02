@@ -82,21 +82,21 @@ Get-NetFirewallRule -DisplayName $firewallRuleName -ErrorAction SilentlyContinue
 New-NetFirewallRule -DisplayName $firewallRuleName -Direction Inbound -Action Allow -Protocol TCP -LocalPort $Port `
     -Profile $FirewallProfile -Description 'Acesso ao AGS Finanças pela rede local.' | Out-Null
 
-# Cria o usuário único se o banco ainda não existe. O comando roda com a pasta de dados do serviço, senão o
-# processo interativo do administrador usaria a pasta local dele. O comando chega no Lote 04; até lá a
-# aplicação recusa o comando e o script apenas avisa.
+# Cria o usuário único. O comando roda com a pasta de dados do serviço, senão o processo interativo do
+# administrador usaria a pasta local dele. Ele recusa (código 3) quando o usuário já existe, o que acontece
+# ao atualizar uma instalação; a senha se troca depois com "user reset-password".
 $exePath = Join-Path $installDir $exeName
-if (-not (Test-Path -LiteralPath (Join-Path $dataDir 'finance.db'))) {
-    Write-Host 'Criando o usuário da aplicação...'
-    $env:DataDirectory = $dataDir
-    try {
-        & $exePath user create
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "O comando 'user create' não foi concluído (código $LASTEXITCODE). Rode-o depois: `$env:DataDirectory='$dataDir'; & '$exePath' user create"
-        }
-    } finally {
-        Remove-Item Env:\DataDirectory -ErrorAction SilentlyContinue
-    }
+$userCreateExitCode = 3
+Write-Host 'Criando o usuário da aplicação...'
+$env:DataDirectory = $dataDir
+try {
+    & $exePath user create
+    $userCreateExitCode = $LASTEXITCODE
+} finally {
+    Remove-Item Env:\DataDirectory -ErrorAction SilentlyContinue
+}
+if ($userCreateExitCode -notin 0, 3) {
+    Write-Warning "O comando 'user create' não foi concluído (código $userCreateExitCode). Rode-o depois: `$env:DataDirectory='$dataDir'; & '$exePath' user create"
 }
 
 Write-Host "Iniciando o serviço $serviceName..."

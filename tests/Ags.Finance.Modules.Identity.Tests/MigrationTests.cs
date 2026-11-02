@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ags.Finance.Modules.Identity.Tests;
@@ -21,7 +22,7 @@ public sealed class MigrationTests : IDisposable
 
         Assert.True(File.Exists(Path.Combine(_directory, "finance.db")));
         Assert.Contains(HistoryTable, await QueryAsync(connectionString, "SELECT name FROM sqlite_master WHERE type = 'table'"));
-        Assert.Single(await QueryAsync(connectionString, $"SELECT MigrationId FROM {HistoryTable}"));
+        Assert.Equal(2, (await QueryAsync(connectionString, $"SELECT MigrationId FROM {HistoryTable}")).Count);
     }
 
     [Fact]
@@ -33,7 +34,7 @@ public sealed class MigrationTests : IDisposable
         await provider.MigrateIdentityModuleAsync();
         await provider.MigrateIdentityModuleAsync();
 
-        Assert.Single(await QueryAsync(connectionString, $"SELECT MigrationId FROM {HistoryTable}"));
+        Assert.Equal(2, (await QueryAsync(connectionString, $"SELECT MigrationId FROM {HistoryTable}")).Count);
     }
 
     /// <summary>A tabela de lock é interna do EF Core e compartilhada por todos os módulos; as demais seguem o prefixo.</summary>
@@ -51,6 +52,30 @@ public sealed class MigrationTests : IDisposable
         Assert.All(tables, table => Assert.True(
             table is HistoryTable or EfLockTable || table.StartsWith(TablePrefix, StringComparison.Ordinal),
             $"Tabela fora do padrão do módulo: {table}"));
+    }
+
+    [Fact]
+    public async Task MigratingCreatesTheUsersTableWithAUniqueExternalId()
+    {
+        var connectionString = ConnectionString();
+        await using var provider = new ServiceCollection().AddIdentityModule(connectionString).BuildServiceProvider();
+
+        await provider.MigrateIdentityModuleAsync();
+
+        Assert.Contains("identity_users", await QueryAsync(connectionString, "SELECT name FROM sqlite_master WHERE type = 'table'"));
+        Assert.Contains("IX_identity_users_ExternalId", await QueryAsync(connectionString, "SELECT name FROM sqlite_master WHERE type = 'index'"));
+    }
+
+    /// <summary>O snapshot e a migration escritos à mão precisam descrever exatamente o modelo atual.</summary>
+    [Fact]
+    public void TheMigrationsMatchTheCurrentModel()
+    {
+        var connectionString = ConnectionString();
+        using var provider = new ServiceCollection().AddIdentityModule(connectionString).BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<Infrastructure.IdentityDbContext>();
+
+        Assert.False(context.Database.HasPendingModelChanges());
     }
 
     public void Dispose()

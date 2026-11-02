@@ -19,3 +19,4 @@ Cada entrega adiciona uma nota em `docs/<module>/`.
 - Web: [Layout e navegação](web/layout-and-navigation.md)
 - Web: [Instalação como serviço](web/service-installation.md)
 - Web: [Certificado HTTPS](web/https-certificate.md)
+- Identity: [Criação e redefinição do usuário](identity/user-creation.md)

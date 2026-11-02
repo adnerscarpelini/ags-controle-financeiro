@@ -90,14 +90,14 @@ PrivateTmp=true
 WantedBy=multi-user.target
 UNIT
 
-# Cria o usuário único se o banco ainda não existe. O comando roda como o usuário do serviço, com a mesma
-# pasta de dados, para que o banco fique com o dono certo. O comando chega no Lote 04; até lá a aplicação
-# recusa o comando e o script apenas avisa.
-if [[ ! -f "$DATA_DIR/finance.db" ]]; then
-    echo "Criando o usuário da aplicação..."
-    if ! runuser -u "$SERVICE" -- env DataDirectory="$DATA_DIR" "$INSTALL_DIR/$EXE" user create; then
-        echo "Aviso: o comando 'user create' não foi concluído. Rode-o depois: sudo runuser -u $SERVICE -- env DataDirectory=$DATA_DIR $INSTALL_DIR/$EXE user create" >&2
-    fi
+# Cria o usuário único. O comando roda como o usuário do serviço, com a mesma pasta de dados, para que o banco
+# fique com o dono certo. Ele recusa (código 3) quando o usuário já existe, o que acontece ao atualizar uma
+# instalação; a senha se troca depois com "user reset-password".
+echo "Criando o usuário da aplicação..."
+user_create_status=0
+runuser -u "$SERVICE" -- env DataDirectory="$DATA_DIR" "$INSTALL_DIR/$EXE" user create || user_create_status=$?
+if [[ $user_create_status -ne 0 && $user_create_status -ne 3 ]]; then
+    echo "Aviso: o comando 'user create' não foi concluído (código $user_create_status). Rode-o depois: sudo runuser -u $SERVICE -- env DataDirectory=$DATA_DIR $INSTALL_DIR/$EXE user create" >&2
 fi
 
 if command -v ufw >/dev/null 2>&1 && ufw status | grep -q '^Status: active'; then

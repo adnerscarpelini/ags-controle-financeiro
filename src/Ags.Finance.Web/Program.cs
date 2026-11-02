@@ -7,6 +7,7 @@ using Ags.Finance.Modules.Invoices;
 using Ags.Finance.Modules.Reimbursements;
 using Ags.Finance.Modules.Reports;
 using Ags.Finance.Modules.Transactions;
+using Ags.Finance.Web.Commands;
 using Ags.Finance.Web.Components;
 using Ags.Finance.Web.Hosting;
 using Ags.Finance.Web.Persistence;
@@ -17,12 +18,14 @@ var culture = new CultureInfo("pt-BR");
 CultureInfo.DefaultThreadCurrentCulture = culture;
 CultureInfo.DefaultThreadCurrentUICulture = culture;
 
-// Os comandos de linha de comando (user create, user reset-password) chegam no Lote 04. Enquanto não existem,
-// recusa em vez de subir o servidor web em primeiro plano, o que travaria os scripts de instalação.
-if (args is ["user", ..])
+// Comandos de linha de comando (user create, user reset-password): rodam no computador do serviço e saem sem
+// subir o servidor web, o que também evita travar os scripts de instalação.
+if (args is ["user", .. var commandArguments])
 {
-    await Console.Error.WriteLineAsync("O comando 'user' ainda não está disponível nesta versão.");
-    return 2;
+    return await UserCommandRunner.RunAsync(
+        commandArguments,
+        UserCommandRunner.BuildConfiguration(commandArguments),
+        new ConsoleTerminal());
 }
 
 var builder = WebApplication.CreateBuilder(args);

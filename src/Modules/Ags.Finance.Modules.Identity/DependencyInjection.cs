@@ -1,3 +1,8 @@
+using Ags.Finance.Modules.Identity.Application;
+using Ags.Finance.Modules.Identity.Application.CreateUser;
+using Ags.Finance.Modules.Identity.Application.ResetPassword;
+using Ags.Finance.Modules.Identity.Application.UserExists;
+using Ags.Finance.Modules.Identity.Contracts;
 using Ags.Finance.Modules.Identity.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -18,6 +23,12 @@ public static class DependencyInjection
             .UseSqlite(connectionString, sqlite => sqlite.MigrationsHistoryTable(IdentityDbContext.MigrationsHistoryTable))
             .ConfigureWarnings(warnings => warnings.Ignore(CoreEventId.NoEntityTypeConfigurationsWarning))
             .AddInterceptors(provider.GetRequiredService<AuditTimestampsInterceptor>()));
+
+        services.AddSingleton<IPasswordHasher, IdentityPasswordHasher>();
+        services.AddScoped<IUserStore, UserStore>();
+        services.AddScoped<ICreateUser, CreateUserHandler>();
+        services.AddScoped<IResetPassword, ResetPasswordHandler>();
+        services.AddScoped<IUserExists, UserExistsHandler>();
 
         return services;
     }
