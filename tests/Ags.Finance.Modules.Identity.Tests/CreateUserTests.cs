@@ -19,9 +19,9 @@ public sealed class CreateUserTests : IDisposable
         var status = await CreateAsync("maria", "senha-segura-123");
 
         Assert.Equal(CreateUserStatus.Created, status);
-        Assert.Equal(["maria"], await _host.QueryAsync("SELECT UserName FROM identity_users"));
+        Assert.Equal(["maria"], await _host.QueryAsync("SELECT \"UserName\" FROM identity.users"));
 
-        var storedHash = Assert.Single(await _host.QueryAsync("SELECT PasswordHash FROM identity_users"));
+        var storedHash = Assert.Single(await _host.QueryAsync("SELECT \"PasswordHash\" FROM identity.users"));
         Assert.DoesNotContain("senha-segura-123", storedHash, StringComparison.Ordinal);
         var verification = _host.RunAsync(provider => Task.FromResult(
             provider.GetRequiredService<IPasswordHasher>().Verify(storedHash, "senha-segura-123")));
@@ -32,7 +32,7 @@ public sealed class CreateUserTests : IDisposable
     public async Task TheStoredHashRejectsAnotherPassword()
     {
         await CreateAsync("maria", "senha-segura-123");
-        var storedHash = Assert.Single(await _host.QueryAsync("SELECT PasswordHash FROM identity_users"));
+        var storedHash = Assert.Single(await _host.QueryAsync("SELECT \"PasswordHash\" FROM identity.users"));
 
         var verification = await _host.RunAsync(provider => Task.FromResult(
             provider.GetRequiredService<IPasswordHasher>().Verify(storedHash, "outra-senha-123")));
@@ -48,7 +48,7 @@ public sealed class CreateUserTests : IDisposable
         var status = await CreateAsync("joao", "outra-senha-123");
 
         Assert.Equal(CreateUserStatus.UserAlreadyExists, status);
-        Assert.Equal(["maria"], await _host.QueryAsync("SELECT UserName FROM identity_users"));
+        Assert.Equal(["maria"], await _host.QueryAsync("SELECT \"UserName\" FROM identity.users"));
     }
 
     [Theory]
@@ -60,7 +60,7 @@ public sealed class CreateUserTests : IDisposable
         var status = await CreateAsync("maria", password);
 
         Assert.Equal(CreateUserStatus.PasswordTooShort, status);
-        Assert.Empty(await _host.QueryAsync("SELECT UserName FROM identity_users"));
+        Assert.Empty(await _host.QueryAsync("SELECT \"UserName\" FROM identity.users"));
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public sealed class CreateUserTests : IDisposable
         var status = await CreateAsync(userName, "senha-segura-123");
 
         Assert.Equal(CreateUserStatus.InvalidUserName, status);
-        Assert.Empty(await _host.QueryAsync("SELECT UserName FROM identity_users"));
+        Assert.Empty(await _host.QueryAsync("SELECT \"UserName\" FROM identity.users"));
     }
 
     [Fact]
@@ -96,9 +96,9 @@ public sealed class CreateUserTests : IDisposable
     {
         await CreateAsync("maria", "senha-segura-123");
 
-        var createdAt = Assert.Single(await _host.QueryAsync("SELECT CreatedAt FROM identity_users"));
+        var createdAt = Assert.Single(await _host.QueryAsync("SELECT to_char(\"CreatedAt\" AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM identity.users"));
         Assert.Equal(_host.Clock.Now, DateTimeOffset.Parse(createdAt, System.Globalization.CultureInfo.InvariantCulture));
-        Assert.True(Guid.TryParse(Assert.Single(await _host.QueryAsync("SELECT ExternalId FROM identity_users")), out _));
+        Assert.True(Guid.TryParse(Assert.Single(await _host.QueryAsync("SELECT \"ExternalId\" FROM identity.users")), out _));
     }
 
     private Task<CreateUserStatus> CreateAsync(string? userName, string? password)

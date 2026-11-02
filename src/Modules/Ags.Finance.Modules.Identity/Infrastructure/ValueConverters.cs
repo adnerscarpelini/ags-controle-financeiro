@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Ags.Finance.Modules.Identity.Infrastructure;
 
-/// <summary>Grava <see cref="Money"/> como centavos em <c>INTEGER</c>.</summary>
+/// <summary>Grava <see cref="Money"/> como centavos em <c>BIGINT</c>.</summary>
 internal sealed class MoneyCentsConverter : ValueConverter<Money, long>
 {
     public MoneyCentsConverter()

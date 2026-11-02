@@ -7,9 +7,8 @@
 Aplicação web pessoal em .NET 10, ASP.NET Core e Blazor, acessada pelo computador e celular na rede local.
 
 O destino aprovado é **Docker Compose + PostgreSQL**, no Linux ou Windows via WSL 2.
-A migração ainda será implementada na ordem [#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60) →
-[#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59).
-O código atual ainda executa nativamente com SQLite.
+A persistência já usa PostgreSQL ([#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60));
+o Compose da aplicação ([#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59)) vem a seguir.
 
 O conceito central é o **mês contábil**, quando o valor pesa no orçamento. Cadastros de bancos,
 contas, cartões/finais, calendário de compras, HTTPS e login estão implementados.
@@ -40,17 +39,22 @@ Monólito modular com Clean Architecture em cada módulo. As responsabilidades a
 
 ## Executar o código atual
 
-Até #60/#59, este caminho usa SQLite e execução nativa. Ainda não há Compose/PostgreSQL
-entregue neste estado do repositório.
+Até a #59, a aplicação roda com `dotnet run` contra um PostgreSQL que você sobe à parte. Os testes
+relacionais também exigem um PostgreSQL real
+([detalhes](docs/architecture/persistence-postgresql.md#testes-relacionais)).
 
 ```bash
+docker compose -f tests/postgres/compose.yaml up -d --wait
+export AGS_TEST_POSTGRES="Host=127.0.0.1;Port=54329;Username=postgres;Password=ags_test_only"
 dotnet build Ags.Finance.slnx
 dotnet test Ags.Finance.slnx
 dotnet format Ags.Finance.slnx --verify-no-changes
+export ConnectionStrings__Finance="Host=127.0.0.1;Port=54329;Database=ags_finance_dev;Username=postgres;Password=ags_test_only"
 dotnet run --project src/Ags.Finance.Web
 ```
 
-Requer o SDK .NET 10. A aplicação atende em `https://localhost:5280`; a porta é configurável.
+Esse PostgreSQL de testes é descartável e vale só para desenvolvimento (crie o banco `ags_finance_dev` antes do
+`dotnet run`). Requer o SDK .NET 10 e Docker Engine (no Windows, dentro do WSL 2). A aplicação atende em `https://localhost:5280`; a porta é configurável.
 HTTP redireciona para HTTPS e o certificado local precisa ser confiado no dispositivo.
 Crie o usuário por [comando](docs/identity/user-creation.md). A
 [hospedagem](docs/architecture/web-hosting.md) distingue execução atual e destino aprovado;
@@ -59,9 +63,8 @@ os scripts nativos são legado a substituir na #59.
 ## Próxima entrega
 
 A [#59, fixada como próxima prioridade](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59),
-é concluída após #60: PostgreSQL único, volumes persistentes, backup sob demanda e teste real
-de recuperação em instalação vazia. Os dados de desenvolvimento deste projeto podem ser
-descartados nessa transição; não haverá migração SQLite nem suporte duplo.
+é concluída após #60: volumes persistentes, backup sob demanda e teste real
+de recuperação em instalação vazia. Não haverá migração SQLite nem suporte duplo.
 
 Decisões: [persistência PostgreSQL](docs/architecture/persistence-postgresql.md) e
 [consistência financeira](docs/architecture/financial-consistency.md).

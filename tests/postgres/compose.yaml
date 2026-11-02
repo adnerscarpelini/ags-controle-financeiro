@@ -1,0 +1,22 @@
+# PostgreSQL descartável para os testes relacionais. A senha abaixo é só de teste e o servidor escuta apenas em
+# 127.0.0.1; nunca use este arquivo para uma instalação real.
+#
+#   docker compose -f tests/postgres/compose.yaml up -d --wait
+#   export AGS_TEST_POSTGRES="Host=127.0.0.1;Port=54329;Username=postgres;Password=ags_test_only"
+#   dotnet test Ags.Finance.slnx
+name: ags-finance-tests
+
+services:
+  postgres:
+    image: postgres:18.6-alpine
+    environment:
+      POSTGRES_PASSWORD: ags_test_only
+    ports:
+      - "127.0.0.1:54329:5432"
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

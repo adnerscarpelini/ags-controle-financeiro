@@ -1,10 +1,10 @@
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.SharedKernel;
+using Ags.Finance.Tests.Support;
 using Ags.Finance.Web.Components;
 using Ags.Finance.Web.Components.Pages;
 using Bunit;
-using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ags.Finance.Web.Tests;
@@ -12,28 +12,27 @@ namespace Ags.Finance.Web.Tests;
 public sealed class AccountsAndCardsTests : IAsyncLifetime, IDisposable
 {
     private readonly BunitContext _context = new();
-    private readonly string _directory = Directory.CreateTempSubdirectory("ags-catalog-ui-").FullName;
+    private PostgresTestDatabase? _database;
 
     public async Task InitializeAsync()
     {
-        _context.Services.AddAccountsModule($"Data Source={Path.Combine(_directory, "finance.db")}");
+        _database = await PostgresTestDatabase.CreateAsync();
+        _context.Services.AddAccountsModule(_database.ConnectionString);
         await _context.Services.MigrateAccountsModuleAsync();
     }
 
-    public Task DisposeAsync()
+    public async Task DisposeAsync()
     {
-        Dispose();
-        return Task.CompletedTask;
+        _context.Dispose();
+        if (_database is not null)
+        {
+            await _database.DisposeAsync();
+        }
     }
 
     public void Dispose()
     {
         _context.Dispose();
-        SqliteConnection.ClearAllPools();
-        if (Directory.Exists(_directory))
-        {
-            Directory.Delete(_directory, recursive: true);
-        }
     }
 
     [Fact]
@@ -77,10 +76,14 @@ public sealed class AccountsAndCardsTests : IAsyncLifetime, IDisposable
             .Add(component => component.CardExternalId, card.ExternalId!.Value)
             .Add(component => component.CardName, "Cartão Exemplo"));
 
-        panel.Find("#card-digits").Change("1234");
-        panel.Find("#digits-usage").Change(CardUsage.Subscription.ToString());
-        panel.Find("#digits-label").Change("Serviços");
-        panel.Find("form").Submit();
+        // A carga inicial da lista termina depois da primeira renderização e a refaz; repete até a árvore estabilizar.
+        panel.WaitForAssertion(() =>
+        {
+            panel.Find("#card-digits").Change("1234");
+            panel.Find("#digits-usage").Change(CardUsage.Subscription.ToString());
+            panel.Find("#digits-label").Change("Serviços");
+            panel.Find("form").Submit();
+        });
         panel.WaitForAssertion(() => Assert.Contains("1234 · Assinatura · Serviços", panel.Find(".catalog-list").TextContent, StringComparison.Ordinal));
 
         panel.FindAll(".catalog-list button")[1].Click();

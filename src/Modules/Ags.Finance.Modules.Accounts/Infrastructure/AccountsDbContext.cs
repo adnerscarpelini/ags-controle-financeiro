@@ -4,8 +4,8 @@ namespace Ags.Finance.Modules.Accounts.Infrastructure;
 
 internal sealed class AccountsDbContext : DbContext
 {
-    public const string TablePrefix = "accounts_";
-    public const string MigrationsHistoryTable = "__ef_migrations_accounts";
+    public const string Schema = "accounts";
+    public const string MigrationsHistoryTable = "__ef_migrations";
 
     public AccountsDbContext(DbContextOptions<AccountsDbContext> options)
         : base(options)
@@ -19,8 +19,9 @@ internal sealed class AccountsDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasDefaultSchema(Schema);
         PersistenceConventions.IgnoreEntityBase(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AccountsDbContext).Assembly);
-        PersistenceConventions.ApplyEntityRules(modelBuilder, TablePrefix);
+        PersistenceConventions.ApplyEntityRules(modelBuilder);
     }
 }

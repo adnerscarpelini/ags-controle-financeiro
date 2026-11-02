@@ -21,7 +21,7 @@ public sealed class ResetPasswordTests : IDisposable
         var status = await ResetAsync("nova-senha-456");
 
         Assert.Equal(ResetPasswordStatus.Reset, status);
-        var storedHash = Assert.Single(await _host.QueryAsync("SELECT PasswordHash FROM identity_users"));
+        var storedHash = Assert.Single(await _host.QueryAsync("SELECT \"PasswordHash\" FROM identity.users"));
         Assert.Equal(PasswordVerification.Success, await VerifyAsync(storedHash, "nova-senha-456"));
         Assert.Equal(PasswordVerification.Failed, await VerifyAsync(storedHash, "senha-segura-123"));
     }
@@ -30,11 +30,11 @@ public sealed class ResetPasswordTests : IDisposable
     public async Task OpenSessionsEndBecauseTheSecurityStampChanges()
     {
         await CreateUserAsync();
-        var stampBefore = Assert.Single(await _host.QueryAsync("SELECT SecurityStamp FROM identity_users"));
+        var stampBefore = Assert.Single(await _host.QueryAsync("SELECT \"SecurityStamp\" FROM identity.users"));
 
         await ResetAsync("nova-senha-456");
 
-        var stampAfter = Assert.Single(await _host.QueryAsync("SELECT SecurityStamp FROM identity_users"));
+        var stampAfter = Assert.Single(await _host.QueryAsync("SELECT \"SecurityStamp\" FROM identity.users"));
         Assert.NotEqual(stampBefore, stampAfter);
     }
 
@@ -42,12 +42,12 @@ public sealed class ResetPasswordTests : IDisposable
     public async Task RefusesAShortPasswordAndKeepsTheCurrentOne()
     {
         await CreateUserAsync();
-        var hashBefore = Assert.Single(await _host.QueryAsync("SELECT PasswordHash FROM identity_users"));
+        var hashBefore = Assert.Single(await _host.QueryAsync("SELECT \"PasswordHash\" FROM identity.users"));
 
         var status = await ResetAsync("curta");
 
         Assert.Equal(ResetPasswordStatus.PasswordTooShort, status);
-        Assert.Equal([hashBefore], await _host.QueryAsync("SELECT PasswordHash FROM identity_users"));
+        Assert.Equal([hashBefore], await _host.QueryAsync("SELECT \"PasswordHash\" FROM identity.users"));
     }
 
     [Fact]

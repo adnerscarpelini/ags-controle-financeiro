@@ -5,8 +5,8 @@ namespace Ags.Finance.Modules.Identity.Infrastructure;
 
 internal sealed class IdentityDbContext : DbContext
 {
-    public const string TablePrefix = "identity_";
-    public const string MigrationsHistoryTable = "__ef_migrations_identity";
+    public const string Schema = "identity";
+    public const string MigrationsHistoryTable = "__ef_migrations";
 
     public IdentityDbContext(DbContextOptions<IdentityDbContext> options)
         : base(options)
@@ -22,8 +22,9 @@ internal sealed class IdentityDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasDefaultSchema(Schema);
         PersistenceConventions.IgnoreEntityBase(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(IdentityDbContext).Assembly);
-        PersistenceConventions.ApplyEntityRules(modelBuilder, TablePrefix);
+        PersistenceConventions.ApplyEntityRules(modelBuilder);
     }
 }

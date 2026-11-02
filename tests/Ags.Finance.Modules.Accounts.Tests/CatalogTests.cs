@@ -1,7 +1,7 @@
 using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Accounts.Infrastructure;
 using Ags.Finance.SharedKernel;
-using Microsoft.Data.Sqlite;
+using Ags.Finance.Tests.Support;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,14 +9,15 @@ namespace Ags.Finance.Modules.Accounts.Tests;
 
 public sealed partial class CatalogTests : IAsyncLifetime
 {
-    private readonly string _directory = Directory.CreateTempSubdirectory("ags-accounts-tests-").FullName;
+    private PostgresTestDatabase? _database;
     private ServiceProvider? _provider;
     private IAccountCatalog Catalog => Provider.GetRequiredService<IAccountCatalog>();
     private ServiceProvider Provider => _provider ?? throw new InvalidOperationException("Fixture not initialized.");
 
     public async Task InitializeAsync()
     {
-        _provider = new ServiceCollection().AddAccountsModule($"Data Source={Path.Combine(_directory, "finance.db")}").BuildServiceProvider();
+        _database = await PostgresTestDatabase.CreateAsync();
+        _provider = new ServiceCollection().AddAccountsModule(_database.ConnectionString).BuildServiceProvider();
         await Provider.MigrateAccountsModuleAsync();
     }
     public async Task DisposeAsync()
@@ -25,8 +26,10 @@ public sealed partial class CatalogTests : IAsyncLifetime
         {
             await _provider.DisposeAsync();
         }
-        SqliteConnection.ClearAllPools();
-        Directory.Delete(_directory, recursive: true);
+        if (_database is not null)
+        {
+            await _database.DisposeAsync();
+        }
     }
 
     [Fact]
@@ -191,13 +194,13 @@ public sealed partial class CatalogTests : IAsyncLifetime
         await Catalog.SaveCreditCardAsync(Card(await CreateAccountAsync()));
         await context.Database.OpenConnectionAsync();
         await using var command = context.Database.GetDbConnection().CreateCommand();
-        command.CommandText = "SELECT CreditLimit, typeof(CreditLimit), CreatedAt, UpdatedAt FROM accounts_credit_cards";
+        command.CommandText = "SELECT \"CreditLimit\", pg_typeof(\"CreditLimit\")::text, \"CreatedAt\", \"UpdatedAt\" FROM accounts.credit_cards";
         await using var reader = await command.ExecuteReaderAsync();
         Assert.True(await reader.ReadAsync());
         Assert.Equal(1000000, reader.GetInt64(0));
-        Assert.Equal("integer", reader.GetString(1));
-        Assert.NotEmpty(reader.GetString(2));
-        Assert.NotEmpty(reader.GetString(3));
+        Assert.Equal("bigint", reader.GetString(1));
+        Assert.Equal(TimeSpan.Zero, reader.GetFieldValue<DateTimeOffset>(2).Offset);
+        Assert.Equal(TimeSpan.Zero, reader.GetFieldValue<DateTimeOffset>(3).Offset);
     }
 
     private async Task<Guid> CreateAccountAsync(AccountKind kind = AccountKind.Checking)

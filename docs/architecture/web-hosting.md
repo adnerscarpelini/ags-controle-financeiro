@@ -13,9 +13,9 @@ A PWA ainda está pendente na [#38](https://github.com/adnerscarpelini/ags-contr
 **Destino aprovado, ainda não implementado:** Docker Compose com aplicação e PostgreSQL,
 na ordem [#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60) →
 [#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59).
-A [instalação nativa](../web/service-installation.md) e o
-[SQLite](persistence-sqlite.md) documentam o código atual, que será substituído.
-Não usar essas entregas históricas como decisão para perpetuar duas distribuições/providers.
+A [instalação nativa](../web/service-installation.md) documenta o código atual e será substituída.
+O banco já é o [PostgreSQL](persistence-postgresql.md) (#60). Não usar a entrega histórica como decisão
+para perpetuar duas distribuições.
 
 ## Decisão aprovada
 

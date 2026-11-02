@@ -1,7 +1,7 @@
 using Ags.Finance.Modules.Accounts.Application;
 using Ags.Finance.Modules.Accounts.Domain;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Ags.Finance.Modules.Accounts.Infrastructure;
 
@@ -37,9 +37,9 @@ internal sealed class AccountsStore(IDbContextFactory<AccountsDbContext> factory
             await context.SaveChangesAsync(cancellationToken);
             return true;
         }
-        catch (DbUpdateException exception) when (exception.InnerException is SqliteException
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
         {
-            SqliteExtendedErrorCode: 2067
+            SqlState: PostgresErrorCodes.UniqueViolation
         })
         {
             return false;

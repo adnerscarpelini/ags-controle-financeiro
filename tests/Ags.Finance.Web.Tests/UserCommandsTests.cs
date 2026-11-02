@@ -1,15 +1,30 @@
+using Ags.Finance.Tests.Support;
 using Ags.Finance.Web.Commands;
-using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 
 namespace Ags.Finance.Web.Tests;
 
 /// <summary>Os comandos <c>user create</c> e <c>user reset-password</c> de ponta a ponta, sobre um banco temporário.</summary>
-public sealed class UserCommandsTests : IDisposable
+public sealed class UserCommandsTests : IAsyncLifetime
 {
     private const string Password = "senha-segura-123";
 
-    private readonly string _dataDirectory = Path.Combine(Path.GetTempPath(), "ags-finance-tests-" + Guid.NewGuid().ToString("N"));
+    private PostgresTestDatabase? _database;
+
+    private PostgresTestDatabase Database => _database ?? throw new InvalidOperationException("Fixture not initialized.");
+
+    public async Task InitializeAsync()
+    {
+        _database = await PostgresTestDatabase.CreateAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        if (_database is not null)
+        {
+            await _database.DisposeAsync();
+        }
+    }
 
     [Fact]
     public async Task CreateStoresTheUserWithOnlyTheHashOfThePassword()
@@ -19,8 +34,8 @@ public sealed class UserCommandsTests : IDisposable
         var exitCode = await RunAsync(["create"], terminal);
 
         Assert.Equal(UserCommands.Success, exitCode);
-        Assert.Equal("maria", await ScalarAsync("SELECT UserName FROM identity_users"));
-        var hash = await ScalarAsync("SELECT PasswordHash FROM identity_users");
+        Assert.Equal("maria", await ScalarAsync("SELECT \"UserName\" FROM identity.users"));
+        var hash = await ScalarAsync("SELECT \"PasswordHash\" FROM identity.users");
         Assert.NotEqual(Password, hash);
         Assert.DoesNotContain(Password, hash, StringComparison.Ordinal);
     }
@@ -57,7 +72,7 @@ public sealed class UserCommandsTests : IDisposable
 
         Assert.Equal(UserCommands.UserAlreadyExists, exitCode);
         Assert.Contains(terminal.Errors, message => message.Contains("user reset-password", StringComparison.Ordinal));
-        Assert.Equal("1", await ScalarAsync("SELECT COUNT(*) FROM identity_users"));
+        Assert.Equal("1", await ScalarAsync("SELECT COUNT(*) FROM identity.users"));
         Assert.Empty(terminal.LinePrompts);
     }
 
@@ -91,7 +106,7 @@ public sealed class UserCommandsTests : IDisposable
         var exitCode = await RunAsync(["create"], terminal);
 
         Assert.Equal(UserCommands.Success, exitCode);
-        Assert.Equal("maria", await ScalarAsync("SELECT UserName FROM identity_users"));
+        Assert.Equal("maria", await ScalarAsync("SELECT \"UserName\" FROM identity.users"));
     }
 
     [Fact]
@@ -102,22 +117,22 @@ public sealed class UserCommandsTests : IDisposable
         var exitCode = await RunAsync(["create"], terminal);
 
         Assert.Equal(UserCommands.Failed, exitCode);
-        Assert.Equal("0", await ScalarAsync("SELECT COUNT(*) FROM identity_users"));
+        Assert.Equal("0", await ScalarAsync("SELECT COUNT(*) FROM identity.users"));
     }
 
     [Fact]
     public async Task ResetPasswordChangesTheHashAndRenewsTheSecurityStamp()
     {
         await RunAsync(["create"], new FakeTerminal("maria", Password, Password));
-        var hashBefore = await ScalarAsync("SELECT PasswordHash FROM identity_users");
-        var stampBefore = await ScalarAsync("SELECT SecurityStamp FROM identity_users");
+        var hashBefore = await ScalarAsync("SELECT \"PasswordHash\" FROM identity.users");
+        var stampBefore = await ScalarAsync("SELECT \"SecurityStamp\" FROM identity.users");
         var terminal = new FakeTerminal("nova-senha-456", "nova-senha-456");
 
         var exitCode = await RunAsync(["reset-password"], terminal);
 
         Assert.Equal(UserCommands.Success, exitCode);
-        Assert.NotEqual(hashBefore, await ScalarAsync("SELECT PasswordHash FROM identity_users"));
-        Assert.NotEqual(stampBefore, await ScalarAsync("SELECT SecurityStamp FROM identity_users"));
+        Assert.NotEqual(hashBefore, await ScalarAsync("SELECT \"PasswordHash\" FROM identity.users"));
+        Assert.NotEqual(stampBefore, await ScalarAsync("SELECT \"SecurityStamp\" FROM identity.users"));
         Assert.DoesNotContain(terminal.Output.Concat(terminal.Errors), message => message.Contains("nova-senha-456", StringComparison.Ordinal));
     }
 
@@ -156,33 +171,20 @@ public sealed class UserCommandsTests : IDisposable
 
         Assert.Equal(UserCommands.Usage, exitCode);
         Assert.Contains(terminal.Errors, message => message.StartsWith("Uso:", StringComparison.Ordinal));
-        Assert.False(Directory.Exists(_dataDirectory));
-    }
-
-    public void Dispose()
-    {
-        SqliteConnection.ClearAllPools();
-        if (Directory.Exists(_dataDirectory))
-        {
-            Directory.Delete(_dataDirectory, recursive: true);
-        }
+        Assert.Empty(await Database.QueryAsync("SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'identity'"));
     }
 
     private Task<int> RunAsync(string[] arguments, FakeTerminal terminal)
     {
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["DataDirectory"] = _dataDirectory })
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:Finance"] = Database.ConnectionString })
             .Build();
         return UserCommandRunner.RunAsync(arguments, configuration, terminal);
     }
 
-    private async Task<string> ScalarAsync(string sql)
+    private Task<string> ScalarAsync(string sql)
     {
-        await using var connection = new SqliteConnection($"Data Source={Path.Combine(_dataDirectory, "finance.db")}");
-        await connection.OpenAsync();
-        await using var command = connection.CreateCommand();
-        command.CommandText = sql;
-        return Convert.ToString(await command.ExecuteScalarAsync(), System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+        return Database.ScalarAsync(sql);
     }
 
     /// <summary>Terminal com as respostas combinadas de antemão, na ordem em que o comando pergunta.</summary>

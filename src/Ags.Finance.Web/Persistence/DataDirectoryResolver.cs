@@ -1,6 +1,6 @@
 namespace Ags.Finance.Web.Persistence;
 
-/// <summary>Decide a pasta de dados do serviço, onde ficam o banco e, depois, os backups locais.</summary>
+/// <summary>Decide a pasta de arquivos da aplicação (certificados, chaves e arquivos associados). O banco é o PostgreSQL.</summary>
 internal static class DataDirectoryResolver
 {
     private const string AppFolderWindows = "AgsFinance";

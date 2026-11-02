@@ -4,8 +4,7 @@ Origem: [issue #6](https://github.com/adnerscarpelini/ags-controle-financeiro/is
 
 **Estado:** cadastro e desativação estão implementados. Arquivar/desarquivar (#53),
 logo de banco (#54) e carteira visual (#55) são evoluções aprovadas, ainda pendentes.
-As tabelas e os testes SQLite mencionados abaixo descrevem o código atual; a #60
-substituirá o provider por [PostgreSQL](../architecture/persistence-postgresql.md).
+A persistência usa [PostgreSQL](../architecture/persistence-postgresql.md) (#60): tabelas no schema `accounts`.
 
 Em **Cadastros > Contas e cartões**, cadastrar bancos pelo nome; cadastrar e editar contas
 Corrente, Investimento (incluindo caixinhas e CDB, sem rendimento) ou Poupança.
@@ -32,13 +31,13 @@ A paleta oferece verde, violeta, laranja, rosa e cinza, usando os tokens do tema
   Uma conta vinculada a cartão não pode mudar para Investimento/Poupança.
 - A persistência usa contextos curtos por operação via DbContextFactory, evitando
   manter um contexto rastreado durante todo o circuito Blazor. O índice único no
-  SQLite também protege a duplicidade de nome por banco em gravações concorrentes.
-- Tabelas accounts_banks, accounts_accounts e accounts_credit_cards seguem as
-  convenções do módulo; limite em centavos, ExternalId v7 e auditoria UTC.
+  PostgreSQL também protege a duplicidade de nome por banco em gravações concorrentes.
+- Tabelas accounts.banks, accounts.accounts e accounts.credit_cards seguem as
+  convenções do módulo (schema próprio); limite em centavos, ExternalId v7 e auditoria UTC.
   Não foram adicionados pacotes nem dependências entre módulos.
 
 ## Validação
 
-Testes de integração com SQLite cobrem cadastros, validações, limites, duplicidade,
+Testes de integração com PostgreSQL real cobrem cadastros, validações, limites, duplicidade,
 edição, preservação de inativos, migrations e armazenamento monetário.
 Testes de componentes percorrem os formulários e a confirmação de desativação.

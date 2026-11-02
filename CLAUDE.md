@@ -7,8 +7,8 @@ Instruções para agentes de IA que trabalham neste repositório. Leia este arqu
 `ags-controle-financeiro` é uma aplicação web pessoal de controle financeiro, acessada pelo navegador do computador e do celular na **rede local**. Tem um único usuário e funciona sem internet depois de obtidas as imagens de distribuição.
 
 - **Destino aprovado:** .NET 10, C#, ASP.NET Core com Blazor Web App (Interactive Server), EF Core com **PostgreSQL como único banco**, xUnit e **Docker Compose**. Mesma imagem Linux no Docker Engine nativo ou no Windows via WSL 2; Docker Desktop não é obrigatório.
-- **Estado do código:** serviço nativo e SQLite ainda estão implementados. A próxima entrega é **#60 → #59**, que substitui essa infraestrutura. Não afirmar que Docker/PostgreSQL já funcionam antes de implementar e validar essas issues.
-- **Dados de desenvolvimento:** o usuário autorizou descartar os dados deste projeto, recriar migrations e remover infraestrutura obsoleta na #60/#59. Não desenvolver migração SQLite → PostgreSQL nem suporte duplo. Conferir alvos de limpeza; a autorização não alcança outros projetos nem apaga o histórico Git.
+- **Estado do código:** a persistência já é **PostgreSQL** (#60). O serviço nativo ainda existe até a #59 entregar o Docker Compose. A entrega em andamento é o lote 06 (**#60 → #59 → #31**). Não afirmar que o Docker funciona antes de implementar e validar a #59.
+- **Dados de desenvolvimento:** o usuário autorizou descartar os dados deste projeto, recriar migrations e remover infraestrutura obsoleta na #60/#59 (o SQLite já foi removido). Não desenvolver migração SQLite → PostgreSQL nem suporte duplo. Conferir alvos de limpeza; a autorização não alcança outros projetos nem apaga o histórico Git.
 - **Troca de arquivos:** somente importação/exportação de cadastros e lançamentos por **CSV no layout oficial e versionado do sistema** (#28, #29, #61, #62). PDF, OFX, XLS/XLSX, OCR, layouts bancários e migração da antiga planilha não fazem parte do produto. CSV não substitui backup.
 - **Repositório público:** nunca versione dados financeiros reais, nomes de estabelecimentos reais do usuário, extratos, faturas, planilhas ou o arquivo do banco. Testes e exemplos usam somente dados fictícios.
 - **Idioma:** converse, escreva issues, PRs, commits e documentação em **português**. Escreva **todo o código em inglês** (tipos, propriedades, métodos, variáveis, tabelas, colunas, testes), seguindo as convenções oficiais da Microsoft para C#/.NET. Textos exibidos na interface ficam em português.
@@ -47,7 +47,7 @@ Módulos: `Identity`, `Accounts`, `Transactions`, `Invoices`, `Reimbursements`, 
 
 ### Persistência e recuperação (decisão PostgreSQL)
 
-- Um banco PostgreSQL, com **schema, DbContext e histórico de migrations próprios por módulo**, conforme a #60 e [a decisão de persistência](docs/architecture/persistence-postgresql.md). As convenções SQLite atuais são legado em transição.
+- Um banco PostgreSQL, com **schema, DbContext e histórico de migrations próprios por módulo** (`identity`, `accounts`, `transactions`, `invoices`, `reimbursements`), conforme [a decisão de persistência](docs/architecture/persistence-postgresql.md). A conexão vem de `ConnectionStrings__Finance` e nunca é versionada nem registrada em log.
 - Sem FK, JOIN ou SQL que cruze tabelas de módulos diferentes. Uma referência a outro módulo guarda o `ExternalId` dele.
 - Toda entidade com tabela própria tem `Id` (`long`, chave primária), `ExternalId` (`Guid`, gerado no domínio com `Guid.CreateVersion7()`, índice único), `CreatedAt` e `UpdatedAt` (`DateTimeOffset` UTC, vindos de `TimeProvider`, preenchidos por um interceptor do módulo).
 - Mapeamentos com `IEntityTypeConfiguration<T>` na `Infrastructure`; o domínio não tem atributos de persistência.
@@ -121,7 +121,7 @@ Tema **escuro por padrão**, visual moderno e limpo, com um verde "dinheiro" com
 ## Testes e validação
 
 - Teste regras de domínio e casos de uso pelo comportamento observável: caminho feliz, falhas e limites (fim de mês, dia de fechamento, centavos de parcelas).
-- Após #60, testes relacionais usam PostgreSQL real isolado. Não manter SQLite ou provider em memória como substituto do PostgreSQL. Durante a revisão documental #63, os testes SQLite existentes continuam validando o código ainda não migrado; não apagá-los antes da substituição.
+- Testes relacionais usam PostgreSQL real isolado (`PostgresTestDatabase`, variável `AGS_TEST_POSTGRES`; veja `tests/postgres/compose.yaml`). Não use SQLite ou provider em memória como substituto. `dotnet test` exige esse servidor.
 - Mantenha os testes de arquitetura (`Ags.Finance.ArchitectureTests`) cobrindo as regras de fronteira. Uma nova regra de fronteira ganha um teste.
 - Antes de entregar, execute: `dotnet build Ags.Finance.slnx` (zero avisos), `dotnet test Ags.Finance.slnx` e `dotnet format Ags.Finance.slnx --verify-no-changes`.
 - Nunca declare um teste aprovado sem tê-lo executado. Relate o que foi executado e as limitações.

@@ -154,7 +154,7 @@ public sealed class SignInTests : IDisposable
         await CreateUserAsync();
         await WrongAttemptsAsync(5);
 
-        Assert.Single(await _host.QueryAsync("SELECT LockoutEnd FROM identity_users WHERE LockoutEnd IS NOT NULL"));
+        Assert.Single(await _host.QueryAsync("SELECT \"LockoutEnd\" FROM identity.users WHERE \"LockoutEnd\" IS NOT NULL"));
     }
 
     [Fact]

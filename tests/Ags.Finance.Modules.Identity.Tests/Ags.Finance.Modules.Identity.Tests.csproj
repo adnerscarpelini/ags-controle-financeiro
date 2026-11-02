@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Ags.Finance.Tests.Support\Ags.Finance.Tests.Support.csproj" />
     <ProjectReference Include="..\..\src\Modules\Ags.Finance.Modules.Identity\Ags.Finance.Modules.Identity.csproj" />
   </ItemGroup>
 
