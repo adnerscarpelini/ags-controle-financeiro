@@ -1,4 +1,8 @@
-# ags-controle-financeiro
+<p align="center">
+  <img src="logo.png" alt="Logo do ags-controle-financeiro: carteira verde com moeda e gráfico em alta" width="160">
+</p>
+
+<h1 align="center">ags-controle-financeiro</h1>
 
 Aplicação web de controle financeiro pessoal, feita em .NET 10 com ASP.NET Core, Blazor e SQLite. Roda como serviço no Windows ou no Linux, como o Syncthing, e é acessada pelo navegador do computador e do celular na rede local.
 
