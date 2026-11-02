@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Ags.Finance.SharedKernel\Ags.Finance.SharedKernel.csproj" />
     <ProjectReference Include="..\Modules\Ags.Finance.Modules.Identity\Ags.Finance.Modules.Identity.csproj" />
     <ProjectReference Include="..\Modules\Ags.Finance.Modules.Accounts\Ags.Finance.Modules.Accounts.csproj" />
@@ -9,6 +13,10 @@
     <ProjectReference Include="..\Modules\Ags.Finance.Modules.Reimbursements\Ags.Finance.Modules.Reimbursements.csproj" />
     <ProjectReference Include="..\Modules\Ags.Finance.Modules.Reports\Ags.Finance.Modules.Reports.csproj" />
     <ProjectReference Include="..\Modules\Ags.Finance.Modules.Imports\Ags.Finance.Modules.Imports.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ags.Finance.Web.Tests" />
   </ItemGroup>
 
 </Project>
