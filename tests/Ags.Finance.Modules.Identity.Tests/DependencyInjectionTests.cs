@@ -9,7 +9,7 @@ public sealed class DependencyInjectionTests
     {
         var services = new ServiceCollection();
 
-        var result = services.AddIdentityModule();
+        var result = services.AddIdentityModule("Data Source=:memory:");
 
         Assert.Same(services, result);
     }
