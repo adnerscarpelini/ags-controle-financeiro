@@ -1,5 +1,7 @@
 # Documentação
 
+- [Saldo inicial e responsabilidade pelo saldo (#47)](architecture/account-balances.md)
+
 - [Categorias e subcategorias (#9)](transactions/classifications.md)
 - [Descrições sem duplicidade (#10)](transactions/merchants.md)
 

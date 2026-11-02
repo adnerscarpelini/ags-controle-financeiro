@@ -2,6 +2,7 @@
 @using Ags.Finance.Modules.Accounts.Contracts
 @using Ags.Finance.SharedKernel
 @inject IAccountCatalog Catalog
+@inject TimeProvider Clock
 
 <PageHeader Title="Contas e cartões" />
 <p><a href="/cadastros">Cadastros</a> / Contas e cartões</p>
@@ -62,6 +63,11 @@
                 </select>
             </div>
             <CatalogColor Id="account-color" @bind-Value="_accountColor" />
+            @if (_accountKind == AccountKind.Checking)
+            {
+                <div class="field"><label for="opening-balance">Saldo inicial (R$)</label><input id="opening-balance" type="number" step="0.01" @bind="_openingBalance" disabled="@_openingLocked" required /></div>
+                <div class="field"><label for="opening-date">Data de referência</label><input id="opening-date" type="date" @bind="_openingDate" disabled="@_openingLocked" required /></div>
+            }
         </div>
         <button class="button" type="submit" disabled="@_busy">Salvar conta</button>
         <button class="button" type="button" @onclick="ResetAccount">Limpar</button>
@@ -72,6 +78,7 @@
             <li>
                 <span class="catalog-color color-@account.Color">@account.Name</span>
                 <span>@(_banks.FirstOrDefault(x => x.ExternalId == account.BankExternalId)?.Name) · @KindLabel(account.Kind) · @(account.IsActive ? "Ativa" : "Desativada")</span>
+                @if (account.OpeningDate is { } openingDate) { <span>Saldo inicial: @account.OpeningBalance em @openingDate.ToString("dd/MM/yyyy")</span> }
                 <div>
                     <button class="button" @onclick="() => EditAccount(account)">Editar</button>
                     @if (account.IsActive) { <button class="button" @onclick="() => AskDeactivation(account.ExternalId, false)">Excluir / desativar</button> }
@@ -156,6 +163,9 @@
     private string _accountName = string.Empty;
     private AccountKind _accountKind;
     private string _accountColor = string.Empty;
+    private decimal _openingBalance;
+    private DateOnly? _openingDate;
+    private bool _openingLocked;
     private Guid? _cardId;
     private Guid _cardAccount;
     private string _cardName = string.Empty;
@@ -171,7 +181,11 @@
     private Guid? _pendingId;
     private bool _pendingCard;
 
-    protected override async Task OnInitializedAsync() => await RefreshAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        _openingDate = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+        await RefreshAsync();
+    }
 
     private async Task RefreshAsync()
     {
@@ -202,7 +216,9 @@
 
     private async Task SaveAccountAsync()
     {
-        await ApplyAsync(() => Catalog.SaveAccountAsync(new(_accountId, _accountBank, _accountName, _accountKind, _accountColor)));
+        await ApplyAsync(() => Catalog.SaveAccountAsync(new(_accountId, _accountBank, _accountName, _accountKind, _accountColor,
+            _accountKind == AccountKind.Checking && !_openingLocked ? new Money(_openingBalance) : null,
+            _accountKind == AccountKind.Checking && !_openingLocked ? _openingDate : null)));
         if (!_failed) { ResetAccount(); }
     }
 
@@ -219,6 +235,9 @@
         _accountName = account.Name;
         _accountKind = account.Kind;
         _accountColor = account.Color;
+        _openingBalance = account.OpeningBalance.Amount;
+        _openingDate = account.OpeningDate ?? DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+        _openingLocked = account.OpeningDate is not null;
     }
 
     private void EditCard(CreditCardDetails card)
@@ -241,6 +260,9 @@
         _accountName = string.Empty;
         _accountKind = AccountKind.Checking;
         _accountColor = string.Empty;
+        _openingBalance = 0;
+        _openingDate = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+        _openingLocked = false;
     }
 
     private void ResetCard()

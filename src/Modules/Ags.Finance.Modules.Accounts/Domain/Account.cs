@@ -1,3 +1,5 @@
+using Ags.Finance.SharedKernel;
+
 namespace Ags.Finance.Modules.Accounts.Domain;
 
 internal sealed class Account : Entity
@@ -11,6 +13,23 @@ internal sealed class Account : Entity
     public AccountKind Kind { get; private set; }
     public string Color { get; private set; } = string.Empty;
     public bool IsActive { get; private set; } = true;
+    public Money OpeningBalance { get; private set; }
+    public DateOnly? OpeningDate { get; private set; }
+
+    public string? SetOpeningBalance(Money balance, DateOnly? referenceDate)
+    {
+        if (referenceDate is null || referenceDate == DateOnly.MinValue)
+        {
+            return "Informe a data de referência do saldo inicial.";
+        }
+        if (OpeningDate is not null && (OpeningBalance != balance || OpeningDate != referenceDate))
+        {
+            return "O saldo inicial já foi registrado. Use Ajustar saldo para corrigir o saldo da conta.";
+        }
+        OpeningBalance = balance;
+        OpeningDate = referenceDate;
+        return null;
+    }
 
     public static Account Create() => new();
     public string? Update(Guid bankExternalId, string name, AccountKind kind, string color)
