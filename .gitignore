@@ -42,3 +42,6 @@ backups/
 
 # Fixtures fictícias de teste são permitidas
 !tests/**/Fixtures/**
+
+# Publicação local (dotnet publish)
+artifacts/
