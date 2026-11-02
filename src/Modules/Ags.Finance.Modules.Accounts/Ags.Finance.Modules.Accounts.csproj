@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Ags.Finance.Modules.Accounts.Tests" />
-    <InternalsVisibleTo Include="Ags.Finance.ArchitectureTests" />
   </ItemGroup>
 
 </Project>

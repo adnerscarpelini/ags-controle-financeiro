@@ -11,7 +11,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Ags.Finance.Modules.Transactions.Tests" />
-    <InternalsVisibleTo Include="Ags.Finance.ArchitectureTests" />
   </ItemGroup>
 
 </Project>
