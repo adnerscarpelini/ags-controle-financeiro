@@ -1,8 +1,39 @@
 @page "/configuracoes"
+@using Ags.Finance.Web.Authentication
 @using Ags.Finance.Web.Hosting
 @inject ServerCertificate ServerCertificate
 
 <PageHeader Title="Configurações" />
+
+<section class="panel" aria-labelledby="password-title">
+    <h2 id="password-title">Trocar senha</h2>
+
+    @if (_passwordMessage is not null)
+    {
+        <p class="@(PasswordOutcome == "changed" ? "form-success" : "form-error")" role="status" data-testid="password-message">@_passwordMessage</p>
+    }
+
+    <form method="post" action="@AccountEndpoints.PasswordPath">
+        <AntiforgeryToken />
+
+        <div class="field">
+            <label for="current-password">Senha atual</label>
+            <input id="current-password" name="CurrentPassword" type="password" autocomplete="current-password" required />
+        </div>
+
+        <div class="field">
+            <label for="new-password">Nova senha (mínimo de 8 caracteres)</label>
+            <input id="new-password" name="NewPassword" type="password" autocomplete="new-password" minlength="8" required />
+        </div>
+
+        <div class="field">
+            <label for="confirm-password">Confirme a nova senha</label>
+            <input id="confirm-password" name="ConfirmPassword" type="password" autocomplete="new-password" minlength="8" required />
+        </div>
+
+        <button type="submit" class="button">Trocar senha</button>
+    </form>
+</section>
 
 <section class="panel" aria-labelledby="certificate-title">
     <h2 id="certificate-title">Certificado HTTPS</h2>
@@ -82,9 +113,23 @@
 @code {
     private ServerCertificateInfo? _info;
     private string? _error;
+    private string? _passwordMessage;
+
+    [SupplyParameterFromQuery(Name = "password")]
+    private string? PasswordOutcome { get; set; }
 
     protected override void OnInitialized()
     {
+        _passwordMessage = PasswordOutcome switch
+        {
+            "changed" => "Senha alterada. As outras sessões abertas foram encerradas.",
+            "wrong" => "A senha atual está incorreta.",
+            "short" => "A nova senha precisa ter no mínimo 8 caracteres.",
+            "mismatch" => "A confirmação é diferente da nova senha.",
+            "locked" => "Muitas tentativas incorretas. Aguarde alguns minutos e tente de novo.",
+            _ => null,
+        };
+
         try
         {
             _info = ServerCertificate.Info;

@@ -65,6 +65,6 @@ Tabela `identity_users` (migration `CreateUsers`), com `Id`, `ExternalId`, `Crea
 
 `Ags.Finance.Modules.Identity`: `Domain/User`, `Domain/PasswordPolicy`; casos de uso `CreateUser`, `ResetPassword` e `UserExists` em `Application/`; `Contracts/ICreateUser`, `IResetPassword` e `IUserExists`, usados pelos comandos em `Ags.Finance.Web/Commands/`. Não há endpoint HTTP nem componente que use `ICreateUser` ou `IResetPassword` (um teste de arquitetura garante isso).
 
-## O que depende do login
+## Login
 
-A orientação "rode `user create` no computador do serviço" na tela de login e o bloqueio das páginas de dados quando não há sessão chegam com o login ([#36](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/36)).
+A orientação "rode `user create` no computador do serviço" na tela de login (sem usuário cadastrado) e o bloqueio das páginas de dados sem sessão estão em [login.md](login.md) ([#36](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/36)).

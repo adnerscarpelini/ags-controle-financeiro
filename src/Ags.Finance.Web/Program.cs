@@ -7,6 +7,7 @@ using Ags.Finance.Modules.Invoices;
 using Ags.Finance.Modules.Reimbursements;
 using Ags.Finance.Modules.Reports;
 using Ags.Finance.Modules.Transactions;
+using Ags.Finance.Web.Authentication;
 using Ags.Finance.Web.Commands;
 using Ags.Finance.Web.Components;
 using Ags.Finance.Web.Hosting;
@@ -62,6 +63,8 @@ builder.Services
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddSessionAuthentication();
+
 await using var app = builder.Build();
 
 await DatabaseStartup.InitializeAsync(app.Services, connectionString);
@@ -72,8 +75,12 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseStaticFiles();
+app.UseNoStore();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
+app.MapAccountEndpoints();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

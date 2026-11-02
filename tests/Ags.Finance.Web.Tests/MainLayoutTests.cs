@@ -63,6 +63,18 @@ public sealed class MainLayoutTests : IDisposable
     }
 
     [Fact]
+    public void MenuHasASignOutButtonThatPostsToTheSignOutEndpoint()
+    {
+        var layout = RenderLayout();
+
+        var form = layout.Find("form.nav-footer");
+
+        Assert.Equal("post", form.GetAttribute("method"));
+        Assert.Equal("/account/sign-out", form.GetAttribute("action"));
+        Assert.Equal("Sair", form.QuerySelector("button")?.TextContent.Trim());
+    }
+
+    [Fact]
     public void MenuHasTheSevenSectionsInOrder()
     {
         var layout = RenderLayout();

@@ -4,7 +4,7 @@
 
 A primeira versão foi pensada como app desktop (Avalonia). Para usar também pelo celular, o host passou a ser web. O modelo é o do Syncthing: instalado uma vez num computador, sobe com o sistema e é acessado pelo navegador de qualquer dispositivo da mesma rede.
 
-**Estado:** serviço ([#34](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/34), veja [service-installation.md](../web/service-installation.md)), HTTPS ([#37](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/37), veja [https-certificate.md](../web/https-certificate.md)) e criação do usuário ([#35](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/35), veja [user-creation.md](../identity/user-creation.md)) implementados. Login e PWA ainda não.
+**Estado:** serviço ([#34](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/34), veja [service-installation.md](../web/service-installation.md)), HTTPS ([#37](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/37), veja [https-certificate.md](../web/https-certificate.md)) e criação do usuário ([#35](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/35), veja [user-creation.md](../identity/user-creation.md)) e login ([#36](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/36), veja [login.md](../identity/login.md)) implementados. PWA ainda não.
 
 ## Decisão
 

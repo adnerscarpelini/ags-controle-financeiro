@@ -276,3 +276,130 @@ a:hover {
 .panel summary:hover {
     color: var(--color-accent-hover);
 }
+
+/* Formulários e login */
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-bottom: var(--space-4);
+}
+
+.field label {
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+}
+
+.field input {
+    min-height: var(--touch-target);
+    padding: 0 var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-background);
+    color: var(--color-text-primary);
+    font: inherit;
+}
+
+.field input:focus-visible {
+    border-color: var(--color-accent);
+}
+
+.checkbox {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--touch-target);
+    margin-bottom: var(--space-4);
+}
+
+.checkbox input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--color-accent);
+}
+
+.button {
+    min-height: var(--touch-target);
+    padding: 0 var(--space-4);
+    border: 0;
+    border-radius: var(--radius);
+    background: var(--color-accent);
+    color: var(--color-background);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.button:hover {
+    background: var(--color-accent-hover);
+}
+
+.form-error {
+    color: var(--color-expense);
+}
+
+.form-success {
+    color: var(--color-income);
+}
+
+.notice {
+    border: 1px solid var(--color-warning);
+    border-radius: var(--radius);
+    padding: var(--space-3) var(--space-4);
+}
+
+.notice p {
+    margin: 0 0 var(--space-2);
+}
+
+.notice p:last-child {
+    margin-bottom: 0;
+}
+
+.login-shell {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    padding: var(--space-4);
+}
+
+.login-card {
+    width: min(100%, 400px);
+    padding: var(--space-6);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+}
+
+.login-card .brand {
+    margin-bottom: var(--space-6);
+}
+
+.login-card h1 {
+    margin-bottom: var(--space-4);
+}
+
+.nav-footer {
+    margin-top: auto;
+}
+
+.nav-button {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    min-height: var(--touch-target);
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: var(--radius);
+    background: none;
+    color: var(--color-text-secondary);
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.nav-button:hover {
+    background: var(--color-surface-raised);
+    color: var(--color-text-primary);
+}

@@ -1,0 +1,69 @@
+@page "/login"
+@layout LoginLayout
+@attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
+@using Ags.Finance.Modules.Identity.Contracts
+@using Ags.Finance.Web.Authentication
+@inject IUserExists UserExists
+
+<PageHeader Title="Entrar" />
+
+@if (_hasUser)
+{
+    @if (Error == "locked")
+    {
+        <p class="form-error" role="alert">Muitas tentativas incorretas. Aguarde alguns minutos e tente de novo.</p>
+    }
+    else if (Error is not null)
+    {
+        <p class="form-error" role="alert">Usuário ou senha incorretos.</p>
+    }
+
+    <form method="post" action="@AccountEndpoints.SignInPath">
+        <AntiforgeryToken />
+        <input type="hidden" name="ReturnUrl" value="@Authentication.ReturnUrl.Sanitize(ReturnUrlParameter)" />
+
+        <div class="field">
+            <label for="user-name">Usuário</label>
+            <input id="user-name" name="UserName" type="text" autocomplete="username" autocapitalize="none" required autofocus />
+        </div>
+
+        <div class="field">
+            <label for="password">Senha</label>
+            <input id="password" name="Password" type="password" autocomplete="current-password" required />
+        </div>
+
+        <label class="checkbox">
+            <input type="checkbox" name="RememberMe" value="true" />
+            <span>Manter conectado por 30 dias</span>
+        </label>
+
+        <button type="submit" class="button">Entrar</button>
+    </form>
+}
+else
+{
+    <div class="notice" role="status" data-testid="no-user">
+        <p>Nenhum usuário cadastrado ainda.</p>
+        <p>
+            Para criar o usuário, rode no computador onde o serviço está instalado o comando
+            <code>Ags.Finance.Web user create</code>. Se o serviço foi instalado pelo script de instalação,
+            rode-o de novo: ele pede o nome de usuário e a senha.
+        </p>
+    </div>
+}
+
+@code {
+    private bool _hasUser;
+
+    [SupplyParameterFromQuery(Name = "ReturnUrl")]
+    private string? ReturnUrlParameter { get; set; }
+
+    [SupplyParameterFromQuery(Name = "error")]
+    private string? Error { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hasUser = await UserExists.ExecuteAsync();
+    }
+}
