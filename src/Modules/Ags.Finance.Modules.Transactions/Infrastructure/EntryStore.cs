@@ -49,4 +49,35 @@ internal sealed class EntryStore(IDbContextFactory<TransactionsDbContext> factor
             return false;
         }
     }
+
+    public async Task<bool> SaveEntriesAsync(IReadOnlyList<TransactionEntry> entries, CancellationToken cancellationToken)
+    {
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
+        foreach (var entry in entries) { context.Entry(entry).State = EntityState.Modified; }
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation or PostgresErrorCodes.UniqueViolation })
+        {
+            return false;
+        }
+    }
+
+    public async Task DeleteEntriesAsync(IReadOnlyList<TransactionEntry> entries, CancellationToken cancellationToken)
+    {
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
+        context.RemoveRange(entries);
+        var ids = entries.Select(x => x.ExternalId).ToArray();
+        foreach (var purchaseId in entries.Where(x => x.InstallmentPurchaseExternalId is not null).Select(x => x.InstallmentPurchaseExternalId!.Value).Distinct())
+        {
+            if (!await context.Set<TransactionEntry>().AnyAsync(x => x.InstallmentPurchaseExternalId == purchaseId && !ids.Contains(x.ExternalId), cancellationToken))
+            {
+                var purchase = await context.Set<InstallmentPurchase>().SingleAsync(x => x.ExternalId == purchaseId, cancellationToken);
+                context.Remove(purchase);
+            }
+        }
+        await context.SaveChangesAsync(cancellationToken);
+    }
 }

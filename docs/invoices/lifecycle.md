@@ -25,9 +25,10 @@ antes de registrar compras nela. Consultas não criam faturas artificiais.
 
 ## Proteção e reabertura
 
-Novas compras e mesclagem de descrições são protegidas pelos casos de uso.
+Novas compras, parcelas, edição, exclusão, movimentação e mesclagem de descrições
+são protegidas pelos casos de uso.
 Operações que atinjam uma fatura protegida falham integralmente, sem sucesso
-parcial. Parcelas, edições e recorrências usarão o mesmo guard nas próximas etapas.
+parcial. Recorrências e CSV usarão o mesmo guard nas próximas etapas.
 O limite de [operação financeira](../architecture/financial-operations.md)
 serializa validação e gravação, sem dependência inversa entre módulos.
 

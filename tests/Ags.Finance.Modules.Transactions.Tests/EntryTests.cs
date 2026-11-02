@@ -16,11 +16,12 @@ public sealed partial class EntryTests : IAsyncLifetime
     private Guid _accountId;
     private Guid _subcategoryId;
     private Guid _merchantId;
+    private readonly ManualTimeProvider _clock = new() { Now = new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero) };
 
     public async Task InitializeAsync()
     {
         _database = await PostgresTestDatabase.CreateAsync();
-        _provider = new ServiceCollection().AddAccountsModule(_database.ConnectionString).AddTransactionsModule(_database.ConnectionString).BuildServiceProvider();
+        _provider = new ServiceCollection().AddSingleton<TimeProvider>(_clock).AddAccountsModule(_database.ConnectionString).AddTransactionsModule(_database.ConnectionString).BuildServiceProvider();
         await Provider.MigrateAccountsModuleAsync();
         await Provider.MigrateTransactionsModuleAsync();
         var accounts = Provider.GetRequiredService<IAccountCatalog>();

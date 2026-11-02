@@ -7,4 +7,10 @@ document.addEventListener('keydown', event => {
         button.click();
         document.getElementById('entry-merchant')?.focus();
     }
+    if (event.key.toLowerCase() === 'd') {
+        const button = document.querySelector('[data-duplicate-selected]');
+        if (!button) return;
+        event.preventDefault();
+        button.click();
+    }
 });

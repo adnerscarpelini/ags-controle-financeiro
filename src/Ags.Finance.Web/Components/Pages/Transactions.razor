@@ -13,8 +13,23 @@
 
 <PageHeader Title="Lançamentos" />
 @if (_message is not null) { <p role="status">@_message</p> }
+@if (_deleteEntry is { } deleting)
+{
+    <section class="panel" role="alertdialog" aria-label="Confirmar exclusão">
+        <h2>Excluir lançamento</h2>
+        <p>@deleting.MerchantName · @deleting.Date.ToString("dd/MM/yyyy") · @deleting.Amount</p>
+        @if (deleting.InstallmentPurchaseExternalId is not null)
+        {
+            <div class="field"><label for="delete-scope">Alcance da exclusão</label><select id="delete-scope" @bind="_deleteScope">
+                <option value="">Escolha o alcance</option><option value="@EntryChangeScope.OnlyThis">Somente esta parcela</option><option value="@EntryChangeScope.ThisAndFollowing">Esta e as futuras</option>
+            </select></div>
+        }
+        <button class="button" @onclick="ConfirmDeleteAsync" disabled="@_busy">Confirmar exclusão</button>
+        <button class="button" @onclick="() => _deleteEntry = null" disabled="@_busy">Cancelar</button>
+    </section>
+}
 <section class="panel">
-    <h2>Novo lançamento</h2>
+    <h2>@(_editingId is null ? "Novo lançamento" : "Editar lançamento")</h2>
     <p>Ctrl+N inicia um lançamento. Enter confirma. Informe o valor sem sinal.</p>
     <form @onsubmit="SaveAsync" @onsubmit:preventDefault>
         <div class="catalog-fields">
@@ -38,7 +53,7 @@
                     <option value="@Guid.Empty">Sem final</option>
                     @foreach (var final in _finals) { <option value="@final.ExternalId">@final.Digits · @final.Label</option> }
                 </select></div>
-                <div class="field"><label for="entry-installments">Parcelas (1 para compra avulsa)</label><input id="entry-installments" type="number" min="1" max="48" @bind="_installments" required /></div>
+                @if (_editingId is null) { <div class="field"><label for="entry-installments">Parcelas (1 para compra avulsa)</label><input id="entry-installments" type="number" min="1" max="48" @bind="_installments" required /></div> }
             }
             <div class="field"><label for="entry-account">Conta</label><select id="entry-account" @bind="_accountId" disabled="@(_cardId != Guid.Empty)" required>
                 <option value="@Guid.Empty">Selecione</option>
@@ -46,13 +61,20 @@
             </select></div>
             <div class="field"><label for="entry-month">Mês contábil</label><input id="entry-month" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" required /></div>
             <div class="field"><label for="entry-details">Detalhes</label><input id="entry-details" @bind="_details" maxlength="1000" /></div>
+            @if (_editingInstallment)
+            {
+                <div class="field"><label for="entry-scope">Alcance da alteração</label><select id="entry-scope" @bind="_scope" required>
+                    <option value="">Escolha o alcance</option><option value="@EntryChangeScope.OnlyThis">Somente esta parcela</option><option value="@EntryChangeScope.ThisAndFollowing">Esta e as futuras</option>
+                </select></div>
+            }
         </div>
         <button class="button" disabled="@_busy">Salvar lançamento</button>
-        <button class="button" type="button" data-new-entry @onclick="Reset">Novo / limpar</button>
+        <button class="button" type="button" data-new-entry @onclick="Reset" disabled="@_busy">Novo / limpar</button>
     </form>
 </section>
 <section class="panel">
     <h2>Histórico</h2>
+    <button class="button" data-duplicate-selected disabled="@(_selectedId is null || _busy)" @onclick="DuplicateSelectedAsync">Duplicar selecionado (Ctrl+D)</button>
     <ul class="catalog-list">
         @foreach (var entry in _entries)
         {
@@ -60,6 +82,11 @@
                 <span class="numeric @(entry.Amount.IsNegative ? "entry-expense" : "entry-income")">@(entry.Amount.IsNegative ? string.Empty : "+")@entry.Amount</span>
                 <span>Mês @entry.Month · @(entry.CardExternalId is not null ? "Compra no cartão" : entry.IsEffective ? "Efetivado" : "Pendente") · @entry.Details</span>
                 @if (entry.InstallmentNumber is not null) { <span>Parcela @entry.InstallmentNumber/@entry.InstallmentCount</span> }
+                <div>
+                    <button class="button" @onclick="() => _selectedId = entry.ExternalId">@(_selectedId == entry.ExternalId ? "Selecionado" : "Selecionar")</button>
+                    <button class="button" @onclick="() => EditEntryAsync(entry)" disabled="@_busy">Editar</button>
+                    <button class="button" @onclick="() => AskDelete(entry)" disabled="@_busy">Excluir</button>
+                </div>
             </li>
         }
     </ul>
@@ -87,6 +114,12 @@
     private string _suggestedMonth = string.Empty;
     private string? _message;
     private bool _busy;
+    private Guid? _editingId;
+    private Guid? _selectedId;
+    private bool _editingInstallment;
+    private EntryChangeScope? _scope;
+    private EntryDetails? _deleteEntry;
+    private EntryChangeScope? _deleteScope;
 
     protected override async Task OnInitializedAsync()
     {
@@ -138,6 +171,7 @@
     private async Task SaveAsync()
     {
         if (_busy) { return; }
+        if (_editingInstallment && _scope is null) { _message = "Escolha o alcance da alteração."; return; }
         if (!DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var monthDate))
         {
             _message = "Informe um mês contábil válido."; return;
@@ -147,7 +181,8 @@
         {
             var request = new CreateEntryRequest(_date, _merchantId, _subcategoryId, _accountId, new Money(_amount), _details, AccountingMonth.FromDate(monthDate),
                 _cardId == Guid.Empty ? null : _cardId, _finalId == Guid.Empty ? null : _finalId);
-            var result = _installments == 1 ? await Entries.CreateAsync(request) : await Entries.CreateInstallmentsAsync(request, _installments);
+            var result = _editingId is { } editingId ? await Entries.EditAsync(editingId, request, _scope ?? EntryChangeScope.OnlyThis)
+                : _installments == 1 ? await Entries.CreateAsync(request) : await Entries.CreateInstallmentsAsync(request, _installments);
             _message = result.Error ?? "Lançamento salvo.";
             if (result.Succeeded) { Reset(); _entries = await Entries.GetAsync(); }
         }
@@ -155,10 +190,74 @@
     }
     private void Reset()
     {
+        _editingId = null; _editingInstallment = false; _scope = null;
         _merchantName = string.Empty; _merchantId = Guid.Empty; _subcategoryId = Guid.Empty; _amount = 0; _details = string.Empty;
         _month = _suggestedMonth;
         _suggestions = _merchants;
         _installments = 1;
         _installments = 1;
+        _accounts = _accounts.Where(x => x.IsActive).ToList();
+        _subcategories = _subcategories.Where(x => x.IsActive).ToList();
+        _cards = _cards.Where(x => x.IsActive && _accounts.Any(a => a.ExternalId == x.AccountExternalId)).ToList();
+        _merchants = _merchants.Where(x => x.IsActive).ToList();
+        _finals = _finals.Where(x => x.IsActive).ToList();
+        if (!_accounts.Any(x => x.ExternalId == _accountId)) { _accountId = Guid.Empty; }
+        if (!_cards.Any(x => x.ExternalId == _cardId)) { _cardId = Guid.Empty; _finalId = Guid.Empty; }
+        if (!_finals.Any(x => x.ExternalId == _finalId)) { _finalId = Guid.Empty; }
+    }
+
+    private async Task EditEntryAsync(EntryDetails entry)
+    {
+        if (_busy) { return; }
+        _busy = true;
+        try
+        {
+            _editingId = entry.ExternalId; _selectedId = entry.ExternalId;
+            _editingInstallment = entry.InstallmentPurchaseExternalId is not null;
+            _scope = _editingInstallment ? null : EntryChangeScope.OnlyThis;
+            _accounts = (await Accounts.GetAccountsAsync(false)).Where(x => x.IsActive || x.ExternalId == entry.AccountExternalId).ToList();
+            _subcategories = (await Classifications.GetSubcategoriesAsync(false)).Where(x => x.IsActive || x.ExternalId == entry.SubcategoryExternalId).ToList();
+            var availableCards = (await Accounts.GetCreditCardsAsync()).ToList();
+            if (entry.CardExternalId is { } cardId && availableCards.All(x => x.ExternalId != cardId))
+            {
+                var historical = (await Accounts.GetCreditCardsAsync(false)).FirstOrDefault(x => x.ExternalId == cardId);
+                if (historical is not null) { availableCards.Add(historical); }
+            }
+            _cards = availableCards;
+            _cardId = entry.CardExternalId ?? Guid.Empty;
+            _finals = _cardId == Guid.Empty ? [] : (await CardDigits.GetAsync(_cardId, false)).Where(x => x.IsActive || x.ExternalId == entry.CardLastDigitsExternalId).ToList();
+            _date = entry.Date; _merchantName = entry.MerchantName; _merchantId = entry.MerchantExternalId;
+            _subcategoryId = entry.SubcategoryExternalId; _accountId = entry.AccountExternalId;
+            _finalId = entry.CardLastDigitsExternalId ?? Guid.Empty; _amount = Math.Abs(entry.Amount.Amount); _details = entry.Details;
+            _month = entry.Month.FirstDay.ToString("yyyy-MM", CultureInfo.InvariantCulture); _suggestedMonth = _month; _installments = 1;
+        }
+        finally { _busy = false; }
+    }
+    private void AskDelete(EntryDetails entry) { _deleteEntry = entry; _deleteScope = entry.InstallmentPurchaseExternalId is null ? EntryChangeScope.OnlyThis : null; }
+    private async Task ConfirmDeleteAsync()
+    {
+        if (_deleteEntry is not { } entry || _busy) { return; }
+        if (_deleteScope is not { } scope) { _message = "Escolha o alcance da exclusão."; return; }
+        _busy = true;
+        try
+        {
+            var result = await Entries.DeleteAsync(entry.ExternalId, scope);
+            _message = result.Error ?? "Lançamento excluído.";
+            _deleteEntry = null;
+            if (result.Succeeded) { Reset(); _entries = await Entries.GetAsync(); }
+        }
+        finally { _busy = false; }
+    }
+    private async Task DuplicateSelectedAsync()
+    {
+        if (_selectedId is not { } id || _busy) { return; }
+        _busy = true;
+        try
+        {
+            var result = await Entries.DuplicateAsync(id);
+            _message = result.Error ?? "Lançamento duplicado com a data de hoje.";
+            if (result.Succeeded) { _entries = await Entries.GetAsync(); _selectedId = result.ExternalId; }
+        }
+        finally { _busy = false; }
     }
 }
