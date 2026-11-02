@@ -1,5 +1,7 @@
 # Documentação
 
+- [Consulta e composição de faturas (#18)](invoices/composition.md)
+
 - [Compras no cartão e escolha de fatura (#12)](transactions/card-entries.md)
 
 - [Receitas e despesas avulsas (#11)](transactions/cash-entries.md)
