@@ -17,3 +17,4 @@ Cada entrega adiciona uma nota em `docs/<module>/`.
 
 - SharedKernel: [Money e AccountingMonth](shared-kernel/money-and-accounting-month.md)
 - Web: [Layout e navegação](web/layout-and-navigation.md)
+- Web: [Instalação como serviço](web/service-installation.md)

@@ -4,7 +4,7 @@
 
 A primeira versão foi pensada como app desktop (Avalonia). Para usar também pelo celular, o host passou a ser web. O modelo é o do Syncthing: instalado uma vez num computador, sobe com o sistema e é acessado pelo navegador de qualquer dispositivo da mesma rede.
 
-**Estado:** aprovado. Ainda não implementado.
+**Estado:** serviço implementado ([#34](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/34), veja [service-installation.md](../web/service-installation.md)). HTTPS, login e PWA ainda não.
 
 ## Decisão
 
