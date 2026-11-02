@@ -9,6 +9,17 @@
 
 <PageHeader Title="Transferências e saldos" />
 @if (_message is not null) { <p role="status">@_message</p> }
+@if (_adjustment is { } adjustment)
+{
+    <section class="panel" role="alertdialog" aria-label="Confirmar ajuste de saldo">
+        <h2>Confirmar ajuste de saldo</h2>
+        <p>@Name(adjustment.AccountExternalId) · @adjustment.Date.ToString("dd/MM/yyyy")</p>
+        <p>Saldo calculado: @adjustment.ExpectedBalance · Saldo correto: @adjustment.CorrectBalance · Diferença: @(adjustment.CorrectBalance - (adjustment.ExpectedBalance ?? Money.Zero))</p>
+        <p>O ajuste preserva a abertura e os movimentos anteriores. Correções são feitas por um novo ajuste.</p>
+        <button class="button" @onclick="ConfirmAdjustmentAsync" disabled="@_busy">Confirmar ajuste</button>
+        <button class="button" @onclick="() => _adjustment = null" disabled="@_busy">Cancelar</button>
+    </section>
+}
 @if (_confirmation is { } transfer)
 {
     <section class="panel" role="alertdialog" aria-label="Confirmar transferência">
@@ -32,7 +43,20 @@
             <div class="field"><label for="transfer-date">Data</label><input id="transfer-date" type="date" @bind="_date" required /></div>
             <div class="field"><label for="transfer-amount">Valor (R$)</label><input id="transfer-amount" type="number" step="0.01" min="0.01" @bind="_amount" required /></div>
         </div>
-        <button class="button" disabled="@(_busy || _confirmation is not null)">Transferir</button>
+        <button class="button" disabled="@(_busy || _confirmation is not null || _adjustment is not null)">Transferir</button>
+    </form>
+</section>
+<section class="panel">
+    <h2>Ajustar saldo</h2>
+    <form id="balance-adjustment" @onsubmit="AskAdjustmentAsync" @onsubmit:preventDefault>
+        <div class="catalog-fields">
+            <div class="field"><label for="adjust-account">Conta</label><select id="adjust-account" @bind="_adjustAccount" required>
+                <option value="@Guid.Empty">Selecione</option>@foreach (var account in _accounts.Where(x => x.IsActive)) { <option value="@account.ExternalId">@account.Name</option> }
+            </select></div>
+            <div class="field"><label for="adjust-date">Data de referência</label><input id="adjust-date" type="date" @bind="_adjustDate" required /></div>
+            <div class="field"><label for="adjust-balance">Saldo correto (R$)</label><input id="adjust-balance" type="number" step="0.01" @bind="_correctBalance" required /></div>
+        </div>
+        <button class="button" disabled="@(_busy || _confirmation is not null || _adjustment is not null)">Conferir ajuste</button>
     </form>
 </section>
 <section class="panel">
@@ -43,17 +67,19 @@
     }</ul>
 </section>
 <section class="panel">
-    <h2>Histórico de movimentações entre contas</h2>
-    <p>Transferências não são receitas nem despesas. Os dois movimentos têm a mesma identificação.</p>
+    <h2>Histórico de movimentos de caixa</h2>
+    <p>Transferências e ajustes de saldo não são receitas nem despesas.</p>
     <ul class="catalog-list" aria-label="Movimentações de contas">@foreach (var movement in _movements)
     {
-        <li><span>@movement.Date.ToString("dd/MM/yyyy") · @Name(movement.AccountExternalId) · Transferência</span>
+        <li><span>@movement.Date.ToString("dd/MM/yyyy") · @Name(movement.AccountExternalId) · @(movement.Kind == AccountMovementKind.BalanceAdjustment ? "Ajuste de saldo" : "Transferência")</span>
             <span class="numeric">@(movement.Amount.IsNegative ? string.Empty : "+")@movement.Amount</span>
-            <span>Transferência @movement.OperationExternalId</span></li>
+            <span>Operação @movement.OperationExternalId</span>
+            @if (movement.AdjustmentTarget is { } target) { <span>Saldo informado: @target</span> }</li>
     }</ul>
 </section>
 
 @code {
+    [SupplyParameterFromQuery(Name = "account")] public Guid? AccountExternalId { get; set; }
     private IReadOnlyList<AccountDetails> _accounts = [];
     private IReadOnlyList<AccountMovementDetails> _movements = [];
     private readonly Dictionary<Guid, Money> _balances = [];
@@ -65,10 +91,16 @@
     private bool _busy;
     private string? _message;
     private TransferRequest? _confirmation;
+    private BalanceAdjustmentRequest? _adjustment;
+    private Guid _adjustAccount;
+    private DateOnly _adjustDate;
+    private decimal _correctBalance;
     protected override async Task OnInitializedAsync()
     {
         _today = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
         _date = _today;
+        _adjustDate = _today;
+        _adjustAccount = AccountExternalId ?? Guid.Empty;
         await ReloadAsync();
     }
     private async Task ReloadAsync()
@@ -80,7 +112,7 @@
     private string Name(Guid id) => _accounts.FirstOrDefault(x => x.ExternalId == id)?.Name ?? "Conta registrada";
     private void AskTransfer()
     {
-        if (_busy || _confirmation is not null) { return; }
+        if (_busy || _confirmation is not null || _adjustment is not null) { return; }
         _confirmation = new(Guid.CreateVersion7(), _source, _destination, _date, new Money(_amount));
     }
     private async Task ConfirmTransferAsync()
@@ -92,6 +124,30 @@
             var result = await Movements.TransferAsync(request);
             _message = result.Error ?? "Transferência registrada.";
             if (result.Succeeded) { _confirmation = null; _amount = 0; await ReloadAsync(); }
+        }
+        finally { _busy = false; }
+    }
+    private async Task AskAdjustmentAsync()
+    {
+        if (_busy || _confirmation is not null || _adjustment is not null) { return; }
+        _busy = true;
+        try
+        {
+            var balance = await Entries.GetBalanceAsync(_adjustAccount, _adjustDate);
+            if (balance is null) { _message = "Selecione uma conta cadastrada."; return; }
+            _adjustment = new(Guid.CreateVersion7(), _adjustAccount, _adjustDate, new Money(_correctBalance), balance.EffectiveBalance);
+        }
+        finally { _busy = false; }
+    }
+    private async Task ConfirmAdjustmentAsync()
+    {
+        if (_busy || _adjustment is not { } request) { return; }
+        _busy = true;
+        try
+        {
+            var result = await Movements.AdjustBalanceAsync(request);
+            _message = result.Error ?? (request.CorrectBalance == request.ExpectedBalance ? "Sem diferença. Nenhum lançamento foi criado." : "Ajuste de saldo registrado.");
+            if (result.Succeeded) { _adjustment = null; await ReloadAsync(); }
         }
         finally { _busy = false; }
     }

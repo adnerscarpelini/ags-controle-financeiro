@@ -1,5 +1,6 @@
 # Documentação
 
+- [Ajustes de saldo (#48)](transactions/balance-adjustments.md)
 - [Transferências e movimentos de caixa (#46)](transactions/account-transfers.md)
 - [Séries, ocorrências, alcance e baixa manual (#16/#17/#56)](transactions/recurrences.md)
 

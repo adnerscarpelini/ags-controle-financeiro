@@ -2,7 +2,7 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Transactions.Domain;
 
-internal enum AccountMovementKind { Transfer }
+internal enum AccountMovementKind { Transfer, BalanceAdjustment }
 
 internal sealed class AccountMovement : Entity
 {
@@ -12,6 +12,14 @@ internal sealed class AccountMovement : Entity
     public DateOnly Date { get; private set; }
     public Money Amount { get; private set; }
     public AccountMovementKind Kind { get; private set; }
+    public Money TargetBalance { get; private set; }
+
+    public static AccountMovement? Adjustment(Guid operationId, Guid accountId, DateOnly date, Money difference, Money target)
+    {
+        if (operationId == Guid.Empty || accountId == Guid.Empty || date == DateOnly.MinValue || difference.IsZero
+            || Math.Abs(difference.Amount) > 92233720368547758.07m || Math.Abs(target.Amount) > 92233720368547758.07m) { return null; }
+        return new() { OperationExternalId = operationId, AccountExternalId = accountId, Date = date, Amount = difference, Kind = AccountMovementKind.BalanceAdjustment, TargetBalance = target };
+    }
 
     public static IReadOnlyList<AccountMovement>? Transfer(Guid operationId, Guid sourceId, Guid destinationId, DateOnly date, Money amount)
     {

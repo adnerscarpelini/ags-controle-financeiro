@@ -81,6 +81,7 @@
                 @if (account.OpeningDate is { } openingDate) { <span>Saldo inicial: @account.OpeningBalance em @openingDate.ToString("dd/MM/yyyy")</span> }
                 <div>
                     <button class="button" @onclick="() => EditAccount(account)">Editar</button>
+                    @if (account.IsActive) { <a class="button" href="@($"/transferencias?account={account.ExternalId}")">Ajustar saldo</a> }
                     @if (account.IsActive) { <button class="button" @onclick="() => AskDeactivation(account.ExternalId, false)">Excluir / desativar</button> }
                 </div>
             </li>

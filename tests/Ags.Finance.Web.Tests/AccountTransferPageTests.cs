@@ -40,5 +40,16 @@ public sealed class AccountTransferPageTests
         Assert.Equal(2, page.FindAll("[aria-label='Movimentações de contas'] li").Count);
         Assert.Contains("R$ 700,00", page.Markup, StringComparison.Ordinal);
         Assert.Equal(2, (await movements.GetAsync()).Count);
+        page.Find("#adjust-account").Change(source.ExternalId.Value.ToString());
+        page.Find("#adjust-balance").Change("850");
+        await page.Find("#balance-adjustment").SubmitAsync(EventArgs.Empty);
+        Assert.Contains("R$ 700,00", page.Find("[aria-label='Confirmar ajuste de saldo']").TextContent, StringComparison.Ordinal);
+        Assert.Contains("R$ 150,00", page.Find("[aria-label='Confirmar ajuste de saldo']").TextContent, StringComparison.Ordinal);
+        page.FindAll("[aria-label='Confirmar ajuste de saldo'] button")[1].Click();
+        Assert.Equal(2, (await movements.GetAsync()).Count);
+        await page.Find("#balance-adjustment").SubmitAsync(EventArgs.Empty);
+        await page.Find("[aria-label='Confirmar ajuste de saldo'] button").ClickAsync(new());
+        Assert.Equal(3, (await movements.GetAsync()).Count);
+        Assert.Contains("Ajuste de saldo", page.Find("[aria-label='Movimentações de contas']").TextContent, StringComparison.Ordinal);
     }
 }
