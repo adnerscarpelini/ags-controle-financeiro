@@ -74,13 +74,43 @@
 </section>
 <section class="panel">
     <h2>Histórico</h2>
+    <form id="entry-filters" @onsubmit="ApplyFiltersAsync" @onsubmit:preventDefault>
+        <div class="catalog-fields">
+            <div class="field"><label for="filter-month">Mês contábil</label><input id="filter-month" type="month" value="@_filterMonth" @onchange="args => _filterMonth = args.Value?.ToString() ?? string.Empty" /></div>
+            <div class="field"><label for="filter-from">De</label><input id="filter-from" type="date" @bind="_filterFrom" /></div>
+            <div class="field"><label for="filter-to">Até</label><input id="filter-to" type="date" @bind="_filterTo" /></div>
+            <div class="field"><label for="filter-account">Conta</label><select id="filter-account" @bind="_filterAccount">
+                <option value="@Guid.Empty">Todas</option>@foreach (var item in _filterAccounts) { <option value="@item.ExternalId">@item.Name</option> }
+            </select></div>
+            <div class="field"><label for="filter-card">Cartão</label><select id="filter-card" @bind="_filterCard" @bind:after="FilterCardChangedAsync">
+                <option value="@Guid.Empty">Todos</option>@foreach (var item in _filterCards) { <option value="@item.ExternalId">@item.Name</option> }
+            </select></div>
+            <div class="field"><label for="filter-final">Final</label><select id="filter-final" @bind="_filterFinal">
+                <option value="@Guid.Empty">Todos</option>@foreach (var item in _filterFinals) { <option value="@item.ExternalId">@item.Digits · @item.Label</option> }
+            </select></div>
+            <div class="field"><label for="filter-category">Categoria</label><select id="filter-category" @bind="_filterCategory">
+                <option value="@Guid.Empty">Todas</option>@foreach (var item in _filterCategories) { <option value="@item.ExternalId">@item.Name</option> }
+            </select></div>
+            <div class="field"><label for="filter-subcategory">Subcategoria</label><select id="filter-subcategory" @bind="_filterSubcategory">
+                <option value="@Guid.Empty">Todas</option>@foreach (var item in _filterSubcategories) { <option value="@item.ExternalId">@item.DisplayName</option> }
+            </select></div>
+            <div class="field"><label for="filter-effective">Situação</label><select id="filter-effective" @bind="_filterEffective">
+                <option value="">Todas</option><option value="true">Efetivado</option><option value="false">Pendente</option>
+            </select></div>
+            <div class="field"><label for="entry-search">Buscar descrição ou detalhes (Ctrl+F)</label><input id="entry-search" data-entry-search @bind="_filterText" maxlength="200" /></div>
+        </div>
+        <button class="button" disabled="@(_busy || _queryBusy)">Filtrar</button>
+        <button class="button" type="button" @onclick="ClearFiltersAsync" disabled="@(_busy || _queryBusy)">Limpar filtros</button>
+    </form>
+    @if (_queryBusy) { <p aria-live="polite">Consultando lançamentos…</p> }
     <button class="button" data-duplicate-selected disabled="@(_selectedId is null || _busy)" @onclick="DuplicateSelectedAsync">Duplicar selecionado (Ctrl+D)</button>
     <ul class="catalog-list">
         @foreach (var entry in _entries)
         {
             <li><span>@entry.Date.ToString("dd/MM/yyyy") · @entry.MerchantName · @entry.Classification</span>
                 <span class="numeric @(entry.Amount.IsNegative ? "entry-expense" : "entry-income")">@(entry.Amount.IsNegative ? string.Empty : "+")@entry.Amount</span>
-                <span>Mês @entry.Month · @(entry.CardExternalId is not null ? "Compra no cartão" : entry.IsEffective ? "Efetivado" : "Pendente") · @entry.Details</span>
+                <span class="@(entry.Month > _currentMonth ? "entry-month-future" : string.Empty)">Mês @entry.Month @(entry.Month > _currentMonth ? "(mês futuro)" : string.Empty)</span>
+                <span>@(entry.CardExternalId is not null ? "Compra no cartão" : entry.IsEffective ? "Efetivado" : "Pendente") · @entry.Details</span>
                 @if (entry.InstallmentNumber is not null) { <span>Parcela @entry.InstallmentNumber/@entry.InstallmentCount</span> }
                 <div>
                     <button class="button" @onclick="() => _selectedId = entry.ExternalId">@(_selectedId == entry.ExternalId ? "Selecionado" : "Selecionar")</button>
@@ -90,6 +120,15 @@
             </li>
         }
     </ul>
+    @if (_query.TotalCount == 0) { <p>Nenhum lançamento neste filtro.</p> }
+    <footer aria-label="Totais do filtro">
+        <p>Receitas: <span class="numeric entry-income">@Signed(_query.Income)</span></p>
+        <p>Despesas: <span class="numeric entry-expense">@Signed(_query.Expenses)</span></p>
+        <p>Saldo: <span class="numeric @(_query.Balance.IsNegative ? "entry-expense" : "entry-income")">@Signed(_query.Balance)</span></p>
+        <p>@_query.TotalCount lançamentos · Página @_query.Page de @_query.TotalPages</p>
+        <button class="button" disabled="@(_query.Page <= 1 || _queryBusy || _busy)" @onclick="() => ChangePageAsync(_query.Page - 1)">Anterior</button>
+        <button class="button" disabled="@(_query.Page >= _query.TotalPages || _queryBusy || _busy)" @onclick="() => ChangePageAsync(_query.Page + 1)">Próxima</button>
+    </footer>
 </section>
 
 @code {
@@ -124,13 +163,15 @@
     protected override async Task OnInitializedAsync()
     {
         _date = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+        _currentMonth = AccountingMonth.FromDate(_date);
         _accounts = await Accounts.GetAccountsAsync();
         _cards = await Accounts.GetCreditCardsAsync();
         _merchants = await Merchants.FindAsync();
         _suggestions = _merchants;
         _subcategories = await Classifications.GetSubcategoriesAsync();
         await SuggestMonthAsync();
-        _entries = await Entries.GetAsync();
+        await InitializeFiltersAsync();
+        await ReloadQueryAsync();
     }
     private async Task SuggestMonthAsync()
     {
@@ -184,7 +225,7 @@
             var result = _editingId is { } editingId ? await Entries.EditAsync(editingId, request, _scope ?? EntryChangeScope.OnlyThis)
                 : _installments == 1 ? await Entries.CreateAsync(request) : await Entries.CreateInstallmentsAsync(request, _installments);
             _message = result.Error ?? "Lançamento salvo.";
-            if (result.Succeeded) { Reset(); _entries = await Entries.GetAsync(); }
+            if (result.Succeeded) { Reset(); await ReloadQueryAsync(); }
         }
         finally { _busy = false; }
     }
@@ -244,7 +285,7 @@
             var result = await Entries.DeleteAsync(entry.ExternalId, scope);
             _message = result.Error ?? "Lançamento excluído.";
             _deleteEntry = null;
-            if (result.Succeeded) { Reset(); _entries = await Entries.GetAsync(); }
+            if (result.Succeeded) { Reset(); await ReloadQueryAsync(); }
         }
         finally { _busy = false; }
     }
@@ -256,7 +297,7 @@
         {
             var result = await Entries.DuplicateAsync(id);
             _message = result.Error ?? "Lançamento duplicado com a data de hoje.";
-            if (result.Succeeded) { _entries = await Entries.GetAsync(); _selectedId = result.ExternalId; }
+            if (result.Succeeded) { await ReloadQueryAsync(); _selectedId = result.ExternalId; }
         }
         finally { _busy = false; }
     }

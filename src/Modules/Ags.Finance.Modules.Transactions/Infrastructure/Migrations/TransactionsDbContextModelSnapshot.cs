@@ -86,6 +86,7 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.Property<int>("Kind").HasColumnType("integer");
             b.Property<long>("Amount").HasColumnType("bigint");
             b.Property<string>("Details").IsRequired().HasMaxLength(1000).HasColumnType("character varying(1000)");
+            b.Property<string>("NormalizedDetails").HasColumnType("text");
             b.Property<bool>("IsEffective").HasColumnType("boolean");
             b.Property<DateOnly?>("EffectiveDate").HasColumnType("date");
             b.Property<DateTimeOffset?>("EffectiveAt").HasColumnType("timestamp with time zone");
@@ -95,6 +96,7 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.HasIndex("AccountExternalId", "EffectiveDate");
             b.HasIndex("InstallmentPurchaseExternalId", "InstallmentNumber").IsUnique();
             b.HasIndex("CardExternalId", "Month");
+            b.HasIndex("Date", "Id");
             b.HasIndex("MerchantExternalId");
             b.HasIndex("SubcategoryExternalId");
             b.ToTable("entries", "transactions");

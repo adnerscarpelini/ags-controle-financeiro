@@ -1,5 +1,7 @@
 # Documentação
 
+- [Filtros e totais dos lançamentos (#15)](transactions/entry-filters.md)
+
 - [Edição, exclusão e movimentação de lançamentos (#14)](transactions/entry-changes.md)
 
 - [Compras parceladas (#13)](transactions/installments.md)
