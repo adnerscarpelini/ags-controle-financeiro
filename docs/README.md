@@ -5,6 +5,7 @@ Esta pasta descreve o comportamento implementado e as decisões de arquitetura. 
 ## Arquitetura
 
 - [Estrutura de módulos](architecture/module-structure.md)
+- [Testes de arquitetura](architecture/architecture-tests.md)
 - [Persistência com SQLite](architecture/persistence-sqlite.md)
 - [SharedKernel](architecture/shared-kernel.md)
 - [Design da interface](architecture/ui-design.md)
