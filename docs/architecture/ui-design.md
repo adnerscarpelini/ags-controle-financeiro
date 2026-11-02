@@ -31,3 +31,7 @@ Cores de banco, só no texto: Itaú `#FB923C`, Nubank `#A78BFA`, Bradesco `#F871
 - Cantos arredondados de 8, espaçamento em múltiplos de 4, sem sombras pesadas nem gradientes.
 - Cor nunca é o único sinal: valores negativos também levam o sinal de menos.
 - O tema claro pode ser adicionado depois, reaproveitando os mesmos tokens.
+
+## Logo
+
+O arquivo `logo.png` na raiz do repositório (1254 × 1254 px, fundo transparente) é a imagem oficial do projeto: aparece no README e é a base do favicon e dos ícones do PWA, gerados a partir dele nos tamanhos necessários.
