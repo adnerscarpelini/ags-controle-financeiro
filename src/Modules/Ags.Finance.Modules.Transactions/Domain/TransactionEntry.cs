@@ -9,6 +9,8 @@ internal sealed class TransactionEntry : Entity
     public Guid MerchantExternalId { get; private set; }
     public Guid SubcategoryExternalId { get; private set; }
     public Guid AccountExternalId { get; private set; }
+    public Guid? CardExternalId { get; private set; }
+    public Guid? CardLastDigitsExternalId { get; private set; }
     public CategoryKind Kind { get; private set; }
     public Money Amount { get; private set; }
     public string Details { get; private set; } = string.Empty;
@@ -49,4 +51,10 @@ internal sealed class TransactionEntry : Entity
     }
 
     public void ReplaceMerchant(Guid merchantExternalId) => MerchantExternalId = merchantExternalId;
+
+    public void SetCard(Guid cardExternalId, Guid? cardLastDigitsExternalId)
+    {
+        CardExternalId = cardExternalId;
+        CardLastDigitsExternalId = cardLastDigitsExternalId;
+    }
 }

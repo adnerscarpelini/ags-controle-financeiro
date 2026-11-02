@@ -79,6 +79,8 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.Property<Guid>("MerchantExternalId").HasColumnType("uuid");
             b.Property<Guid>("SubcategoryExternalId").HasColumnType("uuid");
             b.Property<Guid>("AccountExternalId").HasColumnType("uuid");
+            b.Property<Guid?>("CardExternalId").HasColumnType("uuid");
+            b.Property<Guid?>("CardLastDigitsExternalId").HasColumnType("uuid");
             b.Property<int>("Kind").HasColumnType("integer");
             b.Property<long>("Amount").HasColumnType("bigint");
             b.Property<string>("Details").IsRequired().HasMaxLength(1000).HasColumnType("character varying(1000)");
@@ -89,6 +91,7 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.HasIndex("ExternalId").IsUnique();
             b.HasIndex("Month");
             b.HasIndex("AccountExternalId", "EffectiveDate");
+            b.HasIndex("CardExternalId", "Month");
             b.HasIndex("MerchantExternalId");
             b.HasIndex("SubcategoryExternalId");
             b.ToTable("entries", "transactions");

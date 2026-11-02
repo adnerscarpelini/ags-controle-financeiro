@@ -8,6 +8,7 @@
 @inject IMerchantCatalog Merchants
 @inject IClassificationCatalog Classifications
 @inject IAccountingMonthCalculator Calendar
+@inject ICardLastDigitsCatalog CardDigits
 @inject TimeProvider Clock
 
 <PageHeader Title="Lançamentos" />
@@ -27,7 +28,18 @@
                 @foreach (var item in _subcategories.Where(x => x.Kind != CategoryKind.Transfer)) { <option value="@item.ExternalId">@item.DisplayName</option> }
             </select></div>
             <div class="field"><label for="entry-amount">Valor (R$)</label><input id="entry-amount" type="number" step="0.01" min="0.01" @bind="_amount" required /></div>
-            <div class="field"><label for="entry-account">Conta</label><select id="entry-account" @bind="_accountId" required>
+            <div class="field"><label for="entry-card">Cartão (opcional)</label><select id="entry-card" @bind="_cardId" @bind:after="CardChangedAsync">
+                <option value="@Guid.Empty">Sem cartão</option>
+                @foreach (var card in _cards) { <option value="@card.ExternalId">@card.Name</option> }
+            </select></div>
+            @if (_cardId != Guid.Empty)
+            {
+                <div class="field"><label for="entry-final">Final (opcional)</label><select id="entry-final" @bind="_finalId">
+                    <option value="@Guid.Empty">Sem final</option>
+                    @foreach (var final in _finals) { <option value="@final.ExternalId">@final.Digits · @final.Label</option> }
+                </select></div>
+            }
+            <div class="field"><label for="entry-account">Conta</label><select id="entry-account" @bind="_accountId" disabled="@(_cardId != Guid.Empty)" required>
                 <option value="@Guid.Empty">Selecione</option>
                 @foreach (var account in _accounts) { <option value="@account.ExternalId">@account.Name</option> }
             </select></div>
@@ -45,7 +57,7 @@
         {
             <li><span>@entry.Date.ToString("dd/MM/yyyy") · @entry.MerchantName · @entry.Classification</span>
                 <span class="numeric @(entry.Amount.IsNegative ? "entry-expense" : "entry-income")">@(entry.Amount.IsNegative ? string.Empty : "+")@entry.Amount</span>
-                <span>Mês @entry.Month · @(entry.IsEffective ? "Efetivado" : "Pendente") · @entry.Details</span>
+                <span>Mês @entry.Month · @(entry.CardExternalId is not null ? "Compra no cartão" : entry.IsEffective ? "Efetivado" : "Pendente") · @entry.Details</span>
             </li>
         }
     </ul>
@@ -53,6 +65,8 @@
 
 @code {
     private IReadOnlyList<AccountDetails> _accounts = [];
+    private IReadOnlyList<CreditCardDetails> _cards = [];
+    private IReadOnlyList<CardLastDigitsDetails> _finals = [];
     private IReadOnlyList<MerchantDetails> _merchants = [];
     private IReadOnlyList<MerchantDetails> _suggestions = [];
     private IReadOnlyList<SubcategoryDetails> _subcategories = [];
@@ -62,9 +76,12 @@
     private Guid _merchantId;
     private Guid _subcategoryId;
     private Guid _accountId;
+    private Guid _cardId;
+    private Guid _finalId;
     private decimal _amount;
     private string _details = string.Empty;
     private string _month = string.Empty;
+    private string _suggestedMonth = string.Empty;
     private string? _message;
     private bool _busy;
 
@@ -72,6 +89,7 @@
     {
         _date = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
         _accounts = await Accounts.GetAccountsAsync();
+        _cards = await Accounts.GetCreditCardsAsync();
         _merchants = await Merchants.FindAsync();
         _suggestions = _merchants;
         _subcategories = await Classifications.GetSubcategoriesAsync();
@@ -80,9 +98,17 @@
     }
     private async Task SuggestMonthAsync()
     {
-        var suggestion = await Calendar.CalculateAsync(_date);
-        if (suggestion.Month is { } month) { _month = month.FirstDay.ToString("yyyy-MM", CultureInfo.InvariantCulture); }
+        var suggestion = await Calendar.CalculateAsync(_date, _cardId == Guid.Empty ? null : _cardId);
+        if (suggestion.Month is { } month) { _month = month.FirstDay.ToString("yyyy-MM", CultureInfo.InvariantCulture); _suggestedMonth = _month; }
         else { _message = suggestion.Error; }
+    }
+    private async Task CardChangedAsync()
+    {
+        _finalId = Guid.Empty;
+        _finals = _cardId == Guid.Empty ? [] : await CardDigits.GetAsync(_cardId);
+        var card = _cards.FirstOrDefault(x => x.ExternalId == _cardId);
+        if (card is not null) { _accountId = card.AccountExternalId; }
+        await SuggestMonthAsync();
     }
     private async Task SearchMerchantAsync(ChangeEventArgs args)
     {
@@ -115,7 +141,8 @@
         _busy = true;
         try
         {
-            var result = await Entries.CreateAsync(new(_date, _merchantId, _subcategoryId, _accountId, new Money(_amount), _details, AccountingMonth.FromDate(monthDate)));
+            var result = await Entries.CreateAsync(new(_date, _merchantId, _subcategoryId, _accountId, new Money(_amount), _details, AccountingMonth.FromDate(monthDate),
+                _cardId == Guid.Empty ? null : _cardId, _finalId == Guid.Empty ? null : _finalId));
             _message = result.Error ?? "Lançamento salvo.";
             if (result.Succeeded) { Reset(); _entries = await Entries.GetAsync(); }
         }
@@ -124,7 +151,7 @@
     private void Reset()
     {
         _merchantName = string.Empty; _merchantId = Guid.Empty; _subcategoryId = Guid.Empty; _amount = 0; _details = string.Empty;
-        _month = AccountingMonth.FromDate(_date).FirstDay.ToString("yyyy-MM", CultureInfo.InvariantCulture);
+        _month = _suggestedMonth;
         _suggestions = _merchants;
     }
 }

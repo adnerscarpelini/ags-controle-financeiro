@@ -23,6 +23,7 @@ public sealed class TransactionPageTests
         var accounts = context.Services.GetRequiredService<IAccountCatalog>();
         var bank = await accounts.CreateBankAsync("Banco Exemplo");
         var account = await accounts.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta Exemplo", AccountKind.Checking, "green"));
+        var card = await accounts.SaveCreditCardAsync(new(null, account.ExternalId!.Value, "Cartão Exemplo", CardBrand.Visa, new Money(10000), 3, 10, true, "green"));
         var classifications = context.Services.GetRequiredService<IClassificationCatalog>();
         var category = await classifications.SaveCategoryAsync(null, "Mercado", CategoryKind.Expense);
         var subcategory = await classifications.SaveSubcategoryAsync(null, category.ExternalId!.Value, "Feira");
@@ -41,5 +42,17 @@ public sealed class TransactionPageTests
         Assert.Equal(new AccountingMonth(2026, 11), entry.Month);
         Assert.Equal("2026-10-05", page.Find("#entry-date").GetAttribute("value"));
         Assert.Equal(string.Empty, page.Find("#entry-merchant").GetAttribute("value"));
+        await page.Find("#entry-card").ChangeAsync(card.ExternalId!.Value.ToString());
+        Assert.Equal("2026-11", page.Find("#entry-month").GetAttribute("value"));
+        await page.Find("#entry-date").ChangeAsync("2026-10-02");
+        Assert.Equal("2026-10", page.Find("#entry-month").GetAttribute("value"));
+        await page.Find("#entry-merchant").InputAsync("Loja Exemplo");
+        page.Find("#entry-amount").Change("100");
+        page.Find("#entry-month").Change("2026-11");
+        await page.Find("form").SubmitAsync(EventArgs.Empty);
+        var purchase = (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.CardExternalId is not null);
+        Assert.Equal(card.ExternalId, purchase.CardExternalId);
+        Assert.Equal(new DateOnly(2026, 10, 2), purchase.Date);
+        Assert.Equal(new AccountingMonth(2026, 11), purchase.Month);
     }
 }
