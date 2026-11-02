@@ -1,10 +1,18 @@
-# Persistência com SQLite
+# Persistência com SQLite — legado em transição
+
+**Estado:** ainda é o provider do código atual, mas deixou de ser a decisão de destino.
+A [persistência PostgreSQL aprovada](persistence-postgresql.md) será implementada na
+[#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60), antes da distribuição
+[#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59).
+Este documento descreve o funcionamento que será substituído; não orienta a criação
+de novos recursos dependentes de SQLite. Dados de desenvolvimento podem ser recriados,
+sem conversão para PostgreSQL nem manutenção dos dois providers.
 
 ## Contexto
 
 A aplicação roda como serviço num único computador da rede local e precisa de um banco em arquivo, fácil de copiar para backup. A regra herdada do monólito modular é que cada módulo seja dono dos seus dados.
 
-## Decisão
+## Decisão anterior, ainda refletida no código
 
 - Um único arquivo SQLite (`finance.db`) na pasta de dados configurável `DataDirectory`. Padrões: `%ProgramData%\AgsFinance` no Windows e `/var/lib/ags-finance` no Linux quando roda como serviço; a pasta local do usuário em desenvolvimento. Nunca numa pasta sincronizada (Google Drive, OneDrive): a sincronização durante uma gravação pode corromper o arquivo.
 - Como o SQLite não tem schemas, cada módulo tem seu `DbContext`, um **prefixo de tabela** (`identity_`, `accounts_`, `transactions_`, `invoices_`, `reimbursements_`) e sua **própria tabela de histórico de migrations** (`__ef_migrations_<module>`).
@@ -15,7 +23,7 @@ A aplicação roda como serviço num único computador da rede local e precisa d
 
 ## Implementação (issue #4)
 
-**Estado:** implementado nos módulos com persistência (Identity, Accounts, Transactions, Invoices e Reimbursements). Reports e Imports não têm tabelas. Identity tem `identity_users`; Accounts tem bancos, contas e cartões (migration `CreateCatalog`, #6). Os demais têm só a migration `Initial`, vazia, que cria o histórico.
+**Estado atual:** infraestrutura nos módulos Identity, Accounts, Transactions, Invoices e Reimbursements. Reports e Imports não têm tabelas. Identity tem `identity_users`; Accounts tem bancos, contas e cartões (migration `CreateCatalog`, #6) e finais (`CreateCardLastDigits`, #7). Os demais têm só a migration `Initial`, vazia.
 
 Accounts usa `AddDbContextFactory` e contextos curtos por operação para os cadastros
 interativos, evitando compartilhar o rastreamento durante o circuito Blazor.
@@ -26,9 +34,9 @@ interativos, evitando compartilhar o rastreamento durante o circuito Blazor.
 - `DatabaseStartup` cria a pasta, monta a connection string de `finance.db` e, antes de a aplicação atender requisições, ativa o modo WAL (`PRAGMA journal_mode=WAL`, que fica gravado no arquivo) e chama `Migrate<Module>ModuleAsync` de cada módulo, na ordem de dependência. Só migrations pendentes são aplicadas.
 - O host passa a connection string a cada módulo: `Add<Module>Module(this IServiceCollection services, string connectionString)`. O módulo não conhece o host nem lê configuração.
 
-### Padrão do módulo (copiar ao criar a primeira entidade de um módulo)
+### Referência do provider atual (substituição na #60)
 
-O padrão vive em cada módulo, sem projeto compartilhado, para não extrair código cedo demais. Os arquivos de Transactions são a referência; os demais módulos têm a mesma cópia com o nome trocado.
+O padrão atual vive em cada módulo, sem projeto compartilhado. Seus conceitos de identidade, auditoria e fronteiras permanecem, mas provider, mapeamentos e migrations serão substituídos na #60; a nova organização usa schemas PostgreSQL.
 
 | Arquivo | Responsabilidade |
 | --- | --- |

@@ -4,9 +4,12 @@ Instruções para agentes de IA que trabalham neste repositório. Leia este arqu
 
 ## O projeto
 
-`ags-controle-financeiro` é uma aplicação web pessoal de controle financeiro que substitui uma planilha do Google Sheets. Ela roda como **serviço** no Windows ou no Linux (como o Syncthing) e é acessada pelo navegador do computador e do celular na **rede local**. Tem um único usuário e não depende de internet.
+`ags-controle-financeiro` é uma aplicação web pessoal de controle financeiro, acessada pelo navegador do computador e do celular na **rede local**. Tem um único usuário e funciona sem internet depois de obtidas as imagens de distribuição.
 
-- **Stack:** .NET 10, C#, ASP.NET Core com Blazor Web App (render mode Interactive Server), EF Core com SQLite, xUnit. Roda como Windows Service ou serviço systemd, servindo HTTPS na rede local.
+- **Destino aprovado:** .NET 10, C#, ASP.NET Core com Blazor Web App (Interactive Server), EF Core com **PostgreSQL como único banco**, xUnit e **Docker Compose**. Mesma imagem Linux no Docker Engine nativo ou no Windows via WSL 2; Docker Desktop não é obrigatório.
+- **Estado do código:** serviço nativo e SQLite ainda estão implementados. A próxima entrega é **#60 → #59**, que substitui essa infraestrutura. Não afirmar que Docker/PostgreSQL já funcionam antes de implementar e validar essas issues.
+- **Dados de desenvolvimento:** o usuário autorizou descartar os dados deste projeto, recriar migrations e remover infraestrutura obsoleta na #60/#59. Não desenvolver migração SQLite → PostgreSQL nem suporte duplo. Conferir alvos de limpeza; a autorização não alcança outros projetos nem apaga o histórico Git.
+- **Troca de arquivos:** somente importação/exportação de cadastros e lançamentos por **CSV no layout oficial e versionado do sistema** (#28, #29, #61, #62). PDF, OFX, XLS/XLSX, OCR, layouts bancários e migração da antiga planilha não fazem parte do produto. CSV não substitui backup.
 - **Repositório público:** nunca versione dados financeiros reais, nomes de estabelecimentos reais do usuário, extratos, faturas, planilhas ou o arquivo do banco. Testes e exemplos usam somente dados fictícios.
 - **Idioma:** converse, escreva issues, PRs, commits e documentação em **português**. Escreva **todo o código em inglês** (tipos, propriedades, métodos, variáveis, tabelas, colunas, testes), seguindo as convenções oficiais da Microsoft para C#/.NET. Textos exibidos na interface ficam em português.
 
@@ -16,7 +19,7 @@ Monólito modular com Clean Architecture dentro de cada módulo. A fonte de verd
 
 ```
 src/
-  Ags.Finance.Web/                # host ASP.NET Core + Blazor: composition root, páginas, componentes, serviço, backup
+  Ags.Finance.Web/                # host ASP.NET Core + Blazor: composition root, páginas, componentes, execução e backup
   Ags.Finance.SharedKernel/       # somente Money e AccountingMonth
   Modules/
     Ags.Finance.Modules.<Module>/
@@ -42,14 +45,15 @@ Módulos: `Identity`, `Accounts`, `Transactions`, `Invoices`, `Reimbursements`, 
 - O `SharedKernel` contém apenas `Money` e `AccountingMonth`. Não adicione nada a ele sem uma decisão registrada.
 - Não adote CQRS, MediatR, Repository genérico, Unit of Work extra ou mensageria sem um problema concreto discutido antes.
 
-### Persistência (SQLite)
+### Persistência e recuperação (decisão PostgreSQL)
 
-- Um único arquivo `.db`, mas um `DbContext` por módulo, com prefixo de tabela do módulo (`transactions_entries`) e tabela de histórico de migrations própria (`__ef_migrations_<module>`).
+- Um banco PostgreSQL, com **schema, DbContext e histórico de migrations próprios por módulo**, conforme a #60 e [a decisão de persistência](docs/architecture/persistence-postgresql.md). As convenções SQLite atuais são legado em transição.
 - Sem FK, JOIN ou SQL que cruze tabelas de módulos diferentes. Uma referência a outro módulo guarda o `ExternalId` dele.
 - Toda entidade com tabela própria tem `Id` (`long`, chave primária), `ExternalId` (`Guid`, gerado no domínio com `Guid.CreateVersion7()`, índice único), `CreatedAt` e `UpdatedAt` (`DateTimeOffset` UTC, vindos de `TimeProvider`, preenchidos por um interceptor do módulo).
 - Mapeamentos com `IEntityTypeConfiguration<T>` na `Infrastructure`; o domínio não tem atributos de persistência.
-- Valores monetários: `decimal` no código (`Money`), centavos em `INTEGER` no banco. Nunca `float` ou `double`.
-- O arquivo do banco fica na pasta de dados do serviço (`DataDirectory`; padrão `%ProgramData%\AgsFinance` no Windows e `/var/lib/ags-finance` no Linux), nunca numa pasta sincronizada. Backup é feito pela API de backup do SQLite.
+- Valores monetários: `decimal` no código (`Money`), centavos em `BIGINT` no PostgreSQL. Nunca `float` ou `double`. Preservar `AccountingMonth` como inteiro `yyyyMM`.
+- O PostgreSQL tem volume persistente próprio. `DataDirectory` fica para certificados, chaves e arquivos da aplicação. Não manter dados ativos em pasta sincronizada.
+- Backup sob demanda com `pg_dump` e recuperação com `pg_restore`, incluindo preparação de papéis/permissões e arquivos associados. Validar recuperação em instalação vazia e guardar cópia fora da máquina. #59 entrega o fluxo mínimo; #31 adiciona interface, agenda e retenção. Volumes e CSV não equivalem a backup de desastre.
 
 ### Regras de negócio centrais
 
@@ -58,6 +62,15 @@ Leia as issues antes de implementar. As regras mais sensíveis são:
 - **AccountingMonth:** no débito, PIX ou dinheiro, é o mês da data. No cartão, é o mês do vencimento da fatura em que a compra cai, conforme o dia de fechamento do cartão. O valor calculado é uma sugestão editável e é gravado.
 - **Parcelas:** uma compra em N vezes gera N lançamentos em meses contábeis consecutivos. A diferença de centavos vai para a primeira parcela.
 - **Pagamento de fatura não é despesa:** é um `InvoicePayment`. Despesas já estão lançadas item a item.
+- **Faturas:** somente **Aberta, Fechada e Paga** (#50). Fechamento automático pelo dia, com opção manual. Compras em Fechada/Paga não podem ser editadas, excluídas ou movidas; destino de compra também precisa estar Aberto. Reabertura manual só enquanto não existir pagamento confirmado. Saldo zero/crédito não marca Paga automaticamente: exigir confirmação explícita de quitação.
+- **Pagamentos:** totais ou parciais, antecipados ou após fechamento. Todo pagamento confirmado é irreversível. Conta vinculada ao cartão vem pré-selecionada, mas pode ser trocada; debitar apenas a escolhida, sem segunda despesa (#19/#51). Antecipação não fecha fatura Aberta por si só.
+- **Ajuste de fatura:** em Aberta/Fechada, informar total correto e criar lançamento da diferença, afetando despesas do mês. É exceção específica ao bloqueio da Fechada, sem reabrir, editar compras ou alterar pagamentos; Paga bloqueia ajuste (#52).
+- **Recorrência:** editar valor, dia/data ou excluir exige escolher alcance; a baixa manual é por ocorrência e não muda a série (#16/#17/#56).
+- **Efetivação fora do cartão:** recorrentes nascem Pendentes; avulsos, Efetivados. Pendências só entram no saldo efetivo pela baixa manual da ocorrência; passar a data apenas torna a pendência atrasada. Separar saldo efetivo, previsão e orçamento mensal (#56–#58).
+- **Saldo negativo:** transferências e pagamentos de fatura podem deixar a conta corrente negativa (#46/#51); não bloquear essas operações apenas por insuficiência de saldo.
+- **Arquivamento:** contas/cartões podem ser arquivados e desarquivados, saindo dos cadastros padrão e novas seleções. Histórico, relatórios e faturas pendentes continuam visíveis (#53). Não estender essa regra a outros cadastros sem issue.
+
+As regras aprovadas ainda sem implementação permanecem nas issues. Consulte [as decisões de consistência financeira](docs/architecture/financial-consistency.md) para distinguir conceitos; não criar estados/regras adicionais para cobrir dúvidas ainda abertas.
 
 Não invente regras de negócio. Se uma issue não define um comportamento, pergunte.
 
@@ -99,8 +112,8 @@ Tema **escuro por padrão**, visual moderno e limpo, com um verde "dinheiro" com
 
 ## Segurança
 
-- Toda página e endpoint exige login, exceto a página de login e os arquivos estáticos.
-- O único usuário é criado pelo comando `user create` no computador do serviço (chamado pelo script de instalação). A aplicação web nunca oferece cadastro de usuário; a senha é trocada logado ou pelo comando `user reset-password`.
+- Toda página e endpoint exige login, exceto login, o endpoint necessário de entrada (`POST /account/sign-in`) e arquivos estáticos. Não ampliar exceções sem necessidade registrada.
+- O único usuário é criado pelo comando `user create`; no destino Docker, executar pelo Compose com a conexão PostgreSQL correta e terminal interativo. A aplicação web nunca oferece cadastro de usuário; a senha é trocada logado ou pelo comando `user reset-password`.
 - Senhas só em hash (`PasswordHasher` do ASP.NET Core Identity). Bloqueio temporário após tentativas erradas.
 - HTTPS com certificado local gerado na primeira execução; HTTP redireciona para HTTPS.
 - Não registre senhas, cookies ou dados financeiros em logs.
@@ -108,7 +121,7 @@ Tema **escuro por padrão**, visual moderno e limpo, com um verde "dinheiro" com
 ## Testes e validação
 
 - Teste regras de domínio e casos de uso pelo comportamento observável: caminho feliz, falhas e limites (fim de mês, dia de fechamento, centavos de parcelas).
-- Testes de integração de persistência usam SQLite real em arquivo temporário ou em memória (`DataSource=:memory:` com conexão aberta).
+- Após #60, testes relacionais usam PostgreSQL real isolado. Não manter SQLite ou provider em memória como substituto do PostgreSQL. Durante a revisão documental #63, os testes SQLite existentes continuam validando o código ainda não migrado; não apagá-los antes da substituição.
 - Mantenha os testes de arquitetura (`Ags.Finance.ArchitectureTests`) cobrindo as regras de fronteira. Uma nova regra de fronteira ganha um teste.
 - Antes de entregar, execute: `dotnet build Ags.Finance.slnx` (zero avisos), `dotnet test Ags.Finance.slnx` e `dotnet format Ags.Finance.slnx --verify-no-changes`.
 - Nunca declare um teste aprovado sem tê-lo executado. Relate o que foi executado e as limitações.
@@ -117,7 +130,7 @@ Tema **escuro por padrão**, visual moderno e limpo, com um verde "dinheiro" com
 
 ### Issues
 
-- Os requisitos vivem em GitHub Issues. Não crie specs ou arquivos de requisitos no repositório; `docs/` descreve só o comportamento implementado e as decisões de arquitetura.
+- Os requisitos vivem em GitHub Issues. Não crie specs ou arquivos de requisitos no repositório; `docs/` descreve comportamento implementado e decisões de arquitetura. Decisões aprovadas ainda não implementadas devem ter estado explícito e links para as issues; não duplicar seus critérios como uma nova especificação.
 - Título: `[<Module>] <ação no infinitivo>` (ex.: `[Transactions] Lançar compra parcelada`). Tarefas sem módulo usam `[Transversal]`.
 - Corpo segue os templates de `.github/ISSUE_TEMPLATE/`. Critérios de aceite no formato *Dado / Quando / Então*, incluindo falhas e limites.
 - Labels: uma de tipo (`feature`, `bug`, `refactor`, `architecture`, `maintenance`) e uma `module:<nome>` por módulo afetado.

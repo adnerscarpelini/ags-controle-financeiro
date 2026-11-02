@@ -2,6 +2,11 @@
 
 Origem: [#36](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/36). O usuário é criado por comando, veja [user-creation.md](user-creation.md). Decisão geral em [web-hosting.md](../architecture/web-hosting.md).
 
+**Estado:** login e proteção de rotas estão implementados. A distribuição
+[#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59) ainda precisa
+persistir as chaves de Data Protection e a identificação da aplicação para sobreviver
+à recriação de containers, mantendo as mesmas regras de expiração e SecurityStamp.
+
 ## Comportamento
 
 - **Tudo exige login.** Uma política de fallback (`RequireAuthenticatedUser`) vale para todo endpoint, e `_Imports.razor` aplica `[Authorize]` a todo componente. A única exceção é a página `/login` (`[AllowAnonymous]`); os arquivos estáticos (CSS, fonte, imagens e `_framework/blazor.web.js`) são atendidos antes da autenticação.

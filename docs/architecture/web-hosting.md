@@ -1,32 +1,66 @@
-# Hospedagem web, serviço e segurança
+# Hospedagem web, distribuição e segurança
 
-## Contexto
+## Contexto e estado
 
-A primeira versão foi pensada como app desktop (Avalonia). Para usar também pelo celular, o host passou a ser web. O modelo é o do Syncthing: instalado uma vez num computador, sobe com o sistema e é acessado pelo navegador de qualquer dispositivo da mesma rede.
+A aplicação é um servidor web pessoal, para computador e celular na rede local.
+O host ASP.NET Core/Blazor, HTTPS e autenticação já estão implementados
+([#34](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/34),
+[#35](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/35),
+[#36](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/36),
+[#37](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/37)).
+A PWA ainda está pendente na [#38](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/38).
 
-**Estado:** serviço ([#34](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/34), veja [service-installation.md](../web/service-installation.md)), HTTPS ([#37](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/37), veja [https-certificate.md](../web/https-certificate.md)) e criação do usuário ([#35](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/35), veja [user-creation.md](../identity/user-creation.md)) e login ([#36](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/36), veja [login.md](../identity/login.md)) implementados. PWA ainda não.
+**Destino aprovado, ainda não implementado:** Docker Compose com aplicação e PostgreSQL,
+na ordem [#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60) →
+[#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59).
+A [instalação nativa](../web/service-installation.md) e o
+[SQLite](persistence-sqlite.md) documentam o código atual, que será substituído.
+Não usar essas entregas históricas como decisão para perpetuar duas distribuições/providers.
 
-## Decisão
+## Decisão aprovada
 
-- **Host:** `Ags.Finance.Web`, ASP.NET Core com Blazor Web App em render mode Interactive Server. Toda a interface é escrita em C#.
-- **Serviço:** Windows Service (`UseWindowsService`) ou systemd (`UseSystemd`), com início automático. Publicação self-contained para win-x64 e linux-x64, com scripts de instalação que registram o serviço e liberam a porta no firewall.
-- **Rede:** Kestrel escuta em todas as interfaces numa porta configurável (padrão 5280). Acesso só na rede local; acesso externo fica fora do escopo.
-- **HTTPS:** certificado autoassinado gerado na primeira execução, com o nome do computador, `localhost` e os IPs locais. HTTP redireciona para HTTPS. Opcionalmente, um `.pfx` próprio.
-  - **Mesma porta para HTTP e HTTPS:** um middleware de conexão do Kestrel espia o primeiro byte; `0x16` (início do handshake TLS) segue para o HTTPS e qualquer outro pedido recebe um `307` para a URL HTTPS equivalente. Quem digita `http://ip:5280` chega ao site e o firewall abre uma única porta.
-- **Usuário:** um único usuário, criado pelo comando `user create` no computador do serviço, chamado pelo script de instalação. A aplicação web nunca oferece cadastro. Sem envio de e-mail, a senha é trocada logado ou pelo comando `user reset-password`.
-- **Login:** cookie de autenticação, senha em hash (`PasswordHasher`, PBKDF2), bloqueio temporário após tentativas erradas, "manter conectado" opcional.
-- **Celular:** PWA instalável (manifesto e service worker mínimo); os dados continuam no servidor.
+- Um container Linux da aplicação e outro PostgreSQL, com versões explícitas.
+  Linux usa Docker Engine nativo; Windows usa Docker Engine dentro do WSL 2.
+  Docker Desktop não é obrigatório.
+- Executar o processo ASP.NET Core diretamente, sem Windows Service/systemd dentro da imagem.
+  A #59 retira integrações/scripts nativos obsoletos e mantém o desenvolvimento com dotnet run.
+- Publicar somente o HTTPS da aplicação na LAN, na porta padrão 5280 configurável.
+  O banco fica na rede interna do Compose, com volumes e credenciais próprios.
+- Persistir dados do PostgreSQL separadamente de certificados, chaves de Data Protection
+  e arquivos da aplicação. Backup tem destino separado e cópia fora da máquina.
+- Manter cultura pt-BR e configurar o fuso de negócio explicitamente; auditoria permanece UTC.
+- Criar o único usuário pelos comandos user create/user reset-password, com terminal
+  interativo e conexão PostgreSQL correta. Não oferecer cadastro de usuário pela web.
+- Preservar hash de senha, bloqueio, expiração e SecurityStamp. Chaves de sessão precisam
+  sobreviver à recriação do container.
+- Manter HTTPS, configurar no certificado os nomes/IPs do host usados pelos dispositivos
+  e persistir o certificado. Não inferir o endereço externo pela rede interna do container.
+- Validar inicialização automática do WSL/Docker e acesso LAN após reinício do Windows,
+  sem terminal aberto. Política de restart do container não basta como prova desse fluxo.
+- Usar imagens versionadas e backup anterior a migrations; a entrega exige um ensaio
+  de restauração em PostgreSQL vazio. Detalhes em [persistência PostgreSQL](persistence-postgresql.md).
 
-## Consequências
+## Comportamento já implementado
 
-- Qualquer dispositivo da rede alcança a porta, por isso login e HTTPS são obrigatórios desde o MVP.
-- O navegador mostra um aviso de certificado até ele ser marcado como confiável em cada dispositivo.
-- A conta que roda o serviço precisa ter permissão na pasta de dados e na pasta de backup.
+O host usa Blazor Interactive Server e Kestrel em todas as interfaces. Na mesma porta,
+a conexão TLS segue para HTTPS; HTTP recebe 307 para a URL HTTPS equivalente.
+Certificados locais atuais usam os nomes/IPs detectados da máquina; a configuração de
+endereços externos para Docker será adaptada na #59.
 
-## Alternativas consideradas
+Há [login](../identity/login.md), usuário por [comando](../identity/user-creation.md) e
+[página de certificado](../web/https-certificate.md). Somente login, seu endpoint de entrada
+e arquivos estáticos são anônimos. As demais páginas/endpoints exigem autenticação.
 
-- **HTTP numa segunda porta só para redirecionar:** mais simples, mas exige uma segunda regra de firewall e quem digita `http://ip:5280` recebe erro de conexão.
-- **Container Docker:** discutido; não é o caminho principal porque no Windows exige o Docker Desktop (sobe no login, não no boot) e dentro do container o certificado não enxerga o IP e o nome do computador. Fica como possível distribuição adicional para Linux.
-- **Desktop com Avalonia:** sem acesso pelo celular.
-- **Blazor WebAssembly ou SPA (React):** mais independentes do servidor, mas com mais peças e uma API a manter, sem ganho real para uso em rede local.
-- **Cadastro de usuário pela web no primeiro acesso:** alguém da rede poderia se cadastrar primeiro; descartado em favor do comando no computador do serviço.
+## Consequências e alternativas
+
+Docker acrescenta operação de volumes, rede e credenciais, padronizando instalação e atualização.
+O certificado ainda precisa ser confiado nos dispositivos. A aplicação funciona sem internet
+após obter as imagens; buscar uma nova versão pode exigir acesso ao registro.
+
+O serviço nativo foi a escolha inicial, superada por Docker. A hipótese anterior de que
+Docker no Windows exigiria Docker Desktop foi descartada. A #59 deve comprovar o caminho WSL
+em ambiente real, incluindo firewall e inicialização.
+
+Desktop com Avalonia não atendia ao acesso pelo celular. SPA/WebAssembly e microsserviços
+acrescentariam peças sem necessidade demonstrada. Acesso pela internet, Kubernetes e
+alta disponibilidade continuam fora do escopo aprovado.
