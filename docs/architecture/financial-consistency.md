@@ -63,6 +63,14 @@ origem e no destino de uma mudança. Pagamentos confirmados permanecem irrevers�
 O débito atômico e a quitação explícita da #51 estão implementados; pagamentos
 confirmados não podem ser editados ou excluídos pelos comandos de abatimento.
 
+## Reembolsos (#78–#83)
+
+Reembolso é indicado na despesa, por pessoa e percentual, e separado da baixa dela: uma despesa
+Pendente já entra nos reembolsos do mês contábil. Receber não altera a despesa, a baixa nem a
+fatura, então uma compra em fatura Fechada ou Paga pode ser recebida. O recebimento cria uma
+receita avulsa Efetivada por pessoa, com crédito único em conta. Receita e despesa continuam
+brutas nos relatórios, sem compensação. Ver [Reembolsos](reimbursements.md).
+
 ## Recorrentes do cartão na fatura (#69)
 
 Em fatura Aberta, a ocorrência recorrente do cartão com data posterior a hoje é **prevista**. Pela preferência,

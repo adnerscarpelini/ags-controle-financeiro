@@ -6,4 +6,7 @@ internal sealed class OpenReimbursementWriteGuard : IReimbursementWriteGuard
 {
     public Task<string?> RequirePersonAsync(Guid personExternalId, CancellationToken cancellationToken = default)
         => Task.FromResult<string?>(null);
+
+    public Task<string?> RequireEntryChangeAsync(Guid entryExternalId, bool changesProtectedData, CancellationToken cancellationToken = default)
+        => Task.FromResult<string?>(null);
 }
