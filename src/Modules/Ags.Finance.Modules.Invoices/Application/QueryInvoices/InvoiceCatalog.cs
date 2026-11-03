@@ -5,7 +5,7 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Invoices.Application.QueryInvoices;
 
-internal sealed class InvoiceCatalog(IEntryCatalog entries, IAccountCatalog accounts, IInvoiceStore store, IFinancialOperation operations) : IInvoiceCatalog
+internal sealed class InvoiceCatalog(IEntryCatalog entries, IAccountCatalog accounts, IInvoiceStore store, IInvoicePaymentCatalog payments, IFinancialOperation operations) : IInvoiceCatalog
 {
     public Task<IReadOnlyList<InvoiceDetails>> GetAsync(CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(GetCoreAsync, _ => true, cancellationToken);
@@ -32,13 +32,15 @@ internal sealed class InvoiceCatalog(IEntryCatalog entries, IAccountCatalog acco
         states = (await store.GetAsync(cancellationToken)).ToDictionary(x => (x.CardExternalId, x.Month));
         var groups = (await entries.GetAsync(cancellationToken)).Where(x => x.CardExternalId is not null)
             .GroupBy(x => (CardExternalId: x.CardExternalId!.Value, x.Month)).ToDictionary(x => x.Key, x => x.ToList());
+        var history = await payments.GetHistoryAsync(cancellationToken: cancellationToken);
         return groups.Keys.Union(states.Keys).OrderByDescending(x => x.Month).ThenBy(x => cards[x.CardExternalId].Name, StringComparer.CurrentCulture)
             .Select(key =>
             {
                 IReadOnlyList<EntryDetails> items = groups.GetValueOrDefault(key) ?? [];
                 var state = states.GetValueOrDefault(key);
                 return new InvoiceDetails(key.CardExternalId, cards[key.CardExternalId].Name, key.Month,
-                    new Money(-items.Sum(x => x.Amount.Amount)), items, (InvoiceStatus)(state?.Status ?? Domain.InvoiceStatus.Open), state?.ExternalId);
+                    new Money(-items.Sum(x => x.Amount.Amount)), items, (InvoiceStatus)(state?.Status ?? Domain.InvoiceStatus.Open), state?.ExternalId,
+                    history.Where(x => x.CardExternalId == key.CardExternalId && x.Month == key.Month).ToList());
             }).ToList();
     }
 }

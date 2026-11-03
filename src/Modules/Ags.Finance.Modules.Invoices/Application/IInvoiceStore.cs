@@ -8,4 +8,7 @@ internal interface IInvoiceStore
     Task<IReadOnlyList<Invoice>> GetAsync(CancellationToken cancellationToken);
     Task<Invoice?> FindAsync(Guid cardExternalId, AccountingMonth month, CancellationToken cancellationToken);
     Task SaveAsync(Invoice invoice, CancellationToken cancellationToken);
+    Task<IReadOnlyList<InvoicePayment>> GetPaymentsAsync(CancellationToken cancellationToken);
+    Task SavePaymentAsync(InvoicePayment payment, CancellationToken cancellationToken);
+    Task DeletePaymentAsync(InvoicePayment payment, CancellationToken cancellationToken);
 }

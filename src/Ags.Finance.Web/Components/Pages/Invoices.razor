@@ -48,6 +48,7 @@
         {
             <li><span>@invoice.CardName · @invoice.Month</span><span class="numeric">@invoice.Total</span>
                 <span>@StatusLabel(invoice.Status)</span>
+                <span class="@(invoice.RemainingBalance.IsNegative ? "invoice-credit" : string.Empty)">Em aberto: @invoice.RemainingBalance @(invoice.RemainingBalance.IsNegative ? "(crédito)" : string.Empty)</span>
                 <button class="button" @onclick="() => Select(invoice)">Ver composição</button>
                 @if (invoice.Status == InvoiceStatus.Open) { <button class="button" @onclick="() => Ask(invoice, false)">Fechar</button> }
                 @if (invoice.Status == InvoiceStatus.Closed) { <button class="button" @onclick="() => Ask(invoice, true)">Reabrir</button> }
@@ -71,12 +72,16 @@
             }
         </ul>
         <p>Total: <span class="numeric">@selected.Total</span></p>
+        <p>Cashback: @selected.CashbackTotal · Descontos: @selected.DiscountsTotal · Pagamentos: @selected.PaymentsTotal</p>
+        <p class="@(selected.RemainingBalance.IsNegative ? "invoice-credit" : string.Empty)">Saldo restante: @selected.RemainingBalance @(selected.RemainingBalance.IsNegative ? "(crédito)" : string.Empty)</p>
+        <InvoicePaymentHistory Invoice="selected" Accounts="_accounts" />
     </section>
 }
 
 @code {
     private IReadOnlyList<InvoiceDetails> _invoices = [];
     private IReadOnlyList<CreditCardDetails> _cards = [];
+    private IReadOnlyList<AccountDetails> _accounts = [];
     private InvoiceDetails? _pending;
     private bool _reopen;
     private bool _busy;
@@ -90,6 +95,7 @@
     {
         _month = Clock.GetLocalNow().ToString("yyyy-MM", CultureInfo.InvariantCulture);
         _cards = await Accounts.GetCreditCardsAsync(false);
+        _accounts = await Accounts.GetAccountsAsync(false);
         await ReloadInvoicesAsync();
     }
     private void Select(InvoiceDetails invoice) { _selectedCard = invoice.CardExternalId; _selectedMonth = invoice.Month; }
