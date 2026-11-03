@@ -170,3 +170,5 @@ são sempre fiéis; só a geração futura pode divergir nesses casos.
 
 Implementados: layout, escrita e leitura estrita, exportação de cadastros (#61) e de lançamentos e séries (#62), modelos e exemplos.
 Importação de cadastros (#28) e de lançamentos (#29) implementadas.
+
+**Repetições finitas (#91).** Cada ocorrência é exportada como lançamento comum, com valor, data e estado próprios. O vínculo e a numeração da repetição não são exportados; a importação não reconstrói o grupo.

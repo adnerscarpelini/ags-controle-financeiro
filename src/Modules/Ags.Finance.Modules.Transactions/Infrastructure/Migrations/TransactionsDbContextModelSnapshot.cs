@@ -97,6 +97,9 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.Property<Guid>("MerchantExternalId").HasColumnType("uuid");
             b.Property<Guid>("SubcategoryExternalId").HasColumnType("uuid");
             b.Property<Guid>("AccountExternalId").HasColumnType("uuid");
+            b.Property<Guid?>("RepetitionExternalId").HasColumnType("uuid");
+            b.Property<int?>("RepetitionNumber").HasColumnType("integer");
+            b.HasIndex("RepetitionExternalId", "RepetitionNumber").IsUnique();
             b.Property<Guid?>("InstallmentPurchaseExternalId").HasColumnType("uuid");
             b.Property<int?>("InstallmentNumber").HasColumnType("integer");
             b.Property<Guid?>("CardExternalId").HasColumnType("uuid");
@@ -129,6 +132,23 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
         {
             b.HasOne("Ags.Finance.Modules.Transactions.Domain.Merchant", null).WithMany().HasForeignKey("MerchantExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict).IsRequired();
             b.HasOne("Ags.Finance.Modules.Transactions.Domain.Subcategory", null).WithMany().HasForeignKey("SubcategoryExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+        });
+        modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.EntryRepetition", b =>
+        {
+            b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint").HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+            b.Property<Guid>("ExternalId").HasColumnType("uuid");
+            b.Property<DateTimeOffset>("CreatedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("timestamp with time zone");
+            b.Property<int>("Count").HasColumnType("integer");
+            b.Property<int>("Period").HasColumnType("integer");
+            b.HasKey("Id");
+            b.HasAlternateKey("ExternalId");
+            b.HasIndex("ExternalId").IsUnique();
+            b.ToTable("entry_repetitions", "transactions");
+        });
+        modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.TransactionEntry", b =>
+        {
+            b.HasOne("Ags.Finance.Modules.Transactions.Domain.EntryRepetition", null).WithMany().HasForeignKey("RepetitionExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.InstallmentPurchase", b =>
         {

@@ -13,11 +13,13 @@ internal sealed partial class EntryCatalog
     {
         var all = await store.GetAsync(cancellationToken);
         var selected = all.FirstOrDefault(x => x.ExternalId == externalId);
-        if (selected is null || !Enum.IsDefined(scope) || (scope == EntryChangeScope.ThisAndFollowing && selected.InstallmentPurchaseExternalId is null))
+        if (selected is null || !Enum.IsDefined(scope) || (scope != EntryChangeScope.OnlyThis && selected.InstallmentPurchaseExternalId is null && selected.RepetitionExternalId is null) || (scope == EntryChangeScope.All && selected.RepetitionExternalId is null))
         {
             return new(null, "Selecione um lançamento existente e um alcance válido.");
         }
         if (selected.RecurringEntryExternalId is not null) { return new(null, "Escolha o alcance da recorrência para alterar esta ocorrência."); }
+        if (selected.RepetitionExternalId is not null && selected.IsEffective && scope != EntryChangeScope.All) { return new(null, "Ocorrências Pagas ou Recebidas só podem mudar no alcance Todas."); }
+        if (selected.RepetitionExternalId is not null && request.CardExternalId is not null) { return new(null, "Repetições exigem lançamentos fora do cartão."); }
         var affected = Affected(all, selected, scope);
         var dateOrCardChanged = request.Date != selected.Date || request.CardExternalId != selected.CardExternalId;
         var month = request.Month ?? selected.Month;
@@ -38,11 +40,13 @@ internal sealed partial class EntryCatalog
             var error = await RequireSourceOpenAsync(entry, cancellationToken);
             if (error is not null) { return new(null, error); }
             if (dateOrCardChanged && await invoices.IsAnticipatedAsync(entry.ExternalId, cancellationToken)) { return new(null, "Uma parcela antecipada não permite alterar a data ou o cartão."); }
-            var monthIndex = (entry.Month.Year - 1) * 12 + entry.Month.Month - 1 + shift;
+            var monthIndex = (entry.Month.Year - 1) * 12 + entry.Month.Month - 1 + (selected.RepetitionExternalId is null ? shift : 0);
             if (monthIndex is < 0 or >= 119988) { return new(null, "A mudança ultrapassa o calendário suportado."); }
+            var dayIndex = entry.Date.DayNumber + request.Date.DayNumber - baseline.Date.DayNumber;
+            if (selected.RepetitionExternalId is not null && (dayIndex < DateOnly.MinValue.DayNumber || dayIndex > DateOnly.MaxValue.DayNumber)) { return new(null, "A alteração ultrapassa o calendário suportado."); }
             var changed = request with
             {
-                Date = request.Date == baseline.Date ? entry.Date : request.Date,
+                Date = selected.RepetitionExternalId is not null ? entry.Date.AddDays(request.Date.DayNumber - baseline.Date.DayNumber) : request.Date == baseline.Date ? entry.Date : request.Date,
                 Month = new ReferenceMonth(monthIndex / 12 + 1, monthIndex % 12 + 1),
                 MerchantExternalId = request.MerchantExternalId == baseline.MerchantExternalId ? entry.MerchantExternalId : request.MerchantExternalId,
                 SubcategoryExternalId = request.SubcategoryExternalId == baseline.SubcategoryExternalId ? entry.SubcategoryExternalId : request.SubcategoryExternalId,
@@ -59,7 +63,7 @@ internal sealed partial class EntryCatalog
             error = await RequireReimbursementChangeAsync(entry, ChangesProtectedData(entry, updated, keepAmount), cancellationToken);
             if (error is not null) { return new(null, error); }
             entry.ApplyChange(updated, keepAmount);
-            ApplyPaidState(entry, request.IsPaid);
+            if (entry.ExternalId == externalId) { ApplyPaidState(entry, request.IsPaid); }
         }
         return await store.SaveEntriesAsync(affected, cancellationToken) ? new(externalId, null) : new(null, "Não foi possível salvar todos os lançamentos.");
     }
@@ -71,11 +75,12 @@ internal sealed partial class EntryCatalog
     {
         var all = await store.GetAsync(cancellationToken);
         var selected = all.FirstOrDefault(x => x.ExternalId == externalId);
-        if (selected is null || !Enum.IsDefined(scope) || (scope == EntryChangeScope.ThisAndFollowing && selected.InstallmentPurchaseExternalId is null))
+        if (selected is null || !Enum.IsDefined(scope) || (scope != EntryChangeScope.OnlyThis && selected.InstallmentPurchaseExternalId is null && selected.RepetitionExternalId is null) || (scope == EntryChangeScope.All && selected.RepetitionExternalId is null))
         {
             return new(null, "Selecione um lançamento existente e um alcance válido.");
         }
         if (selected.RecurringEntryExternalId is not null) { return new(null, "Escolha o alcance da recorrência para alterar esta ocorrência."); }
+        if (selected.RepetitionExternalId is not null && selected.IsEffective && scope != EntryChangeScope.All) { return new(null, "Ocorrências Pagas ou Recebidas só podem mudar no alcance Todas."); }
         var affected = Affected(all, selected, scope);
         foreach (var entry in affected)
         {
@@ -112,6 +117,7 @@ internal sealed partial class EntryCatalog
             || updated.ReimbursementPersonExternalId != entry.ReimbursementPersonExternalId || updated.ReimbursementPercent != entry.ReimbursementPercent;
 
     private static List<TransactionEntry> Affected(IReadOnlyList<TransactionEntry> entries, TransactionEntry selected, EntryChangeScope scope)
-        => scope == EntryChangeScope.OnlyThis ? [selected] : entries.Where(x => x.InstallmentPurchaseExternalId == selected.InstallmentPurchaseExternalId && x.InstallmentNumber >= selected.InstallmentNumber)
-            .OrderBy(x => x.InstallmentNumber).ToList();
+        => scope == EntryChangeScope.OnlyThis ? [selected] : selected.RepetitionExternalId is { } repetition
+            ? entries.Where(x => x.RepetitionExternalId == repetition && (scope == EntryChangeScope.All || (x.RepetitionNumber >= selected.RepetitionNumber && !x.IsEffective))).OrderBy(x => x.RepetitionNumber).ToList()
+            : entries.Where(x => x.InstallmentPurchaseExternalId == selected.InstallmentPurchaseExternalId && x.InstallmentNumber >= selected.InstallmentNumber).OrderBy(x => x.InstallmentNumber).ToList();
 }

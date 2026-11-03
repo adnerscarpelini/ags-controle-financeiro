@@ -12,6 +12,8 @@ internal interface IEntryStore
     Task<IReadOnlyList<EntryPlanningAmount>> GetPlanningAmountsAsync(ReferenceMonth from, ReferenceMonth to, CancellationToken cancellationToken);
     Task<IReadOnlyList<InvoiceAdjustment>> GetInvoiceAdjustmentsAsync(CancellationToken cancellationToken);
     Task AddInvoiceAdjustmentAsync(InvoiceAdjustment adjustment, CancellationToken cancellationToken);
+    Task<IReadOnlyList<EntryRepetition>> GetRepetitionsAsync(CancellationToken cancellationToken);
+    Task<bool> AddRepetitionAsync(EntryRepetition repetition, IReadOnlyList<TransactionEntry> entries, CancellationToken cancellationToken);
     Task<bool> AddAsync(TransactionEntry entry, CancellationToken cancellationToken);
     Task<IReadOnlyList<InstallmentPurchase>> GetPurchasesAsync(CancellationToken cancellationToken);
     Task<bool> AddPurchaseAsync(InstallmentPurchase purchase, IReadOnlyList<TransactionEntry> entries, CancellationToken cancellationToken);

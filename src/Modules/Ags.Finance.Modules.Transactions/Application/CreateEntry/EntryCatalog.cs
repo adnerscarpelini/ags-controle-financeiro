@@ -122,6 +122,7 @@ internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementSt
 
     private async Task<IReadOnlyList<EntryDetails>> DescribeAsync(IReadOnlyList<TransactionEntry> rows, CancellationToken cancellationToken)
     {
+        var repetitions = (await store.GetRepetitionsAsync(cancellationToken)).ToDictionary(x => x.ExternalId);
         var purchases = (await store.GetPurchasesAsync(cancellationToken)).ToDictionary(x => x.ExternalId);
         var descriptions = (await merchants.FindAsync(activeOnly: false, cancellationToken: cancellationToken)).ToDictionary(x => x.ExternalId);
         var subcategories = (await classifications.GetSubcategoriesAsync(false, cancellationToken)).ToDictionary(x => x.ExternalId);
@@ -131,7 +132,8 @@ internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementSt
             return new EntryDetails(x.ExternalId, x.Date, x.Month, x.MerchantExternalId, descriptions[x.MerchantExternalId].Name,
                 x.SubcategoryExternalId, subcategory.CategoryExternalId, subcategory.DisplayName, x.AccountExternalId, (Contracts.CategoryKind)x.Kind,
                 x.Amount, x.Details, x.IsEffective, x.EffectiveDate, x.EffectiveAt, x.CardExternalId, x.CardLastDigitsExternalId, x.InstallmentPurchaseExternalId, x.InstallmentNumber,
-                x.InstallmentPurchaseExternalId is { } purchaseId ? purchases[purchaseId].Count : null, x.RecurringEntryExternalId, x.OccurrenceMonth, Reimbursement: ReimbursementOf(x));
+                x.InstallmentPurchaseExternalId is { } purchaseId ? purchases[purchaseId].Count : null, x.RecurringEntryExternalId, x.OccurrenceMonth, Reimbursement: ReimbursementOf(x), RepetitionExternalId: x.RepetitionExternalId, RepetitionNumber: x.RepetitionNumber,
+                RepetitionCount: x.RepetitionExternalId is { } repetitionId ? repetitions[repetitionId].Count : null);
         }).ToList();
     }
 
