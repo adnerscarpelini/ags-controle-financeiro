@@ -29,10 +29,10 @@ public sealed partial class EntryTests
         Assert.False((await Documents.RestoreAsync(result.ExternalId!.Value, Assert.Single(await Documents.ListAsync()).ExternalId)).Succeeded);
     }
     [Theory]
-    [InlineData(RecurringChangeScope.OnlyThis)]
-    [InlineData(RecurringChangeScope.ThisAndFollowing)]
-    [InlineData(RecurringChangeScope.All)]
-    public async Task RecurringEditsPreserveOccurrenceAttachmentsAndDoNotShareThemWithDecember(RecurringChangeScope scope)
+    [InlineData(RecurringEditScope.OnlyThis)]
+    [InlineData(RecurringEditScope.AllPending)]
+    [InlineData(RecurringEditScope.All)]
+    public async Task RecurringEditsPreserveOccurrenceAttachmentsAndDoNotShareThemWithDecember(RecurringEditScope scope)
     {
         await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 10, 10) }));
         var november = await OccurrenceAsync(2026, 11);

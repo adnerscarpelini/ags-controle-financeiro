@@ -8,10 +8,10 @@ namespace Ags.Finance.Modules.Invoices.Tests;
 public sealed partial class InvoiceTests
 {
     [Theory]
-    [InlineData(RecurringChangeScope.OnlyThis)]
-    [InlineData(RecurringChangeScope.ThisAndFollowing)]
-    [InlineData(RecurringChangeScope.All)]
-    public async Task ProtectedOccurrenceRejectsEveryScopeWithoutChangingSeries(RecurringChangeScope scope)
+    [InlineData(RecurringEditScope.OnlyThis)]
+    [InlineData(RecurringEditScope.AllPending)]
+    [InlineData(RecurringEditScope.All)]
+    public async Task ProtectedOccurrenceRejectsEveryScopeWithoutChangingSeries(RecurringEditScope scope)
     {
         var entries = Provider.GetRequiredService<IEntryCatalog>();
         var series = await entries.CreateRecurringAsync(new(Purchase(50)));
@@ -19,13 +19,13 @@ public sealed partial class InvoiceTests
         await Lifecycle.CloseAsync(_cardId, november.Month);
         var selected = Assert.Single(november.Entries);
         Assert.False((await entries.EditRecurringAsync(selected.ExternalId, new(Change(selected) with { Amount = new Money(60) }, scope))).Succeeded);
-        Assert.False((await entries.DeleteRecurringAsync(selected.ExternalId, scope)).Succeeded);
+        Assert.False((await entries.DeleteRecurringAsync(selected.ExternalId, (RecurringChangeScope)(int)scope)).Succeeded);
         Assert.Equal(new Money(50), (await entries.GetRecurringAsync(series.ExternalId!.Value))?.Template.Amount);
         Assert.Equal(new Money(50), Assert.Single(await Catalog.GetMonthAsync(new ReferenceMonth(2026, 12))).Total);
     }
 
     [Fact]
-    public async Task FollowingFailsAsOneOperationWhenALaterInvoiceIsClosed()
+    public async Task AllFailsAsOneOperationWhenALaterInvoiceIsClosed()
     {
         var entries = Provider.GetRequiredService<IEntryCatalog>();
         await entries.CreateRecurringAsync(new(Purchase(50)));
@@ -33,13 +33,13 @@ public sealed partial class InvoiceTests
         await Catalog.GetMonthAsync(new ReferenceMonth(2026, 11));
         await Lifecycle.CloseAsync(_cardId, new ReferenceMonth(2026, 11));
         var selected = Assert.Single(october.Entries);
-        Assert.False((await entries.EditRecurringAsync(selected.ExternalId, new(Change(selected) with { Amount = new Money(60) }, RecurringChangeScope.ThisAndFollowing))).Succeeded);
+        Assert.False((await entries.EditRecurringAsync(selected.ExternalId, new(Change(selected) with { Amount = new Money(60) }, RecurringEditScope.All))).Succeeded);
         Assert.Equal(new Money(50), Assert.Single(await Catalog.GetMonthAsync(october.Month)).Total);
         Assert.Equal(new Money(50), Assert.Single(await Catalog.GetMonthAsync(new ReferenceMonth(2026, 12))).Total);
     }
 
     [Fact]
-    public async Task AllPreservesPastConfirmedCardOccurrencesAndTheirIdentity()
+    public async Task AllChangesPastConfirmedCardOccurrencesAndKeepsTheirIdentity()
     {
         var entries = Provider.GetRequiredService<IEntryCatalog>();
         await entries.CreateRecurringAsync(new(Purchase(50)));
@@ -47,13 +47,13 @@ public sealed partial class InvoiceTests
         var november = Assert.Single(await Catalog.GetMonthAsync(new ReferenceMonth(2026, 11)));
         _clock.Now = new DateTimeOffset(2026, 9, 20, 12, 0, 0, TimeSpan.Zero);
         var future = Assert.Single(november.Entries);
-        Assert.True((await entries.EditRecurringAsync(future.ExternalId, new(Change(future) with { Amount = new Money(60) }, RecurringChangeScope.All))).Succeeded);
+        Assert.True((await entries.EditRecurringAsync(future.ExternalId, new(Change(future) with { Amount = new Money(60) }, RecurringEditScope.All))).Succeeded);
         var past = Assert.Single(Assert.Single(await Catalog.GetMonthAsync(october.Month)).Entries);
         Assert.Equal(Assert.Single(october.Entries).ExternalId, past.ExternalId);
-        Assert.Equal(new Money(-50), past.Amount);
+        Assert.Equal(new Money(-60), past.Amount);
         Assert.Equal(new Money(60), Assert.Single(await Catalog.GetMonthAsync(november.Month)).Total);
         Assert.True((await entries.DeleteRecurringAsync(future.ExternalId, RecurringChangeScope.All)).Succeeded);
-        Assert.Equal(new Money(50), Assert.Single(await Catalog.GetMonthAsync(october.Month)).Total);
+        Assert.Equal(new Money(60), Assert.Single(await Catalog.GetMonthAsync(october.Month)).Total);
         Assert.Empty(Assert.Single(await Catalog.GetMonthAsync(november.Month)).Entries);
     }
     [Fact]

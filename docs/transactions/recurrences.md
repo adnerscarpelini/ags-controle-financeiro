@@ -44,17 +44,24 @@ nunca o permite. As verificações e gravações usam a mesma transação da #50
 
 ## Edição e exclusão com alcance
 
-A [#17](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/17)
-exige escolher Somente esta, Esta e as seguintes ou Todas antes de salvar qualquer
-campo ou excluir. Cancelar mantém os dados. A edição genérica de avulsos rejeita
-recorrências, inclusive quando chamada diretamente por outro consumidor.
+A [#92](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/92) separa
+edição e exclusão. Editar oferece três opções explícitas, com Somente esta selecionada:
 
-Somente esta mantém a chave original da agenda mesmo se a data mudar. Excluir
-registra o mês excluído na definição; consultas posteriores não o recriam.
-Esta e as seguintes encerra o plano anterior e cria outro a partir do mês da
-ocorrência, mantendo as identidades e situações dos registros existentes.
-Todas conserva ocorrências passadas já efetivadas e altera as demais. Excluir
-Todas desativa o plano e conserva esse histórico confirmado.
+- Editar somente esta: altera a ocorrência, preservando a definição da série.
+- Editar todas as pendentes: altera as ocorrências com baixa ainda não registrada,
+  em qualquer mês, e a definição para os meses ainda não gerados. Pagas/Recebidas,
+  inclusive futuras, são preservadas.
+- Editar todas (incluindo Pagas ou Recebidas): altera todas e a definição; o saldo
+  derivado reflete a diferença das pagas uma única vez.
+
+A edição mantém a identidade da série e das ocorrências, sem dividir o plano.
+Cancelar não grava. Faturas e reembolsos de cada ocorrência afetada são validados
+na operação financeira; uma falha impede qualquer gravação parcial.
+
+A exclusão conserva os alcances da #17: Somente esta, Esta e as seguintes ou Todas.
+Somente esta marca o mês como excluído, para não recriá-lo; Esta e as seguintes
+encerra o plano antes do período; Todas desativa e preserva o passado confirmado.
+A edição genérica de avulsos continua rejeitando recorrências.
 
 O dia configurado é separado da data de uma ocorrência: fevereiro não transforma
 um plano de dia 31 em plano de dia 28. A edição de recorrências não oferece alteração de mês (#89). Novas séries e edições

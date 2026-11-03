@@ -10,7 +10,7 @@ public sealed partial class EntryTests
     {
         await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 10, 10), Amount = new Money(50) }));
         var november = await OccurrenceAsync(2026, 11);
-        var edited = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Date = new DateOnly(2026, 12, 15), Amount = new Money(60) }, RecurringChangeScope.OnlyThis));
+        var edited = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Date = new DateOnly(2026, 12, 15), Amount = new Money(60) }, RecurringEditScope.OnlyThis));
         Assert.True(edited.Succeeded, edited.Error);
         var same = (await Entries.GetAsync()).Single(x => x.ExternalId == november.ExternalId);
         Assert.Equal(november.ExternalId, same.ExternalId);
@@ -24,19 +24,19 @@ public sealed partial class EntryTests
     }
 
     [Fact]
-    public async Task FollowingSplitsSeriesAndCarriesDay31ThroughFebruary()
+    public async Task AllPendingKeepsSeriesAndCarriesDay31ThroughFebruary()
     {
         await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 10, 10), Amount = new Money(50) }));
         var december = await OccurrenceAsync(2026, 12);
         var november = await OccurrenceAsync(2026, 11);
-        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Amount = new Money(60) }, RecurringChangeScope.ThisAndFollowing, 31));
+        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Amount = new Money(60) }, RecurringEditScope.AllPending, 31));
         Assert.True(result.Succeeded, result.Error);
         var changed = await OccurrenceAsync(2026, 11);
-        Assert.NotEqual(november.RecurringEntryExternalId, changed.RecurringEntryExternalId);
+        Assert.Equal(november.RecurringEntryExternalId, changed.RecurringEntryExternalId);
         Assert.Equal(november.ExternalId, changed.ExternalId);
         Assert.Equal(new DateOnly(2026, 11, 30), changed.Date);
         Assert.False(changed.IsEffective);
-        Assert.Equal(new Money(-50), (await OccurrenceAsync(2026, 10)).Amount);
+        Assert.Equal(new Money(-60), (await OccurrenceAsync(2026, 10)).Amount);
         Assert.Equal(december.ExternalId, (await OccurrenceAsync(2026, 12)).ExternalId);
         var february = await OccurrenceAsync(2027, 2);
         Assert.Equal(new DateOnly(2027, 2, 28), february.Date);
@@ -53,8 +53,8 @@ public sealed partial class EntryTests
     {
         await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 10, 10), Amount = new Money(50) }));
         var november = await OccurrenceAsync(2026, 11);
-        Assert.False((await Entries.EditRecurringAsync(november.ExternalId, new(Change(november), (RecurringChangeScope)999))).Succeeded);
-        Assert.True((await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Amount = new Money(60) }, RecurringChangeScope.All))).Succeeded);
+        Assert.False((await Entries.EditRecurringAsync(november.ExternalId, new(Change(november), (RecurringEditScope)999))).Succeeded);
+        Assert.True((await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Amount = new Money(60) }, RecurringEditScope.All))).Succeeded);
         Assert.Equal(new Money(-60), (await OccurrenceAsync(2026, 10)).Amount);
         Assert.Equal(new Money(-60), (await OccurrenceAsync(2027, 2)).Amount);
         Assert.All(await Entries.GetAsync(), x => Assert.False(x.IsEffective));

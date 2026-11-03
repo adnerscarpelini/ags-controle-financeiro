@@ -7,14 +7,14 @@ namespace Ags.Finance.Modules.Transactions.Application.CreateEntry;
 internal sealed partial class EntryCatalog
 {
     public Task<ClassificationResult> EditRecurringAsync(Guid externalId, EditRecurringEntryRequest request, CancellationToken cancellationToken = default)
-        => operations.ExecuteAsync(token => ChangeRecurringAsync(externalId, request.Scope, request, token), x => x.Succeeded, cancellationToken);
+        => operations.ExecuteAsync(token => ChangeRecurringAsync(externalId, request.Scope == RecurringEditScope.OnlyThis ? RecurringChangeScope.OnlyThis : RecurringChangeScope.All, request, token), x => x.Succeeded, cancellationToken);
 
     public Task<ClassificationResult> DeleteRecurringAsync(Guid externalId, RecurringChangeScope scope, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(token => ChangeRecurringAsync(externalId, scope, null, token), x => x.Succeeded, cancellationToken);
 
     private async Task<ClassificationResult> ChangeRecurringAsync(Guid externalId, RecurringChangeScope scope, EditRecurringEntryRequest? change, CancellationToken cancellationToken)
     {
-        if (!Enum.IsDefined(scope)) { return new(null, "Escolha o alcance da recorrência."); }
+        if (!Enum.IsDefined(scope) || (change is not null && !Enum.IsDefined(change.Scope))) { return new(null, "Escolha o alcance da recorrência."); }
         var generation = await GenerateRecurringAsync(new(), cancellationToken);
         if (!generation.Succeeded) { return new(null, generation.Error); }
         var all = await store.GetAsync(cancellationToken);
@@ -27,7 +27,12 @@ internal sealed partial class EntryCatalog
         if (sourceError is not null) { return new(null, sourceError); }
         var series = (await store.GetRecurringAsync(cancellationToken)).Single(x => x.ExternalId == seriesId);
         var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
-        var affected = all.Where(x => x.RecurringEntryExternalId == seriesId && (scope switch
+        var affected = all.Where(x => x.RecurringEntryExternalId == seriesId && (change is not null ? change.Scope switch
+        {
+            RecurringEditScope.OnlyThis => x.ExternalId == externalId,
+            RecurringEditScope.AllPending => !x.IsEffective,
+            _ => true
+        } : scope switch
         {
             RecurringChangeScope.OnlyThis => x.ExternalId == externalId,
             RecurringChangeScope.ThisAndFollowing => x.OccurrenceMonth >= period,
@@ -44,7 +49,7 @@ internal sealed partial class EntryCatalog
             if (scope == RecurringChangeScope.OnlyThis) { series.Exclude(period); }
             else if (scope == RecurringChangeScope.ThisAndFollowing) { series.StopBefore(period); }
             else { series.Deactivate(); }
-            await store.SaveRecurringChangesAsync(series, null, [], affected, cancellationToken);
+            await store.SaveRecurringChangesAsync(series, [], affected, cancellationToken);
             await TrashDeletedOwnersAsync(affected, all, cancellationToken);
             return new(externalId, null);
         }
@@ -59,7 +64,6 @@ internal sealed partial class EntryCatalog
         var dateChanged = request.Date != baseline.Date || day != series.Day;
         var preparedSelected = await PrepareAsync(request, cancellationToken, selected);
         if (preparedSelected.Entry is not { } selectedTemplate) { return new(null, preparedSelected.Error); }
-        RecurringEntry? following = null;
         if (scope != RecurringChangeScope.OnlyThis)
         {
             var startIndex = MonthIndex(scope == RecurringChangeScope.All ? series.StartDate : period) + dateOffset;
@@ -75,22 +79,7 @@ internal sealed partial class EntryCatalog
             { Date = request.Date, Month = selectedTemplate.Month };
             var prepared = await PrepareAsync(templateRequest, cancellationToken, selected);
             if (prepared.Entry is not { } template) { return new(null, prepared.Error); }
-            const int Offset = 0;
-            if (scope == RecurringChangeScope.ThisAndFollowing)
-            {
-                var firstDate = OccurrenceDate(period, day);
-                var prototype = new TransactionEntry();
-                var error = prototype.Update(firstDate, template.Month, template.MerchantExternalId, template.SubcategoryExternalId,
-                    template.AccountExternalId, template.Kind, new Money(Math.Abs(template.Amount.Amount)), template.Details);
-                if (error is not null) { return new(null, error); }
-                if (template.CardExternalId is { } card) { prototype.SetCard(card, template.CardLastDigitsExternalId); }
-                following = RecurringEntry.Create(prototype, series.EndMonth);
-                if (following is null) { return new(null, "A ocorrência está após o término da série."); }
-                following.Configure(template, day, Offset, dateOffset);
-                foreach (var excluded in series.ExcludedMonths.Where(x => x >= period)) { following.Exclude(excluded); }
-                series.StopBefore(period);
-            }
-            else { series.Configure(template, day, Offset, dateOffset); }
+            series.Configure(template, day, 0, dateOffset);
         }
         foreach (var entry in affected)
         {
@@ -108,9 +97,8 @@ internal sealed partial class EntryCatalog
             if (reimbursementError is not null) { return new(null, reimbursementError); }
             entry.ApplyChange(updated, false);
             if (entry.ExternalId == externalId) { ApplyPaidState(entry, request.IsPaid); }
-            if (following is not null) { entry.SetRecurring(following.ExternalId, entry.OccurrenceMonth!.Value); }
         }
-        await store.SaveRecurringChangesAsync(series, following, affected, [], cancellationToken);
+        await store.SaveRecurringChangesAsync(series, affected, [], cancellationToken);
         return new(externalId, null);
     }
 

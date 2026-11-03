@@ -33,3 +33,8 @@ sem mudar data/cartão preservam o mês gravado de cada parcela, inclusive antec
 Mudar data/cartão recalcula com Accounts; antecipadas rejeitam essas alterações pelo
 guard de Invoices. A fatura pode ser escolhida explicitamente após o recálculo, sempre
 Aberta. Alterar o calendário do cadastro nunca recalcula lançamentos existentes.
+
+Recorrências usam os alcances próprios da #92: Somente esta (padrão), Todas as
+pendentes ou Todas (incluindo Pagas/Recebidas). Os dois alcances coletivos atualizam
+a definição da série para a geração futura, sem dividir o plano. Exclusão permanece
+com seus alcances anteriores; parcelas e repetições mantêm suas opções próprias.

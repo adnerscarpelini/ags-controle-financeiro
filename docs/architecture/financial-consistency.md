@@ -87,9 +87,11 @@ Detalhes em [recorrentes previstas na fatura](../invoices/recurring-forecast.md)
 
 ## Recorrência, histórico e arquivamento
 
-Editar valor, dia/data ou excluir uma ocorrência exige diálogo de alcance (#17):
-Somente esta, Esta e as seguintes ou Todas, respeitando a proteção do histórico já confirmada
-e o bloqueio de faturas. A baixa manual é uma ação distinta e atua só na ocorrência.
+Editar uma recorrência usa Somente esta (padrão), Todas as pendentes ou Todas,
+incluindo Pagas/Recebidas (#92). Os alcances coletivos atualizam a definição sem
+dividir a série. Excluir conserva os alcances da #17: Somente esta, Esta e as
+seguintes ou Todas, preservando o histórico confirmado conforme essa operação.
+Faturas e reembolsos continuam protegidos. A baixa manual atua só na ocorrência.
 
 Arquivar contas/cartões (#53) oculta cadastros e novas seleções; desarquivar restaura a mesma
 identidade. Não apaga nem esconde histórico, relatórios ou faturas pendentes.

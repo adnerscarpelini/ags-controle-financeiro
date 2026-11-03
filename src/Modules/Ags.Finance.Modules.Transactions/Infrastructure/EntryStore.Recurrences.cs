@@ -5,11 +5,10 @@ namespace Ags.Finance.Modules.Transactions.Infrastructure;
 
 internal sealed partial class EntryStore
 {
-    public async Task SaveRecurringChangesAsync(RecurringEntry series, RecurringEntry? following, IReadOnlyList<TransactionEntry> updated, IReadOnlyList<TransactionEntry> deleted, CancellationToken cancellationToken)
+    public async Task SaveRecurringChangesAsync(RecurringEntry series, IReadOnlyList<TransactionEntry> updated, IReadOnlyList<TransactionEntry> deleted, CancellationToken cancellationToken)
     {
         await using var context = await factory.CreateDbContextAsync(cancellationToken);
         context.Entry(series).State = EntityState.Modified;
-        if (following is not null) { context.Add(following); }
         foreach (var entry in updated) { context.Entry(entry).State = EntityState.Modified; }
         context.RemoveRange(deleted);
         await context.SaveChangesAsync(cancellationToken);

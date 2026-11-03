@@ -22,5 +22,5 @@ internal interface IEntryStore
     Task<IReadOnlyList<RecurringEntry>> GetRecurringAsync(CancellationToken cancellationToken);
     Task AddRecurringAsync(RecurringEntry series, TransactionEntry first, CancellationToken cancellationToken);
     Task AddOccurrencesAsync(IReadOnlyList<TransactionEntry> entries, CancellationToken cancellationToken);
-    Task SaveRecurringChangesAsync(RecurringEntry series, RecurringEntry? following, IReadOnlyList<TransactionEntry> updated, IReadOnlyList<TransactionEntry> deleted, CancellationToken cancellationToken);
+    Task SaveRecurringChangesAsync(RecurringEntry series, IReadOnlyList<TransactionEntry> updated, IReadOnlyList<TransactionEntry> deleted, CancellationToken cancellationToken);
 }

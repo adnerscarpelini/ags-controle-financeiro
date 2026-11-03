@@ -9,7 +9,7 @@ public sealed partial class EntryTests
     public async Task CashRecurringEditsIgnoreManualMonthForEveryScope()
     {
         await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Month = new ReferenceMonth(2027, 1) }));
-        foreach (var scope in Enum.GetValues<RecurringChangeScope>())
+        foreach (var scope in Enum.GetValues<RecurringEditScope>())
         {
             var first = (await Entries.GetAsync()).Single(x => x.OccurrenceMonth == new DateOnly(2026, 10, 1));
             Assert.True((await Entries.EditRecurringAsync(first.ExternalId, new(Change(first) with { Month = new ReferenceMonth(2027, 1) }, scope))).Succeeded);
@@ -17,11 +17,11 @@ public sealed partial class EntryTests
         }
     }
     [Theory]
-    [InlineData(RecurringChangeScope.ThisAndFollowing, false)]
-    [InlineData(RecurringChangeScope.ThisAndFollowing, true)]
-    [InlineData(RecurringChangeScope.All, false)]
-    [InlineData(RecurringChangeScope.All, true)]
-    public async Task MovingDateAcrossMonthsKeepsMaterializedAndFutureOccurrencesConsistent(RecurringChangeScope scope, bool materialized)
+    [InlineData(RecurringEditScope.AllPending, false)]
+    [InlineData(RecurringEditScope.AllPending, true)]
+    [InlineData(RecurringEditScope.All, false)]
+    [InlineData(RecurringEditScope.All, true)]
+    public async Task MovingDateAcrossMonthsKeepsMaterializedAndFutureOccurrencesConsistent(RecurringEditScope scope, bool materialized)
     {
         await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 10, 10), Amount = new Money(50) }, new ReferenceMonth(2026, 12)));
         var october = await OccurrenceAsync(2026, 10);
@@ -43,16 +43,8 @@ public sealed partial class EntryTests
         Assert.Empty((await Entries.QueryAsync(new(Month: new ReferenceMonth(2027, 2)))).Entries);
         var series = await Entries.GetRecurringAsync(moved.RecurringEntryExternalId!.Value);
         Assert.Equal(new ReferenceMonth(2027, 1), series?.EndMonth);
-        if (scope == RecurringChangeScope.ThisAndFollowing)
-        {
-            Assert.Equal(october.ExternalId, (await OccurrenceAsync(2026, 10)).ExternalId);
-            Assert.Empty((await Entries.QueryAsync(new(Month: new ReferenceMonth(2026, 11)))).Entries);
-        }
-        else
-        {
-            var shiftedOctober = await OccurrenceAsync(2026, 11);
-            Assert.Equal(october.ExternalId, shiftedOctober.ExternalId);
-            Assert.Equal(new DateOnly(2026, 11, 15), shiftedOctober.Date);
-        }
+        var shiftedOctober = await OccurrenceAsync(2026, 11);
+        Assert.Equal(october.ExternalId, shiftedOctober.ExternalId);
+        Assert.Equal(new DateOnly(2026, 11, 15), shiftedOctober.Date);
     }
 }

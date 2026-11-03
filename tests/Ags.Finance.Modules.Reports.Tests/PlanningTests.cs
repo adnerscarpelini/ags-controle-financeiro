@@ -95,7 +95,7 @@ public sealed class PlanningTests : ReportFixture
         var december = new ReferenceMonth(2026, 12);
         Assert.True((await Entries.EnsureRecurringMonthAsync(december)).Succeeded);
         var occurrence = Assert.Single((await Entries.QueryAsync(new(Month: december))).Entries);
-        Assert.True((await Entries.EditRecurringAsync(occurrence.ExternalId, new(Request(occurrence.Date, 80m) with { Month = december }, RecurringChangeScope.OnlyThis))).Succeeded);
+        Assert.True((await Entries.EditRecurringAsync(occurrence.ExternalId, new(Request(occurrence.Date, 80m) with { Month = december }, RecurringEditScope.OnlyThis))).Succeeded);
 
         var report = await Planning.GetAsync();
         Assert.Equal(new Money(80m), Cell(report, report.Expenses, december).Forecast);
