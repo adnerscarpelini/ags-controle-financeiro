@@ -20,16 +20,16 @@ public sealed partial class InvoiceTests
     public async Task LastThreeInstallmentsMoveTogetherAndDiscountIsSeparateAndIdempotent()
     {
         var selected = await AnticipationPurchaseAsync();
-        var request = new AnticipateInstallmentsRequest(Guid.CreateVersion7(), selected.ExternalId, 3, new Money(15), new AccountingMonth(2026, 9));
+        var request = new AnticipateInstallmentsRequest(Guid.CreateVersion7(), selected.ExternalId, 3, new Money(15), new ReferenceMonth(2026, 9));
         var catalog = Provider.GetRequiredService<IInvoiceAnticipationCatalog>();
         var results = await Task.WhenAll(catalog.AnticipateAsync(request), catalog.AnticipateAsync(request));
         Assert.All(results, x => Assert.True(x.Succeeded, x.Error));
         var entries = await Provider.GetRequiredService<IEntryCatalog>().GetAsync();
         Assert.Equal(10, entries.Count);
         Assert.Equal(-1000m, entries.Sum(x => x.Amount.Amount));
-        Assert.All(entries.Where(x => x.InstallmentNumber >= 8), x => Assert.Equal(new AccountingMonth(2026, 9), x.Month));
+        Assert.All(entries.Where(x => x.InstallmentNumber >= 8), x => Assert.Equal(new ReferenceMonth(2026, 9), x.Month));
         Assert.All(entries, x => Assert.Equal(new DateOnly(2026, 5, 14), x.Date));
-        var invoice = Assert.Single(await Catalog.GetMonthAsync(new AccountingMonth(2026, 9)));
+        var invoice = Assert.Single(await Catalog.GetMonthAsync(new ReferenceMonth(2026, 9)));
         Assert.Equal(new Money(400), invoice.Total);
         Assert.Equal(new Money(385), invoice.RemainingBalance);
         Assert.Equal(InvoicePaymentKind.Discount, Assert.Single(invoice.PaymentHistory).Kind);
@@ -45,10 +45,10 @@ public sealed partial class InvoiceTests
         Assert.True((await entries.CreateInstallmentsAsync(Purchase(1000, 6) with { Date = new DateOnly(2026, 5, 14), Reimbursement = reimbursement }, 10)).Succeeded);
         _clock.Now = new DateTimeOffset(2026, 9, 1, 12, 0, 0, TimeSpan.Zero);
         var selected = (await entries.GetAsync()).Single(x => x.InstallmentNumber == 4);
-        var result = await Provider.GetRequiredService<IInvoiceAnticipationCatalog>().AnticipateAsync(new(Guid.CreateVersion7(), selected.ExternalId, 3, Money.Zero, new AccountingMonth(2026, 9)));
+        var result = await Provider.GetRequiredService<IInvoiceAnticipationCatalog>().AnticipateAsync(new(Guid.CreateVersion7(), selected.ExternalId, 3, Money.Zero, new ReferenceMonth(2026, 9)));
         Assert.True(result.Succeeded, result.Error);
         var moved = (await entries.GetAsync()).Where(x => x.InstallmentNumber >= 8).ToList();
-        Assert.All(moved, x => Assert.Equal((new AccountingMonth(2026, 9), reimbursement), (x.Month, x.Reimbursement)));
+        Assert.All(moved, x => Assert.Equal((new ReferenceMonth(2026, 9), reimbursement), (x.Month, x.Reimbursement)));
     }
 
     [Theory]
@@ -69,7 +69,7 @@ public sealed partial class InvoiceTests
     public async Task ProtectedSourceOrTargetRollsBackEveryMoveAndDiscount(bool source)
     {
         var selected = await AnticipationPurchaseAsync();
-        await Lifecycle.CloseAsync(_cardId, source ? new AccountingMonth(2027, 2) : new AccountingMonth(2026, 9));
+        await Lifecycle.CloseAsync(_cardId, source ? new ReferenceMonth(2027, 2) : new ReferenceMonth(2026, 9));
         var result = await Provider.GetRequiredService<IInvoiceAnticipationCatalog>().AnticipateAsync(new(Guid.CreateVersion7(), selected.ExternalId, 3, new Money(15)));
         Assert.False(result.Succeeded);
         Assert.Equal(1, (await Provider.GetRequiredService<IEntryCatalog>().GetAsync()).Count(x => x.Month == selected.Month));

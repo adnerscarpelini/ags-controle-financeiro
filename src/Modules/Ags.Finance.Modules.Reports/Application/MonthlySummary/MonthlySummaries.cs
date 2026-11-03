@@ -5,10 +5,10 @@ namespace Ags.Finance.Modules.Reports.Application.MonthlySummary;
 
 internal sealed class MonthlySummaries(LedgerSource source) : IMonthlySummaries
 {
-    public async Task<Contracts.MonthlySummary> GetAsync(AccountingMonth month, CancellationToken cancellationToken = default)
+    public async Task<Contracts.MonthlySummary> GetAsync(ReferenceMonth month, CancellationToken cancellationToken = default)
     {
         var previous = month.AddMonths(-1);
-        var from = previous.Year < month.Year ? previous : new AccountingMonth(month.Year, 1);
+        var from = previous.Year < month.Year ? previous : new ReferenceMonth(month.Year, 1);
         var ledger = await source.LoadAsync(from, month, month, cancellationToken);
         var income = ledger.Income(month);
         var expenses = ledger.Expenses(month);

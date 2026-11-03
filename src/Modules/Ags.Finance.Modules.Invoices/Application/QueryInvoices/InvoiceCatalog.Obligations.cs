@@ -5,10 +5,10 @@ namespace Ags.Finance.Modules.Invoices.Application.QueryInvoices;
 
 internal sealed partial class InvoiceCatalog
 {
-    public Task<InvoiceObligations> GetObligationsAsync(AccountingMonth selectedMonth, CancellationToken cancellationToken = default)
+    public Task<InvoiceObligations> GetObligationsAsync(ReferenceMonth selectedMonth, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(async token =>
         {
-            if (selectedMonth.Year == 0) { return new InvoiceObligations(selectedMonth, [], [], "Informe um mês contábil válido."); }
+            if (selectedMonth.Year == 0) { return new InvoiceObligations(selectedMonth, [], [], "Informe um mês de referência válido."); }
             var invoices = await GetCoreAsync(token);
             var months = invoices.GroupBy(x => x.Month).OrderBy(x => x.Key).Select(group => new InvoiceMonthBalance(group.Key,
                 new Money(group.Sum(x => x.RemainingBalance.Amount)), group.All(x => x.Status == InvoiceStatus.Paid) && group.Sum(x => x.RemainingBalance.Amount) == 0)).ToList();

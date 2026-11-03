@@ -1,11 +1,11 @@
 using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Accounts.Domain;
 
-namespace Ags.Finance.Modules.Accounts.Application.CalculateAccountingMonth;
+namespace Ags.Finance.Modules.Accounts.Application.CalculateReferenceMonth;
 
-internal sealed class AccountingMonthCalculator(IAccountsStore store) : IAccountingMonthCalculator
+internal sealed class ReferenceMonthCalculator(IAccountsStore store) : IReferenceMonthCalculator
 {
-    public async Task<AccountingMonthSuggestion> CalculateAsync(DateOnly purchaseDate, Guid? cardExternalId = null, CancellationToken cancellationToken = default)
+    public async Task<ReferenceMonthSuggestion> CalculateAsync(DateOnly purchaseDate, Guid? cardExternalId = null, CancellationToken cancellationToken = default)
     {
         CreditCard? card = null;
         if (cardExternalId.HasValue)
@@ -17,7 +17,7 @@ internal sealed class AccountingMonthCalculator(IAccountsStore store) : IAccount
             }
         }
 
-        var month = PurchaseAccountingMonth.Calculate(purchaseDate, card);
+        var month = PurchaseReferenceMonth.Calculate(purchaseDate, card);
         return month.HasValue ? new(month, null) : new(null, "A fatura calculada excede o intervalo de datas suportado.");
     }
 }

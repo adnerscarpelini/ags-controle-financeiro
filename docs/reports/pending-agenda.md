@@ -6,13 +6,13 @@ ao dashboard o que há a receber e a pagar no curto prazo (`IPendingAgenda`, em
 
 **Janela.** Intervalo fechado de hoje até hoje + (N − 1) dias, com N = 7, 15 ou 30 conforme a
 [preferência](../preferences/settings.md) (padrão 7, os "próximos sete dias" originais da #58), pela **data prevista** do
-lançamento, não pelo mês contábil nem pela criação. Atravessa a virada do ano e inclui
+lançamento, não pelo mês de referência nem pela criação. Atravessa a virada do ano e inclui
 29/02 em ano bissexto. Atrasados são os de data prevista anterior a hoje, em lista e
 totais separados, fora dos totais da janela.
 
 **Hoje.** Vem de `TimeProvider.GetLocalNow()`, ou seja, do fuso de negócio configurado na
 distribuição Docker (`TZ`, [#59](../web/docker-deployment.md)); não é a data UTC do container
-nem a do navegador. A auditoria continua em UTC. O seletor de mês contábil do dashboard não
+nem a do navegador. A auditoria continua em UTC. O seletor de mês de referência do dashboard não
 desloca a janela: a seção não recebe o mês.
 
 **Fonte.** Reports consome `IEntryCatalog.QueryPendingAsync` (a visão de pendentes da #57)

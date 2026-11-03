@@ -100,7 +100,7 @@
         _busy = true;
         try
         {
-            var result = await Payments.SaveAllowanceAsync(_editing, new(_confirmation, _card, AccountingMonth.FromDate(month), _date, new Money(_amount), _kind, _details));
+            var result = await Payments.SaveAllowanceAsync(_editing, new(_confirmation, _card, ReferenceMonth.FromDate(month), _date, new Money(_amount), _kind, _details));
             _message = result.Error ?? "Abatimento salvo.";
             if (result.Succeeded) { Reset(); await ReloadAsync(); }
         }

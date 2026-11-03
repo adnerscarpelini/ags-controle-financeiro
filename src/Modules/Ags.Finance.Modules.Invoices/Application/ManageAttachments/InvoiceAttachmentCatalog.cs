@@ -21,10 +21,10 @@ internal sealed class InvoiceAttachmentCatalog(IInvoiceStore store, IAccountCata
         }
         return result;
     }
-    public async Task<AttachmentOwner?> FindInvoiceOwnerAsync(Guid cardExternalId, AccountingMonth month, CancellationToken cancellationToken = default)
+    public async Task<AttachmentOwner?> FindInvoiceOwnerAsync(Guid cardExternalId, ReferenceMonth month, CancellationToken cancellationToken = default)
         => await store.FindAsync(cardExternalId, month, cancellationToken) is { } invoice ? new(AttachmentOwnerType.Invoice, invoice.ExternalId) : null;
 
-    public async Task<AttachmentResult> UploadInvoiceAsync(Guid cardExternalId, AccountingMonth month, AttachmentKind kind, string fileName, Stream content, CancellationToken cancellationToken = default)
+    public async Task<AttachmentResult> UploadInvoiceAsync(Guid cardExternalId, ReferenceMonth month, AttachmentKind kind, string fileName, Stream content, CancellationToken cancellationToken = default)
     {
         await using var lease = await Catalog.AcquireMaintenanceLeaseAsync(cancellationToken);
         return await operations.ExecuteAsync(async token =>

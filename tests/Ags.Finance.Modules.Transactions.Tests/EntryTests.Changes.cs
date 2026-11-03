@@ -32,7 +32,7 @@ public sealed partial class EntryTests
     public async Task EditingFollowingMerchantDoesNotOverwriteDifferentInstallmentCents()
     {
         var card = await CreateCardAsync();
-        await Entries.CreateInstallmentsAsync(Request() with { CardExternalId = card, Amount = new Money(1000), Month = new AccountingMonth(2026, 10) }, 3);
+        await Entries.CreateInstallmentsAsync(Request() with { CardExternalId = card, Amount = new Money(1000), Month = new ReferenceMonth(2026, 10) }, 3);
         var original = (await Entries.GetAsync()).OrderBy(x => x.InstallmentNumber).ToList();
         var target = await Provider.GetRequiredService<IMerchantCatalog>().SaveAsync(null, "Outra Loja", null);
         var result = await Entries.EditAsync(original[0].ExternalId, Change(original[0]) with { MerchantExternalId = target.ExternalId!.Value }, EntryChangeScope.ThisAndFollowing);
@@ -46,7 +46,7 @@ public sealed partial class EntryTests
     [Fact]
     public async Task DeletingThirdAndFollowingPreservesFirstTwoAndRemovesEmptyPurchaseOnlyAfterLastEntry()
     {
-        await Entries.CreateInstallmentsAsync(Request() with { CardExternalId = await CreateCardAsync(), Month = new AccountingMonth(2026, 10) }, 10);
+        await Entries.CreateInstallmentsAsync(Request() with { CardExternalId = await CreateCardAsync(), Month = new ReferenceMonth(2026, 10) }, 10);
         var entries = (await Entries.GetAsync()).OrderBy(x => x.InstallmentNumber).ToList();
         Assert.True((await Entries.DeleteAsync(entries[2].ExternalId, EntryChangeScope.ThisAndFollowing)).Succeeded);
         var remaining = (await Entries.GetAsync()).OrderBy(x => x.InstallmentNumber).ToList();
@@ -63,14 +63,14 @@ public sealed partial class EntryTests
     [Fact]
     public async Task MovingOnlyOneInstallmentKeepsOtherMonthsDateAndValue()
     {
-        await Entries.CreateInstallmentsAsync(Request() with { CardExternalId = await CreateCardAsync(), Month = new AccountingMonth(2026, 10) }, 3);
+        await Entries.CreateInstallmentsAsync(Request() with { CardExternalId = await CreateCardAsync(), Month = new ReferenceMonth(2026, 10) }, 3);
         var entries = (await Entries.GetAsync()).OrderBy(x => x.InstallmentNumber).ToList();
         var selected = entries[1];
-        Assert.True((await Entries.EditAsync(selected.ExternalId, Change(selected) with { Month = new AccountingMonth(2027, 1) }, EntryChangeScope.OnlyThis)).Succeeded);
+        Assert.True((await Entries.EditAsync(selected.ExternalId, Change(selected) with { Month = new ReferenceMonth(2027, 1) }, EntryChangeScope.OnlyThis)).Succeeded);
         var moved = (await Entries.GetAsync()).OrderBy(x => x.InstallmentNumber).ToList();
         Assert.Equal(entries[0].Month, moved[0].Month);
         Assert.Equal(entries[2].Month, moved[2].Month);
-        Assert.Equal(new AccountingMonth(2027, 1), moved[1].Month);
+        Assert.Equal(new ReferenceMonth(2027, 1), moved[1].Month);
         Assert.Equal(selected.Date, moved[1].Date);
         Assert.Equal(selected.Amount, moved[1].Amount);
     }
@@ -78,14 +78,14 @@ public sealed partial class EntryTests
     [Fact]
     public async Task DuplicatingCashUsesTodayAndKeepsSavedFieldsWithANewIdentity()
     {
-        await Entries.CreateAsync(Request() with { Month = new AccountingMonth(2027, 1), Details = "Detalhe Exemplo" });
+        await Entries.CreateAsync(Request() with { Month = new ReferenceMonth(2027, 1), Details = "Detalhe Exemplo" });
         var source = Assert.Single(await Entries.GetAsync());
         var duplicate = await Entries.DuplicateAsync(source.ExternalId);
         Assert.True(duplicate.Succeeded, duplicate.Error);
         var copied = (await Entries.GetAsync()).Single(x => x.ExternalId == duplicate.ExternalId);
         Assert.NotEqual(source.ExternalId, copied.ExternalId);
         Assert.Equal(DateOnly.FromDateTime(_clock.GetLocalNow().DateTime), copied.Date);
-        Assert.Equal(AccountingMonth.FromDate(copied.Date), copied.Month);
+        Assert.Equal(ReferenceMonth.FromDate(copied.Date), copied.Month);
         Assert.Equal(source.Amount, copied.Amount);
         Assert.Equal(source.MerchantExternalId, copied.MerchantExternalId);
         Assert.Equal(source.Details, copied.Details);

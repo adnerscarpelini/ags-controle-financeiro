@@ -7,7 +7,7 @@ namespace Ags.Finance.Modules.Reports.Application.InvoiceReport;
 
 internal sealed class InvoiceReports(IInvoiceCatalog invoices, IAccountCatalog accounts) : IInvoiceReports
 {
-    public async Task<Contracts.InvoiceReport> GetAsync(AccountingMonth month, CancellationToken cancellationToken = default)
+    public async Task<Contracts.InvoiceReport> GetAsync(ReferenceMonth month, CancellationToken cancellationToken = default)
     {
         // Cartões e contas arquivados continuam aqui: a fatura pendente deles segue sendo dívida (#53).
         var all = await invoices.GetAsync(cancellationToken);
@@ -16,7 +16,7 @@ internal sealed class InvoiceReports(IInvoiceCatalog invoices, IAccountCatalog a
         var bankByAccount = (await accounts.GetAccountsAsync(false, cancellationToken)).ToDictionary(x => x.ExternalId, x => x.BankExternalId);
         var banks = (await accounts.GetBanksAsync(cancellationToken)).ToDictionary(x => x.ExternalId);
         var forward = obligations.Cards.ToDictionary(x => x.CardExternalId, x => x.RemainingBalance);
-        var yearStart = new AccountingMonth(month.Year, 1);
+        var yearStart = new ReferenceMonth(month.Year, 1);
         var previous = month.AddMonths(-1);
 
         var lines = all.Select(x => x.CardExternalId).Concat(forward.Keys).Distinct().Where(cards.ContainsKey)

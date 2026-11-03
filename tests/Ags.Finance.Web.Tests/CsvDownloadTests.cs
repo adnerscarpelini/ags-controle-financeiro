@@ -65,7 +65,7 @@ public sealed class CsvDownloadTests
         using var response = await browser.GetAsync(route + (route.EndsWith("series", StringComparison.Ordinal) || route == "/csv/lancamentos" ? "?month=2026-10&effective=true" : string.Empty));
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("text/csv", response.Content.Headers.ContentType?.MediaType);
-        Assert.Contains($"ags-finance-csv,{type},2", Encoding.UTF8.GetString(await response.Content.ReadAsByteArrayAsync()), StringComparison.Ordinal);
+        Assert.Contains($"ags-finance-csv,{type},3", Encoding.UTF8.GetString(await response.Content.ReadAsByteArrayAsync()), StringComparison.Ordinal);
     }
 
     [Theory]

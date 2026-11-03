@@ -11,7 +11,7 @@
     @if (_confirmation is { } confirmation)
     {
         <p>Total lançado até hoje: @Invoice.LaunchedTotal · Total informado: @confirmation.CorrectTotal · Diferença: @(confirmation.CorrectTotal - Invoice.LaunchedTotal)</p>
-        <p>O ajuste será registrado na data da confirmação e preservará o mês contábil da fatura. Correções são novos ajustes.</p>
+        <p>O ajuste será registrado na data da confirmação e preservará o mês de referência da fatura. Correções são novos ajustes.</p>
         <button class="button" @onclick="ConfirmAsync" disabled="@_busy">Confirmar ajuste de fatura</button><button class="button" @onclick="() => _confirmation = null" disabled="@_busy">Voltar</button>
     }
     else

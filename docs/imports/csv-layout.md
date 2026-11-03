@@ -53,9 +53,9 @@ Cadastros arquivados/desativados saem com `is_active=false` ([#53](../accounts/a
 mantêm o estado. Logos de banco (binários), filtros salvos, senhas, hashes e
 credenciais não fazem parte do CSV.
 
-## Lançamentos e séries recorrentes (versão 2, [#62](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/62), [#84](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/84))
+## Lançamentos e séries recorrentes (versão 3, [#62](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/62), [#84](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/84))
 
-Dois arquivos, `lancamentos-transactions-v2.csv` e `lancamentos-recurring-series-v2.csv`, com as regras do formato acima. A versão 1 deixou de ser aceita.
+Dois arquivos, `lancamentos-transactions-v3.csv` e `lancamentos-recurring-series-v3.csv`, com as regras do formato acima. As versões 1 e 2 não são aceitas; a #90 renomeia a coluna para `reference_month` na versão 3, mantendo a leitura estrita sem adaptação automática.
 
 **Cobertura.** Receitas e despesas: avulsas, de cartão, parcelas e ocorrências recorrentes, com o estado
 Pendente/Pago ou Recebido. **Ficam de fora**, por decisão desta versão: ajustes de fatura (#52), transferências
@@ -64,8 +64,8 @@ continuam imutáveis, e a importação (#29) rejeita esses tipos em vez de inter
 
 | Tipo (linha 1) | Colunas |
 | --- | --- |
-| `transactions` | `external_id`, `date`, `accounting_month` (`yyyy-MM`, o mês gravado, inclusive o escolhido manualmente), `kind` (`Income`, `Expense`), `amount_cents` (positivo; o sinal vem de `kind`), `merchant_external_id`, `subcategory_external_id`, `account_external_id`, `card_external_id` (opcional), `card_digits_external_id` (opcional), `details`, `is_effective`, `effective_date` (opcional), `installment_purchase_external_id`, `installment_number`, `installment_count` (os três opcionais, juntos), `recurring_entry_external_id` (opcional), `occurrence_month` (`yyyy-MM-dd`, opcional), `reimbursement_person_external_id`, `reimbursement_percent` (os dois opcionais, juntos) |
-| `recurring_series` | `external_id`, `start_date`, `day`, `end_month` (`yyyy-MM`, opcional), `merchant_external_id`, `subcategory_external_id`, `account_external_id`, `card_external_id` (opcional), `card_digits_external_id` (opcional), `amount_cents`, `details`, `accounting_month` (opcional), `is_active`, `reimbursement_person_external_id`, `reimbursement_percent` (os dois opcionais, juntos) |
+| `transactions` | `external_id`, `date`, `reference_month` (`yyyy-MM`, o mês gravado, inclusive o escolhido manualmente), `kind` (`Income`, `Expense`), `amount_cents` (positivo; o sinal vem de `kind`), `merchant_external_id`, `subcategory_external_id`, `account_external_id`, `card_external_id` (opcional), `card_digits_external_id` (opcional), `details`, `is_effective`, `effective_date` (opcional), `installment_purchase_external_id`, `installment_number`, `installment_count` (os três opcionais, juntos), `recurring_entry_external_id` (opcional), `occurrence_month` (`yyyy-MM-dd`, opcional), `reimbursement_person_external_id`, `reimbursement_percent` (os dois opcionais, juntos) |
+| `recurring_series` | `external_id`, `start_date`, `day`, `end_month` (`yyyy-MM`, opcional), `merchant_external_id`, `subcategory_external_id`, `account_external_id`, `card_external_id` (opcional), `card_digits_external_id` (opcional), `amount_cents`, `details`, `reference_month` (opcional), `is_active`, `reimbursement_person_external_id`, `reimbursement_percent` (os dois opcionais, juntos) |
 
 **Vínculos explícitos.** Parcelas são agrupadas pelo `installment_purchase_external_id` e numeradas por
 `installment_number`/`installment_count`; ocorrências recorrentes apontam para a série por
@@ -74,7 +74,7 @@ descrição, `(x/y)` ou semelhança de valor. A definição da série vai no arq
 contém as séries referenciadas pelos lançamentos do mesmo filtro. Os meses excluídos de uma série
 ("somente esta" apagada) não existem no Contract e portanto não são exportados.
 
-**Filtros.** Os mesmos da tela Lançamentos ([#15](../transactions/entry-filters.md)): mês contábil, intervalo de
+**Filtros.** Os mesmos da tela Lançamentos ([#15](../transactions/entry-filters.md)): mês de referência, intervalo de
 datas, conta, cartão, final, categoria, subcategoria, texto, situação e tipo, ou um filtro salvo
 ([#33](../transactions/saved-filters.md)) aplicado ao mês/intervalo. Valor de filtro inválido rejeita o pedido.
 Endpoints: `GET /csv/lancamentos`, `/csv/lancamentos/series` (mesma query string), e `/modelo` e `/exemplo` de
@@ -131,7 +131,7 @@ são de Transactions (`IEntryImport`), executadas na mesma operação financeira
 nada é criado para corrigir o arquivo. Cadastros inativos, cartão sem final correspondente ou compra no cartão fora de classificação de despesa
 são rejeitados pelas regras de Transactions. O `kind` do arquivo precisa coincidir com a classificação.
 
-**Mês contábil e valores.** O mês de `accounting_month` e os centavos de `amount_cents` entram exatamente como informados; o cálculo
+**Mês de referência e valores.** O mês de `reference_month` e os centavos de `amount_cents` entram exatamente como informados; o cálculo
 automático fora do cartão e a seleção de fatura da #89 não alteram o mês do arquivo. Faturas Fechadas ou Pagas continuam protegidas (a validação do cartão usa o guard de faturas) e a
 importação não reabre nem altera pagamentos.
 
@@ -162,7 +162,7 @@ Mesmo `ExternalId` com dados diferentes, ou outra ocorrência no mesmo mês da s
 **Tudo ou nada.** Qualquer problema, em qualquer linha dos dois arquivos, desfaz o lote inteiro. Os problemas voltam com arquivo, linha e coluna.
 
 **Fora do escopo desta versão (rejeitado ou não coberto).** Ajustes de fatura, transferências e pagamentos/cashbacks/descontos de fatura;
-séries editadas com mudança de dia ou de mês contábil para "esta e as seguintes" (os deslocamentos da série não existem no Contract), de modo
+séries editadas com mudança de dia ou de mês de referência para "esta e as seguintes" (os deslocamentos da série não existem no Contract), de modo
 que ocorrências futuras geradas depois da importação seguem a regra padrão da série; meses excluídos de uma série. As ocorrências do arquivo
 são sempre fiéis; só a geração futura pode divergir nesses casos.
 

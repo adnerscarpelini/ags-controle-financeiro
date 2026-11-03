@@ -12,7 +12,7 @@ namespace Ags.Finance.Modules.Reimbursements.Tests;
 
 public sealed class ReimbursementReceiptTests : ReimbursementFixture
 {
-    private static readonly AccountingMonth s_october = new(2026, 10);
+    private static readonly ReferenceMonth s_october = new(2026, 10);
     private static readonly DateOnly s_day = new(2026, 10, 20);
 
     private IEntryCatalog Entries => Provider.GetRequiredService<IEntryCatalog>();
@@ -228,7 +228,7 @@ public sealed class ReimbursementReceiptTests : ReimbursementFixture
 
         Assert.True((await Entries.EditAsync(entry, Change(details) with { Details = "Observação", Date = new DateOnly(2026, 11, 5) }, EntryChangeScope.OnlyThis)).Succeeded);
         Assert.Empty((await Overviews.GetAsync(new(s_october))).Items);
-        Assert.Equal(ReimbursementStatus.Received, Assert.Single((await Overviews.GetAsync(new(new AccountingMonth(2026, 11)))).Items).Status);
+        Assert.Equal(ReimbursementStatus.Received, Assert.Single((await Overviews.GetAsync(new(new ReferenceMonth(2026, 11)))).Items).Status);
     }
 
     [Fact]
@@ -236,7 +236,7 @@ public sealed class ReimbursementReceiptTests : ReimbursementFixture
     {
         var person = await PersonAsync();
         Assert.True((await Entries.CreateRecurringAsync(new(new(new DateOnly(2026, 10, 5), MerchantId, SubcategoryId, AccountId, new Money(100), Reimbursement: new(person, 100m), IsPaid: false)))).Succeeded);
-        Assert.True((await Entries.EnsureRecurringMonthAsync(new AccountingMonth(2026, 11))).Succeeded);
+        Assert.True((await Entries.EnsureRecurringMonthAsync(new ReferenceMonth(2026, 11))).Succeeded);
         var occurrences = (await Entries.GetAsync()).OrderBy(x => x.Month).ToList();
         Assert.True((await Receipts.ReceiveAsync(Request(Item(occurrences[1].ExternalId, 100m)))).Succeeded);
 

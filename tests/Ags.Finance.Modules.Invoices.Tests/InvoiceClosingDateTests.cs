@@ -18,12 +18,12 @@ public sealed class InvoiceClosingDateTests
     public void CutoffRespectsBusinessZoneClosingDayAndApprovedEndOfMonthPolicy(int year, int month, int closingDay, int dueDay, bool includes, int cutoffYear, int cutoffMonth, int cutoffDay)
     {
         Assert.Equal(new DateTimeOffset(cutoffYear, cutoffMonth, cutoffDay, 3, 0, 0, TimeSpan.Zero),
-            InvoiceClosingDate.Cutoff(new AccountingMonth(year, month), closingDay, dueDay, includes, s_zone));
+            InvoiceClosingDate.Cutoff(new ReferenceMonth(year, month), closingDay, dueDay, includes, s_zone));
     }
 
     [Fact]
     public void LastRepresentableDayDoesNotOverflowWhenIncluded()
     {
-        Assert.Null(InvoiceClosingDate.Cutoff(new AccountingMonth(9999, 12), 31, 31, true, s_zone));
+        Assert.Null(InvoiceClosingDate.Cutoff(new ReferenceMonth(9999, 12), 31, 31, true, s_zone));
     }
 }

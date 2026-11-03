@@ -9,7 +9,7 @@
 <PageHeader Title="Dashboard" />
 @if (_message is not null) { <p role="status">@_message</p> }
 <section class="panel">
-    <div class="field"><label for="dashboard-month">Mês contábil</label>
+    <div class="field"><label for="dashboard-month">Mês de referência</label>
         <input id="dashboard-month" type="month" value="@FormatMonth(_month)" @onchange="MonthChanged" /></div>
 </section>
 @if (!_sections.AnyVisible)
@@ -23,28 +23,28 @@
 @if (_sections.HeatMap) { <HeatMapSection Month="_month" /> }
 
 @code {
-    private AccountingMonth _month;
+    private ReferenceMonth _month;
     private string? _message;
     private DashboardSections _sections = DashboardSections.All;
     private int _topCategories = AppPreferences.Default.TopCategories;
 
     protected override async Task OnInitializedAsync()
     {
-        _month = AccountingMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime));
+        _month = ReferenceMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime));
         var preferences = await Preferences.GetAsync();
         _sections = preferences.Sections;
         _topCategories = preferences.TopCategories;
     }
 
-    private static string FormatMonth(AccountingMonth month) => $"{month.Year:0000}-{month.Month:00}";
+    private static string FormatMonth(ReferenceMonth month) => $"{month.Year:0000}-{month.Month:00}";
 
     private void MonthChanged(ChangeEventArgs args)
     {
         if (DateOnly.TryParseExact((args.Value?.ToString() ?? string.Empty) + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
         {
-            _month = AccountingMonth.FromDate(date);
+            _month = ReferenceMonth.FromDate(date);
             _message = null;
         }
-        else { _message = "Informe um mês contábil válido."; }
+        else { _message = "Informe um mês de referência válido."; }
     }
 }

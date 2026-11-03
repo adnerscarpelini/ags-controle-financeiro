@@ -7,13 +7,13 @@ Em meses curtos, usa o último dia sem perder o dia configurado para os seguinte
 
 RecurringEntry guarda os dados do plano. Cada ocorrência tem identidade própria,
 vínculo com a série e OccurrenceMonth, a chave do mês da agenda, distinta do mês
-contábil gravado. Índice único impede duplicação de uma ocorrência, inclusive em
+de referência gravado. Índice único impede duplicação de uma ocorrência, inclusive em
 consultas simultâneas. As consultas mensais e por intervalo geram automaticamente
 os períodos necessários; sem um período futuro escolhido, a visão mostra o período
 atual e os registros já conhecidos. Para planejar o futuro, consulte um mês ou um
 intervalo com data final. Não se tenta gerar uma série infinita inteira.
 
-Accounts calcula o mês contábil de cada data (#89). Fora do cartão, ele é sempre
+Accounts calcula o mês de referência de cada data (#89). Fora do cartão, ele é sempre
 o mês da data. No cartão, a fatura escolhida na primeira
 ocorrência fica nessa ocorrência; as seguintes seguem o calendário. A consulta
 de fatura por mês inclui suas ocorrências e compõe também as faturas futuras já
@@ -58,7 +58,7 @@ Todas desativa o plano e conserva esse histórico confirmado.
 
 O dia configurado é separado da data de uma ocorrência: fevereiro não transforma
 um plano de dia 31 em plano de dia 28. A edição de recorrências não oferece alteração de mês (#89). Novas séries e edições
-usam deslocamento contábil zero. A coluna e a leitura do deslocamento continuam para
+usam deslocamento de referência zero. A coluna e a leitura do deslocamento continuam para
 a importação; não se corrige histórico. Exceções de fatura preservam o mês se data e
 cartão não mudarem; nos demais casos o mês vem do calendário.
 Se a nova data atravessa o mês, o plano mantém também esse deslocamento de data,

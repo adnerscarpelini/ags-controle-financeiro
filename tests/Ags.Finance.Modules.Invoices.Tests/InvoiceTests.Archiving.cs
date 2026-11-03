@@ -14,7 +14,7 @@ public sealed partial class InvoiceTests
         var accounts = Provider.GetRequiredService<IAccountCatalog>();
         await entries.CreateAsync(Purchase(100));
         await Payments.ConfirmPaymentAsync(Payment(20));
-        await Lifecycle.CloseAsync(_cardId, new AccountingMonth(2026, 10));
+        await Lifecycle.CloseAsync(_cardId, new ReferenceMonth(2026, 10));
         var before = Assert.Single(await Catalog.GetAsync());
         var balance = await entries.GetBalanceAsync(_accountId, new DateOnly(2026, 10, 31));
         await accounts.DeactivateAccountAsync(_accountId);

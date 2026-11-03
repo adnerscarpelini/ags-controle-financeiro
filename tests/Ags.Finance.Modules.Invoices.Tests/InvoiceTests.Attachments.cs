@@ -11,7 +11,7 @@ public sealed partial class InvoiceTests
 {
     private IInvoiceAttachmentCatalog Documents => Provider.GetRequiredService<IInvoiceAttachmentCatalog>();
     private static MemoryStream Document() => new(Encoding.ASCII.GetBytes("%PDF-1.7\n1 0 obj<</Type /Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n"));
-    private async Task<AttachmentResult> AttachInvoiceAsync(AccountingMonth month)
+    private async Task<AttachmentResult> AttachInvoiceAsync(ReferenceMonth month)
     {
         using var content = Document();
         return await Documents.UploadInvoiceAsync(_cardId, month, AttachmentKind.Invoice, "fictitious.pdf", content);
@@ -19,7 +19,7 @@ public sealed partial class InvoiceTests
     [Fact]
     public async Task UploadCreatesAnUnregisteredInvoiceOpenWithoutChangingItsTotal()
     {
-        var month = new AccountingMonth(2026, 10);
+        var month = new ReferenceMonth(2026, 10);
         Assert.Null(await Documents.FindInvoiceOwnerAsync(_cardId, month));
         Assert.True((await AttachInvoiceAsync(month)).Succeeded);
         Assert.NotNull(await Documents.FindInvoiceOwnerAsync(_cardId, month));
@@ -31,7 +31,7 @@ public sealed partial class InvoiceTests
     [Fact]
     public async Task CreatingAnOldInvoiceForADocumentDoesNotSuppressAutomaticClosing()
     {
-        var month = new AccountingMonth(2026, 6);
+        var month = new ReferenceMonth(2026, 6);
         Assert.True((await AttachInvoiceAsync(month)).Succeeded);
         var owner = await Documents.FindInvoiceOwnerAsync(_cardId, month);
         var before = Assert.Single(await Catalog.GetAsync());
@@ -48,7 +48,7 @@ public sealed partial class InvoiceTests
     {
         var entries = Provider.GetRequiredService<IEntryCatalog>();
         var entry = (await entries.CreateAsync(Purchase(100))).ExternalId!.Value;
-        var month = new AccountingMonth(2026, 10);
+        var month = new ReferenceMonth(2026, 10);
         await Lifecycle.CloseAsync(_cardId, month);
         await Payments.ConfirmPaymentAsync(Payment(100, true));
         var before = Assert.Single(await Catalog.GetAsync());
@@ -95,7 +95,7 @@ public sealed partial class InvoiceTests
     [Fact]
     public async Task ReopeningKeepsInvoiceDocumentsAndAnotherOwnerCannotRestoreThem()
     {
-        var month = new AccountingMonth(2026, 10);
+        var month = new ReferenceMonth(2026, 10);
         var uploaded = await AttachInvoiceAsync(month);
         var owner = await Documents.FindInvoiceOwnerAsync(_cardId, month);
         Assert.NotNull(owner);

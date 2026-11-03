@@ -13,7 +13,7 @@ receita, é preciso remover a pessoa.
 
 **Parcelas e cópias.** A compra replica pessoa e percentual em todas as parcelas. "Esta e
 as seguintes" aplica só o campo alterado, mantendo exceções. Duplicar copia os dois
-campos, e antecipar parcelas os preserva no novo mês contábil.
+campos, e antecipar parcelas os preserva no novo mês de referência.
 
 **Recorrentes ([#80](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/80)).**
 A série guarda pessoa e percentual, e cada ocorrência copia a configuração vigente. A edição

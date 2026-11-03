@@ -6,14 +6,14 @@ namespace Ags.Finance.Modules.Invoices.Application.QueryInvoices;
 
 internal sealed partial class InvoiceCatalog
 {
-    public Task<InvoiceSelection> GetSelectableInvoicesAsync(Guid cardExternalId, DateOnly date, AccountingMonth? through = null, CancellationToken cancellationToken = default)
+    public Task<InvoiceSelection> GetSelectableInvoicesAsync(Guid cardExternalId, DateOnly date, ReferenceMonth? through = null, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(async token =>
         {
             var calculated = await calendar.CalculateAsync(date, cardExternalId, token);
             if (calculated.Month is not { } month) { return new InvoiceSelection(null, null, [], calculated.Error); }
             var states = (await store.GetAsync(token)).Where(x => x.CardExternalId == cardExternalId).ToDictionary(x => x.Month);
             var card = (await accounts.GetCreditCardsAsync(false, token)).Single(x => x.ExternalId == cardExternalId);
-            Contracts.InvoiceStatus Status(AccountingMonth candidate)
+            Contracts.InvoiceStatus Status(ReferenceMonth candidate)
             {
                 if (states.TryGetValue(candidate, out var state) && state.Status != Domain.InvoiceStatus.Open) { return (Contracts.InvoiceStatus)state.Status; }
                 var cutoff = InvoiceClosingDate.Cutoff(candidate, card.ClosingDay, card.DueDay, card.IncludesClosingDay, clock.LocalTimeZone);
@@ -22,11 +22,11 @@ internal sealed partial class InvoiceCatalog
             var suggested = month;
             while (Status(suggested) != Contracts.InvoiceStatus.Open)
             {
-                if (suggested == new AccountingMonth(9999, 12)) { return new InvoiceSelection(month, null, [], "Não há fatura Aberta no calendário suportado."); }
+                if (suggested == new ReferenceMonth(9999, 12)) { return new InvoiceSelection(month, null, [], "Não há fatura Aberta no calendário suportado."); }
                 suggested = suggested.AddMonths(1);
             }
-            var maximum = new AccountingMonth(9999, 12);
-            var end = through is { Year: > 0 } requested && requested > suggested ? requested : new AccountingMonth(suggested.Year, suggested.Month).AddMonths(Math.Min(12, (9999 - suggested.Year) * 12 + 12 - suggested.Month));
+            var maximum = new ReferenceMonth(9999, 12);
+            var end = through is { Year: > 0 } requested && requested > suggested ? requested : new ReferenceMonth(suggested.Year, suggested.Month).AddMonths(Math.Min(12, (9999 - suggested.Year) * 12 + 12 - suggested.Month));
             var candidates = states.Keys.Append(month).Append(suggested).ToHashSet();
             for (var candidate = month; candidate <= end; candidate = candidate.AddMonths(1))
             {

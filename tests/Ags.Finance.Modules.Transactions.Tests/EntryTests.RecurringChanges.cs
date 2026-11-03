@@ -16,10 +16,10 @@ public sealed partial class EntryTests
         Assert.Equal(november.ExternalId, same.ExternalId);
         Assert.Equal(new DateOnly(2026, 12, 15), same.Date);
         Assert.Equal(new Money(-60), same.Amount);
-        Assert.Equal(new Money(-50), (await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 12)))).Entries.Single(x => x.OccurrenceMonth == new DateOnly(2026, 12, 1)).Amount);
+        Assert.Equal(new Money(-50), (await Entries.QueryAsync(new(Month: new ReferenceMonth(2026, 12)))).Entries.Single(x => x.OccurrenceMonth == new DateOnly(2026, 12, 1)).Amount);
         Assert.True((await Entries.DeleteRecurringAsync(same.ExternalId, RecurringChangeScope.OnlyThis)).Succeeded);
-        Assert.Empty((await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 11)))).Entries);
-        Assert.Empty((await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 11)))).Entries);
+        Assert.Empty((await Entries.QueryAsync(new(Month: new ReferenceMonth(2026, 11)))).Entries);
+        Assert.Empty((await Entries.QueryAsync(new(Month: new ReferenceMonth(2026, 11)))).Entries);
         Assert.Equal(10, (await Entries.GetRecurringAsync(november.RecurringEntryExternalId!.Value))?.Day);
     }
 
@@ -43,9 +43,9 @@ public sealed partial class EntryTests
         Assert.Equal(new Money(-60), february.Amount);
         Assert.Equal(new DateOnly(2027, 3, 31), (await OccurrenceAsync(2027, 3)).Date);
         Assert.True((await Entries.DeleteRecurringAsync(changed.ExternalId, RecurringChangeScope.ThisAndFollowing)).Succeeded);
-        Assert.Empty((await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 11)))).Entries);
-        Assert.Empty((await Entries.QueryAsync(new(Month: new AccountingMonth(2027, 2)))).Entries);
-        Assert.Single((await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 10)))).Entries);
+        Assert.Empty((await Entries.QueryAsync(new(Month: new ReferenceMonth(2026, 11)))).Entries);
+        Assert.Empty((await Entries.QueryAsync(new(Month: new ReferenceMonth(2027, 2)))).Entries);
+        Assert.Single((await Entries.QueryAsync(new(Month: new ReferenceMonth(2026, 10)))).Entries);
     }
 
     [Fact]
@@ -60,9 +60,9 @@ public sealed partial class EntryTests
         Assert.All(await Entries.GetAsync(), x => Assert.False(x.IsEffective));
         Assert.True((await Entries.DeleteRecurringAsync(november.ExternalId, RecurringChangeScope.All)).Succeeded);
         Assert.Empty(await Entries.GetAsync());
-        Assert.Empty((await Entries.QueryAsync(new(Month: new AccountingMonth(2028, 11)))).Entries);
+        Assert.Empty((await Entries.QueryAsync(new(Month: new ReferenceMonth(2028, 11)))).Entries);
     }
 
     private async Task<EntryDetails> OccurrenceAsync(int year, int month)
-        => Assert.Single((await Entries.QueryAsync(new(Month: new AccountingMonth(year, month)))).Entries);
+        => Assert.Single((await Entries.QueryAsync(new(Month: new ReferenceMonth(year, month)))).Entries);
 }

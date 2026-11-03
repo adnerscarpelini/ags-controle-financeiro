@@ -73,7 +73,7 @@ internal sealed class TransactionImporter(IFinancialOperation operations, IEntry
             var row = new RowReader(line, table.Columns, issues);
             var id = row.Id("external_id");
             var date = row.Date("date");
-            var month = row.Month("accounting_month");
+            var month = row.Month("reference_month");
             var kind = row.Enum<CategoryKind>("kind");
             if (kind == CategoryKind.Transfer) { row.Problem("kind", "Transferências não fazem parte do layout de lançamentos. Valores aceitos: Income, Expense."); }
             var cents = row.Integer("amount_cents", 1, MaxCents);
@@ -116,7 +116,7 @@ internal sealed class TransactionImporter(IFinancialOperation operations, IEntry
             var digits = row.OptionalId("card_digits_external_id");
             var cents = row.Integer("amount_cents", 1, MaxCents);
             var details = row.OptionalText("details");
-            var month = row.OptionalMonth("accounting_month");
+            var month = row.OptionalMonth("reference_month");
             var active = row.Bool("is_active");
             var reimbursement = ReadReimbursement(row);
             if (!row.Valid) { continue; }

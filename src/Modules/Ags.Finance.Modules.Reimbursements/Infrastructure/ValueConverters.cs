@@ -12,11 +12,11 @@ internal sealed class MoneyCentsConverter : ValueConverter<Money, long>
     }
 }
 
-/// <summary>Grava <see cref="AccountingMonth"/> como inteiro <c>yyyyMM</c> (janeiro de 2027 vira 202701).</summary>
-internal sealed class AccountingMonthConverter : ValueConverter<AccountingMonth, int>
+/// <summary>Grava <see cref="ReferenceMonth"/> como inteiro <c>yyyyMM</c> (janeiro de 2027 vira 202701).</summary>
+internal sealed class ReferenceMonthConverter : ValueConverter<ReferenceMonth, int>
 {
-    public AccountingMonthConverter()
-        : base(month => (month.Year * 100) + month.Month, value => new AccountingMonth(value / 100, value % 100))
+    public ReferenceMonthConverter()
+        : base(month => (month.Year * 100) + month.Month, value => new ReferenceMonth(value / 100, value % 100))
     {
     }
 }

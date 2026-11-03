@@ -4,9 +4,9 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Transactions.Application.CreateEntry;
 
-internal sealed class EntryTotals(IEntryStore store, IAccountingMonthCalculator calendar, TimeProvider clock, IInvoiceWriteGuard invoices) : IEntryTotals
+internal sealed class EntryTotals(IEntryStore store, IReferenceMonthCalculator calendar, TimeProvider clock, IInvoiceWriteGuard invoices) : IEntryTotals
 {
-    public async Task<IReadOnlyList<MonthlyTotal>> GetMonthlyAsync(AccountingMonth from, AccountingMonth to, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<MonthlyTotal>> GetMonthlyAsync(ReferenceMonth from, ReferenceMonth to, CancellationToken cancellationToken = default)
     {
         if (from.Year == 0 || to.Year == 0 || from > to) { return []; }
         var rows = await store.GetMonthlyAmountsAsync(from, to, cancellationToken);
@@ -18,12 +18,12 @@ internal sealed class EntryTotals(IEntryStore store, IAccountingMonthCalculator 
         return entries.Concat(adjustments).OrderBy(x => x.Month).ThenBy(x => x.Kind).ToList();
     }
 
-    public async Task<PlannedTotals> GetPlannedAsync(AccountingMonth from, AccountingMonth to, CancellationToken cancellationToken = default)
+    public async Task<PlannedTotals> GetPlannedAsync(ReferenceMonth from, ReferenceMonth to, CancellationToken cancellationToken = default)
     {
         if (from.Year == 0 || to.Year == 0 || from > to) { return new([]); }
         var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
         var parts = new List<PlannedPart>();
-        var openInvoices = new Dictionary<(Guid Card, AccountingMonth Month), bool>();
+        var openInvoices = new Dictionary<(Guid Card, ReferenceMonth Month), bool>();
         foreach (var row in await store.GetPlanningAmountsAsync(from, to, cancellationToken))
         {
             var isForecast = row.RecurringEntryExternalId is not null && (row.CardExternalId is { } card
@@ -34,7 +34,7 @@ internal sealed class EntryTotals(IEntryStore store, IAccountingMonthCalculator 
         parts.AddRange((await store.GetInvoiceAdjustmentsAsync(cancellationToken)).Where(x => x.Month >= from && x.Month <= to)
             .Select(x => new PlannedPart(x.Month, Contracts.CategoryKind.Expense, Guid.Empty, true, -x.ExpenseDifference.Amount, false)));
 
-        var error = await AddProjectionAsync(parts, from, to, AccountingMonth.FromDate(today), cancellationToken);
+        var error = await AddProjectionAsync(parts, from, to, ReferenceMonth.FromDate(today), cancellationToken);
         var rows = parts.GroupBy(x => (x.Month, x.Kind, x.SubcategoryExternalId, x.IsInvoiceAdjustment))
             .Select(group => new PlannedTotal(group.Key.Month, group.Key.Kind, group.Key.SubcategoryExternalId, group.Key.IsInvoiceAdjustment,
                 new Money(group.Where(x => !x.IsForecast).Sum(x => x.Amount)), new Money(group.Where(x => x.IsForecast).Sum(x => x.Amount))))
@@ -43,7 +43,7 @@ internal sealed class EntryTotals(IEntryStore store, IAccountingMonthCalculator 
     }
 
     /// <summary>A ocorrência já existe, então só a situação gravada da fatura decide; a data de corte só vale para o que ainda será lançado.</summary>
-    private async Task<bool> IsOpenAsync(Guid card, AccountingMonth month, Dictionary<(Guid Card, AccountingMonth Month), bool> known, CancellationToken cancellationToken)
+    private async Task<bool> IsOpenAsync(Guid card, ReferenceMonth month, Dictionary<(Guid Card, ReferenceMonth Month), bool> known, CancellationToken cancellationToken)
     {
         if (known.TryGetValue((card, month), out var open)) { return open; }
         open = await invoices.CheckRecurringAsync(card, month, DateTimeOffset.MinValue, cancellationToken) is null;
@@ -51,7 +51,7 @@ internal sealed class EntryTotals(IEntryStore store, IAccountingMonthCalculator 
         return open;
     }
 
-    private async Task<string?> AddProjectionAsync(List<PlannedPart> parts, AccountingMonth from, AccountingMonth to, AccountingMonth current, CancellationToken cancellationToken)
+    private async Task<string?> AddProjectionAsync(List<PlannedPart> parts, ReferenceMonth from, ReferenceMonth to, ReferenceMonth current, CancellationToken cancellationToken)
     {
         var first = from > current ? from : current.AddMonths(1);
         if (first > to) { return null; }
@@ -68,5 +68,5 @@ internal sealed class EntryTotals(IEntryStore store, IAccountingMonthCalculator 
         return null;
     }
 
-    private sealed record PlannedPart(AccountingMonth Month, Contracts.CategoryKind Kind, Guid SubcategoryExternalId, bool IsInvoiceAdjustment, decimal Amount, bool IsForecast);
+    private sealed record PlannedPart(ReferenceMonth Month, Contracts.CategoryKind Kind, Guid SubcategoryExternalId, bool IsInvoiceAdjustment, decimal Amount, bool IsForecast);
 }

@@ -10,7 +10,7 @@ public sealed record PendingGroup(IReadOnlyList<PendingItem> Items, Money ToRece
 
 /// <summary>
 /// Janela fechada de <see cref="Today"/> até <see cref="WindowEnd"/> (hoje + N - 1, com N escolhido nas preferências: 7, 15 ou 30 dias) e, à parte, os atrasados (data prevista anterior a hoje).
-/// <see cref="Today"/> é a data no fuso de negócio; o mês contábil selecionado no dashboard não a desloca.
+/// <see cref="Today"/> é a data no fuso de negócio; o mês de referência selecionado no dashboard não a desloca.
 /// </summary>
 public sealed record PendingAgenda(DateOnly Today, DateOnly WindowEnd, PendingGroup Upcoming, PendingGroup Overdue)
 {

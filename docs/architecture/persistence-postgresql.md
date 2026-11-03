@@ -19,7 +19,7 @@ conversão do SQLite e sem manter dois providers.
 - Um banco, com **um schema por módulo persistente** (`identity`, `accounts`, `transactions`,
   `invoices`, `reimbursements`, `preferences`, `attachments`), **um `DbContext` e um histórico de migrations próprios** por módulo
   (`<schema>.__ef_migrations`). Reports e Imports não têm tabelas.
-- Money continua decimal no domínio e centavos em `BIGINT`; AccountingMonth continua inteiro `yyyyMM`
+- Money continua decimal no domínio e centavos em `BIGINT`; ReferenceMonth continua inteiro `yyyyMM`
   (`INTEGER`). `ExternalId` é Guid v7 gerado no domínio (`UUID`, índice único); `Id` é `BIGINT` identity;
   `CreatedAt`/`UpdatedAt` são `timestamptz` em UTC, preenchidos por um interceptor com o `TimeProvider`.
 - Sem FK, JOIN, SQL ou acesso a tabelas que cruze módulos. Schemas separam a organização, mas **não
@@ -56,7 +56,7 @@ conversão do SQLite e sem manter dois providers.
 | `Domain/Entity.cs` | Base com `Id` (`long`), `ExternalId` (`Guid.CreateVersion7()`), `CreatedAt` e `UpdatedAt`. Só BCL; os setters são privados porque quem preenche é a Infrastructure. |
 | `Infrastructure/<Module>DbContext.cs` | Constantes `Schema` e `MigrationsHistoryTable`; define o schema padrão e aplica os `IEntityTypeConfiguration<T>` do assembly. |
 | `Infrastructure/PersistenceConventions.cs` | Ignora a base `Entity`; define a chave `Id` e o índice único de `ExternalId`; registra os conversores. |
-| `Infrastructure/ValueConverters.cs` | `Money` ↔ centavos (`BIGINT`); `AccountingMonth` ↔ inteiro `yyyyMM` (janeiro de 2027 = `202701`). |
+| `Infrastructure/ValueConverters.cs` | `Money` ↔ centavos (`BIGINT`); `ReferenceMonth` ↔ inteiro `yyyyMM` (janeiro de 2027 = `202701`). |
 | `Infrastructure/AuditTimestampsInterceptor.cs` | `SaveChangesInterceptor` que preenche `CreatedAt`/`UpdatedAt` (UTC) com o `TimeProvider`; nunca regrava `CreatedAt` em atualização. |
 | `Infrastructure/Migrations/` | Migration `Initial` (cria o schema e as tabelas) e o snapshot do módulo. |
 | `DependencyInjection.cs` | `Add<Module>Module(connectionString)` registra `TimeProvider.System` (se ausente), o interceptor e o `DbContext` com `UseNpgsql` e o histórico no schema do módulo; `Migrate<Module>ModuleAsync` aplica as migrations. |
@@ -64,7 +64,7 @@ conversão do SQLite e sem manter dois providers.
 Como usar numa entidade nova:
 
 1. Herde de `Entity` (construtor protegido sem argumentos ou construtor cujos parâmetros casam com propriedades mapeadas).
-2. Crie um `IEntityTypeConfiguration<T>` na `Infrastructure` com `builder.ToTable("entries")`; o schema do módulo vem do `HasDefaultSchema`. Propriedades `Money` e `AccountingMonth` não precisam de configuração.
+2. Crie um `IEntityTypeConfiguration<T>` na `Infrastructure` com `builder.ToTable("entries")`; o schema do módulo vem do `HasDefaultSchema`. Propriedades `Money` e `ReferenceMonth` não precisam de configuração.
 3. Gere a migration do módulo com o histórico no schema dele e atualize o snapshot.
 4. Tipos `get`-only não são mapeados pelo EF; use `private set`.
 

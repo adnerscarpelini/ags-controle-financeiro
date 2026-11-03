@@ -10,7 +10,7 @@ internal static class PersistenceConventions
     public static void ConfigureValueConversions(ModelConfigurationBuilder configurationBuilder)
     {
         configurationBuilder.Properties<Money>().HaveConversion<MoneyCentsConverter>();
-        configurationBuilder.Properties<AccountingMonth>().HaveConversion<AccountingMonthConverter>();
+        configurationBuilder.Properties<ReferenceMonth>().HaveConversion<ReferenceMonthConverter>();
     }
 
     /// <summary>Impede que a base <see cref="Entity"/> vire tabela. Chamar antes de aplicar os mapeamentos.</summary>

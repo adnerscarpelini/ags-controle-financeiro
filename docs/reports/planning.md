@@ -4,7 +4,7 @@ A [#77](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/77) mo
 o dinheiro foi gasto e o que vem pela frente (`IPlanningReports`, em `Reports.Contracts`; página
 `/planejamento`).
 
-**Período.** 19 meses contábeis: 6 anteriores, o atual e 12 seguintes. As setas deslocam o período um
+**Período.** 19 meses de referência: 6 anteriores, o atual e 12 seguintes. As setas deslocam o período um
 mês por vez, mantendo as 19 colunas. O mês atual fica em destaque.
 
 **Linhas.** Receitas, despesas, saldo do mês e saldo acumulado; abaixo, receitas e despesas por categoria,

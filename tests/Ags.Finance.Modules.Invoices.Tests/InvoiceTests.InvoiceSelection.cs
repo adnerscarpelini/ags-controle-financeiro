@@ -18,7 +18,7 @@ public sealed partial class InvoiceTests
         var card = (await Provider.GetRequiredService<IAccountCatalog>().SaveCreditCardAsync(new(null, _accountId, "Calendário", CardBrand.Visa, new Money(10000), 1, 9, includesClosing, "green"))).ExternalId!.Value;
         var selection = await Catalog.GetSelectableInvoicesAsync(card, new DateOnly(2026, 11, day));
         Assert.Null(selection.Error);
-        Assert.Equal(new AccountingMonth(year, month), selection.CalculatedMonth);
+        Assert.Equal(new ReferenceMonth(year, month), selection.CalculatedMonth);
         Assert.Equal(selection.CalculatedMonth, selection.SuggestedMonth);
         Assert.All(selection.Invoices, x => Assert.Equal(InvoiceStatus.Open, x.Status));
     }
@@ -28,8 +28,8 @@ public sealed partial class InvoiceTests
     {
         _clock.Now = new DateTimeOffset(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
         var selection = await Catalog.GetSelectableInvoicesAsync(_cardId, new DateOnly(2026, 10, 20));
-        Assert.Equal(new AccountingMonth(2026, 11), selection.CalculatedMonth);
-        Assert.Equal(new AccountingMonth(2026, 12), selection.SuggestedMonth);
+        Assert.Equal(new ReferenceMonth(2026, 11), selection.CalculatedMonth);
+        Assert.Equal(new ReferenceMonth(2026, 12), selection.SuggestedMonth);
         Assert.Equal(InvoiceStatus.Closed, selection.Invoices.Single(x => x.Month == selection.CalculatedMonth).Status);
         var entries = Provider.GetRequiredService<IEntryCatalog>();
         Assert.False((await entries.CreateAsync(Purchase(100, 11))).Succeeded);

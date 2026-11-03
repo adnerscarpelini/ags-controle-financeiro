@@ -47,12 +47,12 @@ internal static class TransactionCsvEndpoints
         return new(month, from, to, saved, account, card, final, category, subcategory, Value("text"), effective, kind);
     }
 
-    private static bool TryMonth(string text, out AccountingMonth? month)
+    private static bool TryMonth(string text, out ReferenceMonth? month)
     {
         month = null;
         if (text.Length == 0) { return true; }
         if (!DateOnly.TryParseExact(text + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)) { return false; }
-        month = AccountingMonth.FromDate(date);
+        month = ReferenceMonth.FromDate(date);
         return true;
     }
 

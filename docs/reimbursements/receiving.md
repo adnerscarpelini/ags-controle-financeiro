@@ -11,7 +11,7 @@ ser menor, igual ou maior que o esperado, nunca negativo.
 pelos dois valores e não vira saldo nem pendência.
 
 **Receita.** Cada efetivação cria uma receita avulsa Efetivada por pessoa, com o total recebido
-dela, fora do cartão, na conta e na data informadas e com mês contábil da data. A descrição é o
+dela, fora do cartão, na conta e na data informadas e com mês de referência da data. A descrição é o
 nome da pessoa e a subcategoria é `Reembolsos > Reembolsos recebidos`, criadas na primeira vez.
 Descrição desativada bloqueia a efetivação. Total R$ 0,00 encerra os itens sem lançamento, e a
 conta só é obrigatória se alguma pessoa tiver total maior que zero.
@@ -21,7 +21,7 @@ também as receitas das outras pessoas. Um item já recebido, removido ou com es
 mostrado rejeita a efetivação inteira.
 
 **Proteções.** Enquanto estiver Recebido, a despesa não pode ter valor, tipo, pessoa ou percentual
-alterados nem ser excluída; os demais campos continuam editáveis, e o item acompanha o mês contábil
+alterados nem ser excluída; os demais campos continuam editáveis, e o item acompanha o mês de referência
 do lançamento. A receita gerada não pode ser editada nem excluída em Lançamentos. A pessoa com
 recebimento não pode ser excluída.
 

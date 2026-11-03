@@ -41,7 +41,7 @@ internal sealed partial class InvoicePaymentCatalog
         return new(payment.ExternalId, null);
     }
 
-    public Task<InvoiceResult> ConfirmSettlementAsync(Guid cardExternalId, AccountingMonth month, CancellationToken cancellationToken = default)
+    public Task<InvoiceResult> ConfirmSettlementAsync(Guid cardExternalId, ReferenceMonth month, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(async token =>
         {
             if (month.Year == 0) { return new InvoiceResult("Informe um mês válido."); }

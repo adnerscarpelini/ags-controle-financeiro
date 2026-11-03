@@ -69,7 +69,7 @@ public sealed partial class EntryTests
         Assert.False((await Entries.ConfirmEffectiveAsync(occurrence.ExternalId, DateOnly.MinValue)).Succeeded);
         Assert.False((await Entries.ConfirmEffectiveAsync(Guid.NewGuid(), occurrence.Date)).Succeeded);
         Assert.False((await OccurrenceAsync(2026, 10)).IsEffective);
-        await Entries.CreateAsync(Request() with { CardExternalId = await CreateCardAsync(), Month = new AccountingMonth(2026, 12) });
+        await Entries.CreateAsync(Request() with { CardExternalId = await CreateCardAsync(), Month = new ReferenceMonth(2026, 12) });
         var card = (await Entries.GetAsync()).Single(x => x.CardExternalId is not null);
         Assert.False((await Entries.ConfirmEffectiveAsync(card.ExternalId, card.Date)).Succeeded);
         Assert.Equal(new Money(1000), (await Entries.GetBalanceAsync(_accountId, new DateOnly(2026, 12, 30)))?.EffectiveBalance);

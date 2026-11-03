@@ -11,7 +11,7 @@ public sealed partial class InvoiceTests
     [Fact]
     public async Task ObligationsUseRemainingBalancesPreserveArchivedCardsAndShowPaidMonths()
     {
-        var month = new AccountingMonth(2026, 11);
+        var month = new ReferenceMonth(2026, 11);
         var entries = Provider.GetRequiredService<IEntryCatalog>();
         await entries.CreateInstallmentsAsync(Purchase(1000, 11), 10);
         var accounts = Provider.GetRequiredService<IAccountCatalog>();
@@ -41,7 +41,7 @@ public sealed partial class InvoiceTests
         var entries = Provider.GetRequiredService<IEntryCatalog>();
         await entries.CreateAsync(Purchase(100, 10));
         await entries.CreateAsync(Purchase(500, 11));
-        var result = await Catalog.GetObligationsAsync(new AccountingMonth(2026, 10));
+        var result = await Catalog.GetObligationsAsync(new ReferenceMonth(2026, 10));
         Assert.Equal(new Money(100), Assert.Single(result.Cards).RemainingBalance);
         Assert.Equal(2, result.Months.Count);
         Assert.NotNull((await Catalog.GetObligationsAsync(default)).Error);
@@ -51,9 +51,9 @@ public sealed partial class InvoiceTests
     public async Task CreditRemainsVisibleAfterExplicitSettlement()
     {
         await Provider.GetRequiredService<IEntryCatalog>().CreateAsync(Purchase(100));
-        await Lifecycle.CloseAsync(_cardId, new AccountingMonth(2026, 10));
+        await Lifecycle.CloseAsync(_cardId, new ReferenceMonth(2026, 10));
         await Payments.ConfirmPaymentAsync(Payment(120, true));
-        var result = await Catalog.GetObligationsAsync(new AccountingMonth(2026, 10));
+        var result = await Catalog.GetObligationsAsync(new ReferenceMonth(2026, 10));
         Assert.Equal(new Money(-20), Assert.Single(result.Months).RemainingBalance);
         Assert.False(Assert.Single(result.Months).FullyPaid);
         Assert.Equal(new Money(-20), Assert.Single(result.Cards).RemainingBalance);

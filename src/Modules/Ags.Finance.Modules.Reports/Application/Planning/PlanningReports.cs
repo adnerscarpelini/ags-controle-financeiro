@@ -11,9 +11,9 @@ internal sealed class PlanningReports(IEntryCatalog entries, IEntryTotals totals
     private const string AdjustmentName = "Ajuste de fatura";
     private const string NoCategoryName = "Sem categoria";
 
-    public async Task<PlanningReport> GetAsync(AccountingMonth? firstMonth = null, CancellationToken cancellationToken = default)
+    public async Task<PlanningReport> GetAsync(ReferenceMonth? firstMonth = null, CancellationToken cancellationToken = default)
     {
-        var current = AccountingMonth.FromDate(DateOnly.FromDateTime(clock.GetLocalNow().DateTime));
+        var current = ReferenceMonth.FromDate(DateOnly.FromDateTime(clock.GetLocalNow().DateTime));
         var first = firstMonth ?? current.AddMonths(-MonthsBefore);
         var months = Enumerable.Range(0, MonthCount).Select(first.AddMonths).ToList();
         // O acumulado parte do mês atual mesmo quando ele fica antes do período exibido.
@@ -47,13 +47,13 @@ internal sealed class PlanningReports(IEntryCatalog entries, IEntryTotals totals
     private static PlannedTotal Normalize(PlannedTotal row)
         => row.Kind == CategoryKind.Expense ? row with { Launched = -row.Launched, Forecast = -row.Forecast } : row;
 
-    private static List<PlanningCell> Totals(IReadOnlyList<AccountingMonth> months, IEnumerable<PlannedTotal> rows)
+    private static List<PlanningCell> Totals(IReadOnlyList<ReferenceMonth> months, IEnumerable<PlannedTotal> rows)
     {
         var list = rows.ToList();
         return months.Select(month => new PlanningCell(Sum(list.Where(x => x.Month == month), x => x.Launched), Sum(list.Where(x => x.Month == month), x => x.Forecast))).ToList();
     }
 
-    private static List<Money?> Accumulated(IReadOnlyList<PlannedTotal> rows, IReadOnlyList<AccountingMonth> months, AccountingMonth current)
+    private static List<Money?> Accumulated(IReadOnlyList<PlannedTotal> rows, IReadOnlyList<ReferenceMonth> months, ReferenceMonth current)
     {
         var result = new List<Money?>();
         foreach (var month in months)
@@ -65,7 +65,7 @@ internal sealed class PlanningReports(IEntryCatalog entries, IEntryTotals totals
         return result;
     }
 
-    private static List<PlanningCategory> BuildCategories(IReadOnlyList<AccountingMonth> months, IReadOnlyList<ClassifiedRow> rows)
+    private static List<PlanningCategory> BuildCategories(IReadOnlyList<ReferenceMonth> months, IReadOnlyList<ClassifiedRow> rows)
     {
         var groups = rows.GroupBy(x => x.Category).ToList();
         var maximum = groups.SelectMany(group => months.Select(month => Sum(group.Where(x => x.Row.Month == month).Select(x => x.Row), x => x.Launched + x.Forecast).Amount)).DefaultIfEmpty(0m).Max();
@@ -81,7 +81,7 @@ internal sealed class PlanningReports(IEntryCatalog entries, IEntryTotals totals
         }).OrderByDescending(x => x.Total.Amount).ThenBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
     }
 
-    private static List<PlanningCell> Cells(IReadOnlyList<AccountingMonth> months, IEnumerable<PlannedTotal> rows, decimal maximum)
+    private static List<PlanningCell> Cells(IReadOnlyList<ReferenceMonth> months, IEnumerable<PlannedTotal> rows, decimal maximum)
     {
         var list = rows.ToList();
         return months.Select(month =>

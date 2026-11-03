@@ -7,7 +7,7 @@ using Ags.Finance.SharedKernel;
 namespace Ags.Finance.Modules.Invoices.Application.AnticipateInstallments;
 
 internal sealed class InvoiceAnticipationCatalog(IEntryCatalog entries, IInvoicePaymentCatalog payments, IInvoiceStore store,
-    IAccountingMonthCalculator calendar, TimeProvider clock, IFinancialOperation operations) : IInvoiceAnticipationCatalog
+    IReferenceMonthCalculator calendar, TimeProvider clock, IFinancialOperation operations) : IInvoiceAnticipationCatalog
 {
     public Task<InvoiceResult> AnticipateAsync(AnticipateInstallmentsRequest request, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(token => AnticipateCoreAsync(request, token), x => x.Succeeded, cancellationToken);

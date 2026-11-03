@@ -12,9 +12,9 @@ public sealed record HeatRow(string Name, int Level, bool IsInvoiceAdjustment, I
 /// Visão anual na mesma base dos relatórios #24/#25. <see cref="Income"/>, <see cref="Expenses"/> e <see cref="Balance"/> têm 12 valores (despesas positivas).
 /// A soma das linhas de categoria de cada mês é igual a <see cref="Expenses"/> do mês.
 /// </summary>
-public sealed record HeatMap(int Year, AccountingMonth SelectedMonth, IReadOnlyList<Money> Income, IReadOnlyList<Money> Expenses, IReadOnlyList<Money> Balance, IReadOnlyList<HeatRow> Rows);
+public sealed record HeatMap(int Year, ReferenceMonth SelectedMonth, IReadOnlyList<Money> Income, IReadOnlyList<Money> Expenses, IReadOnlyList<Money> Balance, IReadOnlyList<HeatRow> Rows);
 
 public interface IHeatMapReports
 {
-    Task<HeatMap> GetAsync(AccountingMonth selectedMonth, CancellationToken cancellationToken = default);
+    Task<HeatMap> GetAsync(ReferenceMonth selectedMonth, CancellationToken cancellationToken = default);
 }

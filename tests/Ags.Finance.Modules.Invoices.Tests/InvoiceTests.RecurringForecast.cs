@@ -12,7 +12,7 @@ namespace Ags.Finance.Modules.Invoices.Tests;
 /// </summary>
 public sealed partial class InvoiceTests
 {
-    private static readonly AccountingMonth s_forecastMonth = new(2026, 10);
+    private static readonly ReferenceMonth s_forecastMonth = new(2026, 10);
 
     private async Task UseModeAsync(RecurringInvoiceMode mode)
         => Assert.True((await Provider.GetRequiredService<IPreferences>().SaveAsync(AppPreferences.Default with { RecurringInvoices = mode })).Succeeded);
@@ -117,7 +117,7 @@ public sealed partial class InvoiceTests
         await UseModeAsync(RecurringInvoiceMode.SumOnDate);
         await ForecastInvoiceAsync();
 
-        var november = Assert.Single(await Catalog.GetMonthAsync(new AccountingMonth(2026, 11)));
+        var november = Assert.Single(await Catalog.GetMonthAsync(new ReferenceMonth(2026, 11)));
 
         Assert.Equal(Money.Zero, november.Total);
         Assert.Equal(new Money(50), november.ForecastTotal);

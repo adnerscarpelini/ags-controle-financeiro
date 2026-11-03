@@ -11,7 +11,7 @@
 <section class="panel">
     <h2>Em aberto daqui para frente</h2>
     <form id="obligations-filter" @onsubmit="ReloadAsync" @onsubmit:preventDefault>
-        <div class="field"><label for="obligations-month">Mês contábil de referência</label><input id="obligations-month" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" required /></div>
+        <div class="field"><label for="obligations-month">Mês de referência de referência</label><input id="obligations-month" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" required /></div>
         <button class="button" disabled="@_busy">Consultar</button>
     </form>
     <p>Inclui a fatura do mês selecionado e as seguintes que contêm parcelas lançadas, descontando pagamentos e abatimentos. Valores de cadastros arquivados permanecem incluídos.</p>
@@ -30,7 +30,7 @@
 @code {
     private InvoiceObligations _result = new(default, [], []);
     private string _month = string.Empty;
-    private AccountingMonth _current;
+    private ReferenceMonth _current;
     private string? _message;
     private bool _busy;
     protected override async Task OnInitializedAsync() { _month = Clock.GetLocalNow().ToString("yyyy-MM", CultureInfo.InvariantCulture); await ReloadAsync(); }
@@ -39,7 +39,7 @@
         if (_busy) { return; }
         if (!DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)) { _message = "Informe um mês válido."; return; }
         _busy = true;
-        try { _current = AccountingMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime)); _result = await Catalog.GetObligationsAsync(AccountingMonth.FromDate(date)); _message = _result.Error; }
+        try { _current = ReferenceMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime)); _result = await Catalog.GetObligationsAsync(ReferenceMonth.FromDate(date)); _message = _result.Error; }
         finally { _busy = false; }
     }
 }

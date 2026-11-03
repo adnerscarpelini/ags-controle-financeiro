@@ -77,18 +77,18 @@ internal sealed class RowReader(CsvRow row, IReadOnlyList<string> columns, List<
 
     public long? OptionalInteger(string column, long min, long max) => Raw(column).Length == 0 ? null : Integer(column, min, max);
 
-    /// <summary>Mês contábil no formato yyyy-MM.</summary>
-    public AccountingMonth Month(string column)
+    /// <summary>Mês de referência no formato yyyy-MM.</summary>
+    public ReferenceMonth Month(string column)
     {
         if (!DateOnly.TryParseExact(Raw(column) + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var date) || Raw(column).Length != 7)
         {
             Problem(column, "Use o mês no formato yyyy-MM.");
             return default;
         }
-        return AccountingMonth.FromDate(date);
+        return ReferenceMonth.FromDate(date);
     }
 
-    public AccountingMonth? OptionalMonth(string column) => Raw(column).Length == 0 ? null : Month(column);
+    public ReferenceMonth? OptionalMonth(string column) => Raw(column).Length == 0 ? null : Month(column);
 
     public T Enum<T>(string column)
         where T : struct, Enum

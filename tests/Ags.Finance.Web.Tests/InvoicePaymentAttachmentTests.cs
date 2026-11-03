@@ -37,7 +37,7 @@ public sealed class InvoicePaymentAttachmentTests
             var bank = await accounts.CreateBankAsync("Banco Fictício");
             var account = await accounts.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta Fictícia", AccountKind.Checking, "green"));
             var card = await accounts.SaveCreditCardAsync(new(null, account.ExternalId!.Value, "Cartão Fictício", CardBrand.Visa, new Money(1000), 3, 10, true, "green"));
-            var month = new AccountingMonth(2027, 1);
+            var month = new ReferenceMonth(2027, 1);
             var completed = false;
             var recorded = 0;
             var dialog = context.Render<InvoicePaymentDialog>(parameters => parameters

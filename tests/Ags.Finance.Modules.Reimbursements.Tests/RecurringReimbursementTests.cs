@@ -7,9 +7,9 @@ namespace Ags.Finance.Modules.Reimbursements.Tests;
 
 public sealed class RecurringReimbursementTests : ReimbursementFixture
 {
-    private static readonly AccountingMonth s_november = new(2026, 11);
-    private static readonly AccountingMonth s_december = new(2026, 12);
-    private static readonly AccountingMonth s_october = new(2026, 10);
+    private static readonly ReferenceMonth s_november = new(2026, 11);
+    private static readonly ReferenceMonth s_december = new(2026, 12);
+    private static readonly ReferenceMonth s_october = new(2026, 10);
 
     private IEntryCatalog Entries => Provider.GetRequiredService<IEntryCatalog>();
 
@@ -23,7 +23,7 @@ public sealed class RecurringReimbursementTests : ReimbursementFixture
         return result.ExternalId!.Value;
     }
 
-    private async Task<EntryDetails> OccurrenceAsync(AccountingMonth month)
+    private async Task<EntryDetails> OccurrenceAsync(ReferenceMonth month)
     {
         Assert.True((await Entries.EnsureRecurringMonthAsync(month)).Succeeded);
         return (await Entries.GetAsync()).Single(x => x.Month == month);

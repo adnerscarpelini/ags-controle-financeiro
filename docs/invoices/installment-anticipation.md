@@ -7,7 +7,7 @@ A confirmação mostra destino, quantidade e desconto; cancelar não altera dado
 
 O caso de uso pertence a Invoices e consome somente Contracts de Transactions.
 Seleciona as últimas parcelas que ainda estão em meses posteriores ao atual e
-move apenas o mês contábil, preservando valores, datas, identidade e numeração.
+move apenas o mês de referência, preservando valores, datas, identidade e numeração.
 O desconto, quando positivo, é InvoicePayment do tipo Desconto, com a compra
 identificada nos detalhes. Sem desconto não há abatimento de valor zero.
 Quantidade excedente e desconto maior ou igual ao total antecipado são rejeitados.

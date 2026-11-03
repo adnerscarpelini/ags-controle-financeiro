@@ -7,13 +7,13 @@ namespace Ags.Finance.Modules.Reports.Tests;
 
 public sealed class HeatMapTests : ReportFixture
 {
-    private static readonly AccountingMonth s_october = new(2026, 10);
+    private static readonly ReferenceMonth s_october = new(2026, 10);
     private IHeatMapReports HeatMaps => Provider.GetRequiredService<IHeatMapReports>();
 
     [Fact]
     public async Task CategoryRowShowsTheTenMonthsAndTheBiggestMonthIsTheMostIntense()
     {
-        for (var month = 1; month <= 10; month++) { await AddAsync(new AccountingMonth(2026, month), month == 6 ? 900m : 100m); }
+        for (var month = 1; month <= 10; month++) { await AddAsync(new ReferenceMonth(2026, month), month == 6 ? 900m : 100m); }
         var map = await HeatMaps.GetAsync(s_october);
         var row = Assert.Single(map.Rows, x => x is { Name: "Mercado", Level: 0 });
         Assert.Equal(12, row.Cells.Count);
@@ -30,7 +30,7 @@ public sealed class HeatMapTests : ReportFixture
         var transport = await SubcategoryAsync("Transporte", "Combustível");
         await AddAsync(s_october, 120m);
         await AddAsync(s_october, 80m, transport);
-        await AddAsync(new AccountingMonth(2026, 9), 30m, transport);
+        await AddAsync(new ReferenceMonth(2026, 9), 30m, transport);
         await AddAsync(s_october, 1000m, income: true);
         var map = await HeatMaps.GetAsync(s_october);
         for (var index = 0; index < 12; index++)
@@ -65,12 +65,12 @@ public sealed class HeatMapTests : ReportFixture
     [Fact]
     public async Task ChangingTheYearShowsTheMonthsOfTheNewYearWithoutManualSetup()
     {
-        await AddAsync(new AccountingMonth(2025, 12), 10m);
-        await AddAsync(new AccountingMonth(2026, 1), 20m);
-        var map = await HeatMaps.GetAsync(new AccountingMonth(2025, 12));
+        await AddAsync(new ReferenceMonth(2025, 12), 10m);
+        await AddAsync(new ReferenceMonth(2026, 1), 20m);
+        var map = await HeatMaps.GetAsync(new ReferenceMonth(2025, 12));
         Assert.Equal(2025, map.Year);
         Assert.Equal(new Money(10m), map.Expenses[11]);
         Assert.Equal(Money.Zero, map.Expenses[0]);
-        Assert.Equal(new Money(20m), (await HeatMaps.GetAsync(new AccountingMonth(2026, 1))).Expenses[0]);
+        Assert.Equal(new Money(20m), (await HeatMaps.GetAsync(new ReferenceMonth(2026, 1))).Expenses[0]);
     }
 }

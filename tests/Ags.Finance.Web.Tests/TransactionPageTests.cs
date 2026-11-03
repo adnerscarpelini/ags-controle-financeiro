@@ -49,7 +49,7 @@ public sealed class TransactionPageTests
         await page.Find("form").SubmitAsync(EventArgs.Empty);
         var entry = Assert.Single(await context.Services.GetRequiredService<IEntryCatalog>().GetAsync());
         Assert.Equal(new Money(-150), entry.Amount);
-        Assert.Equal(new AccountingMonth(2026, 10), entry.Month);
+        Assert.Equal(new ReferenceMonth(2026, 10), entry.Month);
         Assert.Equal("2026-10-05", page.Find("#entry-date").GetAttribute("value"));
         Assert.Equal(string.Empty, page.Find("#entry-merchant").GetAttribute("value"));
         Assert.True(page.Find("#entry-paid").HasAttribute("checked"));
@@ -64,7 +64,7 @@ public sealed class TransactionPageTests
         var purchase = (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.CardExternalId is not null);
         Assert.Equal(card.ExternalId, purchase.CardExternalId);
         Assert.Equal(new DateOnly(2026, 10, 2), purchase.Date);
-        Assert.Equal(new AccountingMonth(2026, 11), purchase.Month);
+        Assert.Equal(new ReferenceMonth(2026, 11), purchase.Month);
         var invoices = context.Render<Ags.Finance.Web.Components.Pages.Invoices>();
         invoices.WaitForAssertion(() => Assert.Single(invoices.FindAll(".catalog-list li")));
         await invoices.Find(".catalog-list button").ClickAsync(new());
@@ -99,7 +99,7 @@ public sealed class TransactionPageTests
         page.WaitForAssertion(() => Assert.False(page.Find("#anticipation-form button").HasAttribute("disabled")));
         await page.Find("#anticipation-form").SubmitAsync(EventArgs.Empty);
         await page.FindAll("[aria-label='Antecipar parcelas'] button").Single(x => x.TextContent == "Confirmar antecipação").ClickAsync(new());
-        Assert.Equal(new AccountingMonth(2026, 9), (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.InstallmentNumber == 3).Month);
+        Assert.Equal(new ReferenceMonth(2026, 9), (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.InstallmentNumber == 3).Month);
         var firstRow = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 1/3", StringComparison.Ordinal));
         await firstRow.QuerySelectorAll("button").Single(x => x.TextContent == "Editar").ClickAsync(new());
         Assert.Equal("2026-12", page.Find("#entry-invoice").GetAttribute("value"));

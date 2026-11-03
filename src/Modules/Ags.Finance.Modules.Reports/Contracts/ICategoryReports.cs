@@ -15,9 +15,9 @@ public sealed record CategoryLine(string Name, bool IsInvoiceAdjustment, Money A
 /// <see cref="TotalExpenses"/> e <see cref="TotalIncome"/> são os mesmos do <see cref="MonthlySummary"/>; o ajuste de fatura (#52) aparece como linha própria,
 /// uma vez, para a soma das linhas coincidir com o total.
 /// </summary>
-public sealed record CategoryReport(AccountingMonth Month, Money TotalExpenses, IReadOnlyList<CategoryLine> Expenses, Money TotalIncome, IReadOnlyList<CategoryLine> Income);
+public sealed record CategoryReport(ReferenceMonth Month, Money TotalExpenses, IReadOnlyList<CategoryLine> Expenses, Money TotalIncome, IReadOnlyList<CategoryLine> Income);
 
 public interface ICategoryReports
 {
-    Task<CategoryReport> GetAsync(AccountingMonth month, CancellationToken cancellationToken = default);
+    Task<CategoryReport> GetAsync(ReferenceMonth month, CancellationToken cancellationToken = default);
 }

@@ -3,7 +3,7 @@
 @using Ags.Finance.Modules.Transactions.Contracts
 @using Ags.Finance.SharedKernel
 @inject IInvoiceAnticipationCatalog Anticipations
-@inject IAccountingMonthCalculator Calendar
+@inject IReferenceMonthCalculator Calendar
 @inject TimeProvider Clock
 
 <section class="panel" role="alertdialog" aria-label="Antecipar parcelas">
@@ -34,7 +34,7 @@
     [Parameter] public EventCallback Confirmed { get; set; }
     [Parameter] public EventCallback Cancelled { get; set; }
     private readonly Guid _confirmationId = Guid.CreateVersion7();
-    private AccountingMonth? _month;
+    private ReferenceMonth? _month;
     private int _count = 1;
     private decimal _discount;
     private bool _review;

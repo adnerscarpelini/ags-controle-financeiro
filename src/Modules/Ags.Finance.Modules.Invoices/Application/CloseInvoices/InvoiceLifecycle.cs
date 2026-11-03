@@ -8,16 +8,16 @@ namespace Ags.Finance.Modules.Invoices.Application.CloseInvoices;
 
 internal sealed class InvoiceLifecycle(IInvoiceStore store, IAccountCatalog accounts, IEntryCatalog entries, IFinancialOperation operations, TimeProvider clock) : IInvoiceLifecycle
 {
-    public Task<InvoiceResult> CloseAsync(Guid cardExternalId, AccountingMonth month, CancellationToken cancellationToken = default)
+    public Task<InvoiceResult> CloseAsync(Guid cardExternalId, ReferenceMonth month, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(token => ChangeAsync(cardExternalId, month, false, token), x => x.Succeeded, cancellationToken);
-    public Task<InvoiceResult> ReopenAsync(Guid cardExternalId, AccountingMonth month, CancellationToken cancellationToken = default)
+    public Task<InvoiceResult> ReopenAsync(Guid cardExternalId, ReferenceMonth month, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(token => ChangeAsync(cardExternalId, month, true, token), x => x.Succeeded, cancellationToken);
 
-    private async Task<InvoiceResult> ChangeAsync(Guid cardExternalId, AccountingMonth month, bool reopen, CancellationToken cancellationToken)
+    private async Task<InvoiceResult> ChangeAsync(Guid cardExternalId, ReferenceMonth month, bool reopen, CancellationToken cancellationToken)
     {
         if (month.Year == 0 || !(await accounts.GetCreditCardsAsync(false, cancellationToken)).Any(x => x.ExternalId == cardExternalId))
         {
-            return new("Selecione cartão e mês contábil válidos.");
+            return new("Selecione cartão e mês de referência válidos.");
         }
         var invoice = await store.FindAsync(cardExternalId, month, cancellationToken);
         if (invoice is null && reopen) { return new("Fatura não encontrada."); }

@@ -1,7 +1,7 @@
 # Consulta de faturas
 
 A [#18](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/18)
-entrega Faturas por cartão e mês contábil, com total e composição. Invoices
+entrega Faturas por cartão e mês de referência, com total e composição. Invoices
 consome os Contracts de Transactions e Accounts, sem acessar seus schemas.
 
 A consulta agrupa o mês gravado em cada compra, preservando escolhas manuais.

@@ -10,7 +10,7 @@ public sealed partial class InvoiceTests
 {
     private IInvoicePaymentCatalog Payments => Provider.GetRequiredService<IInvoicePaymentCatalog>();
     private AllowanceRequest Allowance(decimal amount = 8, InvoicePaymentKind kind = InvoicePaymentKind.Cashback)
-        => new(Guid.CreateVersion7(), _cardId, new AccountingMonth(2026, 10), new DateOnly(2026, 9, 1), new Money(amount), kind);
+        => new(Guid.CreateVersion7(), _cardId, new ReferenceMonth(2026, 10), new DateOnly(2026, 9, 1), new Money(amount), kind);
 
     [Fact]
     public async Task CashbackAndDiscountReduceRemainingBalanceWithoutChangingExpensesOrCash()
@@ -48,7 +48,7 @@ public sealed partial class InvoiceTests
         Assert.False((await Payments.SaveAllowanceAsync(created.ExternalId, request with { Amount = new Money(20) })).Succeeded);
         Assert.False((await Payments.DeleteAllowanceAsync(created.ExternalId!.Value)).Succeeded);
         Assert.False((await Payments.SaveAllowanceAsync(null, Allowance())).Succeeded);
-        var other = Allowance() with { Month = new AccountingMonth(2026, 11) };
+        var other = Allowance() with { Month = new ReferenceMonth(2026, 11) };
         var movable = await Payments.SaveAllowanceAsync(null, other);
         Assert.False((await Payments.SaveAllowanceAsync(movable.ExternalId, other with { Month = request.Month })).Succeeded);
         Assert.Equal(2, (await Payments.GetHistoryAsync()).Count);

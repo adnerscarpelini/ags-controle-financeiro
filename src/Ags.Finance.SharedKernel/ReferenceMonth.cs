@@ -3,9 +3,9 @@ using System.Globalization;
 namespace Ags.Finance.SharedKernel;
 
 /// <summary>Mês em que um valor pesa no orçamento: ano e mês, sem dia.</summary>
-public readonly record struct AccountingMonth : IComparable<AccountingMonth>
+public readonly record struct ReferenceMonth : IComparable<ReferenceMonth>
 {
-    public AccountingMonth(int year, int month)
+    public ReferenceMonth(int year, int month)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(year, DateOnly.MinValue.Year);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(year, DateOnly.MaxValue.Year);
@@ -24,38 +24,38 @@ public readonly record struct AccountingMonth : IComparable<AccountingMonth>
 
     public DateOnly LastDay => new(Year, Month, DateTime.DaysInMonth(Year, Month));
 
-    public static AccountingMonth FromDate(DateOnly date)
+    public static ReferenceMonth FromDate(DateOnly date)
     {
-        return new AccountingMonth(date.Year, date.Month);
+        return new ReferenceMonth(date.Year, date.Month);
     }
 
-    public AccountingMonth AddMonths(int months)
+    public ReferenceMonth AddMonths(int months)
     {
         return FromDate(FirstDay.AddMonths(months));
     }
 
-    public int CompareTo(AccountingMonth other)
+    public int CompareTo(ReferenceMonth other)
     {
         var byYear = Year.CompareTo(other.Year);
         return byYear != 0 ? byYear : Month.CompareTo(other.Month);
     }
 
-    public static bool operator <(AccountingMonth left, AccountingMonth right)
+    public static bool operator <(ReferenceMonth left, ReferenceMonth right)
     {
         return left.CompareTo(right) < 0;
     }
 
-    public static bool operator <=(AccountingMonth left, AccountingMonth right)
+    public static bool operator <=(ReferenceMonth left, ReferenceMonth right)
     {
         return left.CompareTo(right) <= 0;
     }
 
-    public static bool operator >(AccountingMonth left, AccountingMonth right)
+    public static bool operator >(ReferenceMonth left, ReferenceMonth right)
     {
         return left.CompareTo(right) > 0;
     }
 
-    public static bool operator >=(AccountingMonth left, AccountingMonth right)
+    public static bool operator >=(ReferenceMonth left, ReferenceMonth right)
     {
         return left.CompareTo(right) >= 0;
     }

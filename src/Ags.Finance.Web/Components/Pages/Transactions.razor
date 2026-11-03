@@ -154,7 +154,7 @@
     </div>
     <form id="entry-filters" @onsubmit="ApplyFiltersAsync" @onsubmit:preventDefault>
         <div class="catalog-fields">
-            <div class="field"><label for="filter-month">Mês contábil</label><input id="filter-month" type="month" value="@_filterMonth" @onchange="args => _filterMonth = args.Value?.ToString() ?? string.Empty" /></div>
+            <div class="field"><label for="filter-month">Mês de referência</label><input id="filter-month" type="month" value="@_filterMonth" @onchange="args => _filterMonth = args.Value?.ToString() ?? string.Empty" /></div>
             <div class="field"><label for="filter-from">De</label><input id="filter-from" type="date" @bind="_filterFrom" /></div>
             <div class="field"><label for="filter-to">Até</label><input id="filter-to" type="date" @bind="_filterTo" /></div>
             <div class="field"><label for="filter-account">Conta</label><select id="filter-account" @bind="_filterAccount">
@@ -294,7 +294,7 @@
     protected override async Task OnInitializedAsync()
     {
         _date = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
-        _currentMonth = AccountingMonth.FromDate(_date);
+        _currentMonth = ReferenceMonth.FromDate(_date);
         _accounts = await Accounts.GetAccountsAsync();
         _cards = await Accounts.GetCreditCardsAsync();
         _merchants = await Merchants.FindAsync();
@@ -368,22 +368,22 @@
         var monthDate = _date;
         if (_cardId != Guid.Empty && !DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out monthDate))
         {
-            _message = "Informe um mês contábil válido."; return;
+            _message = "Informe um mês de referência válido."; return;
         }
         _busy = true;
         try
         {
-            var request = new CreateEntryRequest(_date, _merchantId, _subcategoryId, _accountId, new Money(_amount), _details, _cardId == Guid.Empty ? null : AccountingMonth.FromDate(monthDate),
+            var request = new CreateEntryRequest(_date, _merchantId, _subcategoryId, _accountId, new Money(_amount), _details, _cardId == Guid.Empty ? null : ReferenceMonth.FromDate(monthDate),
                 _cardId == Guid.Empty ? null : _cardId, _finalId == Guid.Empty ? null : _finalId,
                 IsExpense && _reimbursementPersonId != Guid.Empty ? new(_reimbursementPersonId, _reimbursementPercent) : null, IsPaid: _isPaid, UseSelectedInvoice: _cardId != Guid.Empty);
-            AccountingMonth? until = null;
+            ReferenceMonth? until = null;
             if (_repeat && _repeatUntil.Length > 0)
             {
                 if (!DateOnly.TryParseExact(_repeatUntil + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
                 {
                     _message = "Informe um término válido para a recorrência."; return;
                 }
-                until = AccountingMonth.FromDate(endDate);
+                until = ReferenceMonth.FromDate(endDate);
             }
             var result = _editingId is { } editingId ? _editingRecurring
                 ? await Entries.EditRecurringAsync(editingId, new(request, _recurringScope!.Value, _recurringDay))

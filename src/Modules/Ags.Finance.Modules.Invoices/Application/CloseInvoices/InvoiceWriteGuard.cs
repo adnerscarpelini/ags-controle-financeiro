@@ -10,18 +10,18 @@ internal sealed class InvoiceWriteGuard(IInvoiceStore store, IAccountCatalog acc
     public async Task<bool> IsAnticipatedAsync(Guid entryExternalId, CancellationToken cancellationToken = default)
         => (await store.GetAnticipationsAsync(cancellationToken)).Any(x => x.EntryExternalIds.Contains(entryExternalId));
 
-    public async Task<string?> RequireAdjustmentAsync(Guid cardExternalId, AccountingMonth month, CancellationToken cancellationToken = default)
+    public async Task<string?> RequireAdjustmentAsync(Guid cardExternalId, ReferenceMonth month, CancellationToken cancellationToken = default)
         => (await store.FindAsync(cardExternalId, month, cancellationToken))?.Status == InvoiceStatus.Paid ? "Fatura Paga não permite ajuste de total." : null;
-    public Task<string?> RequireOpenAsync(Guid cardExternalId, AccountingMonth month, CancellationToken cancellationToken = default)
+    public Task<string?> RequireOpenAsync(Guid cardExternalId, ReferenceMonth month, CancellationToken cancellationToken = default)
         => RequireCoreAsync(cardExternalId, month, null, true, cancellationToken);
 
-    public Task<string?> RequireRecurringAsync(Guid cardExternalId, AccountingMonth month, DateTimeOffset plannedAt, CancellationToken cancellationToken = default)
+    public Task<string?> RequireRecurringAsync(Guid cardExternalId, ReferenceMonth month, DateTimeOffset plannedAt, CancellationToken cancellationToken = default)
         => RequireCoreAsync(cardExternalId, month, plannedAt, true, cancellationToken);
 
-    public Task<string?> CheckRecurringAsync(Guid cardExternalId, AccountingMonth month, DateTimeOffset plannedAt, CancellationToken cancellationToken = default)
+    public Task<string?> CheckRecurringAsync(Guid cardExternalId, ReferenceMonth month, DateTimeOffset plannedAt, CancellationToken cancellationToken = default)
         => RequireCoreAsync(cardExternalId, month, plannedAt, false, cancellationToken);
 
-    private async Task<string?> RequireCoreAsync(Guid cardExternalId, AccountingMonth month, DateTimeOffset? plannedAt, bool registerInvoice, CancellationToken cancellationToken)
+    private async Task<string?> RequireCoreAsync(Guid cardExternalId, ReferenceMonth month, DateTimeOffset? plannedAt, bool registerInvoice, CancellationToken cancellationToken)
     {
         var card = (await accounts.GetCreditCardsAsync(false, cancellationToken)).FirstOrDefault(x => x.ExternalId == cardExternalId);
         if (card is null) { return "Cartão não encontrado."; }
