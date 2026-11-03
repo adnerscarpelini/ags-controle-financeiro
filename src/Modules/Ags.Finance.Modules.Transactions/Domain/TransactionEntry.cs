@@ -11,6 +11,9 @@ internal sealed class TransactionEntry : Entity
     public Guid AccountExternalId { get; private set; }
     public Guid? CardExternalId { get; private set; }
     public Guid? CardLastDigitsExternalId { get; private set; }
+    public Guid? RepetitionExternalId { get; private set; }
+    public int? RepetitionNumber { get; private set; }
+    public void SetRepetition(Guid repetitionExternalId, int number) { RepetitionExternalId = repetitionExternalId; RepetitionNumber = number; }
     public Guid? InstallmentPurchaseExternalId { get; private set; }
     public int? InstallmentNumber { get; private set; }
     public Guid? RecurringEntryExternalId { get; private set; }

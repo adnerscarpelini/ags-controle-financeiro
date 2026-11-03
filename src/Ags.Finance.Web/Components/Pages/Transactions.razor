@@ -36,10 +36,11 @@
                 <option value="">Escolha o alcance</option><option value="@RecurringChangeScope.OnlyThis">Somente esta</option><option value="@RecurringChangeScope.ThisAndFollowing">Esta e as seguintes</option><option value="@RecurringChangeScope.All">Todas</option>
             </select></div>
         }
-        else if (deleting.InstallmentPurchaseExternalId is not null)
+        else if (deleting.InstallmentPurchaseExternalId is not null || deleting.RepetitionExternalId is not null)
         {
             <div class="field"><label for="delete-scope">Alcance da exclusão</label><select id="delete-scope" @bind="_deleteScope">
-                <option value="">Escolha o alcance</option><option value="@EntryChangeScope.OnlyThis">Somente esta parcela</option><option value="@EntryChangeScope.ThisAndFollowing">Esta e as futuras</option>
+                <option value="">Escolha o alcance</option><option value="@EntryChangeScope.OnlyThis">@(deleting.RepetitionExternalId is not null ? "Somente esta" : "Somente esta parcela")</option><option value="@EntryChangeScope.ThisAndFollowing">Esta e as futuras</option>
+                @if (deleting.RepetitionExternalId is not null) { <option value="@EntryChangeScope.All">Todas</option> }
             </select></div>
         }
         <button class="button" @onclick="ConfirmDeleteAsync" disabled="@_busy">Confirmar exclusão</button>
@@ -115,20 +116,32 @@
                     <div class="field"><label for="entry-recurring-day">Dia das próximas ocorrências</label><input id="entry-recurring-day" type="number" min="1" max="31" @bind="_recurringDay" required /></div>
                 }
             }
-            else if (_editingInstallment)
+            else if (_editingInstallment || _editingRepetition)
             {
                 <div class="field"><label for="entry-scope">Alcance da alteração</label><select id="entry-scope" @bind="_scope" required>
-                    <option value="">Escolha o alcance</option><option value="@EntryChangeScope.OnlyThis">Somente esta parcela</option><option value="@EntryChangeScope.ThisAndFollowing">Esta e as futuras</option>
+                    <option value="">Escolha o alcance</option><option value="@EntryChangeScope.OnlyThis">@(_editingRepetition ? "Somente esta" : "Somente esta parcela")</option><option value="@EntryChangeScope.ThisAndFollowing">Esta e as futuras</option>
+                    @if (_editingRepetition) { <option value="@EntryChangeScope.All">Todas</option> }
                 </select></div>
             }
         </div>
         @if (_editingId is null)
         {
-            <label class="checkbox"><input id="entry-repeat" type="checkbox" @bind="_repeat" @bind:after="RepeatChanged" />Repetir todo mês no dia @_date.Day</label>
+            <details><summary>Mais detalhes</summary>
+            <label class="checkbox"><input id="entry-repeat" type="checkbox" @bind="_repeat" @bind:after="RepeatChanged" disabled="@_countedRepeat" />Fixa: repetir todo mês no dia @_date.Day</label>
             @if (_repeat)
             {
                 <div class="field"><label for="entry-repeat-until">Até o mês da ocorrência (vazio para sem fim)</label><input id="entry-repeat-until" type="month" value="@_repeatUntil" @onchange="args => _repeatUntil = args.Value?.ToString() ?? string.Empty" /></div>
             }
+            @if (_cardId == Guid.Empty)
+            {
+                <label class="checkbox"><input id="entry-counted-repeat" type="checkbox" @bind="_countedRepeat" disabled="@_repeat" />Repetir</label>
+                @if (_countedRepeat)
+                {
+                    <div class="field"><label for="entry-repeat-count">Número de vezes</label><input id="entry-repeat-count" type="number" min="2" max="120" @bind="_repeatCount" required /></div>
+                    <div class="field"><label for="entry-repeat-period">Período</label><select id="entry-repeat-period" @bind="_repeatPeriod"><option value="@RepeatPeriod.Days">Dias</option><option value="@RepeatPeriod.Weeks">Semanas</option><option value="@RepeatPeriod.Months">Meses</option><option value="@RepeatPeriod.Years">Anos</option></select></div>
+                }
+            }
+            </details>
         }
         <AttachmentPicker @ref="_attachmentPicker" />
         @if (_savedAttachmentEntry is not null) { <button class="button" type="button" @onclick="RetryAttachmentsAsync" disabled="@_busy">Reenviar anexos do lançamento salvo</button> }
@@ -185,7 +198,7 @@
     <ul class="catalog-list">
         @foreach (var entry in _entries)
         {
-            <li><span>@entry.Date.ToString("dd/MM/yyyy") · @entry.MerchantName · @entry.Classification</span>
+            <li><span>@entry.Date.ToString("dd/MM/yyyy") · @entry.MerchantName @(entry.RepetitionNumber is not null ? $"({entry.RepetitionNumber}/{entry.RepetitionCount})" : string.Empty) · @entry.Classification</span>
                 <span class="numeric @(entry.Amount.IsNegative ? "entry-expense" : "entry-income")">@(entry.Amount.IsNegative ? string.Empty : "+")@entry.Amount</span>
                 <span>@(entry.CardExternalId is not null ? "Compra no cartão" : entry.IsEffective ? entry.Kind == CategoryKind.Expense ? "Pago" : "Recebido" : "Pendente") · @entry.Details</span>
                 @if (entry.InstallmentNumber is not null) { <span>Parcela @entry.InstallmentNumber/@entry.InstallmentCount</span> }
@@ -268,6 +281,10 @@
     private int _installments = 1;
     private string _details = string.Empty;
     private bool _isPaid = true;
+    private bool _countedRepeat;
+    private int _repeatCount = 2;
+    private RepeatPeriod _repeatPeriod = RepeatPeriod.Months;
+    private bool _editingRepetition;
     private string _month = string.Empty;
     private IReadOnlyList<SelectableInvoice> _selectableInvoices = [];
     private string? _invoiceNotice;
@@ -333,6 +350,7 @@
     private async Task CardChangedAsync()
     {
         _installments = 1;
+        _countedRepeat = false;
         _finalId = Guid.Empty;
         _finals = _cardId == Guid.Empty ? [] : await CardDigits.GetAsync(_cardId);
         var card = _cards.FirstOrDefault(x => x.ExternalId == _cardId);
@@ -364,7 +382,7 @@
     {
         if (_busy || _savedAttachmentEntry is not null) { return; }
         if (_editingRecurring && _recurringScope is null) { _message = "Escolha o alcance da alteração."; return; }
-        if (_editingInstallment && _scope is null) { _message = "Escolha o alcance da alteração."; return; }
+        if ((_editingInstallment || _editingRepetition) && _scope is null) { _message = "Escolha o alcance da alteração."; return; }
         var monthDate = _date;
         if (_cardId != Guid.Empty && !DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out monthDate))
         {
@@ -388,14 +406,15 @@
             var result = _editingId is { } editingId ? _editingRecurring
                 ? await Entries.EditRecurringAsync(editingId, new(request, _recurringScope!.Value, _recurringDay))
                 : await Entries.EditAsync(editingId, request, _scope ?? EntryChangeScope.OnlyThis)
+                : _countedRepeat ? await Entries.CreateRepeatedAsync(request, _repeatCount, _repeatPeriod)
                 : _repeat ? await Entries.CreateRecurringAsync(new(request, until))
                 : _installments == 1 ? await Entries.CreateAsync(request) : await Entries.CreateInstallmentsAsync(request, _installments);
             _message = result.Error ?? "Lançamento salvo.";
             if (result.Succeeded)
             {
                 var savedId = result.ExternalId!.Value;
-                if (_editingId is null && _repeat)
-                { savedId = (await Entries.GetAsync()).Where(x => x.RecurringEntryExternalId == savedId).OrderBy(x => x.OccurrenceMonth).First().ExternalId; }
+                if (_editingId is null && (_repeat || _countedRepeat))
+                { savedId = (await Entries.GetAsync()).Where(x => x.RecurringEntryExternalId == savedId || x.RepetitionExternalId == savedId).OrderBy(x => x.Date).First().ExternalId; }
                 if (_attachmentPicker?.HasFiles == true) { _savedAttachmentEntry = savedId; await RetryAttachmentsAsync(); }
                 Reset(); await ReloadQueryAsync();
             }
@@ -404,6 +423,7 @@
     }
     private void Reset()
     {
+        _countedRepeat = false; _repeatCount = 2; _repeatPeriod = RepeatPeriod.Months; _editingRepetition = false;
         _isPaid = true; _repeat = false; _repeatUntil = string.Empty;
         _editingId = null; _editingInstallment = false; _scope = null; _editingRecurring = false; _recurringScope = null;
         _merchantName = string.Empty; _merchantId = Guid.Empty; _subcategoryId = Guid.Empty; _amount = 0; _details = string.Empty;
@@ -433,8 +453,9 @@
             _editingRecurring = entry.RecurringEntryExternalId is not null;
             _recurringScope = null;
             _recurringDay = entry.RecurringEntryExternalId is { } seriesId ? (await Entries.GetRecurringAsync(seriesId))?.Day ?? entry.Date.Day : entry.Date.Day;
+            _editingRepetition = entry.RepetitionExternalId is not null;
             _editingInstallment = entry.InstallmentPurchaseExternalId is not null;
-            _scope = _editingInstallment ? null : EntryChangeScope.OnlyThis;
+            _scope = _editingInstallment || _editingRepetition ? null : EntryChangeScope.OnlyThis;
             _accounts = (await Accounts.GetAccountsAsync(false)).Where(x => x.IsActive || x.ExternalId == entry.AccountExternalId).ToList();
             _subcategories = (await Classifications.GetSubcategoriesAsync(false)).Where(x => x.IsActive || x.ExternalId == entry.SubcategoryExternalId).ToList();
             var availableCards = (await Accounts.GetCreditCardsAsync()).ToList();
@@ -455,7 +476,7 @@
         }
         finally { _busy = false; }
     }
-    private void AskDelete(EntryDetails entry) { _deleteEntry = entry; _deleteRecurringScope = null; _deleteScope = entry.InstallmentPurchaseExternalId is null ? EntryChangeScope.OnlyThis : null; }
+    private void AskDelete(EntryDetails entry) { _deleteEntry = entry; _deleteRecurringScope = null; _deleteScope = entry.InstallmentPurchaseExternalId is null && entry.RepetitionExternalId is null ? EntryChangeScope.OnlyThis : null; }
     private async Task ConfirmDeleteAsync()
     {
         if (_deleteEntry is not { } entry || _busy) { return; }

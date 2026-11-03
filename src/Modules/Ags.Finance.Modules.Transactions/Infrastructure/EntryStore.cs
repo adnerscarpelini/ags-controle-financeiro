@@ -13,6 +13,21 @@ internal sealed partial class EntryStore(IDbContextFactory<TransactionsDbContext
         return await context.Set<TransactionEntry>().AsNoTracking().OrderByDescending(x => x.Date).ThenByDescending(x => x.Id).ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<EntryRepetition>> GetRepetitionsAsync(CancellationToken cancellationToken)
+    {
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
+        return await context.Set<EntryRepetition>().AsNoTracking().ToListAsync(cancellationToken);
+    }
+
+    public async Task<bool> AddRepetitionAsync(EntryRepetition repetition, IReadOnlyList<TransactionEntry> entries, CancellationToken cancellationToken)
+    {
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
+        context.Add(repetition);
+        context.AddRange(entries);
+        try { await context.SaveChangesAsync(cancellationToken); return true; }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation }) { return false; }
+    }
+
     public async Task<bool> AddAsync(TransactionEntry entry, CancellationToken cancellationToken)
     {
         await using var context = await factory.CreateDbContextAsync(cancellationToken);
@@ -77,6 +92,11 @@ internal sealed partial class EntryStore(IDbContextFactory<TransactionsDbContext
                 var purchase = await context.Set<InstallmentPurchase>().SingleAsync(x => x.ExternalId == purchaseId, cancellationToken);
                 context.Remove(purchase);
             }
+        }
+        foreach (var repetitionId in entries.Where(x => x.RepetitionExternalId is not null).Select(x => x.RepetitionExternalId!.Value).Distinct())
+        {
+            if (!await context.Set<TransactionEntry>().AnyAsync(x => x.RepetitionExternalId == repetitionId && !ids.Contains(x.ExternalId), cancellationToken))
+            { context.Remove(await context.Set<EntryRepetition>().SingleAsync(x => x.ExternalId == repetitionId, cancellationToken)); }
         }
         await context.SaveChangesAsync(cancellationToken);
     }

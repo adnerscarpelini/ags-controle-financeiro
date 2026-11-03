@@ -18,6 +18,53 @@ namespace Ags.Finance.Web.Tests;
 public sealed class TransactionPageTests
 {
     [Fact]
+    public async Task CountedRepetitionIsExclusiveWithFixedAndShowsExplicitNumberAndScope()
+    {
+        await using var database = await PostgresTestDatabase.CreateAsync();
+        await using var context = new BunitContext();
+        context.Services.AddSingleton<TimeProvider>(new PreviewClock()).AddAccountsModule(database.ConnectionString).AddTransactionsModule(database.ConnectionString).AddReimbursementsModule(database.ConnectionString).AddInvoicesModule(database.ConnectionString).AddPreferencesModule(database.ConnectionString);
+        await context.Services.MigrateAccountsModuleAsync();
+        await context.Services.MigrateTransactionsModuleAsync();
+        await context.Services.MigrateReimbursementsModuleAsync();
+        await context.Services.MigrateInvoicesModuleAsync();
+        await context.Services.MigratePreferencesModuleAsync();
+        var accounts = context.Services.GetRequiredService<IAccountCatalog>();
+        var bank = await accounts.CreateBankAsync("Banco Exemplo");
+        var account = await accounts.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta Exemplo", AccountKind.Checking, "green"));
+        var card = await accounts.SaveCreditCardAsync(new(null, account.ExternalId!.Value, "Cartão Exemplo", CardBrand.Visa, new Money(10000), 3, 10, true, "green"));
+        var classifications = context.Services.GetRequiredService<IClassificationCatalog>();
+        var category = await classifications.SaveCategoryAsync(null, "Mercado", CategoryKind.Expense);
+        var subcategory = await classifications.SaveSubcategoryAsync(null, category.ExternalId!.Value, "Feira");
+        await context.Services.GetRequiredService<IMerchantCatalog>().SaveAsync(null, "Loja Exemplo", subcategory.ExternalId);
+        var page = context.Render<Transactions>();
+        page.WaitForAssertion(() => Assert.Contains("Feira", page.Find("#entry-subcategory").TextContent, StringComparison.Ordinal));
+        page.Find("#entry-repeat").Change(true);
+        Assert.True(page.Find("#entry-counted-repeat").HasAttribute("disabled"));
+        page.Find("#entry-repeat").Change(false);
+        page.Find("#entry-counted-repeat").Change(true);
+        Assert.True(page.Find("#entry-repeat").HasAttribute("disabled"));
+        Assert.Equal("2", page.Find("#entry-repeat-count").GetAttribute("value"));
+        Assert.Equal(RepeatPeriod.Months.ToString(), page.Find("#entry-repeat-period").GetAttribute("value"));
+        await page.Find("#entry-date").ChangeAsync("2027-01-31");
+        await page.Find("#entry-merchant").InputAsync("Loja Exemplo");
+        page.Find("#entry-account").Change(account.ExternalId!.Value.ToString());
+        page.Find("#entry-amount").Change("100");
+        page.Find("#entry-repeat-count").Change("3");
+        await page.Find("form").SubmitAsync(EventArgs.Empty);
+        Assert.Contains("(1/3)", page.Markup, StringComparison.Ordinal);
+        Assert.Contains("(3/3)", page.Markup, StringComparison.Ordinal);
+        var row = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("(3/3)", StringComparison.Ordinal));
+        await row.QuerySelectorAll("button").Single(x => x.TextContent == "Editar").ClickAsync(new());
+        Assert.Equal(4, page.FindAll("#entry-scope option").Count);
+        page.Find("#entry-scope").Change(EntryChangeScope.OnlyThis.ToString());
+        page.Find("#entry-amount").Change("200");
+        await page.Find("form").SubmitAsync(EventArgs.Empty);
+        var entries = await context.Services.GetRequiredService<IEntryCatalog>().GetAsync();
+        Assert.Equal(new Money(-200), entries.Single(x => x.RepetitionNumber == 3).Amount);
+        Assert.Equal(new Money(-100), entries.Single(x => x.RepetitionNumber == 1).Amount);
+    }
+
+    [Fact]
     public async Task QuickEntryUsesDateAndSelectableInvoicesAndKeepsDateForNextEntry()
     {
         await using var database = await PostgresTestDatabase.CreateAsync();
