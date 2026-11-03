@@ -45,29 +45,4 @@ public abstract class ReimbursementFixture : IAsyncLifetime
     protected IServiceCollection Build(IServiceCollection services)
         => services.AddAccountsModule(Database.ConnectionString).AddTransactionsModule(Database.ConnectionString).AddReimbursementsModule(Database.ConnectionString);
 
-    protected async Task<Guid> SaveFilterAsync(string name = "Despesas da casa", SavedFilterCriteria? criteria = null)
-        => (await Provider.GetRequiredService<ISavedFilterCatalog>().SaveAsync(null, name, criteria ?? SavedFilterCriteria.Empty with { SubcategoryExternalIds = [SubcategoryId] })).ExternalId!.Value;
-
-    protected async Task<Guid> SubcategoryAsync(string name)
-    {
-        var classifications = Provider.GetRequiredService<IClassificationCatalog>();
-        var category = (await classifications.GetCategoriesAsync()).First(x => x.Kind == CategoryKind.Expense);
-        return (await classifications.SaveSubcategoryAsync(null, category.ExternalId, name)).ExternalId!.Value;
-    }
-
-    protected async Task<Guid> ExpenseAsync(DateOnly date, decimal amount, Guid? subcategory = null, Guid? card = null, Guid? final = null)
-    {
-        var result = await Provider.GetRequiredService<IEntryCatalog>().CreateAsync(new(date, MerchantId, subcategory ?? SubcategoryId, AccountId, new Money(amount), CardExternalId: card, CardLastDigitsExternalId: final));
-        Assert.True(result.Succeeded, result.Error);
-        return result.ExternalId!.Value;
-    }
-
-    protected async Task<(Guid Card, Guid Final)> CardWithFinalAsync(string digits = "1234")
-    {
-        var card = await Provider.GetRequiredService<IAccountCatalog>().SaveCreditCardAsync(new(null, AccountId, "Cartão Exemplo", CardBrand.Mastercard, new Money(10000), 3, 10, true, "green"));
-        Assert.True(card.Succeeded, card.Error);
-        var final = await Provider.GetRequiredService<ICardLastDigitsCatalog>().SaveAsync(new(null, card.ExternalId!.Value, digits, CardUsage.Own, "Próprio"));
-        Assert.True(final.Succeeded, final.Error);
-        return (card.ExternalId!.Value, final.ExternalId!.Value);
-    }
 }

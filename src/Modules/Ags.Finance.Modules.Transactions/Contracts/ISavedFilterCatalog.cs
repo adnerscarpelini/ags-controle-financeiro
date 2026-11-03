@@ -11,12 +11,6 @@ public sealed record SavedFilterCriteria(IReadOnlyList<Guid> CategoryExternalIds
 
 public sealed record SavedFilterDetails(Guid ExternalId, string Name, SavedFilterCriteria Criteria);
 
-/// <summary>Consultado antes de excluir um filtro salvo; devolve a descrição do uso que o bloqueia, ou <c>null</c>.</summary>
-public interface ISavedFilterUsageGuard
-{
-    Task<string?> FindUsageAsync(Guid savedFilterExternalId, CancellationToken cancellationToken = default);
-}
-
 public interface ISavedFilterCatalog
 {
     Task<IReadOnlyList<SavedFilterDetails>> GetAsync(CancellationToken cancellationToken = default);

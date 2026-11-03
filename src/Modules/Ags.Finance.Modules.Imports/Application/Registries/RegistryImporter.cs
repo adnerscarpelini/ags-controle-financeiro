@@ -223,12 +223,12 @@ internal sealed class RegistryImporter(IFinancialOperation operations, IAccountC
             var row = pass.Read(line);
             var id = row.Id("external_id");
             var name = row.Text("name");
-            var payer = row.Text("payer_description");
+            var percent = row.Percent("default_percent");
             if (!row.Valid) { continue; }
-            if (existing.TryGetValue(id, out var person)) { pass.Compare(row, person.Name == name && person.PayerDescription == payer, "external_id"); continue; }
-            var result = await people.SaveAsync(null, name, payer, id, cancellationToken);
+            if (existing.TryGetValue(id, out var person)) { pass.Compare(row, person.Name == name && person.DefaultPercent == percent, "external_id"); continue; }
+            var result = await people.SaveAsync(null, name, percent, id, cancellationToken);
             if (!pass.Created(row, result.Error, "name")) { continue; }
-            existing[id] = new(id, name, payer);
+            existing[id] = new(id, name, percent);
         }
     }
 

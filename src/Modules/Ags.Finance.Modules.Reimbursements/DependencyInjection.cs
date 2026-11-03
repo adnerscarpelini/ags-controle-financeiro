@@ -1,11 +1,7 @@
 using Ags.Finance.Modules.Reimbursements.Application;
-using Ags.Finance.Modules.Reimbursements.Application.CalculateReimbursements;
 using Ags.Finance.Modules.Reimbursements.Application.ManagePeople;
-using Ags.Finance.Modules.Reimbursements.Application.ManageSharingRules;
-using Ags.Finance.Modules.Reimbursements.Application.RegisterReceipt;
 using Ags.Finance.Modules.Reimbursements.Contracts;
 using Ags.Finance.Modules.Reimbursements.Infrastructure;
-using Ags.Finance.Modules.Transactions.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,10 +26,6 @@ public static class DependencyInjection
 
         services.AddScoped<IReimbursementStore, ReimbursementStore>();
         services.AddScoped<IPersonCatalog, PersonCatalog>();
-        services.AddScoped<ISharingRuleCatalog, SharingRuleCatalog>();
-        services.AddScoped<IReimbursementStatements, ReimbursementStatements>();
-        services.AddScoped<IReimbursementReceipts, ReimbursementReceipts>();
-        services.AddScoped<ISavedFilterUsageGuard, SharingRuleFilterUsageGuard>();
         return services;
     }
 

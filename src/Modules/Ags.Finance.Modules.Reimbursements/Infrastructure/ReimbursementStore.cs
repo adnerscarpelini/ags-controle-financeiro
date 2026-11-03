@@ -13,38 +13,10 @@ internal sealed class ReimbursementStore(IDbContextFactory<ReimbursementsDbConte
         return await context.Set<Person>().AsNoTracking().OrderBy(x => x.Name).ToListAsync(cancellationToken);
     }
 
-    public Task<bool> SavePersonAsync(Person person, CancellationToken cancellationToken) => SaveAsync(person, cancellationToken);
-
-    public Task DeletePersonAsync(Person person, CancellationToken cancellationToken) => DeleteAsync(person, cancellationToken);
-
-    public async Task<IReadOnlyList<SharingRule>> GetRulesAsync(CancellationToken cancellationToken)
+    public async Task<bool> SavePersonAsync(Person person, CancellationToken cancellationToken)
     {
         await using var context = await factory.CreateDbContextAsync(cancellationToken);
-        return await context.Set<SharingRule>().AsNoTracking().OrderBy(x => x.StartMonth).ThenBy(x => x.Id).ToListAsync(cancellationToken);
-    }
-
-    public Task<bool> SaveRuleAsync(SharingRule rule, CancellationToken cancellationToken) => SaveAsync(rule, cancellationToken);
-
-    public Task DeleteRuleAsync(SharingRule rule, CancellationToken cancellationToken) => DeleteAsync(rule, cancellationToken);
-
-    public async Task<IReadOnlyList<ReimbursementReceipt>> GetReceiptsAsync(Guid personExternalId, CancellationToken cancellationToken)
-    {
-        await using var context = await factory.CreateDbContextAsync(cancellationToken);
-        return await context.Set<ReimbursementReceipt>().AsNoTracking().Where(x => x.PersonExternalId == personExternalId).OrderBy(x => x.Date).ThenBy(x => x.Id).ToListAsync(cancellationToken);
-    }
-
-    public async Task AddReceiptAsync(ReimbursementReceipt receipt, CancellationToken cancellationToken)
-    {
-        await using var context = await factory.CreateDbContextAsync(cancellationToken);
-        context.Add(receipt);
-        await context.SaveChangesAsync(cancellationToken);
-    }
-
-    private async Task<bool> SaveAsync<T>(T entity, CancellationToken cancellationToken)
-        where T : Entity
-    {
-        await using var context = await factory.CreateDbContextAsync(cancellationToken);
-        context.Entry(entity).State = entity.Id == 0 ? EntityState.Added : EntityState.Modified;
+        context.Entry(person).State = person.Id == 0 ? EntityState.Added : EntityState.Modified;
         try
         {
             await context.SaveChangesAsync(cancellationToken);
@@ -56,11 +28,10 @@ internal sealed class ReimbursementStore(IDbContextFactory<ReimbursementsDbConte
         }
     }
 
-    private async Task DeleteAsync<T>(T entity, CancellationToken cancellationToken)
-        where T : Entity
+    public async Task DeletePersonAsync(Person person, CancellationToken cancellationToken)
     {
         await using var context = await factory.CreateDbContextAsync(cancellationToken);
-        context.Entry(entity).State = EntityState.Deleted;
+        context.Entry(person).State = EntityState.Deleted;
         await context.SaveChangesAsync(cancellationToken);
     }
 }

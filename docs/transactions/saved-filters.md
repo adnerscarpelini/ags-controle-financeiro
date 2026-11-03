@@ -22,9 +22,7 @@ sem alterar as demais condições.
 `CategoryExternalIds`, `SubcategoryExternalIds`, `MerchantExternalIds`). Ajustes de
 fatura só entram quando não há critério de categoria, descrição ou final.
 
-Outro módulo que referencia um filtro (a regra de rateio dos reembolsos) registra um
-`ISavedFilterUsageGuard`; a exclusão é bloqueada com a descrição do uso. Os dados
-ficam em `transactions.saved_filters`, com listas `uuid[]`.
+Os dados ficam em `transactions.saved_filters`, com listas `uuid[]`.
 
 Na tela de Lançamentos, o painel Filtro salvo salva o filtro atual, aplica um filtro
 sobre o mês/intervalo escolhido, renomeia/atualiza e exclui. Fora do escopo:

@@ -61,7 +61,7 @@ public abstract class ImportsFixture : IAsyncLifetime
         var category = (await classifications.SaveCategoryAsync(null, "Mercado", Ags.Finance.Modules.Transactions.Contracts.CategoryKind.Expense)).ExternalId!.Value;
         var subcategory = (await classifications.SaveSubcategoryAsync(null, category, "Feira")).ExternalId!.Value;
         var merchant = (await Get<IMerchantCatalog>().SaveAsync(null, "Padaria Ação", subcategory)).ExternalId!.Value;
-        var person = (await Get<Ags.Finance.Modules.Reimbursements.Contracts.IPersonCatalog>().SaveAsync(null, "Maria Exemplo", "Maria, pagadora")).ExternalId!.Value;
+        var person = (await Get<Ags.Finance.Modules.Reimbursements.Contracts.IPersonCatalog>().SaveAsync(null, "Maria Exemplo", 33.33m)).ExternalId!.Value;
         Assert.True((await accounts.DeactivateAccountAsync(archivedAccount)).Succeeded);
         return new(bank, account, archivedAccount, card, final, category, subcategory, merchant, person);
     }

@@ -8,24 +8,23 @@ internal sealed class Person : Entity
     public string Name { get; private set; } = string.Empty;
     public string NormalizedName { get; private set; } = string.Empty;
 
-    /// <summary>Descrição (pagador) usada no lançamento de receita dos reembolsos recebidos desta pessoa.</summary>
-    public string PayerDescription { get; private set; } = string.Empty;
+    /// <summary>Só pré-preenche novas seleções em despesas. Alterar não muda lançamentos ou séries já gravados.</summary>
+    public decimal DefaultPercent { get; private set; }
 
-    public string? Update(string name, string payerDescription)
+    public string? Update(string name, decimal defaultPercent)
     {
         var normalized = Normalize(name ?? string.Empty);
         if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 100 || normalized.Length == 0)
         {
             return "Informe um nome com letras ou números e até 100 caracteres.";
         }
-        payerDescription = string.IsNullOrWhiteSpace(payerDescription) ? name : payerDescription;
-        if (payerDescription.Trim().Length > 100 || Normalize(payerDescription).Length == 0)
+        if (defaultPercent is < 0 or > 100 || decimal.Round(defaultPercent, 2) != defaultPercent)
         {
-            return "Informe uma descrição do pagador com letras ou números e até 100 caracteres.";
+            return "Informe um percentual de 0 a 100, com até duas casas decimais.";
         }
         Name = name.Trim();
         NormalizedName = normalized;
-        PayerDescription = payerDescription.Trim();
+        DefaultPercent = defaultPercent;
         return null;
     }
 

@@ -21,7 +21,7 @@ public sealed class RegistryExportTests : ImportsFixture
             var text = Encoding.UTF8.GetString(file.Content, 3, file.Content.Length - 3);
             Assert.StartsWith($"ags-finance-csv,{layout.Type},{layout.Version}\r\n{string.Join(",", layout.Columns)}\r\n", text, StringComparison.Ordinal);
             Assert.Equal(layout.Columns.Count, Parse(file, kind).Rows[0].Fields.Count);
-            Assert.Equal($"cadastro-{layout.Type.Replace('_', '-')}-v1.csv", file.FileName);
+            Assert.Equal($"cadastro-{layout.Type.Replace('_', '-')}-v{layout.Version}.csv", file.FileName);
         }
     }
 
@@ -40,7 +40,7 @@ public sealed class RegistryExportTests : ImportsFixture
         Assert.Equal([seed.Category.ToString("D"), "Mercado", "Expense", "true"], Row(RegistryKind.Categories));
         Assert.Equal([seed.Subcategory.ToString("D"), seed.Category.ToString("D"), "Feira", "true"], Row(RegistryKind.Subcategories));
         Assert.Equal([seed.Merchant.ToString("D"), "Padaria Ação", seed.Subcategory.ToString("D"), "true"], Row(RegistryKind.Merchants));
-        Assert.Equal([seed.Person.ToString("D"), "Maria Exemplo", "Maria, pagadora"], Row(RegistryKind.People));
+        Assert.Equal([seed.Person.ToString("D"), "Maria Exemplo", "33.33"], Row(RegistryKind.People));
     }
 
     [Fact]

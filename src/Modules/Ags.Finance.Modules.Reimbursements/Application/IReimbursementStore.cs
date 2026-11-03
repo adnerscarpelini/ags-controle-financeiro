@@ -7,9 +7,4 @@ internal interface IReimbursementStore
     Task<IReadOnlyList<Person>> GetPeopleAsync(CancellationToken cancellationToken);
     Task<bool> SavePersonAsync(Person person, CancellationToken cancellationToken);
     Task DeletePersonAsync(Person person, CancellationToken cancellationToken);
-    Task<IReadOnlyList<SharingRule>> GetRulesAsync(CancellationToken cancellationToken);
-    Task<bool> SaveRuleAsync(SharingRule rule, CancellationToken cancellationToken);
-    Task DeleteRuleAsync(SharingRule rule, CancellationToken cancellationToken);
-    Task<IReadOnlyList<ReimbursementReceipt>> GetReceiptsAsync(Guid personExternalId, CancellationToken cancellationToken);
-    Task AddReceiptAsync(ReimbursementReceipt receipt, CancellationToken cancellationToken);
 }

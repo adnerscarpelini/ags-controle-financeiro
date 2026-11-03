@@ -70,19 +70,10 @@ public sealed partial class EntryTests
     }
 
     [Fact]
-    public async Task SavedFilterIsBlockedFromDeletionWhileAnotherModuleUsesIt()
+    public async Task SavedFilterCanBeDeleted()
     {
         var saved = await SavedFilters.SaveAsync(null, "Casa", Subcategories(_subcategoryId));
-        await using var guarded = new ServiceCollection().AddSingleton<TimeProvider>(_clock).AddAccountsModule(_database!.ConnectionString)
-            .AddTransactionsModule(_database.ConnectionString).AddSingleton<ISavedFilterUsageGuard, BlockingGuard>().BuildServiceProvider();
-        Assert.Equal("Usado pela regra Teste.", (await guarded.GetRequiredService<ISavedFilterCatalog>().DeleteAsync(saved.ExternalId!.Value)).Error);
-        Assert.Single(await SavedFilters.GetAsync());
         Assert.True((await SavedFilters.DeleteAsync(saved.ExternalId!.Value)).Succeeded);
         Assert.Empty(await SavedFilters.GetAsync());
-    }
-
-    private sealed class BlockingGuard : ISavedFilterUsageGuard
-    {
-        public Task<string?> FindUsageAsync(Guid savedFilterExternalId, CancellationToken cancellationToken = default) => Task.FromResult<string?>("Usado pela regra Teste.");
     }
 }

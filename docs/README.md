@@ -27,9 +27,7 @@
 - [Categorias e subcategorias (#9)](transactions/classifications.md)
 - [Descrições sem duplicidade (#10)](transactions/merchants.md)
 - [Filtros salvos de lançamentos (#33)](transactions/saved-filters.md)
-- [Pessoas e regras de rateio (#21)](reimbursements/people-and-sharing-rules.md)
-- [Valor a receber de uma pessoa no mês (#22)](reimbursements/monthly-statement.md)
-- [Reembolso recebido (#23)](reimbursements/received-reimbursements.md)
+- [Pessoas de reembolso (#78)](reimbursements/people.md)
 - [Resumo do mês (#24)](reports/monthly-summary.md)
 - [Despesas e receitas por categoria (#25)](reports/category-report.md)
 - [Faturas por cartão no dashboard (#26)](reports/invoices-dashboard.md)
@@ -52,6 +50,7 @@ Requisitos, critérios de aceite e dúvidas permanecem nas issues.
 - [Design da interface](architecture/ui-design.md)
 - [Hospedagem e distribuição Docker — implementada (#59)](architecture/web-hosting.md)
 - [Consistência financeira — decisões e fronteiras de domínio](architecture/financial-consistency.md)
+- [Reembolsos — modelo e fronteiras](architecture/reimbursements.md)
 
 A persistência usa PostgreSQL (#60) e a distribuição é Docker Compose (#59), com backup e recuperação (#31).
 Não há migração de dados SQLite. O restante do produto continua nas issues,

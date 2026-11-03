@@ -60,7 +60,7 @@ internal sealed class RegistryExporter(IAccountCatalog accounts, ICardLastDigits
             case RegistryKind.Merchants:
                 return (await merchants.FindAsync(string.Empty, false, cancellationToken)).Select(x => (IReadOnlyList<string>)[CsvFormat.Id(x.ExternalId), T(x.Name), CsvFormat.Id(x.DefaultSubcategoryExternalId), B(x.IsActive)]).ToList();
             case RegistryKind.People:
-                return (await people.GetAsync(cancellationToken)).Select(x => (IReadOnlyList<string>)[CsvFormat.Id(x.ExternalId), T(x.Name), T(x.PayerDescription)]).ToList();
+                return (await people.GetAsync(cancellationToken)).Select(x => (IReadOnlyList<string>)[CsvFormat.Id(x.ExternalId), T(x.Name), CsvFormat.Percent(x.DefaultPercent)]).ToList();
             default:
                 throw new ArgumentOutOfRangeException(nameof(kind));
         }

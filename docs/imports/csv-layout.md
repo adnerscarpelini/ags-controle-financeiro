@@ -23,7 +23,8 @@ completa é o backup PostgreSQL ([#31](../web/docker-deployment.md)).
 | Opcional | Campo vazio, sem aspas. |
 | Identidades | `external_id` e referências `*_external_id` são o `ExternalId` público (GUID formato `D`). O `Id` interno nunca sai. |
 | Limites | Até 10 MB e 50.000 registros por arquivo. |
-| Versão | Cada tipo tem a sua (hoje todos `1`). Versão desconhecida é rejeitada; não se infere formato. |
+| Percentuais | Ponto decimal, de 0 a 100, com até duas casas (`33.33`, `50`). |
+| Versão | Cada tipo tem a sua, indicada na linha 1 e no nome do arquivo. Versão desconhecida é rejeitada; não se infere formato. |
 
 **Texto seguro para planilhas.** Em campos de texto (nomes, rótulos, detalhes), se o valor começa
 com zero ou mais apóstrofos seguidos de `=`, `+`, `-`, `@`, TAB ou CR, a exportação acrescenta um
@@ -31,9 +32,10 @@ apóstrofo no início. A leitura remove exatamente um. A regra é simétrica: `=
 `'=SOMA(A1)` e volta como `=SOMA(A1)`; `'=x` sai como `''=x` e volta `'=x`. Texto comum com
 apóstrofo (`'abc`) não é alterado. Identificadores, números e datas não passam por esta regra.
 
-## Tipos de cadastro (versão 1)
+## Tipos de cadastro
 
-Cada arquivo é gerado/lido por tipo, com nome `cadastro-<tipo>-v1.csv`. A ordem de importação
+Cada arquivo é gerado/lido por tipo, com nome `cadastro-<tipo>-v<versão>.csv`. Todos estão na versão 1,
+exceto `people`, na versão 2 ([#78](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/78)). A ordem de importação
 (#28) respeita as referências: quem referencia vem depois de quem é referenciado.
 
 | Ordem | Tipo (linha 1) | Colunas |
@@ -45,10 +47,10 @@ Cada arquivo é gerado/lido por tipo, com nome `cadastro-<tipo>-v1.csv`. A ordem
 | 5 | `categories` | `external_id`, `name`, `kind` (`Expense`, `Income`, `Transfer`), `is_active` |
 | 6 | `subcategories` | `external_id`, `category_external_id`, `name`, `is_active` |
 | 7 | `merchants` | `external_id`, `name`, `default_subcategory_external_id` (opcional), `is_active` |
-| 8 | `people` | `external_id`, `name`, `payer_description` |
+| 8 | `people` | `external_id`, `name`, `default_percent` |
 
 Cadastros arquivados/desativados saem com `is_active=false` ([#53](../accounts/archiving.md)) e
-mantêm o estado. Logos de banco (binários), regras de rateio, filtros salvos, senhas, hashes e
+mantêm o estado. Logos de banco (binários), filtros salvos, senhas, hashes e
 credenciais não fazem parte do CSV.
 
 ## Lançamentos e séries recorrentes (versão 1, [#62](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/62))

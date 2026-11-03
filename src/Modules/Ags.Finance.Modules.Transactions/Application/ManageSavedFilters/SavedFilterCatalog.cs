@@ -4,7 +4,7 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Transactions.Application.ManageSavedFilters;
 
-internal sealed class SavedFilterCatalog(ISavedFilterStore store, IEntryCatalog entries, IEnumerable<ISavedFilterUsageGuard> usages) : ISavedFilterCatalog
+internal sealed class SavedFilterCatalog(ISavedFilterStore store, IEntryCatalog entries) : ISavedFilterCatalog
 {
     public async Task<IReadOnlyList<SavedFilterDetails>> GetAsync(CancellationToken cancellationToken = default)
         => (await store.GetAsync(cancellationToken)).Select(Describe).ToList();
@@ -29,10 +29,6 @@ internal sealed class SavedFilterCatalog(ISavedFilterStore store, IEntryCatalog 
     {
         var filter = (await store.GetAsync(cancellationToken)).FirstOrDefault(x => x.ExternalId == externalId);
         if (filter is null) { return new(null, "Filtro não encontrado."); }
-        foreach (var usage in usages)
-        {
-            if (await usage.FindUsageAsync(externalId, cancellationToken) is { } blocked) { return new(null, blocked); }
-        }
         await store.DeleteAsync(filter, cancellationToken);
         return new(externalId, null);
     }
