@@ -135,8 +135,12 @@ internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementSt
     private static EntryReimbursement? ReimbursementOf(TransactionEntry entry)
         => entry.ReimbursementPersonExternalId is { } person && entry.ReimbursementPercent is { } percent ? new(person, percent) : null;
 
+    private static EntryReimbursement? ReimbursementOf(RecurringEntry series)
+        => series.ReimbursementPersonExternalId is { } person && series.ReimbursementPercent is { } percent ? new(person, percent) : null;
+
     public Task<bool> IsReimbursementPersonUsedAsync(Guid personExternalId, CancellationToken cancellationToken = default)
-        => operations.ExecuteAsync(async token => (await store.GetAsync(token)).Any(x => x.ReimbursementPersonExternalId == personExternalId), _ => true, cancellationToken);
+        => operations.ExecuteAsync(async token => (await store.GetAsync(token)).Any(x => x.ReimbursementPersonExternalId == personExternalId)
+            || (await store.GetRecurringAsync(token)).Any(x => x.IsActive && x.ReimbursementPersonExternalId == personExternalId), _ => true, cancellationToken);
 
     public Task<AccountBalance?> GetBalanceAsync(Guid accountExternalId, DateOnly referenceDate, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(token => GetBalanceCoreAsync(accountExternalId, referenceDate, token), _ => true, cancellationToken);

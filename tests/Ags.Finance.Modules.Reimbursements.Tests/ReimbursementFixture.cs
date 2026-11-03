@@ -16,6 +16,7 @@ public abstract class ReimbursementFixture : IAsyncLifetime
 
     protected PostgresTestDatabase Database => _database ?? throw new InvalidOperationException();
     protected ServiceProvider Provider => _provider ?? throw new InvalidOperationException();
+    protected ManualClock Clock { get; } = new() { Now = new DateTimeOffset(2026, 10, 15, 12, 0, 0, TimeSpan.Zero) };
     protected Guid SubcategoryId { get; private set; }
     protected Guid AccountId { get; private set; }
     protected Guid MerchantId { get; private set; }
@@ -42,7 +43,14 @@ public abstract class ReimbursementFixture : IAsyncLifetime
         if (_database is not null) { await _database.DisposeAsync(); }
     }
 
+    protected sealed class ManualClock : TimeProvider
+    {
+        public DateTimeOffset Now { get; set; }
+        public override DateTimeOffset GetUtcNow() => Now;
+        public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
+    }
+
     protected IServiceCollection Build(IServiceCollection services)
-        => services.AddAccountsModule(Database.ConnectionString).AddTransactionsModule(Database.ConnectionString).AddReimbursementsModule(Database.ConnectionString);
+        => services.AddSingleton<TimeProvider>(Clock).AddAccountsModule(Database.ConnectionString).AddTransactionsModule(Database.ConnectionString).AddReimbursementsModule(Database.ConnectionString);
 
 }

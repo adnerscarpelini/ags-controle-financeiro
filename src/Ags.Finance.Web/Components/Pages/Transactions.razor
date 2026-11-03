@@ -79,7 +79,7 @@
             </select></div>
             <div class="field"><label for="entry-month">Mês contábil</label><input id="entry-month" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" required /></div>
             <div class="field"><label for="entry-details">Detalhes</label><input id="entry-details" @bind="_details" maxlength="1000" /></div>
-            @if (CanHaveReimbursement)
+            @if (IsExpense)
             {
                 <div class="field"><label for="entry-reimbursement-person">Pessoa do reembolso (opcional)</label><select id="entry-reimbursement-person" @bind="_reimbursementPersonId" @bind:after="ReimbursementPersonChanged">
                     <option value="@Guid.Empty">Sem reembolso</option>
@@ -238,7 +238,6 @@
     private Guid _reimbursementPersonId;
     private decimal _reimbursementPercent;
     private bool IsExpense => _subcategories.FirstOrDefault(x => x.ExternalId == _subcategoryId)?.Kind == CategoryKind.Expense;
-    private bool CanHaveReimbursement => IsExpense && !_repeat && !_editingRecurring;
     private string PersonName(Guid externalId) => _people.FirstOrDefault(x => x.ExternalId == externalId)?.Name ?? "Pessoa";
     private void ClearReimbursement() { _reimbursementPersonId = Guid.Empty; _reimbursementPercent = 0; }
     private void ClassificationChanged() { if (!IsExpense) { ClearReimbursement(); } }
@@ -341,7 +340,7 @@
         {
             var request = new CreateEntryRequest(_date, _merchantId, _subcategoryId, _accountId, new Money(_amount), _details, AccountingMonth.FromDate(monthDate),
                 _cardId == Guid.Empty ? null : _cardId, _finalId == Guid.Empty ? null : _finalId,
-                CanHaveReimbursement && _reimbursementPersonId != Guid.Empty ? new(_reimbursementPersonId, _reimbursementPercent) : null);
+                IsExpense && _reimbursementPersonId != Guid.Empty ? new(_reimbursementPersonId, _reimbursementPercent) : null);
             AccountingMonth? until = null;
             if (_repeat && _repeatUntil.Length > 0)
             {

@@ -20,6 +20,8 @@ internal sealed class RecurringEntry : Entity
     public DateOnly[] ExcludedMonths { get; private set; } = [];
     public int AccountingMonthOffset { get; private set; }
     public int DateMonthOffset { get; private set; }
+    public Guid? ReimbursementPersonExternalId { get; private set; }
+    public decimal? ReimbursementPercent { get; private set; }
 
     public static RecurringEntry? Create(TransactionEntry first, DateOnly? endMonth)
     {
@@ -37,7 +39,9 @@ internal sealed class RecurringEntry : Entity
             CardLastDigitsExternalId = first.CardLastDigitsExternalId,
             Amount = new Money(Math.Abs(first.Amount.Amount)),
             Kind = first.Kind,
-            Details = first.Details
+            Details = first.Details,
+            ReimbursementPersonExternalId = first.ReimbursementPersonExternalId,
+            ReimbursementPercent = first.ReimbursementPercent
         };
     }
 
@@ -64,6 +68,8 @@ internal sealed class RecurringEntry : Entity
         Amount = new Money(Math.Abs(template.Amount.Amount));
         Kind = template.Kind;
         Details = template.Details;
+        ReimbursementPersonExternalId = template.ReimbursementPersonExternalId;
+        ReimbursementPercent = template.ReimbursementPercent;
         AccountingMonthOffset = accountingMonthOffset;
         DateMonthOffset = dateMonthOffset;
     }

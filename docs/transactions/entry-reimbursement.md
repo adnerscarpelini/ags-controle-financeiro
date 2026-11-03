@@ -15,6 +15,12 @@ receita, é preciso remover a pessoa.
 as seguintes" aplica só o campo alterado, mantendo exceções. Duplicar copia os dois
 campos, e antecipar parcelas os preserva no novo mês contábil.
 
+**Recorrentes ([#80](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/80)).**
+A série guarda pessoa e percentual, e cada ocorrência copia a configuração vigente. A edição
+segue a pergunta de alcance (#17): "Somente esta" cria exceção, "Esta e as seguintes" vale
+desta em diante, e "Todas" preserva as ocorrências passadas já confirmadas. Só o campo
+alterado é aplicado às outras ocorrências, e a baixa não muda pessoa, percentual nem série.
+
 **Faturas.** Alterar pessoa ou percentual é edição da compra e segue o bloqueio de
 faturas Fechadas e Pagas (#50).
 

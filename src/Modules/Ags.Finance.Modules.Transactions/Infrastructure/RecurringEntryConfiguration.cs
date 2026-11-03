@@ -10,6 +10,7 @@ internal sealed class RecurringEntryConfiguration : IEntityTypeConfiguration<Rec
     {
         builder.ToTable("recurring_entries");
         builder.Property(x => x.Details).HasMaxLength(1000).IsRequired();
+        builder.Property(x => x.ReimbursementPercent).HasPrecision(5, 2);
         builder.HasOne<Merchant>().WithMany().HasForeignKey(x => x.MerchantExternalId).HasPrincipalKey(x => x.ExternalId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Subcategory>().WithMany().HasForeignKey(x => x.SubcategoryExternalId).HasPrincipalKey(x => x.ExternalId).OnDelete(DeleteBehavior.Restrict);
     }

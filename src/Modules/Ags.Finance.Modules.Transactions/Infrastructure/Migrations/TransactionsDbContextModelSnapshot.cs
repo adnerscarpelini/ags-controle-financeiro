@@ -175,6 +175,8 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.Property<DateOnly[]>("ExcludedMonths").IsRequired().HasColumnType("date[]");
             b.Property<int>("AccountingMonthOffset").HasColumnType("integer");
             b.Property<int>("DateMonthOffset").HasColumnType("integer");
+            b.Property<Guid?>("ReimbursementPersonExternalId").HasColumnType("uuid");
+            b.Property<decimal?>("ReimbursementPercent").HasPrecision(5, 2).HasColumnType("numeric(5,2)");
             b.ToTable("recurring_entries", "transactions");
         });
         modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.RecurringEntry", b =>
