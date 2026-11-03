@@ -11,4 +11,6 @@ internal interface IInvoiceStore
     Task<IReadOnlyList<InvoicePayment>> GetPaymentsAsync(CancellationToken cancellationToken);
     Task SavePaymentAsync(InvoicePayment payment, CancellationToken cancellationToken);
     Task DeletePaymentAsync(InvoicePayment payment, CancellationToken cancellationToken);
+    Task<IReadOnlyList<InstallmentAnticipation>> GetAnticipationsAsync(CancellationToken cancellationToken);
+    Task AddAnticipationAsync(InstallmentAnticipation anticipation, CancellationToken cancellationToken);
 }
