@@ -1,0 +1,933 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>AGS Finanças</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.dark{--bg:#0E1311;--surface:#151C19;--raised:#1C2521;--border:#27332E;--text:#E6EDE9;--muted:#93A39B;--accent:#10B981;--accent-hover:#34D399;--on-accent:#04221A;--income:#34D399;--expense:#F87171;--warning:#FBBF24}
+.light{--bg:#F4F7F5;--surface:#FFFFFF;--raised:#E8EFEB;--border:#CBD7D0;--text:#13201A;--muted:#4B5C54;--accent:#047857;--accent-hover:#065F46;--on-accent:#FFFFFF;--income:#047857;--expense:#B91C1C;--warning:#92400E}
+.app,.app *{box-sizing:border-box}
+.app{min-height:100vh;display:flex;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.45}
+.ic{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.ic-s{width:16px;height:16px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.side{width:256px;flex:none;background:var(--surface);border-right:1px solid var(--border);padding:16px 12px;display:flex;flex-direction:column;gap:12px}
+.side.mini{width:76px}
+.side.mini .lbl,.side.mini .chev,.side.mini .brandtxt{display:none}
+.brand{display:flex;align-items:center;gap:10px;height:40px;padding:0 6px;font-weight:700;font-size:16px}
+.mark{width:32px;height:32px;border-radius:8px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center;flex:none}
+.nav{display:flex;flex-direction:column;gap:2px;position:relative}
+.nav-btn{width:100%;min-height:44px;display:flex;align-items:center;gap:12px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:var(--muted);text-align:left;font-weight:500;position:relative}
+.nav-btn:hover{background:var(--raised);color:var(--text)}
+.nav-btn.on{background:var(--raised);color:var(--accent-hover);font-weight:600}
+.light .nav-btn.on{color:var(--accent)}
+.chev{margin-left:auto}
+.tree{display:flex;flex-direction:column;gap:2px;margin:2px 0 6px 22px;padding-left:10px;border-left:1px solid var(--border)}
+.side.mini .tree{position:absolute;left:62px;margin:0;padding:6px;width:190px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:30}
+.side.mini .tree .lbl{display:inline}
+.main{flex:999 1 560px;min-width:0;display:flex;flex-direction:column}
+.topbar{height:64px;display:flex;align-items:center;gap:12px;padding:0 32px;border-bottom:1px solid var(--border)}
+.content{padding:28px 32px 48px;max-width:1360px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.head{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:26px;line-height:1.2;margin:0;font-weight:700;letter-spacing:-.01em}
+h2{font-size:16px;margin:0;font-weight:600}
+.sp{flex:1}
+.btn{min-height:44px;padding:0 18px;border-radius:10px;border:1px solid var(--border);background:var(--surface);font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{background:var(--raised)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.pri:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn.pri:disabled{background:var(--raised);border-color:var(--border);color:var(--muted);cursor:not-allowed}
+.btn.link{background:transparent;border-color:transparent;color:var(--accent-hover);padding:0 10px}
+.light .btn.link{color:var(--accent)}
+.btn.danger{background:var(--expense);border-color:var(--expense);color:#fff}
+.dark .btn.danger{color:#2A0808}
+.iconbtn{width:44px;height:44px;border-radius:10px;border:1px solid var(--border);background:var(--surface);display:inline-flex;align-items:center;justify-content:center;position:relative}
+.iconbtn:hover{background:var(--raised)}
+.iconbtn.ghost{border-color:transparent;background:transparent;width:36px;height:36px;color:var(--muted)}
+.iconbtn.ghost:hover{color:var(--text);background:var(--raised)}
+.tt{position:relative}
+.tip{width:22px;height:22px;border:0;padding:0;background:transparent;color:var(--muted);display:inline-flex;align-items:center;justify-content:center;position:relative;vertical-align:middle;border-radius:50%}
+.tip-text{display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);width:max-content;max-width:260px;padding:8px 10px;border-radius:8px;background:var(--text);color:var(--bg);font-size:12px;font-weight:500;line-height:1.4;text-align:left;white-space:normal;z-index:60;pointer-events:none}
+.tip-text.end{left:auto;right:0;transform:none}
+.tip-text.start{left:0;transform:none}
+.tip-text.right{left:calc(100% + 8px);bottom:auto;top:50%;transform:translateY(-50%)}
+.tip:hover .tip-text,.tip:focus .tip-text,.iconbtn:hover .tip-text,.iconbtn:focus-visible .tip-text,.nav-btn:hover .tip-text.mini-only,.nav-btn:focus-visible .tip-text.mini-only{display:block}
+.side:not(.mini) .tip-text.mini-only{display:none!important}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.stat{display:flex;align-items:center;gap:14px}
+.dot{width:44px;height:44px;border-radius:50%;background:var(--raised);display:flex;align-items:center;justify-content:center;flex:none}
+.c-in{color:var(--income)}.c-ex{color:var(--expense)}.c-ac{color:var(--accent-hover)}.c-wa{color:var(--warning)}.c-mu{color:var(--muted)}
+.light .c-ac{color:var(--accent)}
+.label{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.big{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:4px;padding:4px;background:var(--surface);border:1px solid var(--border);border-radius:12px;flex-wrap:wrap}
+.chip{min-height:36px;padding:0 14px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-weight:500}
+.chip:hover{color:var(--text)}
+.chip.on{background:var(--accent);color:var(--on-accent);font-weight:600}
+.chip:disabled{opacity:.55;cursor:not-allowed}
+.quick{display:flex;gap:8px;flex-wrap:wrap}
+.pill{min-height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--border);background:transparent;color:var(--muted);font-weight:500}
+.pill.on{background:var(--raised);color:var(--text);border-color:var(--accent);font-weight:600}
+.pill:disabled{opacity:.55;cursor:not-allowed}
+.month{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px}
+.month strong{min-width:150px;text-align:center;font-weight:600}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px}
+.grid{display:grid;align-items:center}
+.th{font-size:12px;font-weight:600;color:var(--muted);padding:10px 14px;background:var(--raised);display:flex;align-items:center;gap:4px;min-height:40px}
+.th-btn{border:0;background:transparent;padding:0;font-weight:600;color:var(--muted);display:inline-flex;gap:4px;align-items:center}
+.th-btn:hover{color:var(--text)}
+.td{padding:10px 14px;border-top:1px solid var(--border);min-height:52px;display:flex;align-items:center;gap:8px;min-width:0}
+.num{justify-content:flex-end;font-variant-numeric:tabular-nums;text-align:right}
+.scroll{overflow:visible}
+.tblwide{min-width:760px}
+.foot{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--border);color:var(--muted);font-size:13px;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:12px;background:var(--raised);font-size:12px;font-weight:500}
+.tag button{border:0;background:transparent;padding:0;display:flex;color:var(--muted)}
+.empty{padding:48px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--muted)}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label,.flabel{font-size:13px;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:4px}
+.input{min-height:44px;width:100%;padding:0 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg)}
+.input:focus{border-color:var(--accent);outline:none}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;padding:32px 16px;z-index:50;overflow:auto}
+.dialog{width:100%;max-width:520px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 16px 48px rgba(0,0,0,.3);display:flex;flex-direction:column}
+.dialog.wide{max-width:880px}
+.dlg-head{display:flex;align-items:center;gap:8px;padding:18px 20px 8px}
+.dlg-head h2{font-size:18px;flex:1}
+.dlg-body{padding:8px 20px 16px;display:flex;flex-direction:column;gap:16px}
+.dlg-foot{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:12px 20px 18px;flex-wrap:wrap}
+.amount{border:0;border-bottom:2px solid var(--border);background:transparent;font-size:30px;font-weight:600;width:100%;padding:4px 0;font-variant-numeric:tabular-nums}
+.amount:focus{outline:none}
+.rowline{display:flex;align-items:center;gap:10px;min-height:44px}
+.switch{width:44px;height:26px;border-radius:13px;border:0;background:var(--border);position:relative;padding:0;flex:none}
+.switch span{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff}
+.switch.on{background:var(--accent)}
+.switch.on span{left:21px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.stack{display:flex;flex-direction:column;gap:14px;min-width:0}
+.linkbtn{border:0;background:transparent;padding:0;color:var(--accent-hover);font-weight:600;display:inline-flex;align-items:center;gap:4px;min-height:44px}
+.light .linkbtn{color:var(--accent)}
+.note{padding:10px 12px;border-radius:10px;background:var(--raised);font-size:13px;display:flex;gap:8px;align-items:flex-start}
+.err{font-size:12px;color:var(--warning)}
+.bank{width:40px;height:40px;border-radius:50%;background:var(--raised);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+.bar{height:8px;border-radius:4px;background:var(--raised);overflow:hidden;display:flex}
+.bar span{display:block;height:100%}
+.toast{position:fixed;top:16px;right:16px;padding:12px 16px;border-radius:10px;background:var(--text);color:var(--bg);font-weight:500;z-index:70;display:flex;gap:8px;align-items:center}
+.cardgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.addcard{min-height:180px;border:1px dashed var(--border);border-radius:12px;background:transparent;color:var(--accent-hover);font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.light .addcard{color:var(--accent)}
+.addcard:hover{background:var(--surface)}
+.split{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.split .wide{flex:999 1 520px;min-width:0}
+.split .aside{flex:1 1 240px;display:flex;flex-direction:column;gap:12px}
+.hamb{display:none}
+.scrim{display:none}
+@media (max-width:900px){.scroll{overflow-x:auto}}
+@media (max-width:768px){
+.side{position:fixed;top:0;bottom:0;left:-280px;z-index:45;width:256px!important;overflow:auto;transition:left .15s}
+.side.open{left:0}
+.side .lbl,.side .chev,.side .brandtxt{display:revert}
+.hamb{display:inline-flex}
+.scrim.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:44;border:0}
+.content{padding:20px 16px 40px}
+.topbar{padding:0 16px}
+.dialog{max-width:none}
+.overlay{padding:0}
+}
+</style>
+</helmet>
+<div class="app {{themeClass}}">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h14V10"></path></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></symbol>
+<symbol id="i-bank" viewBox="0 0 24 24"><path d="M3 10l9-6 9 6M5 10v8M10 10v8M14 10v8M19 10v8M3 21h18"></path></symbol>
+<symbol id="i-card" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20M6 15h4"></path></symbol>
+<symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4h13l-3 4 3 4H5"></path></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18M8 16v-5M13 16V8M18 16v-3"></path></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M3 7v6h6M3 13a9 9 0 1 0 3-7.7L3 8"></path></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01"></path></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"></path></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"></path></symbol>
+<symbol id="i-left" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"></path></symbol>
+<symbol id="i-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></symbol>
+<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"></path></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.5-4.5"></path></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4-2v-4z"></path></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16zM13 7l4 4"></path></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"></path></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H3V3h12v2"></path></symbol>
+<symbol id="i-clip" viewBox="0 0 24 24"><path d="M8 12l5-5a3 3 0 0 1 4 4l-7 7a5 5 0 0 1-7-7l8-8"></path></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"></path></symbol>
+<symbol id="i-arrowup" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"></path></symbol>
+<symbol id="i-arrowdn" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"></path></symbol>
+<symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v18M5 7h14M5 7l-3 7h6zM19 7l-3 7h6zM8 21h8"></path></symbol>
+<symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h14M14 4l4 4-4 4M20 16H6M10 12l-4 4 4 4"></path></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></symbol>
+<symbol id="i-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"></path></symbol>
+<symbol id="i-fast" viewBox="0 0 24 24"><path d="M13 3L5 14h6l-1 7 8-11h-6z"></path></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path></symbol>
+</svg>
+
+<button type="button" class="scrim {{drawerClass}}" aria-label="Fechar menu" onClick="{{closeDrawer}}"></button>
+
+<aside class="side {{sideClass}}">
+  <div class="brand">
+    <span class="mark"><svg class="ic" aria-hidden="true"><use href="#i-chart"></use></svg></span>
+    <span class="brandtxt">AGS Finanças</span>
+  </div>
+  <div class="tt">
+    <button type="button" class="btn pri" style="width:100%" onClick="{{toggleNovo}}" aria-expanded="{{novoOpen}}">
+      <svg class="ic" aria-hidden="true"><use href="#i-plus"></use></svg><span class="lbl">Novo</span>
+    </button>
+    <sc-if value="{{novoOpen}}" hint-placeholder-val="{{false}}">
+    <div class="panel" style="position:absolute;left:0;top:50px;width:220px;padding:6px;z-index:40;box-shadow:0 8px 24px rgba(0,0,0,.25)">
+      <button type="button" class="nav-btn" onClick="{{newExpense}}"><svg class="ic c-ex" aria-hidden="true"><use href="#i-arrowdn"></use></svg>Despesa</button>
+      <button type="button" class="nav-btn" onClick="{{newIncome}}"><svg class="ic c-in" aria-hidden="true"><use href="#i-arrowup"></use></svg>Receita</button>
+      <button type="button" class="nav-btn" onClick="{{newCard}}"><svg class="ic c-ac" aria-hidden="true"><use href="#i-card"></use></svg>Despesa cartão</button>
+      <button type="button" class="nav-btn" onClick="{{newTransfer}}"><svg class="ic" aria-hidden="true"><use href="#i-swap"></use></svg>Transferência</button>
+    </div>
+    </sc-if>
+  </div>
+  <nav class="nav" aria-label="Principal">
+    <sc-for list="{{menu}}" as="m" hint-placeholder-count="10">
+      <button type="button" class="nav-btn {{m.cls}}" onClick="{{m.go}}" aria-expanded="{{m.expanded}}">
+        <svg class="ic" aria-hidden="true"><use href="#{{m.icon}}"></use></svg>
+        <span class="lbl">{{m.label}}</span>
+        <sc-if value="{{m.group}}" hint-placeholder-val="{{false}}"><svg class="ic ic-s chev" aria-hidden="true"><use href="#{{m.chev}}"></use></svg></sc-if>
+        <span class="tip-text right mini-only" role="tooltip">{{m.label}}</span>
+      </button>
+      <sc-if value="{{m.open}}" hint-placeholder-val="{{false}}">
+        <div class="tree">
+          <sc-for list="{{m.children}}" as="c" hint-placeholder-count="4">
+            <button type="button" class="nav-btn {{c.cls}}" onClick="{{c.go}}"><span class="lbl">{{c.label}}</span></button>
+          </sc-for>
+        </div>
+      </sc-if>
+    </sc-for>
+  </nav>
+  <div style="flex:1"></div>
+  <div class="nav">
+    <a class="nav-btn" href="Celular.dc.html" style="text-decoration:none"><svg class="ic" aria-hidden="true"><use href="#i-phone"></use></svg><span class="lbl">Ver no celular</span></a>
+    <button type="button" class="nav-btn" onClick="{{toggleHide}}"><svg class="ic" aria-hidden="true"><use href="#i-eye"></use></svg><span class="lbl">{{hideLabel}}</span></button>
+    <button type="button" class="nav-btn" onClick="{{toggleMini}}"><svg class="ic" aria-hidden="true"><use href="#{{miniIcon}}"></use></svg><span class="lbl">Recolher menu</span></button>
+    <button type="button" class="nav-btn"><svg class="ic" aria-hidden="true"><use href="#i-out"></use></svg><span class="lbl">Sair</span></button>
+  </div>
+</aside>
+
+<div class="main">
+<div class="topbar hamb" style="height:64px;align-items:center">
+  <button type="button" class="iconbtn" aria-label="Abrir menu" onClick="{{openDrawer}}"><svg class="ic" aria-hidden="true"><use href="#i-menu"></use></svg></button>
+  <strong>AGS Finanças</strong>
+</div>
+<main class="content">
+
+<!-- DASHBOARD -->
+<sc-if value="{{s.dashboard}}" hint-placeholder-val="{{false}}">
+  <div class="head"><h1>Dashboard</h1><div class="sp"></div>
+    <button type="button" class="iconbtn ghost" aria-label="Mês anterior" onClick="{{prevMonth}}"><svg class="ic" aria-hidden="true"><use href="#i-left"></use></svg></button><strong>{{monthLabel}}</strong>
+    <button type="button" class="iconbtn ghost" aria-label="Próximo mês" onClick="{{nextMonth}}"><svg class="ic" aria-hidden="true"><use href="#i-right"></use></svg></button>
+  </div>
+  <div class="cards">
+    <div class="card stat"><span class="dot c-ac"><svg class="ic" aria-hidden="true"><use href="#i-bank"></use></svg></span><div><div class="label">Saldo atual<button type="button" class="tip" aria-label="Ajuda sobre saldo atual"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text start" role="tooltip">Soma das contas considerando só o que já foi pago ou recebido.</span></button></div><div class="big">{{t.current}}</div></div></div>
+    <div class="card stat"><span class="dot c-in"><svg class="ic" aria-hidden="true"><use href="#i-arrowup"></use></svg></span><div><div class="label">Receitas do mês</div><div class="big">{{t.income}}</div></div></div>
+    <div class="card stat"><span class="dot c-ex"><svg class="ic" aria-hidden="true"><use href="#i-arrowdn"></use></svg></span><div><div class="label">Despesas do mês</div><div class="big">{{t.expense}}</div></div></div>
+    <div class="card stat"><span class="dot c-wa"><svg class="ic" aria-hidden="true"><use href="#i-card"></use></svg></span><div><div class="label">Faturas a pagar<button type="button" class="tip" aria-label="Ajuda sobre faturas"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text end" role="tooltip">Valor em aberto das faturas com vencimento neste mês.</span></button></div><div class="big">{{t.invoices}}</div></div></div>
+  </div>
+  <div class="two">
+    <div class="panel"><div style="padding:16px 16px 8px"><h2>Pendências próximas</h2></div>
+      <sc-for list="{{pendingList}}" as="p" hint-placeholder-count="3">
+        <div class="td"><svg class="ic c-wa" aria-hidden="true"><use href="#i-clock"></use></svg><div style="flex:1;min-width:0"><div style="font-weight:500">{{p.desc}}</div><div class="c-mu" style="font-size:12px">Vence em {{p.dateF}}</div></div><span class="num">{{p.valF}}</span><button type="button" class="btn" style="min-height:36px" onClick="{{p.pay}}">{{p.payLabel}}</button></div>
+      </sc-for>
+      <sc-if value="{{noPending}}" hint-placeholder-val="{{false}}"><div class="empty">Nenhuma pendência neste mês.</div></sc-if>
+    </div>
+    <div class="panel" style="padding:16px;display:flex;flex-direction:column;gap:14px"><h2>Despesas por categoria</h2>
+      <sc-for list="{{catBars}}" as="b" hint-placeholder-count="4">
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>{{b.name}}</span><span class="num">{{b.valF}}</span></div><div class="bar"><span style="width:{{b.pct}}%;background:var(--accent)"></span></div></div>
+      </sc-for>
+      <sc-if value="{{noCatBars}}" hint-placeholder-val="{{false}}"><div class="empty">Nenhuma despesa neste mês.</div></sc-if>
+    </div>
+  </div>
+</sc-if>
+
+<!-- LANCAMENTOS -->
+<sc-if value="{{s.entries}}" hint-placeholder-val="{{true}}">
+  <div class="head"><h1>Lançamentos</h1><div class="sp"></div>
+    <div class="chips" role="group" aria-label="Tipo">
+      <sc-for list="{{typeFilters}}" as="f" hint-placeholder-count="4"><button type="button" class="chip {{f.cls}}" onClick="{{f.go}}">{{f.label}}</button></sc-for>
+    </div>
+    <button type="button" class="iconbtn" aria-label="Buscar" onClick="{{toggleSearch}}"><svg class="ic" aria-hidden="true"><use href="#i-search"></use></svg><span class="tip-text" role="tooltip">Buscar por descrição</span></button>
+    <button type="button" class="iconbtn" aria-label="Filtros" onClick="{{toggleFilters}}"><svg class="ic" aria-hidden="true"><use href="#i-filter"></use></svg><span class="tip-text end" role="tooltip">Filtrar por conta, cartão, categoria e período</span></button>
+  </div>
+  <sc-if value="{{searchOpen}}" hint-placeholder-val="{{false}}"><input class="input" placeholder="Buscar por descrição" aria-label="Buscar por descrição" value="{{search}}" onChange="{{setSearch}}"></sc-if>
+  <sc-if value="{{filtersOpen}}" hint-placeholder-val="{{false}}">
+    <div class="card fields">
+      <div class="field"><label for="f-acct">Conta</label><select id="f-acct" class="input" value="{{fAcct}}" onChange="{{setFAcct}}"><option value="">Todas</option><option value="bra">Bradesco</option><option value="nub">Nubank</option><option value="ita">Itaú</option></select></div>
+      <div class="field"><label for="f-cat">Categoria</label><select id="f-cat" class="input" value="{{fCat}}" onChange="{{setFCat}}"><option value="">Todas</option><option>Alimentação</option><option>Casa</option><option>Impostos</option><option>Saúde</option><option>Assinaturas</option><option>Compras</option><option>Salário</option></select></div>
+      <div class="field"><label for="f-sub">Subcategoria</label><select id="f-sub" class="input" value="{{fSub}}" onChange="{{setFSub}}"><option value="">Todas</option><option>Mercado</option><option>Restaurante</option><option>Aluguel</option><option>Contas</option><option>IPTU</option><option>Academia</option><option>Vídeo</option><option>Eletrônicos</option><option>Mensal</option></select></div>
+      <div class="field"><label for="f-saved">Filtro salvo</label><select id="f-saved" class="input"><option>Nenhum</option><option>Contas da casa</option></select></div>
+    </div>
+  </sc-if>
+  <sc-if value="{{hasActiveFilters}}" hint-placeholder-val="{{false}}">
+    <div class="quick"><sc-for list="{{activeFilters}}" as="a" hint-placeholder-count="1"><span class="tag">{{a.label}}<button type="button" aria-label="Remover filtro" onClick="{{a.clear}}"><svg class="ic ic-s" aria-hidden="true"><use href="#i-x"></use></svg></button></span></sc-for></div>
+  </sc-if>
+  <div class="cards">
+    <div class="card stat"><span class="dot c-ac"><svg class="ic" aria-hidden="true"><use href="#i-bank"></use></svg></span><div><div class="label">Saldo atual<button type="button" class="tip" aria-label="Ajuda sobre saldo atual"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text start" role="tooltip">Soma das contas considerando só o que já foi pago ou recebido.</span></button></div><div class="big">{{t.current}}</div></div></div>
+    <div class="card stat"><span class="dot c-in"><svg class="ic" aria-hidden="true"><use href="#i-arrowup"></use></svg></span><div><div class="label">Receitas<button type="button" class="tip" aria-label="Ajuda sobre receitas"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text" role="tooltip">Receitas do mês selecionado, recebidas e pendentes.</span></button></div><div class="big">{{t.income}}</div></div></div>
+    <div class="card stat"><span class="dot c-ex"><svg class="ic" aria-hidden="true"><use href="#i-arrowdn"></use></svg></span><div><div class="label">Despesas<button type="button" class="tip" aria-label="Ajuda sobre despesas"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text" role="tooltip">Despesas do mês, pagas e pendentes. No cartão, contam no mês da fatura.</span></button></div><div class="big">{{t.expense}}</div></div></div>
+    <div class="card stat"><span class="dot c-ac"><svg class="ic" aria-hidden="true"><use href="#i-scale"></use></svg></span><div><div class="label">Balanço mensal<button type="button" class="tip" aria-label="Ajuda sobre balanço"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text end" role="tooltip">Receitas menos despesas do mês. Não é o saldo das contas.</span></button></div><div class="big">{{t.balance}}</div></div></div>
+  </div>
+  <div class="panel">
+    <div class="month">
+      <button type="button" class="iconbtn ghost" aria-label="Mês anterior" onClick="{{prevMonth}}"><svg class="ic" aria-hidden="true"><use href="#i-left"></use></svg></button>
+      <strong>{{monthLabel}}</strong>
+      <button type="button" class="iconbtn ghost" aria-label="Próximo mês" onClick="{{nextMonth}}"><svg class="ic" aria-hidden="true"><use href="#i-right"></use></svg></button>
+    </div>
+    <div class="scroll"><div class="tblwide" role="table" aria-label="Lançamentos">
+      <div class="grid" role="row" style="grid-template-columns:88px 110px minmax(180px,2fr) minmax(120px,1fr) minmax(110px,1fr) 130px 170px">
+        <div class="th" role="columnheader">Situação</div>
+        <div class="th" role="columnheader"><button type="button" class="th-btn" onClick="{{sortDate}}">Data<svg class="ic ic-s" aria-hidden="true"><use href="#{{sortDateIcon}}"></use></svg></button></div>
+        <div class="th" role="columnheader">Descrição</div>
+        <div class="th" role="columnheader">Categoria</div>
+        <div class="th" role="columnheader">Conta ou cartão</div>
+        <div class="th num" role="columnheader" style="justify-content:flex-end"><button type="button" class="th-btn" onClick="{{sortValue}}">Valor<svg class="ic ic-s" aria-hidden="true"><use href="#{{sortValueIcon}}"></use></svg></button></div>
+        <div class="th" role="columnheader">Ações</div>
+      </div>
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+        <div class="grid" role="row" style="grid-template-columns:88px 110px minmax(180px,2fr) minmax(120px,1fr) minmax(110px,1fr) 130px 170px">
+          <div class="td" role="cell"><button type="button" class="tip {{r.stCls}}" style="width:28px;height:28px" aria-label="{{r.stTip}}"><svg class="ic" aria-hidden="true"><use href="#{{r.stIcon}}"></use></svg><span class="tip-text start" role="tooltip">{{r.stTip}}</span></button></div>
+          <div class="td" role="cell">{{r.dateF}}</div>
+          <div class="td" role="cell" style="font-weight:500">{{r.desc}}</div>
+          <div class="td" role="cell">{{r.cat}}</div>
+          <div class="td" role="cell">{{r.acct}}</div>
+          <div class="td num {{r.valCls}}" role="cell">{{r.valF}}</div>
+          <div class="td" role="cell" style="gap:0">
+            <sc-if value="{{r.canPay}}" hint-placeholder-val="{{false}}"><button type="button" class="iconbtn ghost c-ac" aria-label="{{r.payLabel}}" onClick="{{r.pay}}"><svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg><span class="tip-text" role="tooltip">{{r.payLabel}}</span></button></sc-if>
+            <button type="button" class="iconbtn ghost" aria-label="Editar" onClick="{{r.edit}}"><svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg><span class="tip-text" role="tooltip">Editar</span></button>
+            <button type="button" class="iconbtn ghost" aria-label="Duplicar" onClick="{{r.dup}}"><svg class="ic" aria-hidden="true"><use href="#i-copy"></use></svg><span class="tip-text" role="tooltip">Duplicar</span></button>
+            <button type="button" class="iconbtn ghost" aria-label="Excluir" onClick="{{r.del}}"><svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg><span class="tip-text end" role="tooltip">Excluir</span></button>
+          </div>
+        </div>
+      </sc-for>
+    </div></div>
+    <sc-if value="{{noRows}}" hint-placeholder-val="{{false}}">
+      <div class="empty"><svg class="ic" aria-hidden="true"><use href="#i-list"></use></svg><div>Nenhum lançamento neste mês ou filtro.</div><button type="button" class="btn pri" onClick="{{newExpense}}">Novo lançamento</button></div>
+    </sc-if>
+    <div class="foot"><span>Linhas por página: 50</span><span>{{rowsCount}}</span><div class="sp"></div><span class="label">Saldo previsto do mês<button type="button" class="tip" aria-label="Ajuda sobre saldo previsto"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text end" role="tooltip">Saldo atual somado às pendências e às faturas abertas até o fim do mês.</span></button></span><strong class="num">{{t.forecast}}</strong></div>
+  </div>
+</sc-if>
+
+<!-- CONTAS -->
+<sc-if value="{{s.accounts}}" hint-placeholder-val="{{false}}">
+  <div class="head"><h1>Contas</h1><div class="sp"></div>
+    <button type="button" class="btn" onClick="{{newTransfer}}"><svg class="ic" aria-hidden="true"><use href="#i-swap"></use></svg>Transferir</button>
+    <button type="button" class="btn pri" onClick="{{newAccount}}"><svg class="ic" aria-hidden="true"><use href="#i-plus"></use></svg>Nova conta</button>
+  </div>
+  <div class="split">
+    <div class="wide cardgrid">
+      <sc-for list="{{accountCards}}" as="a" hint-placeholder-count="3">
+        <div class="card" style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;gap:12px"><span class="bank" style="color:{{a.color}}">{{a.initial}}</span><h2 style="flex:1;color:{{a.color}};font-weight:500">{{a.name}}</h2>
+            <button type="button" class="iconbtn ghost" aria-label="Editar conta" onClick="{{newAccount}}"><svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg><span class="tip-text end" role="tooltip">Editar, ajustar saldo ou arquivar</span></button></div>
+          <div style="display:flex;justify-content:space-between"><span>Saldo atual</span><strong class="num {{a.curCls}}">{{a.currentF}}</strong></div>
+          <div style="display:flex;justify-content:space-between"><span class="label">Saldo previsto<button type="button" class="tip" aria-label="Ajuda sobre saldo previsto"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text start" role="tooltip">Saldo atual com as pendências do mês desta conta.</span></button></span><strong class="num {{a.fcCls}}">{{a.forecastF}}</strong></div>
+          <div style="border-top:1px solid var(--border);padding-top:4px;text-align:right"><button type="button" class="linkbtn" onClick="{{a.add}}">Adicionar despesa</button></div>
+        </div>
+      </sc-for>
+      <button type="button" class="addcard" onClick="{{newAccount}}"><svg class="ic" aria-hidden="true"><use href="#i-plus"></use></svg>Nova conta</button>
+    </div>
+    <div class="aside">
+      <div class="card"><div class="label">Saldo atual total</div><div class="big">{{t.current}}</div></div>
+      <div class="card"><div class="label">Saldo previsto total</div><div class="big">{{t.forecast}}</div></div>
+      <button type="button" class="linkbtn" onClick="{{toast_archived}}">Ver contas arquivadas</button>
+    </div>
+  </div>
+</sc-if>
+
+<!-- CARTOES -->
+<sc-if value="{{s.cards}}" hint-placeholder-val="{{false}}">
+  <div class="head"><h1>Cartões</h1><div class="sp"></div>
+    <div class="chips"><button type="button" class="chip {{tabOpenCls}}" onClick="{{tabOpen}}">Faturas abertas</button><button type="button" class="chip {{tabClosedCls}}" onClick="{{tabClosed}}">Faturas fechadas</button></div>
+    <button type="button" class="btn pri" onClick="{{newCardReg}}"><svg class="ic" aria-hidden="true"><use href="#i-plus"></use></svg>Novo cartão</button>
+  </div>
+  <div class="split">
+    <div class="wide cardgrid">
+      <sc-for list="{{cardCards}}" as="c" hint-placeholder-count="2">
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px"><svg class="ic c-ac" aria-hidden="true"><use href="#i-card"></use></svg><h2 style="flex:1;color:{{c.color}};font-weight:500">{{c.name}}</h2><span class="tag">{{c.status}}</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Total da fatura</span><strong class="num">{{c.totalF}}</strong></div>
+          <div style="display:flex;justify-content:space-between"><span>Vence em</span><span>{{c.dueF}}</span></div>
+          <div><div class="bar"><span style="width:{{c.limitPct}}%;background:var(--accent)"></span></div><div class="c-mu" style="font-size:12px;margin-top:4px">Limite disponível: {{c.availF}} de {{c.limitF}}</div></div>
+          <div style="display:flex;gap:8px;border-top:1px solid var(--border);padding-top:10px;justify-content:flex-end;flex-wrap:wrap">
+            <button type="button" class="btn" style="min-height:40px" onClick="{{c.open}}">Ver fatura</button>
+            <sc-if value="{{c.canPay}}" hint-placeholder-val="{{false}}"><button type="button" class="btn pri" style="min-height:40px" onClick="{{c.pay}}">Pagar fatura</button></sc-if>
+          </div>
+        </div>
+      </sc-for>
+      <button type="button" class="addcard" onClick="{{newCardReg}}"><svg class="ic" aria-hidden="true"><use href="#i-plus"></use></svg>Novo cartão</button>
+    </div>
+    <div class="aside">
+      <div class="card"><div class="label">Próxima fatura vence em</div><div class="big" style="font-size:16px">{{nextDue}}</div></div>
+      <div class="card"><div class="label">Limite disponível</div><div class="big">{{limitTotal}}</div></div>
+      <div class="card"><div class="label">Valor total das faturas</div><div class="big">{{invoiceTotal}}</div></div>
+    </div>
+  </div>
+</sc-if>
+
+<!-- DETALHE FATURA -->
+<sc-if value="{{s.invoice}}" hint-placeholder-val="{{false}}">
+  <div class="head"><button type="button" class="iconbtn" aria-label="Voltar para cartões" onClick="{{goCards}}"><svg class="ic" aria-hidden="true"><use href="#i-left"></use></svg></button><h1>Fatura {{inv.card}}</h1><div class="sp"></div>
+    <sc-if value="{{inv.canClose}}" hint-placeholder-val="{{false}}"><button type="button" class="btn" onClick="{{inv.close}}">Fechar fatura</button></sc-if>
+    <sc-if value="{{inv.canReopen}}" hint-placeholder-val="{{false}}"><button type="button" class="btn" onClick="{{inv.reopen}}"><svg class="ic" aria-hidden="true"><use href="#i-undo"></use></svg>Reabrir fatura</button></sc-if>
+    <sc-if value="{{inv.canAdjust}}" hint-placeholder-val="{{false}}"><button type="button" class="btn" onClick="{{inv.adjust}}">Ajustar fatura</button></sc-if>
+    <sc-if value="{{inv.canPay}}" hint-placeholder-val="{{false}}"><button type="button" class="btn pri" onClick="{{inv.pay}}">Pagar fatura</button></sc-if>
+  </div>
+  <div class="split">
+    <div class="wide panel">
+      <div class="month">
+        <button type="button" class="iconbtn ghost" aria-label="Fatura anterior" onClick="{{prevMonth}}"><svg class="ic" aria-hidden="true"><use href="#i-left"></use></svg></button>
+        <strong>{{monthLabel}}</strong>
+        <button type="button" class="iconbtn ghost" aria-label="Próxima fatura" onClick="{{nextMonth}}"><svg class="ic" aria-hidden="true"><use href="#i-right"></use></svg></button>
+      </div>
+      <div class="scroll"><div style="min-width:560px" role="table" aria-label="Compras da fatura">
+        <div class="grid" role="row" style="grid-template-columns:100px minmax(170px,2fr) minmax(110px,1fr) 140px 130px"><div class="th">Data</div><div class="th">Descrição</div><div class="th">Categoria</div><div class="th" style="justify-content:flex-end">Valor</div><div class="th">Ações</div></div>
+        <sc-for list="{{inv.rows}}" as="r" hint-placeholder-count="3">
+          <div class="grid" role="row" style="grid-template-columns:100px minmax(170px,2fr) minmax(110px,1fr) 140px 130px">
+            <div class="td">{{r.dateF}}</div><div class="td" style="font-weight:500">{{r.desc}}</div><div class="td">{{r.cat}}</div><div class="td num">{{r.valF}}</div>
+            <div class="td" style="gap:0">
+              <sc-if value="{{r.canAnticipate}}" hint-placeholder-val="{{false}}"><button type="button" class="iconbtn ghost" aria-label="Antecipar parcelas" onClick="{{r.anticipate}}"><svg class="ic" aria-hidden="true"><use href="#i-fast"></use></svg><span class="tip-text" role="tooltip">Antecipar parcelas para a fatura atual</span></button></sc-if>
+              <sc-if value="{{inv.open}}" hint-placeholder-val="{{false}}"><button type="button" class="iconbtn ghost" aria-label="Editar" onClick="{{r.edit}}"><svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg><span class="tip-text" role="tooltip">Editar</span></button></sc-if>
+              <sc-if value="{{inv.open}}" hint-placeholder-val="{{false}}"><button type="button" class="iconbtn ghost" aria-label="Excluir" onClick="{{r.del}}"><svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg><span class="tip-text end" role="tooltip">Excluir</span></button></sc-if>
+              <sc-if value="{{inv.locked}}" hint-placeholder-val="{{false}}"><button type="button" class="tip" aria-label="Compra protegida"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text end" role="tooltip">{{inv.lockTip}}</span></button></sc-if>
+            </div>
+          </div>
+        </sc-for>
+      </div></div>
+      <sc-if value="{{inv.empty}}" hint-placeholder-val="{{false}}"><div class="empty">Nenhuma compra nesta fatura.</div></sc-if>
+    </div>
+    <div class="aside">
+      <div class="card"><div class="label">Valor da fatura</div><div class="big">{{inv.totalF}}</div></div>
+      <div class="card"><div class="label">Situação<button type="button" class="tip" aria-label="Ajuda sobre situação"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text start" role="tooltip">Aberta recebe compras. Fechada aguarda pagamento. Paga está quitada e pode ser reaberta, o que desfaz o pagamento.</span></button></div><div class="big" style="font-size:16px">{{inv.status}}</div></div>
+      <div class="card"><div class="label">Fechamento</div><div>{{inv.closeF}}</div></div>
+      <div class="card"><div class="label">Vencimento</div><div>{{inv.dueF}}</div></div>
+      <button type="button" class="linkbtn" onClick="{{toast_invoiceextras}}">Cashback, compromissos e anexos</button>
+    </div>
+  </div>
+</sc-if>
+
+<!-- PLANEJAMENTO -->
+<sc-if value="{{s.planning}}" hint-placeholder-val="{{false}}">
+  <div class="head"><h1>Planejamento mensal</h1><button type="button" class="tip" aria-label="Ajuda sobre planejamento"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text start" role="tooltip">Defina quanto pretende gastar em cada categoria e acompanhe o que já foi pago e o que está previsto.</span></button><div class="sp"></div>
+    <sc-if value="{{plan.has}}" hint-placeholder-val="{{false}}"><button type="button" class="btn" onClick="{{plan.edit}}"><svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg>Editar planejamento</button></sc-if>
+  </div>
+  <div class="month">
+    <button type="button" class="iconbtn ghost" aria-label="Mês anterior" onClick="{{prevMonth}}"><svg class="ic" aria-hidden="true"><use href="#i-left"></use></svg></button><strong>{{monthLabel}}</strong>
+    <button type="button" class="iconbtn ghost" aria-label="Próximo mês" onClick="{{nextMonth}}"><svg class="ic" aria-hidden="true"><use href="#i-right"></use></svg></button>
+  </div>
+  <sc-if value="{{plan.empty}}" hint-placeholder-val="{{false}}">
+    <div class="panel empty"><svg class="ic" aria-hidden="true"><use href="#i-flag"></use></svg><div>Nenhum planejamento definido para este mês.</div><button type="button" class="btn pri" onClick="{{plan.create}}">Definir novo planejamento</button><button type="button" class="linkbtn" onClick="{{plan.copy}}">Copiar planejamento do mês anterior</button></div>
+  </sc-if>
+  <sc-if value="{{plan.has}}" hint-placeholder-val="{{false}}">
+    <div class="split">
+      <div class="wide panel">
+        <div style="padding:18px;display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+          <div><div class="label">{{plan.remLabel}}</div><div class="big" style="font-size:26px">{{plan.remF}}</div><div class="c-mu" style="font-size:13px">{{plan.spentF}} de {{plan.budgetF}} gastos</div></div>
+          <div style="flex:1;min-width:200px"><div class="bar" style="height:12px"><span style="width:{{plan.paidPct}}%;background:var(--accent)"></span><span style="width:{{plan.fcPct}}%;background:var(--accent-hover);opacity:.55"></span></div></div>
+        </div>
+        <div class="scroll"><div style="min-width:760px" role="table" aria-label="Metas por categoria">
+          <div class="grid" role="row" style="grid-template-columns:minmax(150px,1.3fr) 110px 110px 110px 110px minmax(160px,1.2fr) 88px">
+            <div class="th">Categoria</div><div class="th">Meta</div><div class="th">Pagas</div><div class="th">Previstas</div><div class="th">Total gasto</div><div class="th">Progresso</div><div class="th">Ações</div></div>
+          <sc-for list="{{plan.rows}}" as="p" hint-placeholder-count="4">
+            <div class="grid" role="row" style="grid-template-columns:minmax(150px,1.3fr) 110px 110px 110px 110px minmax(160px,1.2fr) 88px">
+              <div class="td" style="font-weight:500">{{p.name}}</div><div class="td">{{p.targetF}}</div><div class="td">{{p.paidF}}</div><div class="td">{{p.fcF}}</div><div class="td">{{p.totalF}}</div>
+              <div class="td" style="flex-direction:column;align-items:stretch;gap:4px"><span class="{{p.stateCls}}" style="font-size:12px;font-weight:500">{{p.stateText}}</span><div class="bar"><span style="width:{{p.pct}}%;background:{{p.barColor}}"></span></div></div>
+              <div class="td" style="gap:0"><sc-if value="{{p.editable}}" hint-placeholder-val="{{true}}"><button type="button" class="iconbtn ghost" aria-label="Editar meta" onClick="{{plan.edit}}"><svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg><span class="tip-text end" role="tooltip">Editar meta</span></button></sc-if></div>
+            </div>
+          </sc-for>
+        </div></div>
+      </div>
+      <div class="aside">
+        <div class="card"><div class="label">Receitas do mês</div><div class="big">{{plan.incomeF}}</div></div>
+        <div class="card"><div class="label">Gastos planejados</div><div class="big">{{plan.budgetF}}</div></div>
+        <div class="card"><div class="label">Balanço planejado<button type="button" class="tip" aria-label="Ajuda sobre balanço planejado"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text start" role="tooltip">Receitas do mês menos os gastos planejados.</span></button></div><div class="big">{{plan.balanceF}}</div></div>
+        <div class="card"><div class="label">Economia planejada</div><div class="big">{{plan.savingF}}</div></div>
+      </div>
+    </div>
+  </sc-if>
+</sc-if>
+
+<!-- RELATORIOS -->
+<sc-if value="{{s.reports}}" hint-placeholder-val="{{false}}">
+  <div class="head"><h1>Relatórios</h1><div class="sp"></div><div class="chips"><button type="button" class="chip on">Visão de 19 meses</button><button type="button" class="chip" onClick="{{toast_otherreports}}">Por categoria</button></div></div>
+  <div class="panel scroll"><div style="min-width:1500px" role="table" aria-label="Visão de 19 meses">
+    <div class="grid" style="grid-template-columns:180px repeat(19,minmax(68px,1fr))"><div class="th">Categoria</div><sc-for list="{{rep.months}}" as="m" hint-placeholder-count="19"><div class="th {{m.cls}}" style="justify-content:flex-end">{{m.label}}</div></sc-for></div>
+    <sc-for list="{{rep.rows}}" as="row" hint-placeholder-count="6">
+      <div class="grid" style="grid-template-columns:180px repeat(19,minmax(68px,1fr))"><div class="td" style="font-weight:{{row.weight}};font-size:13px">{{row.name}}</div><sc-for list="{{row.vals}}" as="v" hint-placeholder-count="19"><div class="td num" style="font-size:12px;padding:10px 6px">{{v}}</div></sc-for></div>
+    </sc-for>
+  </div></div>
+  <div class="c-mu" style="font-size:13px">A visão de 19 meses é a tela atual de Planejamento, movida para Relatórios com o mesmo conteúdo. Valores fictícios.</div>
+</sc-if>
+
+<!-- REEMBOLSOS -->
+<sc-if value="{{s.reimb}}" hint-placeholder-val="{{false}}">
+  <div class="head"><h1>Reembolsos</h1><div class="sp"></div><button type="button" class="btn pri" disabled="{{noReimbSel}}" onClick="{{receiveReimb}}">Registrar recebimento ({{reimbSelCount}})</button></div>
+  <div class="panel scroll"><div style="min-width:640px" role="table" aria-label="Reembolsos">
+    <div class="grid" style="grid-template-columns:48px minmax(160px,2fr) 130px 100px 120px 110px"><div class="th"></div><div class="th">Despesa</div><div class="th">Pessoa</div><div class="th">Percentual</div><div class="th">A receber</div><div class="th">Situação</div></div>
+    <sc-for list="{{reimb}}" as="r" hint-placeholder-count="3"><div class="grid" style="grid-template-columns:48px minmax(160px,2fr) 130px 100px 120px 110px"><div class="td"><input type="checkbox" aria-label="Selecionar {{r.desc}}" checked="{{r.sel}}" disabled="{{r.done}}" onChange="{{r.toggle}}"></div><div class="td" style="font-weight:500">{{r.desc}}</div><div class="td">{{r.person}}</div><div class="td">{{r.pct}}</div><div class="td num">{{r.val}}</div><div class="td"><span class="tag">{{r.status}}</span></div></div></sc-for>
+  </div></div>
+</sc-if>
+
+<!-- CADASTROS GENERICOS -->
+<sc-if value="{{s.registry}}" hint-placeholder-val="{{false}}">
+  <div class="head"><h1>{{reg.title}}</h1><button type="button" class="tip" aria-label="Ajuda"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text start" role="tooltip">{{reg.help}}</span></button><div class="sp"></div>
+    <input class="input" style="max-width:260px" placeholder="Buscar por nome" aria-label="Buscar por nome" value="{{regSearch}}" onChange="{{setRegSearch}}">
+    <button type="button" class="btn pri" onClick="{{reg.add}}"><svg class="ic" aria-hidden="true"><use href="#i-plus"></use></svg>{{reg.newLabel}}</button>
+  </div>
+  <sc-if value="{{reg.isCat}}" hint-placeholder-val="{{false}}"><div class="chips" style="align-self:flex-start"><button type="button" class="chip {{catExpCls}}" onClick="{{catKindExp}}">Despesas</button><button type="button" class="chip {{catIncCls}}" onClick="{{catKindInc}}">Receitas</button></div></sc-if>
+  <div class="panel"><div class="scroll"><div style="min-width:560px" role="table" aria-label="{{reg.title}}">
+    <div class="grid" style="grid-template-columns:minmax(200px,2fr) minmax(140px,1fr) minmax(120px,1fr) 150px"><div class="th">{{reg.h1}}</div><div class="th">{{reg.h2}}</div><div class="th">{{reg.h3}}</div><div class="th">Ações</div></div>
+    <sc-for list="{{reg.rows}}" as="r" hint-placeholder-count="5">
+      <div class="grid" style="grid-template-columns:minmax(200px,2fr) minmax(140px,1fr) minmax(120px,1fr) 150px">
+        <div class="td" style="font-weight:500"><sc-if value="{{reg.isCat}}" hint-placeholder-val="{{false}}"><button type="button" class="iconbtn ghost" aria-label="Mostrar subcategorias" onClick="{{r.expand}}"><svg class="ic ic-s" aria-hidden="true"><use href="#{{r.chev}}"></use></svg></button></sc-if>{{r.c1}}</div><div class="td">{{r.c2}}</div><div class="td">{{r.c3}}</div>
+        <div class="td" style="gap:0"><sc-if value="{{reg.isCat}}" hint-placeholder-val="{{false}}"><button type="button" class="iconbtn ghost" aria-label="Nova subcategoria" onClick="{{reg.add}}"><svg class="ic" aria-hidden="true"><use href="#i-plus"></use></svg><span class="tip-text" role="tooltip">Nova subcategoria</span></button></sc-if><button type="button" class="iconbtn ghost" aria-label="Editar" onClick="{{reg.add}}"><svg class="ic" aria-hidden="true"><use href="#i-edit"></use></svg><span class="tip-text" role="tooltip">Editar</span></button><button type="button" class="iconbtn ghost" aria-label="Excluir" onClick="{{r.del}}"><svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg><span class="tip-text end" role="tooltip">Excluir ou desativar</span></button></div>
+      </div>
+      <sc-if value="{{r.open}}" hint-placeholder-val="{{false}}"><sc-for list="{{r.subs}}" as="sub" hint-placeholder-count="2"><div class="td" style="padding-left:58px;color:var(--muted)">{{sub}}</div></sc-for></sc-if>
+    </sc-for>
+  </div></div><div class="foot">{{reg.count}}</div></div>
+</sc-if>
+
+<!-- ANEXOS -->
+<sc-if value="{{s.attachments}}" hint-placeholder-val="{{false}}">
+  <div class="head"><h1>Anexos</h1><div class="sp"></div><div class="chips"><button type="button" class="chip on">Ativos</button><button type="button" class="chip" onClick="{{toast_trash}}">Lixeira</button></div></div>
+  <div class="panel scroll"><div style="min-width:560px"><div class="grid" style="grid-template-columns:minmax(200px,2fr) minmax(140px,1fr) 90px 100px"><div class="th">Arquivo</div><div class="th">Vínculo</div><div class="th">Tamanho</div><div class="th">Ações</div></div>
+  <div class="grid" style="grid-template-columns:minmax(200px,2fr) minmax(140px,1fr) 90px 100px"><div class="td" style="font-weight:500">comprovante-agua.pdf</div><div class="td">Conta de água</div><div class="td">180 KB</div><div class="td" style="gap:0"><button type="button" class="iconbtn ghost" aria-label="Abrir"><svg class="ic" aria-hidden="true"><use href="#i-eye"></use></svg><span class="tip-text" role="tooltip">Abrir</span></button><button type="button" class="iconbtn ghost" aria-label="Mover para a lixeira"><svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg><span class="tip-text end" role="tooltip">Mover para a lixeira por 30 dias</span></button></div></div>
+  <div class="grid" style="grid-template-columns:minmax(200px,2fr) minmax(140px,1fr) 90px 100px"><div class="td" style="font-weight:500">fatura-novembro.pdf</div><div class="td">Fatura Nubank 11/2026</div><div class="td">420 KB</div><div class="td" style="gap:0"><button type="button" class="iconbtn ghost" aria-label="Abrir"><svg class="ic" aria-hidden="true"><use href="#i-eye"></use></svg><span class="tip-text" role="tooltip">Abrir</span></button><button type="button" class="iconbtn ghost" aria-label="Mover para a lixeira"><svg class="ic" aria-hidden="true"><use href="#i-trash"></use></svg><span class="tip-text end" role="tooltip">Mover para a lixeira por 30 dias</span></button></div></div>
+  </div></div>
+</sc-if>
+
+<!-- CSV -->
+<sc-if value="{{s.csv}}" hint-placeholder-val="{{false}}">
+  <div class="head"><h1>Arquivos CSV</h1><button type="button" class="tip" aria-label="Ajuda sobre CSV"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text start" role="tooltip">Serve para levar cadastros e lançamentos no layout oficial do sistema. Não substitui o backup.</span></button></div>
+  <div class="two">
+    <div class="card stack"><h2>Importar</h2><div class="c-mu">Escolha o arquivo, confira a prévia e confirme. Nada é gravado antes da confirmação.</div><div class="field"><label for="csv-type">O que importar</label><select id="csv-type" class="input"><option>Lançamentos</option><option>Categorias</option><option>Descrições</option><option>Pessoas</option></select></div><button type="button" class="btn pri" style="align-self:flex-start">Escolher arquivo</button></div>
+    <div class="card stack"><h2>Exportar</h2><div class="c-mu">Gere um arquivo com os dados do período escolhido.</div><div class="field"><label for="csv-exp">O que exportar</label><select id="csv-exp" class="input"><option>Lançamentos</option><option>Categorias</option><option>Descrições</option><option>Pessoas</option></select></div><button type="button" class="btn" style="align-self:flex-start">Gerar arquivo</button></div>
+  </div>
+</sc-if>
+
+<!-- BACKUPS -->
+<sc-if value="{{s.backups}}" hint-placeholder-val="{{false}}">
+  <div class="head"><h1>Backups</h1><button type="button" class="tip" aria-label="Ajuda sobre backups"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text start" role="tooltip">Cópia completa para recuperar os dados. Guarde a pasta de backup fora desta máquina.</span></button><div class="sp"></div><button type="button" class="btn pri" onClick="{{toast_backup}}">Criar backup</button></div>
+  <div class="panel scroll"><div style="min-width:560px"><div class="grid" style="grid-template-columns:minmax(180px,2fr) 110px 110px 170px"><div class="th">Pacote</div><div class="th">Tamanho</div><div class="th">Verificação</div><div class="th">Ações</div></div>
+  <div class="grid" style="grid-template-columns:minmax(180px,2fr) 110px 110px 170px"><div class="td" style="font-weight:500">03/11/2026 02:00</div><div class="td">18 MB</div><div class="td"><span class="tag">Válido</span></div><div class="td"><button type="button" class="btn" style="min-height:36px" onClick="{{confirmRestore}}">Restaurar</button></div></div>
+  <div class="grid" style="grid-template-columns:minmax(180px,2fr) 110px 110px 170px"><div class="td" style="font-weight:500">02/11/2026 02:00</div><div class="td">18 MB</div><div class="td"><span class="tag">Válido</span></div><div class="td"><button type="button" class="btn" style="min-height:36px" onClick="{{confirmRestore}}">Restaurar</button></div></div>
+  </div></div>
+</sc-if>
+
+<!-- CONFIG -->
+<sc-if value="{{s.settings}}" hint-placeholder-val="{{false}}">
+  <div class="head"><h1>Configurações</h1><div class="sp"></div><div class="chips"><button type="button" class="chip {{cfg1}}" onClick="{{cfgPref}}">Preferências</button><button type="button" class="chip {{cfg2}}" onClick="{{cfgDash}}">Dashboard</button><button type="button" class="chip {{cfg3}}" onClick="{{cfgSec}}">Segurança</button></div></div>
+  <div class="card stack">
+    <sc-if value="{{cfgIsPref}}" hint-placeholder-val="{{true}}"><div class="fields">
+      <div class="field"><label for="cfg-theme">Aparência<button type="button" class="tip" aria-label="Ajuda sobre aparência"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text start" role="tooltip">Automático segue o tema do seu aparelho.</span></button></label><select id="cfg-theme" class="input" value="{{theme}}" onChange="{{setTheme}}"><option value="dark">Escuro</option><option value="light">Claro</option></select></div>
+      <div class="field"><label for="cfg-tz">Fuso de negócio</label><select id="cfg-tz" class="input"><option>America/Sao_Paulo</option></select></div>
+    </div></sc-if>
+    <sc-if value="{{cfgIsDash}}" hint-placeholder-val="{{false}}"><div class="fields"><div class="field"><label for="cfg-days">Dias da agenda de pendências</label><input id="cfg-days" class="input" value="7"></div></div></sc-if>
+    <sc-if value="{{cfgIsSec}}" hint-placeholder-val="{{false}}"><div class="fields"><div class="field"><label for="cfg-pass">Senha atual</label><input id="cfg-pass" class="input" type="password"></div><div class="field"><label for="cfg-new">Nova senha</label><input id="cfg-new" class="input" type="password"></div></div></sc-if>
+    <div style="text-align:right"><button type="button" class="btn pri" onClick="{{toast_saved}}">Salvar alterações</button></div>
+  </div>
+</sc-if>
+
+</main>
+</div>
+
+<!-- JANELA DE LANCAMENTO -->
+<sc-if value="{{d.entry}}" hint-placeholder-val="{{false}}">
+<div class="overlay"><div class="dialog {{f.wideCls}}" role="dialog" aria-modal="true" aria-label="{{f.title}}">
+  <div class="dlg-head"><h2>{{f.title}}</h2><button type="button" class="iconbtn ghost" aria-label="Fechar" onClick="{{closeEntry}}"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button></div>
+  <div class="dlg-body"><div class="{{f.twoCls}}"><div class="stack">
+    <div><label class="flabel" for="fa">Valor</label><input id="fa" class="amount {{f.amtCls}}" inputmode="decimal" autofocus="{{yes}}" value="{{f.amountF}}" onChange="{{f.setAmount}}"><sc-if value="{{f.noAmount}}" hint-placeholder-val="{{false}}"><div class="err">Informe um valor maior que zero.</div></sc-if></div>
+    <sc-if value="{{f.hasPaid}}" hint-placeholder-val="{{true}}"><div class="rowline"><span class="flabel" style="flex:1;font-size:14px">{{f.paidLabel}}<button type="button" class="tip" aria-label="Ajuda"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text start" role="tooltip">Ligado: já movimentou a conta. Desligado: fica pendente até você dar baixa. Em recorrências, os próximos meses sempre nascem pendentes.</span></button></span><button type="button" class="switch {{f.paidCls}}" role="switch" aria-checked="{{f.paid}}" aria-label="{{f.paidLabel}}" onClick="{{f.togglePaid}}"><span></span></button></div></sc-if>
+    <div class="field"><span class="flabel">Data</span><div class="quick"><button type="button" class="pill {{f.d1}}" onClick="{{f.today}}">Hoje</button><button type="button" class="pill {{f.d2}}" onClick="{{f.yesterday}}">Ontem</button><input class="input" style="max-width:170px;min-height:36px" type="date" aria-label="Outra data" value="{{f.date}}" onChange="{{f.setDate}}"></div></div>
+    <div class="field"><label for="fd">Descrição</label><input id="fd" class="input" list="desc-list" placeholder="Ex.: Conta de água" value="{{f.desc}}" onChange="{{f.setDesc}}"></div>
+    <sc-if value="{{f.isTransfer}}" hint-placeholder-val="{{false}}"><div class="fields"><div class="field"><label for="ft1">Conta de origem</label><select id="ft1" class="input" value="{{f.acct}}" onChange="{{f.setAcct}}"><option value="bra">Bradesco</option><option value="nub">Nubank</option><option value="ita">Itaú</option></select></div><div class="field"><label for="ft2">Conta de destino</label><select id="ft2" class="input" value="{{f.acct2}}" onChange="{{f.setAcct2}}"><option value="bra">Bradesco</option><option value="nub">Nubank</option><option value="ita">Itaú</option></select></div></div></sc-if>
+    <sc-if value="{{f.isExpCat}}" hint-placeholder-val="{{true}}"><div class="field"><label for="fc">Categoria e subcategoria<button type="button" class="tip" aria-label="Ajuda sobre categoria"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text start" role="tooltip">Escolha a subcategoria. A categoria acima dela é usada nos totais e no planejamento.</span></button></label><select id="fc" class="input" value="{{f.cat}}" onChange="{{f.setCat}}"><optgroup label="Alimentação"><option>Alimentação › Mercado</option><option>Alimentação › Restaurante</option></optgroup><optgroup label="Casa"><option>Casa › Aluguel</option><option>Casa › Contas</option></optgroup><optgroup label="Impostos"><option>Impostos › IPTU</option></optgroup><optgroup label="Saúde"><option>Saúde › Academia</option></optgroup><optgroup label="Assinaturas"><option>Assinaturas › Vídeo</option></optgroup><optgroup label="Compras"><option>Compras › Eletrônicos</option></optgroup></select></div></sc-if>
+    <sc-if value="{{f.isIncCat}}" hint-placeholder-val="{{false}}"><div class="field"><label for="fc2">Categoria e subcategoria</label><select id="fc2" class="input" value="{{f.cat}}" onChange="{{f.setCat}}"><option>Salário › Mensal</option><option>Bonificação › Anual</option><option>Reembolso › Pessoas</option></select></div></sc-if>
+    <sc-if value="{{f.isAccount}}" hint-placeholder-val="{{true}}"><div class="field"><label for="fac">Conta</label><select id="fac" class="input" value="{{f.acct}}" onChange="{{f.setAcct}}"><option value="bra">Bradesco</option><option value="nub">Nubank</option><option value="ita">Itaú</option></select></div></sc-if>
+    <sc-if value="{{f.isCard}}" hint-placeholder-val="{{false}}">
+      <div class="field"><label for="fca">Cartão</label><select id="fca" class="input" value="{{f.card}}" onChange="{{f.setCard}}"><option value="nub">Nubank</option><option value="ita">Cartão Itaú</option></select></div>
+      <div class="field"><span class="flabel">Fatura<button type="button" class="tip" aria-label="Ajuda sobre fatura"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text start" role="tooltip">Calculada pela data e pelo dia de fechamento do cartão. Se o banco lançar em outro mês, escolha outra fatura aberta.</span></button></span>
+        <div class="quick"><sc-for list="{{f.invoices}}" as="i" hint-placeholder-count="4"><button type="button" class="pill {{i.cls}}" disabled="{{i.disabled}}" onClick="{{i.pick}}">{{i.label}}</button></sc-for></div>
+        <sc-if value="{{f.invWarn}}" hint-placeholder-val="{{false}}"><div class="note c-wa"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span>{{f.invWarn}}</span></div></sc-if>
+      </div>
+    </sc-if>
+    <sc-if value="{{f.isEdit}}" hint-placeholder-val="{{false}}"><sc-if value="{{f.hasScope}}" hint-placeholder-val="{{false}}"><div class="field"><span class="flabel">{{f.scopeTitle}}</span><sc-for list="{{f.scopes}}" as="sc" hint-placeholder-count="3"><button type="button" class="pill {{sc.cls}}" style="text-align:left" onClick="{{sc.pick}}">{{sc.label}}</button></sc-for></div></sc-if></sc-if>
+    <sc-if value="{{f.canMore}}" hint-placeholder-val="{{true}}"><div style="text-align:right"><button type="button" class="linkbtn" onClick="{{f.toggleMore}}" aria-expanded="{{f.more}}">{{f.moreLabel}}<svg class="ic ic-s" aria-hidden="true"><use href="#{{f.moreIcon}}"></use></svg></button></div></sc-if>
+  </div>
+  <sc-if value="{{f.more}}" hint-placeholder-val="{{false}}"><div class="stack">
+    <sc-if value="{{f.showRecurring}}" hint-placeholder-val="{{false}}">
+      <div class="rowline"><span class="flabel" style="flex:1;font-size:14px">{{f.fixLabel}}<button type="button" class="tip" aria-label="Ajuda sobre fixa"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text end" role="tooltip">Repete todo mês, sem data para acabar. Ex.: aluguel, água.</span></button></span><button type="button" class="switch {{f.fixCls}}" role="switch" aria-checked="{{f.fix}}" aria-label="{{f.fixLabel}}" disabled="{{f.rep}}" onClick="{{f.toggleFix}}"><span></span></button></div>
+      <div class="rowline"><span class="flabel" style="flex:1;font-size:14px">{{f.repLabel}}<button type="button" class="tip" aria-label="Ajuda sobre repetir"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text end" role="tooltip">{{f.repTip}}</span></button></span><button type="button" class="switch {{f.repCls}}" role="switch" aria-checked="{{f.rep}}" aria-label="{{f.repLabel}}" disabled="{{f.fix}}" onClick="{{f.toggleRep}}"><span></span></button></div>
+      <sc-if value="{{f.rep}}" hint-placeholder-val="{{false}}"><div class="fields"><div class="field"><label for="fn">{{f.timesLabel}}</label><input id="fn" class="input" inputmode="numeric" value="{{f.times}}" onChange="{{f.setTimes}}"></div>
+      <sc-if value="{{f.isNotCard}}" hint-placeholder-val="{{true}}"><div class="field"><label for="fp">Período</label><select id="fp" class="input" value="{{f.period}}" onChange="{{f.setPeriod}}"><option>Dias</option><option>Semanas</option><option>Meses</option><option>Anos</option></select></div></sc-if></div>
+      <sc-if value="{{f.repHint}}" hint-placeholder-val="{{false}}"><div class="note"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span>{{f.repHint}}</span></div></sc-if></sc-if>
+    </sc-if>
+    <sc-if value="{{f.showReimb}}" hint-placeholder-val="{{false}}"><div class="fields"><div class="field"><label for="fr1">Reembolso de</label><select id="fr1" class="input"><option>Ninguém</option><option>Pessoa Exemplo</option></select></div><div class="field"><label for="fr2">Percentual<button type="button" class="tip" aria-label="Ajuda sobre percentual"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text end" role="tooltip">Quanto desta despesa a pessoa vai devolver.</span></button></label><input id="fr2" class="input" inputmode="decimal" placeholder="0"></div></div></sc-if>
+    <div class="field"><label for="fo">Observação</label><textarea id="fo" class="input" rows="4" style="padding:10px 12px;resize:vertical" value="{{f.obs}}" onChange="{{f.setObs}}"></textarea></div>
+    <button type="button" class="btn" style="justify-content:flex-start"><svg class="ic" aria-hidden="true"><use href="#i-clip"></use></svg>Anexar arquivo</button>
+  </div></sc-if>
+  </div></div>
+  <div class="dlg-foot"><sc-if value="{{f.isNew}}" hint-placeholder-val="{{true}}"><button type="button" class="btn link" disabled="{{f.invalid}}" onClick="{{f.saveNew}}">Salvar e criar nova</button></sc-if><button type="button" class="btn pri" disabled="{{f.invalid}}" onClick="{{f.save}}">Salvar</button></div>
+</div></div>
+</sc-if>
+
+<!-- JANELA EFETIVAR -->
+<sc-if value="{{d.settle}}" hint-placeholder-val="{{false}}">
+<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-label="{{b.title}}">
+  <div class="dlg-head"><h2>{{b.title}}</h2><button type="button" class="iconbtn ghost" aria-label="Fechar" onClick="{{closeDlg}}"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button></div>
+  <div class="dlg-body"><div class="c-mu">{{b.text}}</div>
+    <div><label class="flabel" for="ba">Valor</label><input id="ba" class="amount" value="{{b.amountF}}" onChange="{{b.setAmount}}"></div>
+    <div class="fields"><div class="field"><label for="bd">Data</label><input id="bd" class="input" type="date" value="{{b.date}}" onChange="{{b.setDate}}"></div><div class="field"><label for="bc">Conta</label><select id="bc" class="input" value="{{b.acct}}" onChange="{{b.setAcct}}"><option value="bra">Bradesco</option><option value="nub">Nubank</option><option value="ita">Itaú</option></select></div></div>
+  </div>
+  <div class="dlg-foot"><button type="button" class="btn" onClick="{{closeDlg}}">Cancelar</button><button type="button" class="btn pri" onClick="{{b.confirm}}">{{b.action}}</button></div>
+</div></div>
+</sc-if>
+
+<!-- CONFIRMACAO -->
+<sc-if value="{{d.confirm}}" hint-placeholder-val="{{false}}">
+<div class="overlay"><div class="dialog" role="alertdialog" aria-modal="true" aria-label="{{cf.title}}">
+  <div class="dlg-head"><h2>{{cf.title}}</h2></div><div class="dlg-body"><div>{{cf.text}}</div></div>
+  <div class="dlg-foot"><button type="button" class="btn" onClick="{{closeDlg}}">Cancelar</button><button type="button" class="btn {{cf.cls}}" onClick="{{cf.ok}}">{{cf.action}}</button></div>
+</div></div>
+</sc-if>
+
+<!-- ANTECIPAR -->
+<sc-if value="{{d.anticipate}}" hint-placeholder-val="{{false}}">
+<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-label="Antecipar parcelas">
+  <div class="dlg-head"><h2>Antecipar parcelas</h2><button type="button" class="iconbtn ghost" aria-label="Fechar" onClick="{{closeDlg}}"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button></div>
+  <div class="dlg-body">
+    <div class="field"><span class="flabel">Quantas parcelas antecipar?<button type="button" class="tip" aria-label="Ajuda sobre antecipação"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text start" role="tooltip">As últimas parcelas passam para a fatura atual. As datas e os valores não mudam.</span></button></span><div class="quick"><sc-for list="{{an.options}}" as="o" hint-placeholder-count="2"><button type="button" class="pill {{o.cls}}" onClick="{{o.pick}}">{{o.label}}</button></sc-for></div></div>
+    <div class="field"><label for="and">Desconto recebido (opcional)</label><input id="and" class="input" inputmode="decimal" placeholder="R$ 0,00"></div>
+    <div class="note"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span>{{an.summary}} Depois de confirmar, não é possível desfazer.</span></div>
+  </div>
+  <div class="dlg-foot"><button type="button" class="btn" onClick="{{closeDlg}}">Cancelar</button><button type="button" class="btn pri" onClick="{{an.confirm}}">Antecipar parcelas</button></div>
+</div></div>
+</sc-if>
+
+<!-- CADASTRO SIMPLES -->
+<sc-if value="{{d.reg}}" hint-placeholder-val="{{false}}">
+<div class="overlay"><div class="dialog" role="dialog" aria-modal="true" aria-label="{{rf.title}}">
+  <div class="dlg-head"><h2>{{rf.title}}</h2><button type="button" class="iconbtn ghost" aria-label="Fechar" onClick="{{closeDlg}}"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button></div>
+  <div class="dlg-body"><div class="field"><label for="rn">Nome</label><input id="rn" class="input" value="{{rf.name}}" onChange="{{rf.setName}}"></div>
+  <sc-if value="{{rf.isAccount}}" hint-placeholder-val="{{false}}"><div class="fields"><div class="field"><label for="rb">Banco</label><select id="rb" class="input"><option>Bradesco</option><option>Nubank</option><option>Itaú</option></select></div><div class="field"><label for="rt">Tipo</label><select id="rt" class="input"><option>Corrente</option><option>Poupança</option><option>Carteira</option></select></div><div class="field"><label for="rs">Saldo inicial</label><input id="rs" class="input" placeholder="R$ 0,00"></div></div></sc-if>
+  <sc-if value="{{rf.isCard}}" hint-placeholder-val="{{false}}"><div class="fields"><div class="field"><label for="rl">Limite</label><input id="rl" class="input" placeholder="R$ 0,00"></div><div class="field"><label for="rc">Dia de fechamento<button type="button" class="tip" aria-label="Ajuda sobre fechamento"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text start" role="tooltip">Compras depois deste dia entram na fatura seguinte.</span></button></label><input id="rc" class="input" inputmode="numeric" placeholder="1"></div><div class="field"><label for="rv">Dia de vencimento</label><input id="rv" class="input" inputmode="numeric" placeholder="9"></div><div class="field"><label for="rp">Conta para pagamento</label><select id="rp" class="input"><option>Bradesco</option><option>Nubank</option><option>Itaú</option></select></div></div></sc-if>
+  </div>
+  <div class="dlg-foot"><button type="button" class="btn" onClick="{{closeDlg}}">Cancelar</button><button type="button" class="btn pri" disabled="{{rf.invalid}}" onClick="{{rf.save}}">Salvar</button></div>
+</div></div>
+</sc-if>
+
+<!-- PASSO A PASSO DO PLANEJAMENTO -->
+<sc-if value="{{d.wizard}}" hint-placeholder-val="{{false}}">
+<div class="overlay"><div class="dialog wide" role="dialog" aria-modal="true" aria-label="Criar planejamento">
+  <div class="dlg-head"><h2>Planejamento de {{monthLabel}}</h2><button type="button" class="iconbtn ghost" aria-label="Fechar" onClick="{{closeDlg}}"><svg class="ic" aria-hidden="true"><use href="#i-x"></use></svg></button></div>
+  <div class="dlg-body">
+    <div class="quick"><span class="tag {{w.c1}}">1. Renda mensal</span><span class="tag {{w.c2}}">2. Metas por categoria</span><span class="tag {{w.c3}}">3. Compras no cartão</span></div>
+    <sc-if value="{{w.s1}}" hint-placeholder-val="{{true}}"><div class="fields">
+      <div class="field"><label for="wi">Quanto você ganha por mês?</label><input id="wi" class="input" value="{{w.incomeF}}" onChange="{{w.setIncome}}"></div>
+      <div class="field"><label for="ws">Quanto quer economizar? (%)<button type="button" class="tip" aria-label="Ajuda sobre economia"><svg class="ic ic-s" aria-hidden="true"><use href="#i-help"></use></svg><span class="tip-text end" role="tooltip">Esse percentual define o orçamento de gastos do mês.</span></button></label><input id="ws" class="input" inputmode="numeric" value="{{w.saving}}" onChange="{{w.setSaving}}"></div>
+    </div><div class="note" style="margin-top:12px"><span>Orçamento de gastos: <strong>{{w.budgetF}}</strong>. Economia prevista: <strong>{{w.saveF}}</strong>.</span></div></sc-if>
+    <sc-if value="{{w.s2}}" hint-placeholder-val="{{false}}"><div class="note"><span>Categorizado: <strong>{{w.catF}}</strong>. Sem categorização: <strong>{{w.restF}}</strong>.</span></div><div class="fields" style="margin-top:12px"><sc-for list="{{w.cats}}" as="c" hint-placeholder-count="6"><div class="field"><label>{{c.name}}</label><input class="input" aria-label="Meta de {{c.name}}" value="{{c.valF}}" onChange="{{c.set}}"></div></sc-for></div></sc-if>
+    <sc-if value="{{w.s3}}" hint-placeholder-val="{{false}}"><div class="field"><span class="flabel">Em que mês as compras no cartão devem contar?</span><div class="quick"><button type="button" class="pill {{w.viewInv}}" onClick="{{w.pickInv}}">Pela data da fatura (recomendado)</button><button type="button" class="pill {{w.viewBuy}}" onClick="{{w.pickBuy}}">Pela data da compra</button></div></div></sc-if>
+  </div>
+  <div class="dlg-foot"><sc-if value="{{w.hasBack}}" hint-placeholder-val="{{false}}"><button type="button" class="btn" onClick="{{w.back}}">Voltar</button></sc-if><button type="button" class="btn pri" disabled="{{w.invalid}}" onClick="{{w.next}}">{{w.nextLabel}}</button></div>
+</div></div>
+</sc-if>
+
+<sc-if value="{{toast}}" hint-placeholder-val="{{false}}"><div class="toast" role="status"><svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>{{toast}}</div></sc-if>
+<datalist id="desc-list"><option value="Conta de água"></option><option value="Aluguel"></option><option value="Supermercado Exemplo"></option><option value="Streaming Exemplo"></option><option value="IPTU"></option></datalist>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+var KEY = function (y, m) { return y * 12 + m - 1; };
+var NOW = KEY(2026, 11);
+var TODAY = '2026-11-03';
+var MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+var ACCTS = { bra: { name: 'Bradesco', initial: 'B', color: 'var(--expense)', open: 500000 }, nub: { name: 'Nubank', initial: 'N', color: 'var(--text)', open: 120000 }, ita: { name: 'Itaú', initial: 'I', color: 'var(--warning)', open: 340000 } };
+var CARDS = { nub: { name: 'Nubank', close: 1, due: 9, limit: 500000, acct: 'nub' }, ita: { name: 'Cartão Itaú', close: 25, due: 5, limit: 2000000, acct: 'ita' } };
+var EXP_CATS = ['Alimentação','Casa','Impostos','Saúde','Assinaturas','Compras'];
+function money(c) { return 'R$ ' + (Math.abs(c) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function signed(c) { return (c < 0 ? '−' : '') + money(c); }
+function parseCents(v) { var d = String(v).replace(/\D/g, ''); return d ? parseInt(d, 10) : 0; }
+function fmtDate(s) { var p = s.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
+function monthOfDate(s) { var p = s.split('-'); return KEY(+p[0], +p[1]); }
+function monthName(k) { return MONTHS[k % 12] + ' de ' + Math.floor(k / 12); }
+function shortMonth(k) { return MONTHS[k % 12].slice(0, 3).toLowerCase() + '/' + String(Math.floor(k / 12)).slice(2); }
+function addMonths(s, n) { var p = s.split('-'), y = +p[0], m = +p[1] - 1 + n, d = +p[2]; y += Math.floor(m / 12); m = ((m % 12) + 12) % 12; var last = new Date(y, m + 1, 0).getDate(); return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(Math.min(d, last)).padStart(2, '0'); }
+function addDays(s, n) { var p = s.split('-'); var dt = new Date(+p[0], +p[1] - 1, +p[2] + n); return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0'); }
+function calcInvoice(cardId, date) { var c = CARDS[cardId], p = date.split('-'), k = KEY(+p[0], +p[1]), d = +p[2]; var closeK = d <= c.close ? k : k + 1; return c.due > c.close ? closeK : closeK + 1; }
+function closeInfo(cardId, k) { var c = CARDS[cardId]; var closeK = c.due > c.close ? k : k - 1; var y = Math.floor(closeK / 12), m = closeK % 12; return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(c.close).padStart(2, '0'); }
+function dueInfo(cardId, k) { var y = Math.floor(k / 12), m = k % 12; return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(CARDS[cardId].due).padStart(2, '0'); }
+var uid = 100;
+var DESC_SUB = { 'Salário': 'Mensal', 'Aluguel': 'Aluguel', 'Conta de água': 'Contas', 'Supermercado Exemplo': 'Mercado', 'IPTU': 'IPTU', 'Academia Exemplo': 'Academia', 'Notebook Exemplo': 'Eletrônicos', 'Streaming Exemplo': 'Vídeo' };
+function subOf(e) { return e.sub || DESC_SUB[e.desc] || 'Geral'; }
+function catLabel(e) { return e.cat + ' › ' + subOf(e); }
+var SEED = [
+  { id: 1, date: '2026-10-05', desc: 'Salário', cat: 'Salário', acct: 'bra', kind: 'inc', amt: 850000, paid: true },
+  { id: 2, date: '2026-10-05', desc: 'Aluguel', cat: 'Casa', acct: 'bra', kind: 'exp', amt: 220000, paid: true, series: 'alu', sType: 'fix' },
+  { id: 3, date: '2026-11-03', desc: 'Salário', cat: 'Salário', acct: 'bra', kind: 'inc', amt: 850000, paid: true },
+  { id: 4, date: '2026-11-05', desc: 'Aluguel', cat: 'Casa', acct: 'bra', kind: 'exp', amt: 220000, paid: false, series: 'alu', sType: 'fix' },
+  { id: 5, date: '2026-11-12', desc: 'Conta de água', cat: 'Casa', acct: 'bra', kind: 'exp', amt: 9540, paid: false, series: 'agua', sType: 'fix' },
+  { id: 6, date: '2026-11-02', desc: 'Supermercado Exemplo', cat: 'Alimentação', acct: 'nub', kind: 'exp', amt: 41235, paid: true },
+  { id: 7, date: '2026-11-15', desc: 'IPTU', part: '3/8', cat: 'Impostos', acct: 'ita', kind: 'exp', amt: 21000, paid: false, series: 'iptu', sType: 'rep' },
+  { id: 8, date: '2026-12-15', desc: 'IPTU', part: '4/8', cat: 'Impostos', acct: 'ita', kind: 'exp', amt: 21000, paid: false, series: 'iptu', sType: 'rep' },
+  { id: 9, date: '2026-12-05', desc: 'Aluguel', cat: 'Casa', acct: 'bra', kind: 'exp', amt: 220000, paid: false, series: 'alu', sType: 'fix' },
+  { id: 10, date: '2026-12-12', desc: 'Conta de água', cat: 'Casa', acct: 'bra', kind: 'exp', amt: 9540, paid: false, series: 'agua', sType: 'fix' },
+  { id: 11, date: '2026-12-03', desc: 'Salário', cat: 'Salário', acct: 'bra', kind: 'inc', amt: 850000, paid: false, series: 'sal', sType: 'fix' },
+  { id: 20, date: '2026-10-28', desc: 'Academia Exemplo', cat: 'Saúde', card: 'nub', inv: KEY(2026, 11), kind: 'exp', amt: 12990, paid: true },
+  { id: 21, date: '2026-10-20', desc: 'Notebook Exemplo', part: '1/3', cat: 'Compras', card: 'ita', inv: KEY(2026, 11), kind: 'exp', amt: 120000, paid: true, series: 'nb', sType: 'parc', n: 1 },
+  { id: 22, date: '2026-10-20', desc: 'Notebook Exemplo', part: '2/3', cat: 'Compras', card: 'ita', inv: KEY(2026, 12), kind: 'exp', amt: 120000, paid: true, series: 'nb', sType: 'parc', n: 2 },
+  { id: 23, date: '2026-10-20', desc: 'Notebook Exemplo', part: '3/3', cat: 'Compras', card: 'ita', inv: KEY(2027, 1), kind: 'exp', amt: 120000, paid: true, series: 'nb', sType: 'parc', n: 3 },
+  { id: 24, date: '2026-11-03', desc: 'Streaming Exemplo', cat: 'Assinaturas', card: 'nub', inv: KEY(2026, 12), kind: 'exp', amt: 3990, paid: true }
+];
+var REG = {
+  bancos: { title: 'Bancos', newLabel: 'Novo banco', help: 'Cadastre os bancos para vincular contas e logos.', h1: 'Nome', h2: 'Contas vinculadas', h3: 'Logo', rows: [{ c1: 'Bradesco', c2: '1 conta', c3: 'Sim' }, { c1: 'Itaú', c2: '1 conta', c3: 'Sim' }, { c1: 'Nubank', c2: '1 conta', c3: 'Sim' }] },
+  categorias: { title: 'Categorias', newLabel: 'Nova categoria', help: 'Categorias agrupam subcategorias e são usadas nos relatórios e no planejamento.', h1: 'Nome', h2: 'Subcategorias', h3: 'Cor', isCat: true, rows: [] },
+  descricoes: { title: 'Descrições', newLabel: 'Nova descrição', help: 'Nomes usados nos lançamentos. Podem sugerir uma subcategoria.', h1: 'Descrição', h2: 'Subcategoria padrão', h3: 'Situação', rows: [{ c1: 'Conta de água', c2: 'Casa › Contas', c3: 'Ativa' }, { c1: 'Supermercado Exemplo', c2: 'Alimentação › Mercado', c3: 'Ativa' }, { c1: 'Streaming Exemplo', c2: 'Assinaturas › Vídeo', c3: 'Ativa' }] },
+  pessoas: { title: 'Pessoas', newLabel: 'Nova pessoa', help: 'Pessoas que podem reembolsar despesas, com o percentual padrão.', h1: 'Nome', h2: 'Percentual padrão', h3: 'Situação', rows: [{ c1: 'Pessoa Exemplo', c2: '50%', c3: 'Ativa' }, { c1: 'Outra Pessoa', c2: '100%', c3: 'Ativa' }] }
+};
+var CATS = { exp: [{ c1: 'Alimentação', c2: '2 subcategorias', c3: 'Vermelho', subs: ['Mercado', 'Restaurante'] }, { c1: 'Casa', c2: '2 subcategorias', c3: 'Azul', subs: ['Aluguel', 'Contas'] }, { c1: 'Impostos', c2: '1 subcategoria', c3: 'Laranja', subs: ['IPTU'] }, { c1: 'Saúde', c2: '1 subcategoria', c3: 'Verde', subs: ['Academia'] }, { c1: 'Assinaturas', c2: '1 subcategoria', c3: 'Roxo', subs: ['Vídeo'] }, { c1: 'Compras', c2: '1 subcategoria', c3: 'Cinza', subs: ['Eletrônicos'] }], inc: [{ c1: 'Salário', c2: '1 subcategoria', c3: 'Verde', subs: ['Mensal'] }, { c1: 'Bonificação', c2: '1 subcategoria', c3: 'Roxo', subs: ['Anual'] }, { c1: 'Reembolso', c2: '1 subcategoria', c3: 'Azul', subs: ['Pessoas'] }] };
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { screen: 'entries', month: NOW, theme: 'dark', mini: false, drawer: false, novo: false, openGroups: { cadastros: false, mais: false }, hide: false,
+      typeFilter: 'all', search: '', searchOpen: false, filtersOpen: false, fAcct: '', fCat: '', sort: 'date', sortDir: 1,
+      entries: SEED, invoiceOverride: {}, payments: [], cardTab: 'open', invCard: 'nub', form: null, settle: null, confirm: null, anticipate: null, regForm: null, wizard: null, toast: '',
+      regKey: 'categorias', regData: REG, regSearch: '', catKind: 'exp', catOpen: {}, cfg: 'pref',
+      plans: {}, reimb: [{ id: 1, desc: 'Conta de água', person: 'Pessoa Exemplo', pct: '50%', val: 'R$ 47,70', status: 'Pendente', sel: false }, { id: 2, desc: 'Supermercado Exemplo', person: 'Outra Pessoa', pct: '100%', val: 'R$ 412,35', status: 'Pendente', sel: false }] };
+    this.state.plans[NOW] = { income: 850000, saving: 20, view: 'inv', cats: { 'Casa': 250000, 'Alimentação': 100000, 'Saúde': 20000, 'Compras': 100000 } };
+  }
+  note(msg) { this.setState({ toast: msg }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 2600); }
+  entryMonth(e) { return e.card ? e.inv : monthOfDate(e.date); }
+  invStatus(card, k) { var o = this.state.invoiceOverride[card + k]; if (o) return o; return closeInfo(card, k) < TODAY ? 'Fechada' : 'Aberta'; }
+  invTotal(card, k) { return this.state.entries.filter(function (e) { return e.card === card && e.inv === k; }).reduce(function (s, e) { return s + e.amt; }, 0); }
+  invPaid(card, k) { return this.state.payments.filter(function (p) { return p.card === card && p.key === k; }).reduce(function (s, p) { return s + p.amt; }, 0); }
+  currentOpen(card) { var k = NOW; while (this.invStatus(card, k) !== 'Aberta') k++; return k; }
+  acctCurrent(id) { var s = ACCTS[id].open; this.state.entries.forEach(function (e) { if (!e.card && e.acct === id && e.paid) s += e.kind === 'inc' ? e.amt : -e.amt; if (e.kind === 'tr' && e.paid) { if (e.acct === id) s -= 0; } }); this.state.payments.forEach(function (p) { if (p.acct === id) s -= p.amt; }); (this.state.transfers || []).forEach(function (t) { if (t.from === id) s -= t.amt; if (t.to === id) s += t.amt; }); return s; }
+  acctForecast(id, month) { var self = this; var s = this.acctCurrent(id); this.state.entries.forEach(function (e) { if (!e.card && e.acct === id && !e.paid && self.entryMonth(e) <= month) s += e.kind === 'inc' ? e.amt : -e.amt; }); return s; }
+  mask(text) { return this.state.hide ? 'R$ ••••' : text; }
+  go(screen, extra) { this.setState(Object.assign({ screen: screen, novo: false, drawer: false }, extra || {})); }
+  blankForm(type, edit) { var card = 'nub'; var f = { type: type, amount: 0, paid: true, date: TODAY, desc: '', cat: type === 'inc' ? 'Salário' : 'Alimentação', sub: type === 'inc' ? 'Mensal' : 'Mercado', acct: 'bra', acct2: 'nub', card: card, inv: null, more: false, fix: false, rep: false, times: '2', period: 'Meses', obs: '', scope: 'this', touched: false }; return f; }
+  openForm(type, preset) { this.setState({ form: Object.assign(this.blankForm(type), preset || {}), novo: false, drawer: false }); }
+  patchForm(p) { this.setState({ form: Object.assign({}, this.state.form, p) }); }
+  invoiceChoice(f) { var calc = calcInvoice(f.card, f.date); var chosen = f.inv; var self = this; var suggested = calc; while (self.invStatus(f.card, suggested) !== 'Aberta') suggested++; if (chosen === null || self.invStatus(f.card, chosen) !== 'Aberta') chosen = suggested; return { calc: calc, suggested: suggested, chosen: chosen }; }
+  saveForm(keepOpen) {
+    var s = this.state, f = s.form; var entries = s.entries.slice(); var self = this;
+    if (f.type === 'transfer') { var ts = (s.transfers || []).concat([{ from: f.acct, to: f.acct2, amt: f.amount, date: f.date }]); this.setState({ transfers: ts, form: keepOpen ? this.blankForm('transfer') : null }); this.note('Transferência registrada.'); return; }
+    if (f.editId) {
+      var cur = entries.find(function (e) { return e.id === f.editId; });
+      var targets = entries.filter(function (e) { if (e.id === f.editId) return true; if (!cur.series || e.series !== cur.series) return false; if (f.scope === 'pending') return !e.paid; if (f.scope === 'future') return (e.n || 0) >= (cur.n || 0) && !e.paid || (e.n || 0) >= (cur.n || 0); return f.scope === 'all'; });
+      targets.forEach(function (e) { e.amt = f.amount; e.desc = f.desc; e.cat = f.cat; e.sub = f.sub; if (e.id === f.editId) { e.date = f.date; if (!e.card) { e.acct = f.acct; e.paid = f.paid; } else { e.card = f.card; e.inv = self.invoiceChoice(f).chosen; } } });
+      this.setState({ entries: entries, form: null }); this.note('Lançamento atualizado.'); return;
+    }
+    var base = { date: f.date, desc: f.desc, cat: f.cat, sub: f.sub, kind: f.type === 'inc' ? 'inc' : 'exp', amt: f.amount };
+    if (f.type === 'card') {
+      var inv = this.invoiceChoice(f).chosen;
+      var count = f.rep ? Math.max(2, parseInt(f.times, 10) || 2) : 1;
+      var unit = Math.floor(f.amount / count), first = f.amount - unit * (count - 1); var sid = 's' + (++uid);
+      for (var i = 0; i < count; i++) entries.push(Object.assign({}, base, { id: ++uid, card: f.card, inv: inv + i, amt: i === 0 ? first : unit, paid: true, part: count > 1 ? (i + 1) + '/' + count : undefined, series: count > 1 ? sid : undefined, sType: count > 1 ? 'parc' : undefined, n: i + 1 }));
+    } else if (f.fix || f.rep) {
+      var sid2 = 's' + (++uid); var n = f.fix ? 3 : Math.max(2, parseInt(f.times, 10) || 2);
+      for (var j = 0; j < n; j++) { var d = f.date; if (f.fix || f.period === 'Meses') d = addMonths(f.date, j); else if (f.period === 'Anos') d = addMonths(f.date, j * 12); else if (f.period === 'Semanas') d = addDays(f.date, j * 7); else d = addDays(f.date, j); entries.push(Object.assign({}, base, { id: ++uid, date: d, acct: f.acct, paid: j === 0 ? f.paid : false, series: sid2, sType: f.fix ? 'fix' : 'rep', part: f.rep ? (j + 1) + '/' + n : undefined, n: j + 1 })); }
+    } else { entries.push(Object.assign({}, base, { id: ++uid, acct: f.acct, paid: f.paid })); }
+    this.setState({ entries: entries, form: keepOpen ? Object.assign(this.blankForm(f.type), { more: f.more }) : null });
+    this.note(f.type === 'inc' ? 'Receita salva.' : 'Despesa salva.');
+  }
+  renderVals() {
+    var self = this, st = this.state, month = st.month;
+    var s = {}; s[st.screen] = true;
+    var d = { entry: !!st.form, settle: !!st.settle, confirm: !!st.confirm, anticipate: !!st.anticipate, reg: !!st.regForm, wizard: !!st.wizard };
+    var inMonth = st.entries.filter(function (e) { return self.entryMonth(e) === month; });
+    var income = inMonth.filter(function (e) { return e.kind === 'inc'; }).reduce(function (a, e) { return a + e.amt; }, 0);
+    var expense = inMonth.filter(function (e) { return e.kind === 'exp'; }).reduce(function (a, e) { return a + e.amt; }, 0);
+    var cur = Object.keys(ACCTS).reduce(function (a, id) { return a + self.acctCurrent(id); }, 0);
+    var fc = Object.keys(ACCTS).reduce(function (a, id) { return a + self.acctForecast(id, month); }, 0);
+    var invOpen = Object.keys(CARDS).reduce(function (a, c) { return self.invStatus(c, month) === 'Paga' ? a : a + self.invTotal(c, month) - self.invPaid(c, month); }, 0);
+    var t = { current: this.mask(signed(cur)), income: this.mask(money(income)), expense: this.mask(money(expense)), balance: this.mask(signed(income - expense)), forecast: this.mask(signed(fc - invOpen)), invoices: this.mask(money(invOpen)) };
+    var groups = st.openGroups;
+    var active = st.screen === 'invoice' ? 'cards' : st.screen;
+    var regActive = st.screen === 'registry' ? st.regKey : '';
+    function child(label, go, on) { return { label: label, cls: on ? 'on' : '', go: go }; }
+    var menu = [
+      { label: 'Dashboard', icon: 'i-home', cls: active === 'dashboard' ? 'on' : '', go: function () { self.go('dashboard'); } },
+      { label: 'Lançamentos', icon: 'i-list', cls: active === 'entries' ? 'on' : '', go: function () { self.go('entries'); } },
+      { label: 'Contas', icon: 'i-bank', cls: active === 'accounts' ? 'on' : '', go: function () { self.go('accounts'); } },
+      { label: 'Cartões', icon: 'i-card', cls: active === 'cards' ? 'on' : '', go: function () { self.go('cards'); } },
+      { label: 'Planejamento', icon: 'i-flag', cls: active === 'planning' ? 'on' : '', go: function () { self.go('planning'); } },
+      { label: 'Relatórios', icon: 'i-chart', cls: active === 'reports' ? 'on' : '', go: function () { self.go('reports'); } },
+      { label: 'Reembolsos', icon: 'i-undo', cls: active === 'reimb' ? 'on' : '', go: function () { self.go('reimb'); } },
+      { label: 'Cadastros', icon: 'i-folder', group: true, open: groups.cadastros, expanded: String(groups.cadastros), chev: groups.cadastros ? 'i-up' : 'i-down', cls: st.screen === 'registry' ? 'on' : '', go: function () { self.setState({ openGroups: { cadastros: !groups.cadastros, mais: groups.mais } }); }, children: [
+        child('Bancos', function () { self.go('registry', { regKey: 'bancos', regSearch: '' }); }, regActive === 'bancos'),
+        child('Categorias', function () { self.go('registry', { regKey: 'categorias', regSearch: '' }); }, regActive === 'categorias'),
+        child('Descrições', function () { self.go('registry', { regKey: 'descricoes', regSearch: '' }); }, regActive === 'descricoes'),
+        child('Pessoas', function () { self.go('registry', { regKey: 'pessoas', regSearch: '' }); }, regActive === 'pessoas') ] },
+      { label: 'Mais opções', icon: 'i-more', group: true, open: groups.mais, expanded: String(groups.mais), chev: groups.mais ? 'i-up' : 'i-down', cls: ['attachments', 'csv', 'backups'].indexOf(st.screen) >= 0 ? 'on' : '', go: function () { self.setState({ openGroups: { cadastros: groups.cadastros, mais: !groups.mais } }); }, children: [
+        child('Anexos', function () { self.go('attachments'); }, st.screen === 'attachments'),
+        child('Arquivos CSV', function () { self.go('csv'); }, st.screen === 'csv'),
+        child('Backups', function () { self.go('backups'); }, st.screen === 'backups') ] },
+      { label: 'Configurações', icon: 'i-gear', cls: active === 'settings' ? 'on' : '', go: function () { self.go('settings'); } }
+    ];
+    var q = st.search.trim().toLowerCase();
+    var rowsSrc = inMonth.filter(function (e) {
+      if (st.typeFilter === 'inc' && e.kind !== 'inc') return false;
+      if (st.typeFilter === 'exp' && e.kind !== 'exp') return false;
+      if (st.typeFilter === 'pending' && (e.paid || e.card)) return false;
+      if (q && e.desc.toLowerCase().indexOf(q) < 0) return false;
+      if (st.fAcct && e.acct !== st.fAcct) return false;
+      if (st.fCat && e.cat !== st.fCat) return false;
+      if (st.fSub && subOf(e) !== st.fSub) return false;
+      return true;
+    }).slice().sort(function (a, b) { var r = st.sort === 'date' ? a.date.localeCompare(b.date) : a.amt - b.amt; return r * st.sortDir; });
+    function descOf(e) { return e.part ? e.desc + ' (' + e.part + ')' : e.desc; }
+    var settleOpen = function (e) { self.setState({ settle: { id: e.id, amount: e.amt, date: TODAY, acct: e.acct } }); };
+    var confirmDelete = function (e) { self.setState({ confirm: { title: 'Excluir lançamento', text: 'Excluir "' + descOf(e) + '"? Se for de uma série, apenas esta ocorrência será excluída neste protótipo.', action: 'Excluir', cls: 'danger', ok: function () { self.setState({ entries: self.state.entries.filter(function (x) { return x.id !== e.id; }), confirm: null }); self.note('Lançamento excluído.'); } } }); };
+    var openEdit = function (e) { self.setState({ form: Object.assign(self.blankForm(e.card ? 'card' : e.kind), { editId: e.id, amount: e.amt, paid: e.paid, date: e.date, desc: e.desc, cat: e.cat, sub: subOf(e), acct: e.acct || 'bra', card: e.card || 'nub', inv: e.inv === undefined ? null : e.inv, series: e.series, sType: e.sType }) }); };
+    var rows = rowsSrc.map(function (e) {
+      var overdue = !e.paid && e.date < TODAY;
+      var stTip = e.card ? 'Compra no cartão. É paga junto com a fatura.' : e.paid ? (e.kind === 'inc' ? 'Recebido' : 'Pago') : (overdue ? 'Atrasado: venceu em ' + fmtDate(e.date) : 'Pendente: vence em ' + fmtDate(e.date));
+      var payLabel = e.kind === 'inc' ? 'Marcar como recebido' : 'Marcar como pago';
+      return { id: e.id, dateF: fmtDate(e.date), desc: descOf(e), cat: catLabel(e), acct: e.card ? CARDS[e.card].name : ACCTS[e.acct].name, valF: self.mask((e.kind === 'exp' ? '−' : '+') + money(e.amt)), valCls: e.kind === 'exp' ? 'c-ex' : 'c-in', stIcon: e.card ? 'i-card' : e.paid ? 'i-check' : 'i-clock', stCls: e.card ? 'c-ac' : e.paid ? 'c-in' : (overdue ? 'c-ex' : 'c-wa'), stTip: stTip, canPay: !e.card && !e.paid, payLabel: payLabel, pay: function () { settleOpen(e); }, edit: function () { openEdit(e); }, dup: function () { self.openForm(e.card ? 'card' : e.kind, { amount: e.amt, desc: e.desc, cat: e.cat, sub: subOf(e), acct: e.acct || 'bra', card: e.card || 'nub' }); }, del: function () { confirmDelete(e); } };
+    });
+    var active_filters = [];
+    if (st.fAcct) active_filters.push({ label: 'Conta: ' + ACCTS[st.fAcct].name, clear: function () { self.setState({ fAcct: '' }); } });
+    if (st.fCat) active_filters.push({ label: 'Categoria: ' + st.fCat, clear: function () { self.setState({ fCat: '' }); } });
+    if (st.fSub) active_filters.push({ label: 'Subcategoria: ' + st.fSub, clear: function () { self.setState({ fSub: '' }); } });
+    if (q) active_filters.push({ label: 'Busca: ' + st.search, clear: function () { self.setState({ search: '' }); } });
+    var pendingList = st.entries.filter(function (e) { return !e.card && !e.paid && self.entryMonth(e) === month; }).sort(function (a, b) { return a.date.localeCompare(b.date); }).slice(0, 5).map(function (e) { return { desc: descOf(e), dateF: fmtDate(e.date), valF: self.mask(money(e.amt)), payLabel: e.kind === 'inc' ? 'Receber' : 'Pagar', pay: function () { settleOpen(e); } }; });
+    var catTotals = {}; inMonth.filter(function (e) { return e.kind === 'exp'; }).forEach(function (e) { catTotals[e.cat] = (catTotals[e.cat] || 0) + e.amt; });
+    var catMax = Math.max.apply(null, [1].concat(Object.keys(catTotals).map(function (k) { return catTotals[k]; })));
+    var catBars = Object.keys(catTotals).sort(function (a, b) { return catTotals[b] - catTotals[a]; }).map(function (k) { return { name: k, valF: self.mask(money(catTotals[k])), pct: Math.round(catTotals[k] / catMax * 100) }; });
+    var accountCards = Object.keys(ACCTS).map(function (id) { var a = ACCTS[id], c = self.acctCurrent(id), f = self.acctForecast(id, month); return { name: a.name, initial: a.initial, color: a.color, currentF: self.mask(signed(c)), forecastF: self.mask(signed(f)), curCls: c < 0 ? 'c-ex' : 'c-in', fcCls: f < 0 ? 'c-ex' : 'c-in', add: function () { self.openForm('exp', { acct: id }); } }; });
+    var openPay = function (card, k) { var rem = self.invTotal(card, k) - self.invPaid(card, k); self.setState({ settle: { invoice: true, card: card, key: k, amount: rem, date: TODAY, acct: CARDS[card].acct } }); };
+    var cardCards = Object.keys(CARDS).map(function (id) { var c = CARDS[id]; var k = st.cardTab === 'open' ? self.currentOpen(id) : NOW; var status = self.invStatus(id, k); var total = self.invTotal(id, k); var used = st.entries.filter(function (e) { return e.card === id && self.invStatus(id, e.inv) !== 'Paga'; }).reduce(function (a, e) { return a + e.amt; }, 0); return { name: c.name, color: id === 'ita' ? 'var(--warning)' : 'var(--text)', status: 'Fatura ' + status.toLowerCase(), totalF: self.mask(money(total)), dueF: fmtDate(dueInfo(id, k)), limitPct: Math.min(100, Math.round(used / c.limit * 100)), availF: self.mask(money(c.limit - used)), limitF: self.mask(money(c.limit)), canPay: status === 'Fechada' && total > 0, open: function () { self.go('invoice', { invCard: id, month: k }); }, pay: function () { openPay(id, k); } }; });
+    var limitT = Object.keys(CARDS).reduce(function (a, id) { var used = st.entries.filter(function (e) { return e.card === id && self.invStatus(id, e.inv) !== 'Paga'; }).reduce(function (x, e) { return x + e.amt; }, 0); return a + CARDS[id].limit - used; }, 0);
+    var invT = Object.keys(CARDS).reduce(function (a, id) { var k = st.cardTab === 'open' ? self.currentOpen(id) : NOW; return a + self.invTotal(id, k); }, 0);
+    var ic = st.invCard, iStatus = this.invStatus(ic, month), iRows = st.entries.filter(function (e) { return e.card === ic && e.inv === month; });
+    var curOpen = this.currentOpen(ic);
+    var inv = { card: CARDS[ic].name, status: iStatus, open: iStatus === 'Aberta', locked: iStatus !== 'Aberta', lockTip: 'Compras de fatura ' + iStatus.toLowerCase() + ' não podem ser alteradas.' + (iStatus === 'Paga' ? ' Reabra a fatura para editar.' : ''), empty: iRows.length === 0, totalF: this.mask(money(this.invTotal(ic, month))), closeF: fmtDate(closeInfo(ic, month)), dueF: fmtDate(dueInfo(ic, month)), canPay: iStatus !== 'Paga' && this.invTotal(ic, month) - this.invPaid(ic, month) > 0, canClose: iStatus === 'Aberta', canAdjust: iStatus !== 'Paga', canReopen: iStatus === 'Paga' || iStatus === 'Fechada',
+      close: function () { var o = Object.assign({}, st.invoiceOverride); o[ic + month] = 'Fechada'; self.setState({ invoiceOverride: o }); self.note('Fatura fechada.'); },
+      adjust: function () { self.note('O ajuste abre em janela: informe o total correto e a diferença é lançada.'); },
+      pay: function () { openPay(ic, month); },
+      reopen: function () { var pays = st.payments.filter(function (p) { return p.card === ic && p.key === month; }); var txt = pays.length ? 'Os pagamentos desta fatura serão desfeitos e ' + money(pays.reduce(function (a, p) { return a + p.amt; }, 0)) + ' voltarão para a conta debitada. A fatura ficará Aberta até você fechá-la.' : 'A fatura ficará Aberta até você fechá-la de novo.'; self.setState({ confirm: { title: 'Reabrir fatura', text: txt, action: 'Reabrir fatura', cls: 'pri', ok: function () { var o = Object.assign({}, self.state.invoiceOverride); o[ic + month] = 'Aberta'; self.setState({ invoiceOverride: o, payments: self.state.payments.filter(function (p) { return !(p.card === ic && p.key === month); }), confirm: null }); self.note(pays.length ? 'Fatura reaberta e pagamento desfeito.' : 'Fatura reaberta.'); } } }); },
+      rows: iRows.map(function (e) { var later = st.entries.filter(function (x) { return x.series && x.series === e.series && x.inv > curOpen; }); return { dateF: fmtDate(e.date), desc: descOf(e), cat: catLabel(e), valF: self.mask(money(e.amt)), canAnticipate: later.length > 0, anticipate: function () { self.setState({ anticipate: { series: e.series, count: 1, card: ic } }); }, edit: function () { openEdit(e); }, del: function () { confirmDelete(e); } }; }) };
+    var p = st.plans[month];
+    var plan = { has: !!p, empty: !p, create: function () { self.setState({ wizard: { step: 1, income: 0, saving: 20, view: 'inv', cats: {} } }); }, edit: function () { self.setState({ wizard: { step: 1, income: p.income, saving: p.saving, view: p.view, cats: Object.assign({}, p.cats) } }); }, copy: function () { var prev = st.plans[month - 1]; if (!prev) { self.note('O mês anterior não tem planejamento para copiar.'); return; } var ps = Object.assign({}, st.plans); ps[month] = JSON.parse(JSON.stringify(prev)); self.setState({ plans: ps }); self.note('Planejamento copiado do mês anterior.'); } };
+    if (p) {
+      var budget = Math.round(p.income * (100 - p.saving) / 100);
+      var byCat = {}; st.entries.forEach(function (e) { if (e.kind !== 'exp') return; var mk = e.card && p.view === 'buy' ? monthOfDate(e.date) : self.entryMonth(e); if (mk !== month) return; var o = byCat[e.cat] = byCat[e.cat] || { paid: 0, fc: 0 }; if (e.paid) o.paid += e.amt; else o.fc += e.amt; });
+      var catNames = Object.keys(p.cats);
+      var planRows = catNames.map(function (n) { var o = byCat[n] || { paid: 0, fc: 0 }, tgt = p.cats[n], tot = o.paid + o.fc, over = tot > tgt; return { name: n, targetF: self.mask(money(tgt)), paidF: self.mask(money(o.paid)), fcF: self.mask(money(o.fc)), totalF: self.mask(money(tot)), stateText: over ? 'Excederam ' + self.mask(money(tot - tgt)) : 'Restam ' + self.mask(money(tgt - tot)), stateCls: over ? 'c-ex' : 'c-mu', pct: tgt ? Math.min(100, Math.round(tot / tgt * 100)) : 0, barColor: over ? 'var(--expense)' : 'var(--accent)', editable: true }; });
+      var catSum = catNames.reduce(function (a, n) { return a + p.cats[n]; }, 0);
+      var restPaid = 0, restFc = 0; Object.keys(byCat).forEach(function (n) { if (catNames.indexOf(n) < 0) { restPaid += byCat[n].paid; restFc += byCat[n].fc; } });
+      var restTgt = Math.max(0, budget - catSum), restTot = restPaid + restFc;
+      planRows.push({ name: 'Categorias restantes', targetF: self.mask(money(restTgt)), paidF: self.mask(money(restPaid)), fcF: self.mask(money(restFc)), totalF: self.mask(money(restTot)), stateText: restTot > restTgt ? 'Excederam ' + self.mask(money(restTot - restTgt)) : 'Restam ' + self.mask(money(restTgt - restTot)), stateCls: restTot > restTgt ? 'c-ex' : 'c-mu', pct: restTgt ? Math.min(100, Math.round(restTot / restTgt * 100)) : 0, barColor: restTot > restTgt ? 'var(--expense)' : 'var(--accent)', editable: false });
+      var tp = 0, tf = 0; Object.keys(byCat).forEach(function (n) { tp += byCat[n].paid; tf += byCat[n].fc; });
+      var rem = budget - tp - tf;
+      Object.assign(plan, { rows: planRows, remLabel: rem < 0 ? 'Excederam' : 'Restam', remF: self.mask(money(rem)), spentF: self.mask(money(tp + tf)), budgetF: self.mask(money(budget)), paidPct: budget ? Math.min(100, Math.round(tp / budget * 100)) : 0, fcPct: budget ? Math.min(100, Math.round(tf / budget * 100)) : 0, incomeF: self.mask(money(income)), balanceF: self.mask(signed(income - budget)), savingF: (income ? ((income - budget) / income * 100) : 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%' });
+    }
+    var repMonths = []; for (var mi = -6; mi <= 12; mi++) repMonths.push(NOW + mi);
+    var repBase = [{ n: 'Receitas', v: 8500, w: 600 }, { n: 'Despesas', v: 3900, w: 600 }, { n: '  Casa', v: 2295, w: 500 }, { n: '      Aluguel', v: 2200, w: 400 }, { n: '      Contas', v: 95, w: 400 }, { n: '  Alimentação', v: 780, w: 400 }, { n: '  Impostos', v: 210, w: 400 }, { n: '  Compras', v: 615, w: 400 }, { n: 'Saldo do mês', v: 4600, w: 600 }];
+    var rep = { months: repMonths.map(function (k) { return { label: shortMonth(k), cls: k === NOW ? 'c-ac' : '' }; }), rows: repBase.map(function (r) { return { name: r.n, weight: r.w, vals: repMonths.map(function (k, i) { var v = Math.round(r.v * (1 + ((i * 7) % 5 - 2) * 0.02)); return self.mask(v.toLocaleString('pt-BR')); }) }; }) };
+    var reimb = st.reimb.map(function (r) { return { desc: r.desc, person: r.person, pct: r.pct, val: self.mask(r.val), status: r.status, sel: r.sel, done: r.status === 'Recebido', toggle: function () { self.setState({ reimb: st.reimb.map(function (x) { return x.id === r.id ? Object.assign({}, x, { sel: !x.sel }) : x; }) }); } }; });
+    var reimbSel = st.reimb.filter(function (r) { return r.sel; }).length;
+    var rd = st.regData[st.regKey]; var isCat = !!rd.isCat; var srcRows = isCat ? (st.catsData || CATS)[st.catKind] : rd.rows; var rq = st.regSearch.trim().toLowerCase();
+    var regRows = srcRows.filter(function (r) { return !rq || r.c1.toLowerCase().indexOf(rq) >= 0; }).map(function (r) { var isOpen = !!st.catOpen[r.c1]; return { c1: r.c1, c2: r.c2, c3: r.c3, subs: r.subs || [], open: isOpen, chev: isOpen ? 'i-up' : 'i-down', expand: function () { var o = Object.assign({}, st.catOpen); o[r.c1] = !isOpen; self.setState({ catOpen: o }); }, del: function () { self.setState({ confirm: { title: 'Excluir ' + r.c1, text: 'Se este registro estiver em uso, ele será apenas desativado e continuará no histórico.', action: 'Confirmar', cls: 'danger', ok: function () { self.setState({ confirm: null }); self.note('Neste protótipo o registro é mantido.'); } } }); } }; });
+    var reg = { title: rd.title, help: rd.help, newLabel: rd.newLabel, h1: rd.h1, h2: rd.h2, h3: rd.h3, isCat: isCat, rows: regRows, count: regRows.length + (regRows.length === 1 ? ' registro' : ' registros'), add: function () { self.setState({ regForm: { title: rd.newLabel, name: '', kind: 'reg' } }); } };
+    var f = {};
+    if (st.form) {
+      var fo = st.form, isCardF = fo.type === 'card', isTr = fo.type === 'transfer', isEdit = !!fo.editId;
+      var ch = isCardF ? this.invoiceChoice(fo) : null;
+      var titles = { exp: 'Nova despesa', inc: 'Nova receita', card: 'Nova despesa no cartão', transfer: 'Nova transferência' };
+      var editTitles = { exp: 'Editar despesa', inc: 'Editar receita', card: 'Editar despesa no cartão' };
+      var invOptions = [];
+      if (isCardF) { for (var ii = ch.calc - 1; ii <= ch.calc + 2; ii++) { (function (k) { var stt = self.invStatus(fo.card, k); invOptions.push({ label: fmtDate(dueInfo(fo.card, k)).slice(3) + ' · ' + stt, cls: k === ch.chosen ? 'on' : '', disabled: stt !== 'Aberta', pick: function () { self.patchForm({ inv: k }); } }); })(ii); } }
+      var repN = parseInt(fo.times, 10) || 0;
+      var scopeList = fo.sType === 'fix' ? [['this', 'Editar somente esta'], ['pending', 'Editar todas as pendentes'], ['all', fo.type === 'inc' ? 'Editar todas (incluindo recebidas)' : 'Editar todas (incluindo pagas)']] : [['this', 'Editar somente esta'], ['future', 'Editar esta e as futuras'], ['all', 'Editar todas']];
+      var noAmount = !fo.amount;
+      f = { title: isEdit ? editTitles[fo.type] : titles[fo.type], wideCls: fo.more ? 'wide' : '', twoCls: fo.more ? 'two' : 'stack', amountF: money(fo.amount), amtCls: fo.type === 'inc' ? 'c-in' : fo.type === 'exp' ? 'c-ex' : 'c-ac', noAmount: noAmount && fo.touched,
+        hasPaid: !isCardF && !isTr, paid: fo.paid, paidCls: fo.paid ? 'on' : '', paidLabel: fo.type === 'inc' ? (fo.paid ? 'Recebido' : 'Não foi recebido') : (fo.paid ? 'Pago' : 'Não foi pago'), togglePaid: function () { self.patchForm({ paid: !fo.paid }); },
+        d1: fo.date === TODAY ? 'on' : '', d2: fo.date === addDays(TODAY, -1) ? 'on' : '', date: fo.date, today: function () { self.patchForm({ date: TODAY, inv: null }); }, yesterday: function () { self.patchForm({ date: addDays(TODAY, -1), inv: null }); }, setDate: function (e) { if (e.target.value) self.patchForm({ date: e.target.value, inv: null }); },
+        desc: fo.desc, setDesc: function (e) { self.patchForm({ desc: e.target.value }); }, setAmount: function (e) { self.patchForm({ amount: parseCents(e.target.value), touched: true }); },
+        isTransfer: isTr, isExpCat: fo.type === 'exp' || isCardF, isIncCat: fo.type === 'inc', isAccount: fo.type === 'exp' || fo.type === 'inc', isCard: isCardF, isNotCard: !isCardF,
+        cat: fo.cat + ' › ' + fo.sub, setCat: function (e) { var parts = e.target.value.split(' › '); self.patchForm({ cat: parts[0], sub: parts[1] }); }, acct: fo.acct, setAcct: function (e) { self.patchForm({ acct: e.target.value }); }, acct2: fo.acct2, setAcct2: function (e) { self.patchForm({ acct2: e.target.value }); }, card: fo.card, setCard: function (e) { self.patchForm({ card: e.target.value, inv: null }); },
+        invoices: invOptions, invWarn: isCardF && ch.suggested !== ch.calc && ch.chosen === ch.suggested ? 'A fatura de ' + fmtDate(dueInfo(fo.card, ch.calc)).slice(3) + ' já está ' + self.invStatus(fo.card, ch.calc).toLowerCase() + '. A compra vai para a próxima fatura aberta.' : '',
+        isEdit: isEdit, isNew: !isEdit, hasScope: !!fo.series, scopeTitle: fo.sType === 'fix' ? 'Atenção: é um lançamento fixo. O que deseja editar?' : 'Atenção: faz parte de uma série. O que deseja editar?', scopes: scopeList.map(function (x) { return { label: x[1], cls: fo.scope === x[0] ? 'on' : '', pick: function () { self.patchForm({ scope: x[0] }); } }; }),
+        canMore: !isTr, more: fo.more, moreLabel: fo.more ? 'Menos detalhes' : 'Mais detalhes', moreIcon: fo.more ? 'i-left' : 'i-right', toggleMore: function () { self.patchForm({ more: !fo.more }); }, obs: fo.obs, setObs: function (e) { self.patchForm({ obs: e.target.value }); },
+        showRecurring: !isEdit, showReimb: fo.type === 'exp' || isCardF,
+        fix: fo.fix, fixCls: fo.fix ? 'on' : '', fixLabel: fo.type === 'inc' ? 'Receita fixa' : 'Despesa fixa', toggleFix: function () { self.patchForm({ fix: !fo.fix }); },
+        rep: fo.rep, repCls: fo.rep ? 'on' : '', repLabel: isCardF ? 'Parcelado' : 'Repetir', repTip: isCardF ? 'Divide o valor total em parcelas, uma em cada fatura. A diferença de centavos vai para a primeira.' : 'Cria um número definido de lançamentos com o valor cheio. Ex.: IPTU em 8 boletos.', toggleRep: function () { self.patchForm({ rep: !fo.rep }); },
+        timesLabel: isCardF ? 'Número de parcelas' : 'Número de vezes', times: fo.times, setTimes: function (e) { self.patchForm({ times: e.target.value.replace(/\D/g, '') }); }, period: fo.period, setPeriod: function (e) { self.patchForm({ period: e.target.value }); },
+        repHint: fo.rep && repN >= 2 && fo.amount ? (isCardF ? repN + ' parcelas de ' + money(Math.floor(fo.amount / repN)) + ' em faturas consecutivas.' : repN + ' lançamentos de ' + money(fo.amount) + ' cada. Só o primeiro segue a chave Pago; os demais nascem pendentes.') : '',
+        invalid: noAmount || (!isTr && !fo.desc.trim()) || (isTr && fo.acct === fo.acct2), saveNew: function () { self.saveForm(true); }, save: function () { self.saveForm(false); } };
+    }
+    var b = {};
+    if (st.settle) {
+      var se = st.settle, ent = se.invoice ? null : st.entries.find(function (x) { return x.id === se.id; });
+      var isInc = ent && ent.kind === 'inc';
+      b = { title: se.invoice ? 'Pagar fatura ' + CARDS[se.card].name : isInc ? 'Marcar como recebido' : 'Marcar como pago', text: se.invoice ? 'O valor sai da conta escolhida. As compras já foram lançadas, então isso não cria outra despesa.' : (ent ? descOf(ent) : '') + (isInc ? ': o valor entra na conta.' : ': o valor sai da conta.'), action: se.invoice ? 'Pagar fatura' : isInc ? 'Receber' : 'Pagar', amountF: money(se.amount), date: se.date, acct: se.acct,
+        setAmount: function (e) { self.setState({ settle: Object.assign({}, se, { amount: parseCents(e.target.value) }) }); }, setDate: function (e) { self.setState({ settle: Object.assign({}, se, { date: e.target.value }) }); }, setAcct: function (e) { self.setState({ settle: Object.assign({}, se, { acct: e.target.value }) }); },
+        confirm: function () {
+          if (se.invoice) { var rem = self.invTotal(se.card, se.key) - self.invPaid(se.card, se.key) - se.amount; var o = Object.assign({}, st.invoiceOverride); if (rem <= 0) o[se.card + se.key] = 'Paga'; self.setState({ payments: st.payments.concat([{ card: se.card, key: se.key, acct: se.acct, amt: se.amount }]), invoiceOverride: o, settle: null }); self.note(rem <= 0 ? 'Fatura paga.' : 'Pagamento parcial registrado.'); return; }
+          self.setState({ entries: st.entries.map(function (x) { return x.id === se.id ? Object.assign({}, x, { paid: true, amt: se.amount, acct: se.acct, date: x.date }) : x; }), settle: null }); self.note(isInc ? 'Marcado como recebido.' : 'Marcado como pago.');
+        } };
+    }
+    var an = {};
+    if (st.anticipate) {
+      var ax = st.anticipate; var openNow = this.currentOpen(ax.card);
+      var movable = st.entries.filter(function (x) { return x.series === ax.series && x.inv > openNow; }).sort(function (a, c) { return c.inv - a.inv; });
+      an = { options: movable.map(function (m, ix) { return { label: (ix + 1) + (ix ? ' parcelas' : ' parcela'), cls: ax.count === ix + 1 ? 'on' : '', pick: function () { self.setState({ anticipate: Object.assign({}, ax, { count: ix + 1 }) }); } }; }), summary: 'As últimas ' + ax.count + ' parcela(s) irão para a fatura de ' + monthName(openNow) + '.', confirm: function () { var ids = movable.slice(0, ax.count).map(function (x) { return x.id; }); self.setState({ entries: st.entries.map(function (x) { return ids.indexOf(x.id) >= 0 ? Object.assign({}, x, { inv: openNow }) : x; }), anticipate: null }); self.note('Parcelas antecipadas.'); } };
+    }
+    var rf = {};
+    if (st.regForm) { var rg = st.regForm; rf = { title: rg.title, name: rg.name, isAccount: rg.kind === 'account', isCard: rg.kind === 'card', invalid: !rg.name.trim(), setName: function (e) { self.setState({ regForm: Object.assign({}, rg, { name: e.target.value }) }); }, save: function () { if (rg.kind === 'reg' && !isCat) { var data = Object.assign({}, st.regData); data[st.regKey] = Object.assign({}, rd, { rows: rd.rows.concat([{ c1: rg.name, c2: '—', c3: 'Ativa' }]) }); self.setState({ regData: data, regForm: null }); } else { self.setState({ regForm: null }); } self.note('Salvo.'); } }; }
+    var w = {};
+    if (st.wizard) {
+      var wz = st.wizard, wb = Math.round(wz.income * (100 - wz.saving) / 100), wc = EXP_CATS.reduce(function (a, n) { return a + (wz.cats[n] || 0); }, 0);
+      var setWz = function (p2) { self.setState({ wizard: Object.assign({}, wz, p2) }); };
+      w = { s1: wz.step === 1, s2: wz.step === 2, s3: wz.step === 3, c1: wz.step === 1 ? 'c-ac' : '', c2: wz.step === 2 ? 'c-ac' : '', c3: wz.step === 3 ? 'c-ac' : '', incomeF: money(wz.income), setIncome: function (e) { setWz({ income: parseCents(e.target.value) }); }, saving: wz.saving, setSaving: function (e) { var v = parseInt(e.target.value.replace(/\D/g, ''), 10) || 0; setWz({ saving: Math.min(100, v) }); }, budgetF: money(wb), saveF: money(wz.income - wb), catF: money(wc), restF: money(Math.max(0, wb - wc)), cats: EXP_CATS.map(function (n) { return { name: n, valF: money(wz.cats[n] || 0), set: function (e) { var cs = Object.assign({}, wz.cats); cs[n] = parseCents(e.target.value); setWz({ cats: cs }); } }; }), viewInv: wz.view === 'inv' ? 'on' : '', viewBuy: wz.view === 'buy' ? 'on' : '', pickInv: function () { setWz({ view: 'inv' }); }, pickBuy: function () { setWz({ view: 'buy' }); }, hasBack: wz.step > 1, back: function () { setWz({ step: wz.step - 1 }); }, invalid: wz.step === 1 && !wz.income, nextLabel: wz.step === 3 ? 'Concluir planejamento' : 'Continuar', next: function () { if (wz.step < 3) { setWz({ step: wz.step + 1 }); return; } var cs = {}; Object.keys(wz.cats).forEach(function (n) { if (wz.cats[n]) cs[n] = wz.cats[n]; }); var ps = Object.assign({}, st.plans); ps[month] = { income: wz.income, saving: wz.saving, view: wz.view, cats: cs }; self.setState({ plans: ps, wizard: null }); self.note('Planejamento salvo.'); } };
+    }
+    var cf = st.confirm ? st.confirm : {};
+    var chipFilters = [['all', 'Todas'], ['inc', 'Receitas'], ['exp', 'Despesas'], ['pending', 'Pendentes']];
+    return { themeClass: st.theme, yes: true, s: s, d: d, t: t, menu: menu, sideClass: (st.mini ? 'mini ' : '') + (st.drawer ? 'open' : ''), drawerClass: st.drawer ? 'open' : '', miniIcon: st.mini ? 'i-right' : 'i-left', novoOpen: st.novo, hideLabel: st.hide ? 'Mostrar valores' : 'Ocultar valores',
+      toggleNovo: function () { self.setState({ novo: !st.novo }); }, toggleMini: function () { self.setState({ mini: !st.mini, novo: false }); }, toggleHide: function () { self.setState({ hide: !st.hide }); }, openDrawer: function () { self.setState({ drawer: true }); }, closeDrawer: function () { self.setState({ drawer: false }); },
+      newExpense: function () { self.openForm('exp'); }, newIncome: function () { self.openForm('inc'); }, newCard: function () { self.openForm('card'); }, newTransfer: function () { self.openForm('transfer'); }, newAccount: function () { self.setState({ regForm: { title: 'Nova conta', name: '', kind: 'account' } }); }, newCardReg: function () { self.setState({ regForm: { title: 'Novo cartão', name: '', kind: 'card' } }); },
+      monthLabel: monthName(month), prevMonth: function () { self.setState({ month: month - 1 }); }, nextMonth: function () { self.setState({ month: month + 1 }); },
+      typeFilters: chipFilters.map(function (x) { return { label: x[1], cls: st.typeFilter === x[0] ? 'on' : '', go: function () { self.setState({ typeFilter: x[0] }); } }; }),
+      searchOpen: st.searchOpen, search: st.search, toggleSearch: function () { self.setState({ searchOpen: !st.searchOpen }); }, setSearch: function (e) { self.setState({ search: e.target.value }); }, filtersOpen: st.filtersOpen, toggleFilters: function () { self.setState({ filtersOpen: !st.filtersOpen }); }, fAcct: st.fAcct, fCat: st.fCat, fSub: st.fSub || '', setFSub: function (e) { self.setState({ fSub: e.target.value }); }, setFAcct: function (e) { self.setState({ fAcct: e.target.value }); }, setFCat: function (e) { self.setState({ fCat: e.target.value }); }, activeFilters: active_filters, hasActiveFilters: active_filters.length > 0,
+      sortDate: function () { self.setState({ sort: 'date', sortDir: st.sort === 'date' ? -st.sortDir : 1 }); }, sortValue: function () { self.setState({ sort: 'value', sortDir: st.sort === 'value' ? -st.sortDir : 1 }); }, sortDateIcon: st.sort === 'date' && st.sortDir < 0 ? 'i-up' : 'i-down', sortValueIcon: st.sort === 'value' && st.sortDir < 0 ? 'i-up' : 'i-down',
+      rows: rows, noRows: rows.length === 0, rowsCount: rows.length + (rows.length === 1 ? ' lançamento' : ' lançamentos'), pendingList: pendingList, noPending: pendingList.length === 0, catBars: catBars, noCatBars: catBars.length === 0,
+      accountCards: accountCards, cardCards: cardCards, tabOpenCls: st.cardTab === 'open' ? 'on' : '', tabClosedCls: st.cardTab === 'closed' ? 'on' : '', tabOpen: function () { self.setState({ cardTab: 'open' }); }, tabClosed: function () { self.setState({ cardTab: 'closed' }); }, nextDue: fmtDate(dueInfo('ita', this.currentOpen('ita'))), limitTotal: this.mask(money(limitT)), invoiceTotal: this.mask(money(invT)), goCards: function () { self.go('cards', { month: NOW }); }, inv: inv, plan: plan, rep: rep,
+      reimb: reimb, noReimbSel: reimbSel === 0, reimbSelCount: reimbSel, receiveReimb: function () { self.setState({ reimb: st.reimb.map(function (x) { return x.sel ? Object.assign({}, x, { sel: false, status: 'Recebido' }) : x; }) }); self.note('Recebimento registrado. A receita foi criada na conta.'); },
+      reg: reg, regSearch: st.regSearch, setRegSearch: function (e) { self.setState({ regSearch: e.target.value }); }, catExpCls: st.catKind === 'exp' ? 'on' : '', catIncCls: st.catKind === 'inc' ? 'on' : '', catKindExp: function () { self.setState({ catKind: 'exp' }); }, catKindInc: function () { self.setState({ catKind: 'inc' }); },
+      cfg1: st.cfg === 'pref' ? 'on' : '', cfg2: st.cfg === 'dash' ? 'on' : '', cfg3: st.cfg === 'sec' ? 'on' : '', cfgIsPref: st.cfg === 'pref', cfgIsDash: st.cfg === 'dash', cfgIsSec: st.cfg === 'sec', cfgPref: function () { self.setState({ cfg: 'pref' }); }, cfgDash: function () { self.setState({ cfg: 'dash' }); }, cfgSec: function () { self.setState({ cfg: 'sec' }); }, theme: st.theme, setTheme: function (e) { self.setState({ theme: e.target.value }); },
+      toast: st.toast, toast_saved: function () { self.note('Alterações salvas.'); }, toast_backup: function () { self.note('Backup criado.'); }, toast_trash: function () { self.note('A lixeira mostra quando cada arquivo será removido.'); }, toast_archived: function () { self.note('Mostraria as contas arquivadas, com a opção de restaurar.'); }, toast_invoiceextras: function () { self.note('Abriria cashback, compromissos e anexos desta fatura.'); }, toast_otherreports: function () { self.note('Abriria os relatórios por categoria que já existem.'); },
+      confirmRestore: function () { self.setState({ confirm: { title: 'Restaurar backup', text: 'A aplicação entra em manutenção e todos os dados atuais são substituídos pelos do backup. Faça um backup novo antes, se precisar.', action: 'Restaurar', cls: 'danger', ok: function () { self.setState({ confirm: null }); self.note('Neste protótipo nada é restaurado.'); } } }); },
+      f: f, closeEntry: function () { var fo2 = st.form; if (fo2 && (fo2.amount || fo2.desc) && !fo2.editId) { self.setState({ confirm: { title: 'Descartar lançamento?', text: 'Os dados preenchidos serão perdidos.', action: 'Descartar', cls: 'danger', ok: function () { self.setState({ form: null, confirm: null }); } } }); } else { self.setState({ form: null }); } }, b: b, an: an, rf: rf, w: w, cf: cf, closeDlg: function () { self.setState(st.confirm ? { confirm: null } : { settle: null, anticipate: null, regForm: null, wizard: null }); } };
+  }
+}
+</script>
+</body>
+</html>
