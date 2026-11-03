@@ -36,7 +36,7 @@ public sealed class AccountsAndCardsTests : IAsyncLifetime, IDisposable
     }
 
     [Fact]
-    public async Task FormsCreateBankAccountAndCardAndOfferDeactivation()
+    public async Task FormsCreateBankAccountAndCardAndOfferArchiveAndRestore()
     {
         var page = _context.Render<AccountsAndCards>();
         await page.InvokeAsync(() => page.Find("#bank-name").Change("Banco Exemplo"));
@@ -61,12 +61,20 @@ public sealed class AccountsAndCardsTests : IAsyncLifetime, IDisposable
         await page.InvokeAsync(() => page.Find("#card-color").Change("violet"));
         await page.FindAll("form")[2].SubmitAsync(EventArgs.Empty);
         page.WaitForAssertion(() => Assert.Contains("Mastercard", page.FindAll(".catalog-list")[1].TextContent, StringComparison.Ordinal));
+        var cardId = Assert.Single(await catalog.GetCreditCardsAsync()).ExternalId;
         await page.InvokeAsync(() => page.FindAll(".catalog-list")[1].QuerySelectorAll("button")[2].ClickAsync(new()));
-        page.WaitForAssertion(() => Assert.Contains("Desativar em vez de excluir", page.Find("[role=alertdialog]").TextContent, StringComparison.Ordinal));
+        page.WaitForAssertion(() => Assert.Contains("Arquivar cadastro", page.Find("[role=alertdialog]").TextContent, StringComparison.Ordinal));
         await page.InvokeAsync(() => page.Find("[role=alertdialog] button").ClickAsync(new()));
-        page.WaitForAssertion(() => Assert.Contains("Desativado", page.FindAll(".catalog-list")[1].TextContent, StringComparison.Ordinal));
+        page.Find("#show-archived").Change(true);
+        page.WaitForAssertion(() => Assert.Contains("Arquivado individualmente", page.FindAll(".catalog-list")[1].TextContent, StringComparison.Ordinal));
         Assert.Empty(await catalog.GetCreditCardsAsync());
         Assert.Single(await catalog.GetCreditCardsAsync(false));
+        await page.FindAll(".catalog-list")[1].QuerySelectorAll("button").Single(x => x.TextContent == "Desarquivar").ClickAsync(new());
+        await page.FindAll("[role=alertdialog] button")[1].ClickAsync(new());
+        Assert.Empty(await catalog.GetCreditCardsAsync());
+        await page.FindAll(".catalog-list")[1].QuerySelectorAll("button").Single(x => x.TextContent == "Desarquivar").ClickAsync(new());
+        await page.Find("[role=alertdialog] button").ClickAsync(new());
+        Assert.Equal(cardId, Assert.Single(await catalog.GetCreditCardsAsync()).ExternalId);
     }
 
     [Fact]

@@ -7,8 +7,8 @@ O calendário de compras (#8), a abertura de contas (#47), lançamentos avulsos 
 e o ciclo de faturas (#18/#50) estão implementados. Séries mensais e ocorrências (#16)
 também estão entregues, com edição por alcance (#17), baixa manual (#56),
 transferências (#46), ajustes de saldo (#48) e consulta de pendências (#57).
-Arquivamento reversível e outras visões financeiras
-ainda têm entregas abertas.
+O arquivamento reversível também está implementado (#53). Outras visões
+financeiras continuam nas respectivas issues.
 Esta nota registra as fronteiras entre conceitos; os critérios de aceite permanecem nas issues.
 
 ## Datas, orçamento e caixa
@@ -71,7 +71,8 @@ e o bloqueio de faturas. A baixa manual é uma ação distinta e atua só na oco
 
 Arquivar contas/cartões (#53) oculta cadastros e novas seleções; desarquivar restaura a mesma
 identidade. Não apaga nem esconde histórico, relatórios ou faturas pendentes.
-A desativação existente é a base dessa evolução, mas o fluxo reversível ainda não foi entregue.
+O fluxo reversível usa o mesmo IsActive da desativação existente e distingue a
+flag individual do cartão da disponibilidade derivada da conta.
 Não estender a decisão automaticamente a bancos, categorias ou finais de cartão.
 
 ## Troca de dados e consequências

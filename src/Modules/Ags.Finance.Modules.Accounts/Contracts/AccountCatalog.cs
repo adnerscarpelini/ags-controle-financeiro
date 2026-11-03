@@ -16,7 +16,10 @@ public enum CardBrand
 }
 public sealed record BankDetails(Guid ExternalId, string Name);
 public sealed record AccountDetails(Guid ExternalId, Guid BankExternalId, string Name, AccountKind Kind, string Color, bool IsActive, Money OpeningBalance = default, DateOnly? OpeningDate = null);
-public sealed record CreditCardDetails(Guid ExternalId, Guid AccountExternalId, string Name, CardBrand Brand, Money CreditLimit, int ClosingDay, int DueDay, bool IncludesClosingDay, string Color, bool IsActive);
+public sealed record CreditCardDetails(Guid ExternalId, Guid AccountExternalId, string Name, CardBrand Brand, Money CreditLimit, int ClosingDay, int DueDay, bool IncludesClosingDay, string Color, bool IsActive, bool IsAccountActive = true)
+{
+    public bool IsAvailable => IsActive && IsAccountActive;
+}
 public sealed record SaveAccountRequest(Guid? ExternalId, Guid BankExternalId, string Name, AccountKind Kind, string Color, Money? OpeningBalance = null, DateOnly? OpeningDate = null);
 public sealed record SaveCreditCardRequest(Guid? ExternalId, Guid AccountExternalId, string Name, CardBrand Brand, Money CreditLimit, int ClosingDay, int DueDay, bool IncludesClosingDay, string Color);
 public sealed record CatalogResult(Guid? ExternalId, string? Error)
@@ -33,4 +36,6 @@ public interface IAccountCatalog
     Task<CatalogResult> SaveCreditCardAsync(SaveCreditCardRequest request, CancellationToken cancellationToken = default);
     Task<CatalogResult> DeactivateAccountAsync(Guid externalId, CancellationToken cancellationToken = default);
     Task<CatalogResult> DeactivateCreditCardAsync(Guid externalId, CancellationToken cancellationToken = default);
+    Task<CatalogResult> ReactivateAccountAsync(Guid externalId, CancellationToken cancellationToken = default);
+    Task<CatalogResult> ReactivateCreditCardAsync(Guid externalId, CancellationToken cancellationToken = default);
 }

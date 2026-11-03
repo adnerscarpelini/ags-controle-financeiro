@@ -5,7 +5,7 @@ using CardBrand = Ags.Finance.Modules.Accounts.Domain.CardBrand;
 
 namespace Ags.Finance.Modules.Accounts.Application.ManageCatalog;
 
-internal sealed class AccountCatalog(IAccountsStore store, TimeProvider clock, IFinancialOperation operations) : IAccountCatalog
+internal sealed partial class AccountCatalog(IAccountsStore store, TimeProvider clock, IFinancialOperation operations) : IAccountCatalog
 {
     public async Task<IReadOnlyList<BankDetails>> GetBanksAsync(CancellationToken cancellationToken = default)
         => (await store.GetBanksAsync(cancellationToken)).Select(x => new BankDetails(x.ExternalId, x.Name)).ToList();
@@ -19,7 +19,7 @@ internal sealed class AccountCatalog(IAccountsStore store, TimeProvider clock, I
         var accounts = await store.GetAccountsAsync(cancellationToken);
         return (await store.GetCreditCardsAsync(cancellationToken))
             .Where(x => !activeOnly || (x.IsActive && accounts.Any(a => a.ExternalId == x.AccountExternalId && a.IsActive)))
-            .Select(x => new CreditCardDetails(x.ExternalId, x.AccountExternalId, x.Name, (Contracts.CardBrand)x.Brand, x.CreditLimit, x.ClosingDay, x.DueDay, x.IncludesClosingDay, x.Color, x.IsActive)).ToList();
+            .Select(x => new CreditCardDetails(x.ExternalId, x.AccountExternalId, x.Name, (Contracts.CardBrand)x.Brand, x.CreditLimit, x.ClosingDay, x.DueDay, x.IncludesClosingDay, x.Color, x.IsActive, accounts.Any(a => a.ExternalId == x.AccountExternalId && a.IsActive))).ToList();
     }
 
     public async Task<CatalogResult> CreateBankAsync(string name, CancellationToken cancellationToken = default)
