@@ -1,4 +1,5 @@
 using Ags.Finance.Modules.Identity.Contracts;
+using Ags.Finance.Modules.Preferences.Contracts;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -44,6 +45,7 @@ internal static class AccountEndpoints
         [FromForm] SignInForm form,
         HttpContext context,
         ISignIn signIn,
+        IPreferences preferences,
         TimeProvider timeProvider)
     {
         var returnUrl = ReturnUrl.Sanitize(form.ReturnUrl);
@@ -54,7 +56,7 @@ internal static class AccountEndpoints
             await context.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 SessionClaims.ToPrincipal(user, CookieAuthenticationDefaults.AuthenticationScheme),
-                SessionPolicy.CreateProperties(form.RememberMe, timeProvider.GetUtcNow()));
+                SessionPolicy.CreateProperties(form.RememberMe, timeProvider.GetUtcNow(), (await preferences.GetAsync(context.RequestAborted)).SessionLifetime));
             return Results.LocalRedirect(returnUrl);
         }
 

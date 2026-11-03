@@ -1,0 +1,135 @@
+@using Ags.Finance.Modules.Preferences.Contracts
+@using Microsoft.JSInterop
+@inject IPreferences Preferences
+@inject IJSRuntime Js
+
+<section class="panel" aria-labelledby="preferences-title">
+    <h2 id="preferences-title">Preferências</h2>
+
+    @if (_preferencesMessage is not null)
+    {
+        <p class="@(_preferencesSaved ? "form-success" : "form-error")" role="status" data-testid="preferences-message">@_preferencesMessage</p>
+    }
+
+    <form id="preferences-form" @onsubmit="SavePreferencesAsync" @onsubmit:preventDefault>
+        <h3>Aparência</h3>
+        <fieldset class="choices">
+            <legend>Tema</legend>
+            <label class="choice"><input type="radio" name="pref-theme" value="dark" checked="@(_theme == ThemePreference.Dark)" @onchange="() => _theme = ThemePreference.Dark" /> Escuro</label>
+            <label class="choice"><input type="radio" name="pref-theme" value="light" checked="@(_theme == ThemePreference.Light)" @onchange="() => _theme = ThemePreference.Light" /> Claro</label>
+            <label class="choice"><input type="radio" name="pref-theme" value="auto" checked="@(_theme == ThemePreference.Auto)" @onchange="() => _theme = ThemePreference.Auto" /> Automático (segue o sistema)</label>
+        </fieldset>
+
+        <h3>Geral</h3>
+        <div class="field">
+            <label for="pref-start-page">Tela inicial</label>
+            <select id="pref-start-page" @bind="_startPage">
+                <option value="@StartPage.Dashboard">Dashboard</option>
+                <option value="@StartPage.Transactions">Lançamentos</option>
+                <option value="@StartPage.Invoices">Faturas</option>
+            </select>
+        </div>
+
+        <h3>Faturas</h3>
+        <fieldset class="choices">
+            <legend>Recorrentes do cartão na fatura aberta</legend>
+            <label class="choice"><input type="radio" name="pref-recurring" value="on-date" checked="@(_recurring == RecurringInvoiceMode.SumOnDate)" @onchange="() => _recurring = RecurringInvoiceMode.SumOnDate" />
+                <span>Somar só na data da cobrança<small class="hint">O total fica igual ao do banco; o valor ainda não cobrado aparece como previsto.</small></span></label>
+            <label class="choice"><input type="radio" name="pref-recurring" value="upfront" checked="@(_recurring == RecurringInvoiceMode.SumUpfront)" @onchange="() => _recurring = RecurringInvoiceMode.SumUpfront" />
+                <span>Somar desde já<small class="hint">O total já inclui as recorrentes futuras, mesmo antes de o banco cobrar.</small></span></label>
+        </fieldset>
+
+        <h3>Dashboard</h3>
+        <div class="field">
+            <label for="pref-pending-window">Janela de pendências</label>
+            <select id="pref-pending-window" @bind="_pendingWindowDays">
+                @foreach (var days in PreferenceOptions.PendingWindowDays) { <option value="@days">Próximos @days dias</option> }
+            </select>
+        </div>
+        <div class="field">
+            <label for="pref-top-categories">Maiores categorias no gráfico</label>
+            <select id="pref-top-categories" @bind="_topCategories">
+                @foreach (var top in PreferenceOptions.TopCategories) { <option value="@top">@top categorias</option> }
+            </select>
+        </div>
+        <fieldset class="choices">
+            <legend>Seções visíveis</legend>
+            <label class="choice"><input id="pref-section-summary" type="checkbox" @bind="_showSummary" /> Resumo do mês</label>
+            <label class="choice"><input id="pref-section-pending" type="checkbox" @bind="_showPending" /> Pendências</label>
+            <label class="choice"><input id="pref-section-categories" type="checkbox" @bind="_showCategories" /> Categorias</label>
+            <label class="choice"><input id="pref-section-invoices" type="checkbox" @bind="_showInvoices" /> Faturas</label>
+            <label class="choice"><input id="pref-section-heatmap" type="checkbox" @bind="_showHeatMap" /> Mapa de calor</label>
+        </fieldset>
+
+        <h3>Lançamentos</h3>
+        <div class="field">
+            <label for="pref-page-size">Itens por página</label>
+            <select id="pref-page-size" @bind="_pageSize">
+                @foreach (var size in PreferenceOptions.PageSizes) { <option value="@size">@size itens</option> }
+            </select>
+        </div>
+
+        <h3>Segurança</h3>
+        <div class="field">
+            <label for="pref-session-hours">Duração da sessão sem "Manter conectado"</label>
+            <select id="pref-session-hours" @bind="_sessionHours">
+                <option value="12">12 horas</option>
+                <option value="24">24 horas</option>
+                <option value="168">7 dias</option>
+            </select>
+            <small class="hint">Vale a partir do próximo login. Sessões já abertas não mudam, e "Manter conectado" continua com 30 dias.</small>
+        </div>
+
+        <button type="submit" class="button" disabled="@_savingPreferences">Salvar preferências</button>
+    </form>
+</section>
+
+@code {
+    private ThemePreference _theme;
+    private StartPage _startPage;
+    private RecurringInvoiceMode _recurring;
+    private int _pendingWindowDays;
+    private int _topCategories;
+    private bool _showSummary;
+    private bool _showPending;
+    private bool _showCategories;
+    private bool _showInvoices;
+    private bool _showHeatMap;
+    private int _pageSize;
+    private int _sessionHours;
+    private string? _preferencesMessage;
+    private bool _preferencesSaved;
+    private bool _savingPreferences;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var saved = await Preferences.GetAsync();
+        _theme = saved.Theme;
+        _startPage = saved.StartPage;
+        _recurring = saved.RecurringInvoices;
+        _pendingWindowDays = saved.PendingWindowDays;
+        _topCategories = saved.TopCategories;
+        (_showSummary, _showPending, _showCategories, _showInvoices, _showHeatMap) =
+            (saved.Sections.Summary, saved.Sections.Pending, saved.Sections.Categories, saved.Sections.Invoices, saved.Sections.HeatMap);
+        _pageSize = saved.PageSize;
+        _sessionHours = saved.SessionHours;
+    }
+
+    private async Task SavePreferencesAsync()
+    {
+        if (_savingPreferences) { return; }
+        _savingPreferences = true;
+        try
+        {
+            var result = await Preferences.SaveAsync(new AppPreferences(_theme, _startPage, _recurring, _pendingWindowDays, _topCategories,
+                new DashboardSections(_showSummary, _showPending, _showCategories, _showInvoices, _showHeatMap), _pageSize, _sessionHours));
+            _preferencesSaved = result.Succeeded;
+            _preferencesMessage = result.Error ?? "Preferências salvas.";
+            if (result.Succeeded)
+            {
+                await Js.InvokeVoidAsync("agsTheme.apply", _theme switch { ThemePreference.Light => "light", ThemePreference.Auto => "auto", _ => "dark" });
+            }
+        }
+        finally { _savingPreferences = false; }
+    }
+}

@@ -1,8 +1,10 @@
 @page "/dashboard"
 @using System.Globalization
+@using Ags.Finance.Modules.Preferences.Contracts
 @using Ags.Finance.SharedKernel
 @using Ags.Finance.Web.Components.Dashboard
 @inject TimeProvider Clock
+@inject IPreferences Preferences
 
 <PageHeader Title="Dashboard" />
 @if (_message is not null) { <p role="status">@_message</p> }
@@ -10,17 +12,29 @@
     <div class="field"><label for="dashboard-month">Mês contábil</label>
         <input id="dashboard-month" type="month" value="@FormatMonth(_month)" @onchange="MonthChanged" /></div>
 </section>
-<SummaryCards Month="_month" />
-<PendingSection />
-<CategorySection Month="_month" />
-<InvoiceSection Month="_month" />
-<HeatMapSection Month="_month" />
+@if (!_sections.AnyVisible)
+{
+    <section class="panel" data-testid="no-sections"><p>Nenhuma seção do dashboard está visível. Escolha o que exibir em <a href="configuracoes">Configurações</a>.</p></section>
+}
+@if (_sections.Summary) { <SummaryCards Month="_month" /> }
+@if (_sections.Pending) { <PendingSection /> }
+@if (_sections.Categories) { <CategorySection Month="_month" TopCount="_topCategories" /> }
+@if (_sections.Invoices) { <InvoiceSection Month="_month" /> }
+@if (_sections.HeatMap) { <HeatMapSection Month="_month" /> }
 
 @code {
     private AccountingMonth _month;
     private string? _message;
+    private DashboardSections _sections = DashboardSections.All;
+    private int _topCategories = AppPreferences.Default.TopCategories;
 
-    protected override void OnInitialized() => _month = AccountingMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime));
+    protected override async Task OnInitializedAsync()
+    {
+        _month = AccountingMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime));
+        var preferences = await Preferences.GetAsync();
+        _sections = preferences.Sections;
+        _topCategories = preferences.TopCategories;
+    }
 
     private static string FormatMonth(AccountingMonth month) => $"{month.Year:0000}-{month.Month:00}";
 

@@ -1,6 +1,7 @@
 @page "/lancamentos"
 @using System.Globalization
 @using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Preferences.Contracts
 @using Ags.Finance.Modules.Transactions.Contracts
 @using Ags.Finance.SharedKernel
 @inject IEntryCatalog Entries
@@ -11,6 +12,7 @@
 @inject IAccountingMonthCalculator Calendar
 @inject ICardLastDigitsCatalog CardDigits
 @inject TimeProvider Clock
+@inject IPreferences Preferences
 
 <PageHeader Title="Lançamentos" />
 @if (_message is not null) { <p role="status">@_message</p> }
@@ -237,6 +239,7 @@
         _merchants = await Merchants.FindAsync();
         _suggestions = _merchants;
         _subcategories = await Classifications.GetSubcategoriesAsync();
+        _pageSize = (await Preferences.GetAsync()).PageSize;
         await SuggestMonthAsync();
         await InitializeFiltersAsync();
         await ReloadQueryAsync();

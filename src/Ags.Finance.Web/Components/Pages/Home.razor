@@ -1,9 +1,18 @@
 @page "/"
+@using Ags.Finance.Modules.Preferences.Contracts
 @inject NavigationManager Navigation
+@inject IPreferences Preferences
 
 @code {
-    protected override void OnInitialized()
+    // A tela inicial escolhida nas preferências; os endereços diretos das telas continuam funcionando.
+    protected override async Task OnInitializedAsync()
     {
-        Navigation.NavigateTo("dashboard", replace: true);
+        var preferences = await Preferences.GetAsync();
+        Navigation.NavigateTo(preferences.StartPage switch
+        {
+            StartPage.Transactions => "lancamentos",
+            StartPage.Invoices => "faturas",
+            _ => "dashboard",
+        }, replace: true);
     }
 }
