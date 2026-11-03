@@ -1,3 +1,32 @@
 @page "/dashboard"
+@using System.Globalization
+@using Ags.Finance.SharedKernel
+@using Ags.Finance.Web.Components.Dashboard
+@inject TimeProvider Clock
 
 <PageHeader Title="Dashboard" />
+@if (_message is not null) { <p role="status">@_message</p> }
+<section class="panel">
+    <div class="field"><label for="dashboard-month">Mês contábil</label>
+        <input id="dashboard-month" type="month" value="@FormatMonth(_month)" @onchange="MonthChanged" /></div>
+</section>
+<SummaryCards Month="_month" />
+
+@code {
+    private AccountingMonth _month;
+    private string? _message;
+
+    protected override void OnInitialized() => _month = AccountingMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime));
+
+    private static string FormatMonth(AccountingMonth month) => $"{month.Year:0000}-{month.Month:00}";
+
+    private void MonthChanged(ChangeEventArgs args)
+    {
+        if (DateOnly.TryParseExact((args.Value?.ToString() ?? string.Empty) + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        {
+            _month = AccountingMonth.FromDate(date);
+            _message = null;
+        }
+        else { _message = "Informe um mês contábil válido."; }
+    }
+}

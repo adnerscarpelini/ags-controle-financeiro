@@ -473,3 +473,9 @@ a:hover {
 .wallet-card-closing { font-size: .875rem; color: var(--color-text-secondary); }
 .wallet-card-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .catalog-list .wallet-card-actions .button { margin: 0; min-height: var(--touch-target); }
+
+.metric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: var(--space-4); margin: 0 0 var(--space-4); }
+.metric { padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); }
+.metric dt { font-size: .875rem; color: var(--color-text-secondary); }
+.metric dd { margin: var(--space-2) 0 0; font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.metric small { display: block; margin-top: var(--space-1); font-size: .75rem; color: var(--color-text-secondary); }

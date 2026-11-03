@@ -8,6 +8,16 @@ namespace Ags.Finance.Modules.Transactions.Infrastructure;
 
 internal sealed partial class EntryStore
 {
+    public async Task<IReadOnlyList<EntryAmount>> GetMonthlyAmountsAsync(AccountingMonth from, AccountingMonth to, CancellationToken cancellationToken)
+    {
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
+        var months = new List<AccountingMonth>();
+        for (var month = from; month <= to && months.Count < 600; month = month.AddMonths(1)) { months.Add(month); }
+        var rows = await context.Set<TransactionEntry>().AsNoTracking().Where(x => months.Contains(x.Month))
+            .Select(x => new { x.Month, x.Kind, x.SubcategoryExternalId, x.Amount }).ToListAsync(cancellationToken);
+        return rows.Select(x => new EntryAmount(x.Month, x.Kind, x.SubcategoryExternalId, x.Amount)).ToList();
+    }
+
     public async Task<EntryPage> QueryAsync(EntryFilter filter, CancellationToken cancellationToken, int? offset = null, int? limit = null)
     {
         await using var context = await factory.CreateDbContextAsync(cancellationToken);
