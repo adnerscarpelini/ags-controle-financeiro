@@ -38,6 +38,10 @@
 </section>
 
 @code {
+    /// <summary>Chamado depois de uma importação confirmada, para a tela aberta recarregar.</summary>
+    [Parameter]
+    public EventCallback Imported { get; set; }
+
     private sealed record Item(RegistryKind Kind, string Label);
 
     private static readonly Item[] s_items =
@@ -81,7 +85,11 @@
             var report = await Importer.ImportAsync(_kind, _content);
             _message = report.Applied ? $"Importação concluída: {report.NewCount} novos, {report.IdenticalCount} já existentes." : "Nada foi gravado: o arquivo tem problemas.";
             _report = report.Applied ? null : report;
-            if (report.Applied) { _content = null; }
+            if (report.Applied)
+            {
+                _content = null;
+                await Imported.InvokeAsync();
+            }
         }
         finally { _busy = false; }
     }

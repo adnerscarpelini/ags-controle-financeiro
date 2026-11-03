@@ -6,7 +6,7 @@ Origem: [issue #6](https://github.com/adnerscarpelini/ags-controle-financeiro/is
 [logos de banco (#54)](bank-logos.md) e [carteira visual (#55)](card-wallet.md) estão implementados.
 A persistência usa [PostgreSQL](../architecture/persistence-postgresql.md) (#60): tabelas no schema `accounts`.
 
-Em **Cadastros > Contas e cartões**, cadastrar bancos pelo nome; cadastrar e editar contas
+Em **Cadastros > Bancos**, **Contas** e **Cartões**, cadastrar bancos pelo nome; cadastrar e editar contas
 Corrente, Investimento (incluindo caixinhas e CDB, sem rendimento) ou Poupança.
 Cada conta exige um banco existente, nome de até 100 caracteres e cor da paleta.
 O nome é único por banco após remover espaços nas extremidades e ignorar maiúsculas;

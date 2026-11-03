@@ -19,7 +19,8 @@ public sealed partial class LayoutPagesTests : IDisposable
         { "dashboard", "Dashboard" },
         { "planejamento", "Planejamento mensal" },
         { "relatorios/visao-19-meses", "Relatórios: visão de 19 meses" },
-        { "cadastros/categorias", "Categorias e subcategorias" },
+        { "cadastros/categorias", "Categorias" },
+        { "cadastros/bancos", "Bancos" },
         { "configuracoes", "Configurações" },
     };
 
@@ -64,6 +65,7 @@ public sealed partial class LayoutPagesTests : IDisposable
 
     [Theory]
     [InlineData("/faturas", "/cartoes")]
+    [InlineData("/cadastros/contas-cartoes", "/contas")]
     [InlineData("/compromissos", "/cartoes?abrir=compromissos")]
     [InlineData("/cashback", "/cartoes?abrir=cashback")]
     public async Task TheOldInvoiceRoutesRedirectToCards(string route, string target)

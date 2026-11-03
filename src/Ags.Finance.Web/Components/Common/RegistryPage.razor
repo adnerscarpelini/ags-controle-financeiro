@@ -1,0 +1,107 @@
+@* Padrão dos cadastros: título, busca, botão Novo em destaque, tabela com ordenação e paginação, e orientação quando vazio. *@
+@typeparam TItem
+@implements IDisposable
+@inject EntryChangeNotifier Changes
+
+<div class="page-head">
+    <PageHeader Title="@Title" />
+    @if (Help is not null) { <HelpTip Text="@Help" /> }
+    <div class="page-head-actions">
+        <input id="registry-search" class="input registry-search" type="search" placeholder="Buscar por nome" aria-label="Buscar por nome" value="@Search" @oninput="SearchChangedAsync" />
+        @if (MoreActions is not null)
+        {
+            <div data-registry-menu>
+                <MudMenu Icon="@Icons.Material.Outlined.MoreVert" AriaLabel="@($"Mais ações de {Title}")" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    @MoreActions
+                </MudMenu>
+            </div>
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Add" data-registry-new OnClick="OnNew">@NewLabel</MudButton>
+    </div>
+</div>
+
+@if (Toolbar is not null) { @Toolbar }
+@if (Message is not null) { <p class="form-error" role="alert" data-registry-error>@Message</p> }
+
+<section class="panel data-panel">
+    @if (Loaded && Items.Count == 0 && string.IsNullOrWhiteSpace(Search))
+    {
+        <EmptyState Icon="@EmptyIcon" Message="@EmptyMessage" ActionText="@NewLabel" OnAction="OnNew" />
+    }
+    else
+    {
+        <MudTable T="TItem" Items="Items" Elevation="0" Hover="true" Class="data-table" Breakpoint="Breakpoint.Sm" RowsPerPage="50" aria-label="@Title">
+            <HeaderContent>@Columns</HeaderContent>
+            <RowTemplate Context="item">@Row(item)</RowTemplate>
+            <ChildRowContent Context="item">@if (ChildRow is not null) { @ChildRow(item) }</ChildRowContent>
+            <NoRecordsContent><EmptyState Icon="@Icons.Material.Outlined.SearchOff" Message="Nenhum registro com esse nome." /></NoRecordsContent>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="s_pageSizes" RowsPerPageString="Linhas por página:" InfoFormat="{first_item}-{last_item} de {all_items}" AllItemsText="Todas" />
+            </PagerContent>
+        </MudTable>
+    }
+</section>
+
+@code {
+    private static readonly int[] s_pageSizes = [25, 50, 100];
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Help { get; set; }
+
+    [Parameter, EditorRequired]
+    public string NewLabel { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback OnNew { get; set; }
+
+    [Parameter]
+    public string Search { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> SearchChanged { get; set; }
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<TItem> Items { get; set; } = [];
+
+    [Parameter]
+    public bool Loaded { get; set; }
+
+    [Parameter]
+    public string? Message { get; set; }
+
+    [Parameter]
+    public string EmptyIcon { get; set; } = Icons.Material.Outlined.Inbox;
+
+    [Parameter, EditorRequired]
+    public string EmptyMessage { get; set; } = string.Empty;
+
+    [Parameter]
+    public RenderFragment? Toolbar { get; set; }
+
+    [Parameter]
+    public RenderFragment? MoreActions { get; set; }
+
+    [Parameter, EditorRequired]
+    public RenderFragment Columns { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public RenderFragment<TItem> Row { get; set; } = default!;
+
+    [Parameter]
+    public RenderFragment<TItem>? ChildRow { get; set; }
+
+    /// <summary>Chamado quando outra janela, como a de importar CSV, altera dados: a tela recarrega.</summary>
+    [Parameter]
+    public EventCallback OnExternalChange { get; set; }
+
+    protected override void OnInitialized() => Changes.Changed += ExternalChangeAsync;
+
+    private Task ExternalChangeAsync() => InvokeAsync(() => OnExternalChange.InvokeAsync());
+
+    public void Dispose() => Changes.Changed -= ExternalChangeAsync;
+
+    private Task SearchChangedAsync(ChangeEventArgs args) => SearchChanged.InvokeAsync(args.Value?.ToString() ?? string.Empty);
+}

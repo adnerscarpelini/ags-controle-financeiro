@@ -1,0 +1,80 @@
+@* Criar ou editar uma pessoa. O percentual padrão só pré-preenche novas seleções. *@
+@using System.Globalization
+@using Ags.Finance.Modules.Reimbursements.Contracts
+@inject IPersonCatalog Catalog
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <form id="person-form" class="entry-column" @onsubmit="() => SaveAsync(closeAfterSave: true)" @onsubmit:preventDefault>
+            <div class="field"><label for="person-name">Nome</label><input id="person-name" class="input" maxlength="100" @bind="_name" @bind:event="oninput" /></div>
+            <div class="field">
+                <label for="person-percent">Percentual padrão de reembolso (0 a 100) <HelpTip Text="Só pré-preenche novas seleções em despesas. Alterá-lo não muda lançamentos nem recorrências já gravados." /></label>
+                <input id="person-percent" class="input" type="number" inputmode="decimal" step="0.01" min="0" max="100" @bind="_percent" />
+            </div>
+        </form>
+        @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+        @if (_success is not null) { <p class="form-success" role="status" data-entry-success>@_success</p> }
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-cancel Disabled="@_busy" OnClick="() => Dialog?.Cancel()">Cancelar</MudButton>
+        @if (Person is null)
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Primary" data-save-new Disabled="@(_busy || _name.Trim().Length == 0)" OnClick="() => SaveAsync(closeAfterSave: false)">Salvar e criar novo</MudButton>
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" form="person-form" data-save Disabled="@(_busy || _name.Trim().Length == 0)">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public PersonDetails? Person { get; set; }
+
+    [Parameter]
+    public EventCallback Saved { get; set; }
+
+    private string _name = string.Empty;
+    private decimal _percent;
+    private bool _busy;
+    private string? _error;
+    private string? _success;
+
+    protected override void OnInitialized()
+    {
+        _name = Person?.Name ?? string.Empty;
+        _percent = decimal.Parse((Person?.DefaultPercent ?? 0).ToString("0.##", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+    }
+
+    private async Task SaveAsync(bool closeAfterSave)
+    {
+        if (_busy) { return; }
+        _busy = true;
+        _error = null;
+        _success = null;
+        try
+        {
+            var result = await Catalog.SaveAsync(Person?.ExternalId, _name, _percent);
+            if (!result.Succeeded)
+            {
+                _error = result.Error;
+                return;
+            }
+
+            await Saved.InvokeAsync();
+            Snackbar.Add("Pessoa salva.", Severity.Success);
+            if (closeAfterSave)
+            {
+                Dialog?.Close(DialogResult.Ok(true));
+                return;
+            }
+
+            _name = string.Empty;
+            _percent = 0;
+            _success = "Pessoa salva. Preencha a próxima.";
+        }
+        finally { _busy = false; }
+    }
+}

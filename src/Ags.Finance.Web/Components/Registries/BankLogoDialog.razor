@@ -1,0 +1,27 @@
+@* O recorte de logo (#54) em janela. *@
+@using Ags.Finance.Modules.Accounts.Contracts
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <BankLogoEditor Bank="Bank" Saved="SavedAsync" Cancelled="() => Dialog?.Cancel()" />
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public BankDetails Bank { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback Saved { get; set; }
+
+    private async Task SavedAsync()
+    {
+        await Saved.InvokeAsync();
+        Snackbar.Add("Logo atualizado.", Severity.Success);
+        Dialog?.Close(DialogResult.Ok(true));
+    }
+}

@@ -1,0 +1,22 @@
+@* Itens de CSV do menu ⋮ de um cadastro. Continuam também em Arquivos CSV. *@
+@using Ags.Finance.Modules.Imports.Contracts
+@using Ags.Finance.Web.Csv
+@using Ags.Finance.Web.Components.Layout
+@inject IDialogService Dialogs
+@inject ViewportState Viewport
+
+<MudMenuItem Icon="@Icons.Material.Outlined.UploadFile" OnClick="OpenImportAsync">Importar CSV</MudMenuItem>
+@foreach (var kind in Kinds)
+{
+    <MudMenuItem Icon="@Icons.Material.Outlined.Download" Href="@($"/csv/cadastros/{CsvEndpoints.Slug(kind)}")" ForceLoad="true">Exportar CSV@(Kinds.Count > 1 ? $" de {KindLabel(kind)}" : string.Empty)</MudMenuItem>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<RegistryKind> Kinds { get; set; } = [];
+
+    private async Task OpenImportAsync() =>
+        await Dialogs.ShowAsync<RegistryImportDialog>("Importar cadastros", new DialogParameters(), AppDialogs.Options(Viewport, MaxWidth.Medium));
+
+    private static string KindLabel(RegistryKind kind) => kind == RegistryKind.Subcategories ? "subcategorias" : "categorias";
+}

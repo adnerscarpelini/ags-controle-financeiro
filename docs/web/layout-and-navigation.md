@@ -8,7 +8,7 @@ Origem: [#5](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/5
 - Aberto, o menu mostra ícone e rótulo, com os grupos em árvore. Recolhido, mostra só ícones com tooltip, e os grupos abrem em menu flutuante. A escolha fica guardada neste navegador (`localStorage`), e sem armazenamento vale até recarregar.
 - O botão **+ Novo** fica sempre visível e abre as janelas de Despesa, Receita, Despesa cartão e Transferência, sem sair da tela atual (#97). Ctrl+N abre o menu. Ao salvar, `EntryChangeNotifier` avisa a tela aberta, que recarrega sem recarregar a página.
 - No rodapé ficam [Ocultar valores](hide-values.md) (também na barra superior do celular), Recolher menu e **Sair** (veja [login.md](../identity/login.md)). Configurações também traz a troca de senha.
-- A raiz `/` abre a tela inicial das preferências. `/cadastros` redireciona para `/cadastros/categorias`. `/pendentes` abre Lançamentos já filtrada (#98), `/transferencias` leva a Contas (#99), e `/faturas`, `/compromissos` e `/cashback` levam a Cartões (#100).
+- A raiz `/` abre a tela inicial das preferências. `/cadastros` redireciona para `/cadastros/categorias`. `/pendentes` abre Lançamentos já filtrada (#98), `/transferencias` leva a Contas (#99), `/faturas`, `/compromissos` e `/cashback` levam a Cartões (#100), e `/cadastros/contas-cartoes` leva a Contas (#101).
 - Abaixo de 768 px o menu vira uma gaveta: some da tela, abre pelo botão da barra superior e fecha ao escolher um item ou tocar na película escura. O conteúdo ocupa a largura inteira e não há rolagem horizontal. Itens e botão têm pelo menos 44 px de altura.
 - A cultura da aplicação é `pt-BR` em todos os circuitos (`Program.cs`): `R$ 1.234,56` e `dd/MM/yyyy`, independentemente da cultura do sistema ou do navegador.
 - Nada vem da internet: CSS, JS e ícones do [MudBlazor](../architecture/ui-library.md), fonte Inter e demais recursos são servidos pela própria aplicação.
@@ -36,6 +36,7 @@ Origem: [#5](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/5
 | `Components/Common/MonthPicker.razor`, `StatCard.razor` e `RowActions.razor` | Seletor de mês, card de total e ações por linha. |
 | `Components/PageHeader.razor` | Título da página (`<PageTitle>` e `<h1>`), usado por todas as seções. |
 | `Components/Cards/*.razor`, `CreditCardView.razor` e `Pages/InvoiceDetail.razor` | Carteira, janelas de cartão e de fatura e detalhe da fatura. |
+| `Components/Common/RegistryPage.razor` e `Components/Registries/*.razor` | Padrão das telas de cadastro e suas janelas. |
 | `Components/Accounts/*.razor` | Card da conta e janelas de conta, ajuste de saldo e movimentos. |
 | `Components/Pages/*.razor` | Uma página por seção. |
 

@@ -1,0 +1,62 @@
+@* Mesclar transfere as referências para a descrição mantida e remove a origem, na mesma operação. *@
+@using Ags.Finance.Modules.Transactions.Contracts
+@inject IMerchantCatalog Catalog
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <div class="entry-column">
+            <p class="form-note">Mesclar transfere as referências para a descrição mantida e remove a origem.</p>
+            <p>Origem: <strong data-merge-source>@Source.Name</strong></p>
+            <div class="field">
+                <label for="merge-target">Descrição a manter</label>
+                <select id="merge-target" class="input" @bind="_target">
+                    <option value="@Guid.Empty">Selecione</option>
+                    @foreach (var item in _targets) { <option value="@item.ExternalId">@item.Name</option> }
+                </select>
+            </div>
+            @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-cancel Disabled="@_busy" OnClick="() => Dialog?.Cancel()">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" data-confirm-ok Disabled="@(_busy || _target == Guid.Empty)" OnClick="ConfirmAsync">Mesclar descrições</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public MerchantDetails Source { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback Saved { get; set; }
+
+    private IReadOnlyList<MerchantDetails> _targets = [];
+    private Guid _target;
+    private bool _busy;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync() =>
+        _targets = (await Catalog.FindAsync(activeOnly: false)).Where(x => x.IsActive && x.ExternalId != Source.ExternalId).ToList();
+
+    private async Task ConfirmAsync()
+    {
+        if (_busy) { return; }
+        _busy = true;
+        try
+        {
+            var result = await Catalog.MergeAsync(Source.ExternalId, _target);
+            _error = result.Error;
+            if (result.Succeeded)
+            {
+                await Saved.InvokeAsync();
+                Snackbar.Add("Descrições mescladas.", Severity.Success);
+                Dialog?.Close(DialogResult.Ok(true));
+            }
+        }
+        finally { _busy = false; }
+    }
+}
