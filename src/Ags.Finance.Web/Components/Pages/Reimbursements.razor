@@ -59,6 +59,23 @@
         <button class="button" @onclick="() => _receiving = false" disabled="@_busy">Cancelar</button>
     </section>
 }
+@if (_undoing is { } undoing)
+{
+    <section class="panel" role="alertdialog" aria-label="Desfazer recebimento">
+        <h2>Desfazer recebimento</h2>
+        <p>@undoing.PersonName · @undoing.Date.ToString("dd/MM/yyyy") · <span class="numeric">@undoing.Total</span></p>
+        <p>@(undoing.AccountExternalId is { } account ? $"A receita será excluída da conta {AccountName(account)}." : "Este recebimento não gerou lançamento.") Todos estes itens voltam a Pendente:</p>
+        <ul class="catalog-list" aria-label="Itens do recebimento">
+            @foreach (var item in undoing.Items)
+            {
+                <li><span>@item.Date.ToString("dd/MM/yyyy") · @item.Description · Mês @item.Month</span>
+                    <span>Esperado: <span class="numeric">@item.Expected</span> · Recebido: <span class="numeric">@item.Received</span></span></li>
+            }
+        </ul>
+        <button class="button" @onclick="ConfirmUndoAsync" disabled="@_busy">Confirmar</button>
+        <button class="button" @onclick="() => _undoing = null" disabled="@_busy">Cancelar</button>
+    </section>
+}
 <section class="panel">
     <h2>Reembolsos</h2>
     @if (_overview.Items.Any(x => x.Status == ReimbursementStatus.Pending))
@@ -80,6 +97,7 @@
                 <span>Esperado: <span class="numeric">@item.Expected</span></span>
                 <span>Recebido: <span class="numeric">@(item.Received is { } received ? received.ToString() : "—")</span></span>
                 <span>@(item.ReceivedDate is { } receivedDate ? $"Recebido em {receivedDate:dd/MM/yyyy}" : "Pendente")</span>
+                @if (item.ReceiptExternalId is { } receipt) { <button class="button" @onclick="() => AskUndoAsync(receipt)" disabled="@_busy">Desfazer recebimento</button> }
             </li>
         }
     </ul>
@@ -118,6 +136,10 @@
     private bool _receiving;
     private DateOnly _receiptDate;
     private Guid _receiptAccount;
+    private IReadOnlyList<AccountDetails> _allAccounts = [];
+    private ReimbursementReceiptDetails? _undoing;
+
+    private string AccountName(Guid externalId) => _allAccounts.FirstOrDefault(x => x.ExternalId == externalId)?.Name ?? "selecionada";
 
     private IEnumerable<ReimbursementItem> SelectedItems => _overview.Items.Where(x => _selected.Contains(x.EntryExternalId));
     private bool AllPendingSelected => _overview.Items.Where(x => x.Status == ReimbursementStatus.Pending).All(x => _selected.Contains(x.EntryExternalId));
@@ -126,7 +148,8 @@
     {
         _month = Clock.GetLocalNow().ToString("yyyy-MM", CultureInfo.InvariantCulture);
         _people = await People.GetAsync();
-        _accounts = (await Accounts.GetAccountsAsync()).Where(x => x.Kind == AccountKind.Checking).ToList();
+        _allAccounts = await Accounts.GetAccountsAsync(false);
+        _accounts = _allAccounts.Where(x => x.IsActive && x.Kind == AccountKind.Checking).ToList();
         await LoadAsync();
     }
 
@@ -167,6 +190,26 @@
         _received.Clear();
         foreach (var item in SelectedItems) { _received[item.EntryExternalId] = decimal.Parse(item.Expected.Amount.ToString("0.##", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture); }
         _receiving = true;
+    }
+
+    private async Task AskUndoAsync(Guid receipt)
+    {
+        _undoing = await Receipts.FindAsync(receipt);
+        if (_undoing is null) { _message = "Este recebimento não existe mais."; await LoadAsync(); }
+    }
+
+    private async Task ConfirmUndoAsync()
+    {
+        if (_undoing is not { } undoing || _busy) { return; }
+        _busy = true;
+        try
+        {
+            var result = await Receipts.UndoAsync(undoing.ExternalId);
+            _message = result.Error ?? "Recebimento desfeito. Os itens voltaram a Pendente.";
+            _undoing = null;
+        }
+        finally { _busy = false; }
+        await LoadAsync();
     }
 
     private async Task ConfirmReceiveAsync()

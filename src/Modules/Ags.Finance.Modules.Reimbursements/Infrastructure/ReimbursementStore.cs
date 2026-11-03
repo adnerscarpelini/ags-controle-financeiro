@@ -33,6 +33,13 @@ internal sealed class ReimbursementStore(IDbContextFactory<ReimbursementsDbConte
         await context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task DeleteReceiptAsync(ReimbursementReceipt receipt, CancellationToken cancellationToken)
+    {
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
+        context.Entry(receipt).State = EntityState.Deleted;
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<bool> IsIncomeOfReceiptAsync(Guid entryExternalId, CancellationToken cancellationToken)
     {
         await using var context = await factory.CreateDbContextAsync(cancellationToken);

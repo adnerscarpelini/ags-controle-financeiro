@@ -60,6 +60,35 @@ internal sealed class ReimbursementReceipts(IReimbursementStore store, IFinancia
         return new(created, null);
     }
 
+    public async Task<ReimbursementReceiptDetails?> FindAsync(Guid receiptExternalId, CancellationToken cancellationToken = default)
+    {
+        var receipt = (await store.GetReceiptsAsync(cancellationToken)).FirstOrDefault(x => x.ExternalId == receiptExternalId);
+        if (receipt is null) { return null; }
+        var person = (await store.GetPeopleAsync(cancellationToken)).FirstOrDefault(x => x.ExternalId == receipt.PersonExternalId);
+        var rows = (await entries.GetAsync(cancellationToken)).ToDictionary(x => x.ExternalId);
+        var items = (await store.GetReceiptItemsAsync(cancellationToken)).Where(x => x.ReceiptExternalId == receiptExternalId && rows.ContainsKey(x.ExpenseEntryExternalId))
+            .Select(x => (Item: x, Entry: rows[x.ExpenseEntryExternalId])).OrderBy(x => x.Entry.Date)
+            .Select(x => new ReimbursementReceiptItemDetails(x.Entry.ExternalId, x.Entry.Date, x.Entry.MerchantName, x.Entry.Month, x.Item.Expected, x.Item.Received)).ToList();
+        return new(receipt.ExternalId, person?.Name ?? "Pessoa", receipt.Date, receipt.AccountExternalId, receipt.Total, items);
+    }
+
+    public Task<ReimbursementResult> UndoAsync(Guid receiptExternalId, CancellationToken cancellationToken = default)
+        => operations.ExecuteAsync(token => UndoCoreAsync(receiptExternalId, token), x => x.Succeeded, cancellationToken);
+
+    private async Task<ReimbursementResult> UndoCoreAsync(Guid receiptExternalId, CancellationToken cancellationToken)
+    {
+        var receipt = (await store.GetReceiptsAsync(cancellationToken)).FirstOrDefault(x => x.ExternalId == receiptExternalId);
+        if (receipt is null) { return new(null, "Este recebimento não existe mais. Confira a lista."); }
+        // O registro sai primeiro: enquanto ele existir, o guard protege a receita gerada contra exclusão.
+        await store.DeleteReceiptAsync(receipt, cancellationToken);
+        if (receipt.IncomeEntryExternalId is { } income)
+        {
+            var deleted = await entries.DeleteAsync(income, EntryChangeScope.OnlyThis, cancellationToken);
+            if (!deleted.Succeeded) { return new(null, deleted.Error); }
+        }
+        return new(receiptExternalId, null);
+    }
+
     private async Task<ClassificationResult> CreateIncomeAsync(Person person, DateOnly date, Guid accountExternalId, Money total, CancellationToken cancellationToken)
     {
         var subcategory = await EnsureSubcategoryAsync(cancellationToken);
