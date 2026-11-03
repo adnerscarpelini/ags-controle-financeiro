@@ -46,16 +46,16 @@ public sealed partial class EntryTests
     }
 
     [Fact]
-    public async Task EditingAndDeletingEffectiveOccurrenceRecalculatesBalanceAndAllPreservesConfirmedPast()
+    public async Task EditingAllIncludesConfirmedPastAndRecalculatesBalanceOnce()
     {
         await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Amount = new Money(100) }));
         var october = await OccurrenceAsync(2026, 10);
         await Entries.ConfirmEffectiveAsync(october.ExternalId, october.Date);
         var november = await OccurrenceAsync(2026, 11);
-        await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Amount = new Money(200) }, RecurringChangeScope.All));
-        Assert.Equal(new Money(-100), (await OccurrenceAsync(2026, 10)).Amount);
-        Assert.Equal(new Money(900), (await Entries.GetBalanceAsync(_accountId, new DateOnly(2026, 11, 30)))?.EffectiveBalance);
-        await Entries.EditRecurringAsync(october.ExternalId, new(Change(october) with { Amount = new Money(150) }, RecurringChangeScope.OnlyThis));
+        await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Amount = new Money(200) }, RecurringEditScope.All));
+        Assert.Equal(new Money(-200), (await OccurrenceAsync(2026, 10)).Amount);
+        Assert.Equal(new Money(800), (await Entries.GetBalanceAsync(_accountId, new DateOnly(2026, 11, 30)))?.EffectiveBalance);
+        await Entries.EditRecurringAsync(october.ExternalId, new(Change(october) with { Amount = new Money(150) }, RecurringEditScope.OnlyThis));
         Assert.Equal(new Money(850), (await Entries.GetBalanceAsync(_accountId, new DateOnly(2026, 11, 30)))?.EffectiveBalance);
         await Entries.DeleteRecurringAsync(october.ExternalId, RecurringChangeScope.OnlyThis);
         Assert.Equal(new Money(1000), (await Entries.GetBalanceAsync(_accountId, new DateOnly(2026, 11, 30)))?.EffectiveBalance);

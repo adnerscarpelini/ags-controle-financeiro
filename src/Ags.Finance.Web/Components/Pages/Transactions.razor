@@ -109,9 +109,9 @@
             @if (_editingRecurring)
             {
                 <div class="field"><label for="entry-recurring-scope">Alcance da alteração</label><select id="entry-recurring-scope" @bind="_recurringScope" required>
-                    <option value="">Escolha o alcance</option><option value="@RecurringChangeScope.OnlyThis">Somente esta</option><option value="@RecurringChangeScope.ThisAndFollowing">Esta e as seguintes</option><option value="@RecurringChangeScope.All">Todas</option>
+                    <option value="@RecurringEditScope.OnlyThis">Editar somente esta</option><option value="@RecurringEditScope.AllPending">Editar todas as pendentes</option><option value="@RecurringEditScope.All">Editar todas (incluindo @(IsExpense ? "Pagas" : "Recebidas"))</option>
                 </select></div>
-                @if (_recurringScope is RecurringChangeScope.ThisAndFollowing or RecurringChangeScope.All)
+                @if (_recurringScope is RecurringEditScope.AllPending or RecurringEditScope.All)
                 {
                     <div class="field"><label for="entry-recurring-day">Dia das próximas ocorrências</label><input id="entry-recurring-day" type="number" min="1" max="31" @bind="_recurringDay" required /></div>
                 }
@@ -297,7 +297,7 @@
     private Guid? _selectedId;
     private bool _editingInstallment;
     private bool _editingRecurring;
-    private RecurringChangeScope? _recurringScope;
+    private RecurringEditScope? _recurringScope = RecurringEditScope.OnlyThis;
     private RecurringChangeScope? _deleteRecurringScope;
     private int _recurringDay;
     private EntryChangeScope? _scope;
@@ -425,7 +425,7 @@
     {
         _countedRepeat = false; _repeatCount = 2; _repeatPeriod = RepeatPeriod.Months; _editingRepetition = false;
         _isPaid = true; _repeat = false; _repeatUntil = string.Empty;
-        _editingId = null; _editingInstallment = false; _scope = null; _editingRecurring = false; _recurringScope = null;
+        _editingId = null; _editingInstallment = false; _scope = null; _editingRecurring = false; _recurringScope = RecurringEditScope.OnlyThis;
         _merchantName = string.Empty; _merchantId = Guid.Empty; _subcategoryId = Guid.Empty; _amount = 0; _details = string.Empty;
         ClearReimbursement();
         _month = _suggestedMonth;
@@ -451,7 +451,7 @@
         {
             _isPaid = entry.IsEffective; _editingId = entry.ExternalId; _selectedId = entry.ExternalId;
             _editingRecurring = entry.RecurringEntryExternalId is not null;
-            _recurringScope = null;
+            _recurringScope = RecurringEditScope.OnlyThis;
             _recurringDay = entry.RecurringEntryExternalId is { } seriesId ? (await Entries.GetRecurringAsync(seriesId))?.Day ?? entry.Date.Day : entry.Date.Day;
             _editingRepetition = entry.RepetitionExternalId is not null;
             _editingInstallment = entry.InstallmentPurchaseExternalId is not null;

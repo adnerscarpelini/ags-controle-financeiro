@@ -50,7 +50,7 @@ public sealed class RecurringReimbursementTests : ReimbursementFixture
         var series = await SeriesAsync(new(person, 50m));
         var november = await OccurrenceAsync(s_november);
 
-        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Reimbursement = new(person, 30m) }, RecurringChangeScope.OnlyThis));
+        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Reimbursement = new(person, 30m) }, RecurringEditScope.OnlyThis));
         Assert.True(result.Succeeded, result.Error);
 
         Assert.Equal(50m, (await OccurrenceAsync(s_october)).Reimbursement!.Percent);
@@ -60,13 +60,13 @@ public sealed class RecurringReimbursementTests : ReimbursementFixture
     }
 
     [Fact]
-    public async Task ThisAndFollowingAppliesFromTheOccurrenceOnIncludingMonthsNotGeneratedYet()
+    public async Task AllPendingChangesOnlyUnpaidOccurrencesIncludingMonthsNotGeneratedYet()
     {
         var person = await PersonAsync();
         await SeriesAsync(new(person, 50m));
         var november = await OccurrenceAsync(s_november);
 
-        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Reimbursement = new(person, 30m) }, RecurringChangeScope.ThisAndFollowing));
+        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Reimbursement = new(person, 30m) }, RecurringEditScope.AllPending));
         Assert.True(result.Succeeded, result.Error);
 
         Assert.Equal(50m, (await OccurrenceAsync(s_october)).Reimbursement!.Percent);
@@ -75,7 +75,7 @@ public sealed class RecurringReimbursementTests : ReimbursementFixture
     }
 
     [Fact]
-    public async Task AllKeepsPastConfirmedOccurrencesAndChangesTheOthers()
+    public async Task AllIncludesPastConfirmedOccurrences()
     {
         var person = await PersonAsync();
         var other = await PersonAsync("Outra Pessoa");
@@ -84,10 +84,10 @@ public sealed class RecurringReimbursementTests : ReimbursementFixture
         Assert.True((await Entries.ConfirmEffectiveAsync(august.ExternalId, august.Date)).Succeeded);
         var october = await OccurrenceAsync(s_october);
 
-        var result = await Entries.EditRecurringAsync(october.ExternalId, new(Change(october) with { Reimbursement = new(other, 50m) }, RecurringChangeScope.All));
+        var result = await Entries.EditRecurringAsync(october.ExternalId, new(Change(october) with { Reimbursement = new(other, 50m) }, RecurringEditScope.All));
         Assert.True(result.Succeeded, result.Error);
 
-        Assert.Equal(person, (await OccurrenceAsync(new(2026, 8))).Reimbursement!.PersonExternalId);
+        Assert.Equal(other, (await OccurrenceAsync(new(2026, 8))).Reimbursement!.PersonExternalId);
         Assert.Equal(other, (await OccurrenceAsync(new(2026, 9))).Reimbursement!.PersonExternalId);
         Assert.Equal(other, (await OccurrenceAsync(s_october)).Reimbursement!.PersonExternalId);
         Assert.Equal(other, (await OccurrenceAsync(s_november)).Reimbursement!.PersonExternalId);
@@ -99,10 +99,10 @@ public sealed class RecurringReimbursementTests : ReimbursementFixture
         var person = await PersonAsync();
         await SeriesAsync(new(person, 50m));
         var november = await OccurrenceAsync(s_november);
-        Assert.True((await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Reimbursement = new(person, 30m) }, RecurringChangeScope.OnlyThis))).Succeeded);
+        Assert.True((await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Reimbursement = new(person, 30m) }, RecurringEditScope.OnlyThis))).Succeeded);
         var october = await OccurrenceAsync(s_october);
 
-        var result = await Entries.EditRecurringAsync(october.ExternalId, new(Change(october) with { Amount = new Money(200) }, RecurringChangeScope.All));
+        var result = await Entries.EditRecurringAsync(october.ExternalId, new(Change(october) with { Amount = new Money(200) }, RecurringEditScope.All));
         Assert.True(result.Succeeded, result.Error);
 
         var exception = await OccurrenceAsync(s_november);
@@ -117,7 +117,7 @@ public sealed class RecurringReimbursementTests : ReimbursementFixture
         await SeriesAsync(new(person, 50m));
         var november = await OccurrenceAsync(s_november);
 
-        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Reimbursement = null }, RecurringChangeScope.ThisAndFollowing));
+        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Reimbursement = null }, RecurringEditScope.AllPending));
         Assert.True(result.Succeeded, result.Error);
 
         Assert.NotNull((await OccurrenceAsync(s_october)).Reimbursement);
@@ -132,7 +132,7 @@ public sealed class RecurringReimbursementTests : ReimbursementFixture
         await SeriesAsync(null);
         var november = await OccurrenceAsync(s_november);
 
-        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Reimbursement = new(person, 50m) }, RecurringChangeScope.ThisAndFollowing));
+        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Reimbursement = new(person, 50m) }, RecurringEditScope.AllPending));
         Assert.True(result.Succeeded, result.Error);
 
         Assert.Null((await OccurrenceAsync(s_october)).Reimbursement);

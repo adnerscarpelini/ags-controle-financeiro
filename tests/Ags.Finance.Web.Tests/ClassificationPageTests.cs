@@ -20,8 +20,8 @@ public sealed class ClassificationPageTests
         var category = await catalog.SaveCategoryAsync(null, "Mercado", CategoryKind.Expense);
         var page = context.Render<Classifications>();
         page.WaitForAssertion(() => Assert.Contains("Mercado", page.Find("#subcategory-category").TextContent, StringComparison.Ordinal));
-        page.Find("#subcategory-category").Change(category.ExternalId!.Value.ToString());
-        page.Find("#subcategory-name").Change("Supermercado");
+        await page.InvokeAsync(() => page.Find("#subcategory-category").Change(category.ExternalId!.Value.ToString()));
+        await page.InvokeAsync(() => page.Find("#subcategory-name").Change("Supermercado"));
         await page.FindAll("form")[1].SubmitAsync(EventArgs.Empty);
         Assert.Contains("Mercado &gt; Supermercado", page.Markup, StringComparison.Ordinal);
         page.FindAll(".catalog-list")[1].QuerySelectorAll("button")[1].Click();

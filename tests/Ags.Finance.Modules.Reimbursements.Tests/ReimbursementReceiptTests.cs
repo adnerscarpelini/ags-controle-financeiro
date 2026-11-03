@@ -240,14 +240,14 @@ public sealed class ReimbursementReceiptTests : ReimbursementFixture
         var occurrences = (await Entries.GetAsync()).OrderBy(x => x.Month).ToList();
         Assert.True((await Receipts.ReceiveAsync(Request(Item(occurrences[1].ExternalId, 100m)))).Succeeded);
 
-        var edited = await Entries.EditRecurringAsync(occurrences[0].ExternalId, new(Change(occurrences[0]) with { Amount = new Money(200m) }, RecurringChangeScope.All));
+        var edited = await Entries.EditRecurringAsync(occurrences[0].ExternalId, new(Change(occurrences[0]) with { Amount = new Money(200m) }, RecurringEditScope.All));
         Assert.Contains("05/11/2026", edited.Error);
         Assert.False((await Entries.DeleteRecurringAsync(occurrences[0].ExternalId, RecurringChangeScope.ThisAndFollowing)).Succeeded);
 
         var after = (await Entries.GetAsync()).Where(x => x.RecurringEntryExternalId is not null).OrderBy(x => x.Month).ToList();
         Assert.Equal([new Money(-100m), new Money(-100m)], after.Select(x => x.Amount));
 
-        Assert.True((await Entries.EditRecurringAsync(occurrences[0].ExternalId, new(Change(occurrences[0]) with { Details = "Alterado" }, RecurringChangeScope.All))).Succeeded);
+        Assert.True((await Entries.EditRecurringAsync(occurrences[0].ExternalId, new(Change(occurrences[0]) with { Details = "Alterado" }, RecurringEditScope.All))).Succeeded);
     }
 
     [Fact]
