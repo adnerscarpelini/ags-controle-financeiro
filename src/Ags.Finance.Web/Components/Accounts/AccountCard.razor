@@ -1,0 +1,67 @@
+@* Card de uma conta: logo e nome, saldos vindos do caso de uso e ações. *@
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+
+<article class="entity-card @(Account.IsActive ? null : "entity-card-archived")" data-account-card="@Account.Name">
+    <header class="entity-card-head">
+        @if (Bank is not null) { <BankLogo Bank="Bank" /> }
+        <h2 class="catalog-color color-@Account.Color">@Account.Name</h2>
+        @if (!Account.IsActive) { <span class="tag" data-archived-tag>Arquivada</span> }
+        <div data-account-menu>
+            <MudMenu Icon="@Icons.Material.Outlined.MoreVert" AriaLabel="@($"Ações da conta {Account.Name}")" Size="Size.Small" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                @if (Account.IsActive)
+                {
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Edit" OnClick="() => Edit.InvokeAsync()">Editar</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Outlined.SwapHoriz" OnClick="() => Transfers.InvokeAsync()">Transferências</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Tune" OnClick="() => Adjust.InvokeAsync()">Ajustar saldo</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Archive" OnClick="() => ToggleArchive.InvokeAsync()">Arquivar</MudMenuItem>
+                }
+                else
+                {
+                    <MudMenuItem Icon="@Icons.Material.Outlined.SwapHoriz" OnClick="() => Transfers.InvokeAsync()">Transferências</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Unarchive" OnClick="() => ToggleArchive.InvokeAsync()">Restaurar</MudMenuItem>
+                }
+            </MudMenu>
+        </div>
+    </header>
+    <dl class="entity-card-values">
+        <div><dt>Saldo atual</dt><dd class="numeric @ValueClass(Forecast?.CurrentBalance)" data-current-balance>@(Forecast?.CurrentBalance.ToString() ?? Money.Zero.ToString())</dd></div>
+        <div><dt>Saldo previsto <HelpTip Text="Saldo atual com as pendências do mês desta conta." /></dt><dd class="numeric @ValueClass(Forecast?.ForecastBalance)" data-forecast-balance>@(Forecast?.ForecastBalance.ToString() ?? Money.Zero.ToString())</dd></div>
+    </dl>
+    @if (Account.IsActive)
+    {
+        <footer class="entity-card-foot">
+            <button type="button" class="link-button" data-add-expense @onclick="() => AddExpense.InvokeAsync()">Adicionar despesa</button>
+        </footer>
+    }
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public AccountDetails Account { get; set; } = default!;
+
+    [Parameter]
+    public BankDetails? Bank { get; set; }
+
+    [Parameter]
+    public BalanceForecast? Forecast { get; set; }
+
+    [Parameter]
+    public EventCallback AddExpense { get; set; }
+
+    [Parameter]
+    public EventCallback Edit { get; set; }
+
+    [Parameter]
+    public EventCallback Transfers { get; set; }
+
+    [Parameter]
+    public EventCallback Adjust { get; set; }
+
+    [Parameter]
+    public EventCallback ToggleArchive { get; set; }
+
+    // A cor reforça, mas o sinal de menos vem do próprio valor.
+    private static string ValueClass(Money? value) => value is { IsNegative: true } ? "entry-expense" : "entry-income";
+}

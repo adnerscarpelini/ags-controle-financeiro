@@ -699,3 +699,20 @@ a:hover {
 .review-list > div { display: flex; justify-content: space-between; gap: var(--space-3); }
 .review-list dt { color: var(--color-text-secondary); }
 .review-list dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+/* Cards de conta e cartão */
+.split { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--space-4); }
+.split-main { flex: 999 1 520px; min-width: 0; }
+.split-aside { display: flex; flex: 1 1 240px; flex-direction: column; gap: var(--space-3); min-width: 0; }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: var(--space-3); }
+.entity-card { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); min-width: 0; }
+.entity-card-archived { border-style: dashed; }
+.entity-card-head { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.entity-card-head h2 { flex: 1; min-width: 0; margin: 0; font-size: 1rem; overflow-wrap: anywhere; }
+.entity-card-values { display: grid; gap: var(--space-2); margin: 0; }
+.entity-card-values > div { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.entity-card-values dt { display: flex; align-items: center; gap: var(--space-1); color: var(--color-text-secondary); font-size: .875rem; }
+.entity-card-values dd { margin: 0; font-weight: 600; }
+.entity-card-foot { padding-top: var(--space-1); border-top: 1px solid var(--color-border); text-align: right; }
+.add-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); min-height: 180px; padding: var(--space-4); border: 1px dashed var(--color-border); border-radius: var(--radius); background: transparent; color: var(--color-accent-hover); font: inherit; font-weight: 600; cursor: pointer; }
+.add-card:hover { background: var(--color-surface); }

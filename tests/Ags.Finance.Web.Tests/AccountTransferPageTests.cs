@@ -5,7 +5,6 @@ using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
 using Ags.Finance.Tests.Support;
 using Ags.Finance.Web.Components.Entries;
-using Ags.Finance.Web.Components.Pages;
 using Bunit;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
@@ -50,53 +49,6 @@ public sealed class AccountTransferPageTests
         var destination = await accounts.SaveAccountAsync(new(null, bank.ExternalId.Value, "Reserva Exemplo", AccountKind.Investment, "green"));
         context.Render<MudPopoverProvider>();
         return new(context, database, context.Render<MudDialogProvider>(), source.ExternalId!.Value, destination.ExternalId!.Value);
-    }
-
-    [Fact]
-    public async Task TransferRequiresConfirmationAndDisplaysBothLegsAndBalances()
-    {
-        await using var scenario = await CreateAsync();
-        var page = scenario.Context.Render<AccountTransfers>();
-        page.WaitForAssertion(() => Assert.Contains("R$ 1.000,00", page.Markup, StringComparison.Ordinal));
-        await page.Find("[data-new-transfer]").ClickAsync(new MouseEventArgs());
-        await scenario.FillAsync();
-
-        _ = scenario.Dialogs.Find("#transfer-form").SubmitAsync(EventArgs.Empty);
-        scenario.Dialogs.WaitForAssertion(() => Assert.Contains("R$ 300,00", scenario.Dialogs.Find(".confirm-message").TextContent, StringComparison.Ordinal));
-        await scenario.Dialogs.Find("[data-confirm-cancel]").ClickAsync(new MouseEventArgs());
-        scenario.Dialogs.WaitForAssertion(() => Assert.Empty(scenario.Dialogs.FindAll(".confirm-message")));
-        Assert.Empty(await scenario.Movements.GetAsync());
-
-        scenario.Dialogs.WaitForAssertion(() => Assert.False(scenario.Dialogs.Find("[data-save]").HasAttribute("disabled")));
-        _ = scenario.Dialogs.Find("#transfer-form").SubmitAsync(EventArgs.Empty);
-        scenario.Dialogs.WaitForAssertion(() => Assert.NotEmpty(scenario.Dialogs.FindAll("[data-confirm-ok]")));
-        await scenario.Dialogs.Find("[data-confirm-ok]").ClickAsync(new MouseEventArgs());
-
-        scenario.Dialogs.WaitForAssertion(() => Assert.Empty(scenario.Dialogs.FindAll("#transfer-form")));
-        page.WaitForAssertion(() => Assert.Equal(2, page.FindAll("[aria-label='Movimentações de contas'] li").Count));
-        Assert.Contains("R$ 700,00", page.Markup, StringComparison.Ordinal);
-        Assert.Equal(2, (await scenario.Movements.GetAsync()).Count);
-    }
-
-    [Fact]
-    public async Task BalanceAdjustmentShowsTheDifferenceAndCanBeCancelledBeforeConfirming()
-    {
-        await using var scenario = await CreateAsync();
-        var page = scenario.Context.Render<AccountTransfers>();
-        page.WaitForAssertion(() => Assert.Contains("R$ 1.000,00", page.Markup, StringComparison.Ordinal));
-        page.Find("#adjust-account").Change(scenario.Source.ToString());
-        page.Find("#adjust-balance").Change("1150");
-
-        await page.Find("#balance-adjustment").SubmitAsync(EventArgs.Empty);
-        Assert.Contains("R$ 1.000,00", page.Find("[aria-label='Confirmar ajuste de saldo']").TextContent, StringComparison.Ordinal);
-        Assert.Contains("R$ 150,00", page.Find("[aria-label='Confirmar ajuste de saldo']").TextContent, StringComparison.Ordinal);
-        page.FindAll("[aria-label='Confirmar ajuste de saldo'] button")[1].Click();
-        Assert.Empty(await scenario.Movements.GetAsync());
-        await page.Find("#balance-adjustment").SubmitAsync(EventArgs.Empty);
-        await page.Find("[aria-label='Confirmar ajuste de saldo'] button").ClickAsync(new MouseEventArgs());
-
-        Assert.Single(await scenario.Movements.GetAsync());
-        Assert.Contains("Ajuste de saldo", page.Find("[aria-label='Movimentações de contas']").TextContent, StringComparison.Ordinal);
     }
 
     [Fact]

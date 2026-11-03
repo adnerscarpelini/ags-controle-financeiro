@@ -1,0 +1,102 @@
+@* Ajuste de saldo em dois passos: informa o saldo correto, confere a diferença e confirma. *@
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+@inject IEntryCatalog Entries
+@inject IAccountMovementCatalog Movements
+@inject TimeProvider Clock
+@inject EntryChangeNotifier Notifier
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        @if (_review is { } review)
+        {
+            <div class="entry-column" aria-label="Confirmar ajuste de saldo">
+                <p class="form-note">@Account.Name · @review.Date.ToString("dd/MM/yyyy")</p>
+                <dl class="review-list" data-adjustment-review>
+                    <div><dt>Saldo calculado</dt><dd>@review.ExpectedBalance</dd></div>
+                    <div><dt>Saldo correto</dt><dd>@review.CorrectBalance</dd></div>
+                    <div><dt>Diferença</dt><dd>@(review.CorrectBalance - (review.ExpectedBalance ?? Money.Zero))</dd></div>
+                </dl>
+                <p class="form-note">O ajuste preserva a abertura e os movimentos anteriores. Correções são feitas por um novo ajuste.</p>
+            </div>
+        }
+        else
+        {
+            <form id="balance-adjustment" class="entry-column" @onsubmit="AskAsync" @onsubmit:preventDefault>
+                <p class="form-note">@Account.Name</p>
+                <div class="field"><label for="adjust-date">Data de referência</label><input id="adjust-date" class="input" type="date" @bind="_date" required /></div>
+                <MoneyField Id="adjust-balance" Label="Saldo correto" @bind-Value="_correctBalance" Min="decimal.MinValue" AutoFocus="true" />
+            </form>
+        }
+        @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-cancel Disabled="@_busy" OnClick="() => Dialog?.Cancel()">Cancelar</MudButton>
+        @if (_review is not null)
+        {
+            <MudButton data-review-back Disabled="@_busy" OnClick="() => _review = null">Voltar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" data-confirm-ok Disabled="@_busy" OnClick="ConfirmAsync">Confirmar ajuste</MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" form="balance-adjustment" data-review Disabled="@_busy">Conferir ajuste</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public AccountDetails Account { get; set; } = default!;
+
+    private DateOnly _date;
+    private decimal _correctBalance;
+    private BalanceAdjustmentRequest? _review;
+    private bool _busy;
+    private string? _error;
+
+    protected override void OnInitialized() => _date = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+
+    private async Task AskAsync()
+    {
+        if (_busy) { return; }
+        _busy = true;
+        _error = null;
+        try
+        {
+            var balance = await Entries.GetBalanceAsync(Account.ExternalId, _date);
+            if (balance is null)
+            {
+                _error = "Selecione uma conta cadastrada.";
+                return;
+            }
+
+            _review = new(Guid.CreateVersion7(), Account.ExternalId, _date, new Money(_correctBalance), balance.EffectiveBalance);
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task ConfirmAsync()
+    {
+        if (_busy || _review is not { } request) { return; }
+        _busy = true;
+        try
+        {
+            var result = await Movements.AdjustBalanceAsync(request);
+            if (!result.Succeeded)
+            {
+                _error = result.Error;
+                return;
+            }
+
+            Notifier.Notify();
+            Snackbar.Add(request.CorrectBalance == request.ExpectedBalance ? "Sem diferença. Nenhum lançamento foi criado." : "Ajuste de saldo registrado.", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(true));
+        }
+        finally { _busy = false; }
+    }
+}

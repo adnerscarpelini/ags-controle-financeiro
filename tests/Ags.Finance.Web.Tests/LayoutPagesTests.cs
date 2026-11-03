@@ -12,6 +12,7 @@ public sealed partial class LayoutPagesTests : IDisposable
     public static TheoryData<string, string> Sections => new()
     {
         { "lancamentos", "Lançamentos" },
+        { "contas", "Contas" },
         { "faturas", "Faturas" },
         { "anexos", "Anexos" },
         { "reembolsos", "Reembolsos" },
@@ -64,12 +65,22 @@ public sealed partial class LayoutPagesTests : IDisposable
     [Theory]
     [InlineData("/faturas", "/compromissos")]
     [InlineData("/faturas", "/cashback")]
-    [InlineData("/cadastros/contas-cartoes", "/transferencias")]
     public async Task ScreensWithoutAMenuItemAreLinkedFromARelatedScreen(string page, string target)
     {
         var html = await GetHtmlAsync(page);
 
         Assert.Contains($"href=\"{target}\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task TheOldTransfersRouteRedirectsToAccounts()
+    {
+        using var browser = await _factory.CreateSignedInBrowserAsync();
+
+        using var response = await browser.GetAsync("/transferencias");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.EndsWith("/contas", response.Headers.Location?.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]

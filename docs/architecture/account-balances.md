@@ -46,3 +46,7 @@ Ajustar saldo calcula a diferença pelo mesmo IEntryCatalog, dentro da transaç�
 AccountMovement conserva o saldo-alvo e a diferença, sem alterar a abertura.
 A configuração de prévia permite rejeitar um saldo que mudou antes da confirmação.
 O histórico de ajustes é preservado; correções são novos movimentos.
+
+## Saldo previsto
+
+`IEntryCatalog.GetBalanceForecastAsync` devolve o saldo atual, as pendências do mês fora do cartão e a soma das duas, por conta ou, sem conta, das contas ativas ([#99](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/99), com a definição da [#95](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/95)). As telas mostram esse valor e não somam nada por conta própria.
