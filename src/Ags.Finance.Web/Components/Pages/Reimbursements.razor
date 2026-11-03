@@ -1,3 +1,136 @@
 @page "/reembolsos"
+@using System.Globalization
+@using Ags.Finance.Modules.Reimbursements.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+@inject IPersonCatalog People
+@inject ISharingRuleCatalog Rules
+@inject ISavedFilterCatalog SavedFilters
 
 <PageHeader Title="Reembolsos" />
+@if (_message is not null) { <p role="status">@_message</p> }
+<section class="panel">
+    <h2>@(_personId is null ? "Nova pessoa" : "Editar pessoa")</h2>
+    <form @onsubmit="SavePersonAsync" @onsubmit:preventDefault>
+        <div class="catalog-fields">
+            <div class="field"><label for="person-name">Nome</label><input id="person-name" @bind="_personName" maxlength="100" required /></div>
+            <div class="field"><label for="person-payer">Descrição do pagador nos recebimentos (opcional)</label><input id="person-payer" @bind="_personPayer" maxlength="100" /></div>
+        </div>
+        <button class="button" disabled="@_busy">Salvar pessoa</button>
+        <button class="button" type="button" @onclick="ResetPerson">Limpar</button>
+    </form>
+    <ul class="catalog-list">
+        @foreach (var person in _people)
+        {
+            <li><span>@person.Name · pagador: @person.PayerDescription</span>
+                <button class="button" @onclick="() => EditPerson(person)">Editar</button>
+                <button class="button" @onclick="() => DeletePersonAsync(person.ExternalId)" disabled="@_busy">Excluir</button>
+            </li>
+        }
+    </ul>
+</section>
+<section class="panel">
+    <h2>@(_ruleId is null ? "Nova regra de rateio" : "Editar regra de rateio")</h2>
+    <p>A regra usa sempre os critérios atuais do filtro salvo, em qualquer mês consultado.</p>
+    <form @onsubmit="SaveRuleAsync" @onsubmit:preventDefault>
+        <div class="catalog-fields">
+            <div class="field"><label for="rule-person">Pessoa</label><select id="rule-person" @bind="_rulePerson">
+                <option value="@Guid.Empty">Selecione</option>@foreach (var person in _people) { <option value="@person.ExternalId">@person.Name</option> }
+            </select></div>
+            <div class="field"><label for="rule-filter">Filtro salvo</label><select id="rule-filter" @bind="_ruleFilter">
+                <option value="@Guid.Empty">Selecione</option>@foreach (var filter in _filters) { <option value="@filter.ExternalId">@filter.Name</option> }
+            </select></div>
+            <div class="field"><label for="rule-percent">Percentual (0 a 100)</label><input id="rule-percent" type="number" step="0.01" min="0" max="100" @bind="_rulePercent" required /></div>
+            <div class="field"><label for="rule-start">Mês inicial</label><input id="rule-start" type="month" value="@_ruleStart" @onchange="args => _ruleStart = args.Value?.ToString() ?? string.Empty" required /></div>
+        </div>
+        <button class="button" disabled="@_busy">Salvar regra</button>
+        <button class="button" type="button" @onclick="ResetRule">Limpar</button>
+    </form>
+    <ul class="catalog-list">
+        @foreach (var rule in _rules)
+        {
+            <li><span>@PersonName(rule.PersonExternalId) · @rule.SavedFilterName · @rule.Percent.ToString("0.##", CultureInfo.GetCultureInfo("pt-BR"))% · desde @rule.StartMonth</span>
+                <button class="button" @onclick="() => EditRule(rule)">Editar</button>
+                <button class="button" @onclick="() => DeleteRuleAsync(rule.ExternalId)" disabled="@_busy">Excluir</button>
+            </li>
+        }
+    </ul>
+</section>
+
+@code {
+    private IReadOnlyList<PersonDetails> _people = [];
+    private IReadOnlyList<SharingRuleDetails> _rules = [];
+    private IReadOnlyList<SavedFilterDetails> _filters = [];
+    private string? _message;
+    private bool _busy;
+    private Guid? _personId;
+    private string _personName = string.Empty;
+    private string _personPayer = string.Empty;
+    private Guid? _ruleId;
+    private Guid _rulePerson;
+    private Guid _ruleFilter;
+    private decimal _rulePercent = 100;
+    private string _ruleStart = string.Empty;
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        _people = await People.GetAsync();
+        _rules = await Rules.GetAsync();
+        _filters = await SavedFilters.GetAsync();
+    }
+
+    private string PersonName(Guid id) => _people.FirstOrDefault(x => x.ExternalId == id)?.Name ?? "Pessoa removida";
+
+    private void EditPerson(PersonDetails person) { _personId = person.ExternalId; _personName = person.Name; _personPayer = person.PayerDescription; }
+    private void ResetPerson() { _personId = null; _personName = string.Empty; _personPayer = string.Empty; }
+
+    private void EditRule(SharingRuleDetails rule)
+    {
+        _ruleId = rule.ExternalId; _rulePerson = rule.PersonExternalId; _ruleFilter = rule.SavedFilterExternalId; _rulePercent = rule.Percent;
+        _ruleStart = $"{rule.StartMonth.Year:0000}-{rule.StartMonth.Month:00}";
+    }
+
+    private void ResetRule() { _ruleId = null; _rulePerson = Guid.Empty; _ruleFilter = Guid.Empty; _rulePercent = 100; _ruleStart = string.Empty; }
+
+    private async Task SavePersonAsync()
+    {
+        await RunAsync(async () =>
+        {
+            var result = await People.SaveAsync(_personId, _personName, _personPayer);
+            if (result.Succeeded) { ResetPerson(); }
+            return result;
+        }, "Pessoa salva.");
+    }
+
+    private async Task DeletePersonAsync(Guid id) => await RunAsync(() => People.DeleteAsync(id), "Pessoa excluída.");
+
+    private async Task SaveRuleAsync()
+    {
+        if (!DateOnly.TryParseExact(_ruleStart + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        {
+            _message = "Informe um mês inicial válido."; return;
+        }
+        await RunAsync(async () =>
+        {
+            var result = await Rules.SaveAsync(_ruleId, _rulePerson, _ruleFilter, _rulePercent, AccountingMonth.FromDate(date));
+            if (result.Succeeded) { ResetRule(); }
+            return result;
+        }, "Regra salva.");
+    }
+
+    private async Task DeleteRuleAsync(Guid id) => await RunAsync(() => Rules.DeleteAsync(id), "Regra excluída.");
+
+    private async Task RunAsync(Func<Task<ReimbursementResult>> action, string success)
+    {
+        _busy = true;
+        try
+        {
+            var result = await action();
+            _message = result.Succeeded ? success : result.Error;
+            await ReloadAsync();
+        }
+        finally { _busy = false; }
+    }
+}
