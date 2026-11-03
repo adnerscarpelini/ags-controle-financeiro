@@ -510,3 +510,9 @@ a:hover {
 .heat-map .heat-sub { padding-left: var(--space-6, 24px); font-weight: 400; color: var(--color-text-secondary); }
 .heat-map .heat-selected { font-weight: 700; }
 .heat-map .heat-separator th { text-align: left; color: var(--color-text-secondary); }
+
+/* App instalado no celular (tela cheia): respeita a área segura do aparelho */
+@media (display-mode: standalone) {
+    body { padding-bottom: env(safe-area-inset-bottom); }
+    .topbar { padding-top: calc(var(--space-2) + env(safe-area-inset-top)); }
+}

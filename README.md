@@ -18,9 +18,10 @@ fechamento e reabertura de faturas, compras parceladas e séries mensais previst
 Há cadastro e histórico anual de cashback/desconto, com abatimento das faturas.
 Pagamentos têm débito atômico e quitação explícita, com consulta de saldos e parcelas futuras. Ajustes de fatura preservam compras e pagamentos; antecipação move as últimas parcelas futuras para a fatura atual.
 Contas/cartões têm arquivamento reversível, logos locais com recorte circular e carteira visual responsiva.
-Reembolsos ainda têm entregas abertas nas issues.
+Reembolsos têm pessoas, regras de rateio por filtro salvo, apuração mensal e registro de recebimento. O dashboard mostra resumo do mês, categorias contra a média, faturas por cartão, mapa de calor e pendências dos próximos sete dias.
+A aplicação pode ser instalada como PWA no celular (validação em aparelho e na rede local ainda pendente).
 
-Importação/exportação serão somente por **CSV no layout oficial do sistema**.
+Importação/exportação são somente por **CSV no layout oficial do sistema** (cadastros e lançamentos).
 Não há escopo de PDF, OFX, XLSX, layouts bancários ou migração da antiga planilha.
 Backup completo e recuperação usam o fluxo PostgreSQL aprovado, separado do CSV.
 
