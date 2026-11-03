@@ -7,7 +7,7 @@ aplicação no celular como um app: ícone na tela inicial e tela cheia, sem a b
 
 | Peça | Arquivo | Função |
 | --- | --- | --- |
-| Manifesto | `wwwroot/manifest.webmanifest` | Nome, `display: standalone`, `start_url` e escopo `/`, `background_color` = token `Background` (`#0E1311`), `theme_color` = token `Accent` (`#10B981`), ícones 192, 512 e maskable 512. |
+| Manifesto | `wwwroot/manifest.webmanifest` | Nome, `display: standalone`, `start_url` e escopo `/`, `background_color` = token `Background` (`#121212`), `theme_color` = token `Accent` (`#10B981`), ícones 192, 512 e maskable 512. |
 | Ícones | `wwwroot/img/icon-*.png`, `apple-touch-icon.png` | Gerados do logo do projeto sobre o fundo `Background`; o maskable usa margem para a área segura. |
 | Service worker | `wwwroot/sw.js` | Mínimo: só trata navegações e, se o servidor não responde, mostra a página offline. Não guarda nem serve dados; páginas, circuito e recursos vão sempre ao servidor. |
 | Página offline | `wwwroot/offline.html` | "Não encontrei o servidor", com o motivo provável e o botão de tentar de novo. Usa `tokens.css`, guardado no cache só para isso. |

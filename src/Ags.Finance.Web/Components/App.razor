@@ -16,6 +16,10 @@
     <base href="/" />
     <link rel="icon" type="image/png" sizes="64x64" href="img/favicon.png" />
     <link rel="preload" href="fonts/inter-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
+    @if (PageRenderMode is not null)
+    {
+        <link rel="stylesheet" href="_content/MudBlazor/MudBlazor.min.css" />
+    }
     <link rel="stylesheet" href="css/tokens.css" />
     <link rel="stylesheet" href="css/app.css" />
     <script src="js/privacy.js"></script>
@@ -25,6 +29,11 @@
 <body>
     <Routes @rendermode="PageRenderMode" />
     <script src="_framework/blazor.web.js"></script>
+    @if (PageRenderMode is not null)
+    {
+        <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    }
+    <script src="js/viewport.js"></script>
     <script src="js/keyboard-shortcuts.js"></script>
     <script src="js/pwa.js"></script>
     <script src="js/theme.js"></script>

@@ -54,6 +54,7 @@ Requisitos, critérios de aceite e dúvidas permanecem nas issues.
 - [Persistência PostgreSQL — implementada (#60)](architecture/persistence-postgresql.md)
 - [SharedKernel](architecture/shared-kernel.md)
 - [Design da interface](architecture/ui-design.md)
+- [Biblioteca de componentes: MudBlazor (#95)](architecture/ui-library.md)
 - [Hospedagem e distribuição Docker — implementada (#59)](architecture/web-hosting.md)
 - [Consistência financeira — decisões e fronteiras de domínio](architecture/financial-consistency.md)
 - [Reembolsos — modelo e fronteiras](architecture/reimbursements.md)

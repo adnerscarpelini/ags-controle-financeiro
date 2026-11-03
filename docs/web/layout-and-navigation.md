@@ -8,7 +8,9 @@ Origem: [#5](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/5
 - As sete seções usam `/lancamentos`, `/faturas`, `/cashback`, `/reembolsos`, `/dashboard`, `/cadastros` e `/configuracoes`. A raiz `/` redireciona para `/dashboard`. Cadastros já acessa Contas e cartões (#6–#8); Configurações tem certificado e troca de senha. As demais páginas de negócio ainda são placeholders.
 - Abaixo de 768 px o menu vira uma gaveta: some da tela, abre pelo botão da barra superior e fecha ao escolher um item ou tocar na película escura. O conteúdo ocupa a largura inteira e não há rolagem horizontal. Itens e botão têm pelo menos 44 px de altura.
 - A cultura da aplicação é `pt-BR` em todos os circuitos (`Program.cs`): `R$ 1.234,56` e `dd/MM/yyyy`, independentemente da cultura do sistema ou do navegador.
-- Nada vem da internet: CSS, fonte Inter e ícones (SVG embutidos) são servidos pela própria aplicação.
+- Nada vem da internet: CSS, JS e ícones do [MudBlazor](../architecture/ui-library.md), fonte Inter e demais recursos são servidos pela própria aplicação.
+- A estrutura usa `MudLayout`, `MudAppBar`, `MudDrawer` e `MudMainContent`. A barra superior só aparece abaixo de 768 px; a película da gaveta é a da biblioteca.
+- O tema do MudBlazor acompanha a preferência: `ThemeState` avisa o layout ao salvar em Configurações, e o modo automático segue o sistema (#95).
 
 ## Arquivos
 
@@ -18,7 +20,11 @@ Origem: [#5](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/5
 | `wwwroot/css/app.css` | Estilos de estrutura e de componentes, só com `var(--...)`. Inclui `.numeric` (dígitos tabulares, alinhado à direita), `.income` e `.expense`. |
 | `wwwroot/fonts/inter-latin-variable.woff2` | Inter variável (subconjunto latino), licença OFL em `Inter-LICENSE.txt`. |
 | `wwwroot/img/favicon.png` | Favicon e marca do menu, gerado a partir do `logo.png` da raiz (64 × 64). |
-| `Components/Layout/MainLayout.razor` | Estrutura com barra superior, película, menu e conteúdo; guarda o estado da gaveta. |
+| `Components/Layout/MainLayout.razor` | Provedores do MudBlazor e estrutura com barra superior, menu e conteúdo; guarda o estado da gaveta e o tema. |
+| `Components/Layout/AppTheme.cs` | `MudTheme` com os mesmos valores de `tokens.css`. |
+| `Components/Layout/ViewportState.cs` e `wwwroot/js/viewport.js` | Informam se a tela está na largura do celular. |
+| `Components/HelpTip.razor` | Ajuda com mouse, teclado e toque. |
+| `Components/Common/EmptyState.razor` e `ConfirmDialog.razor` | Estado vazio e confirmação padrão. |
 | `Components/Layout/NavMenu.razor` | Lista de seções (rota, rótulo, ícone) e `NavLink`s. |
 | `Components/PageHeader.razor` | Título da página (`<PageTitle>` e `<h1>`), usado por todas as seções. |
 | `Components/Pages/*.razor` | Uma página por seção. |
@@ -31,7 +37,9 @@ Origem: [#5](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/5
 ## Testes
 
 - `LayoutPagesTests` (Web): cada seção mostra o título e destaca só o próprio item; `/` redireciona; favicon declarado; nenhuma referência externa nas páginas e nos CSS; ativos estáticos servidos.
-- `MainLayoutTests` (bUnit): a gaveta começa fechada, abre pelo botão, fecha pelo botão, pela película e ao escolher um item.
+- `MainLayoutTests` (bUnit): a gaveta começa fechada no celular, abre pelo botão, fecha pelo botão, pela película e ao escolher um item; provedores presentes; o tema acompanha a preferência e o sistema.
+- `CommonComponentsTests` (bUnit): `HelpTip` com teclado, toque e mouse; `EmptyState`; `ConfirmDialog` pelo `IDialogService`, confirmando e cancelando.
+- `AppThemeTests`: `AppTheme` e `tokens.css` têm os mesmos valores.
 - `CultureTests`: cultura `pt-BR`, `R$ 1.234,56` e `05/01/2027`.
 - `UiTokensTests` (arquitetura): sem cores literais fora de `tokens.css`; a paleta documentada está nos tokens.
 

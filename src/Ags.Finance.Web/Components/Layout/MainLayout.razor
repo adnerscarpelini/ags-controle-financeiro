@@ -1,38 +1,134 @@
 @inherits LayoutComponentBase
+@implements IAsyncDisposable
+@using Ags.Finance.Modules.Preferences.Contracts
+@using Microsoft.JSInterop
+@inject IPreferences Preferences
+@inject ThemeState Theme
+@inject ViewportState Viewport
+@inject IJSRuntime Js
 
-<div class="app-shell @(_drawerOpen ? "drawer-open" : null)">
-    <header class="topbar">
-        <button type="button" class="icon-button" aria-label="Abrir menu" aria-controls="sidebar"
-                aria-expanded="@(_drawerOpen ? "true" : "false")" @onclick="ToggleDrawer">
-            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-        </button>
-        <span>AGS Finanças</span>
+<MudThemeProvider @ref="_themeProvider" Theme="AppTheme.Instance" IsDarkMode="_isDarkMode" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout Class="app-shell">
+    <MudAppBar Class="topbar" Elevation="0" Fixed="true">
+        <MudIconButton Icon="@Icons.Material.Outlined.Menu" Class="icon-button" aria-label="Abrir menu" aria-controls="sidebar"
+                       aria-expanded="@(_drawerOpen ? "true" : "false")" OnClick="ToggleDrawer" />
+        <span class="topbar-title">AGS Finanças</span>
         <PrivacyToggle Class="icon-button privacy-toggle" />
-    </header>
+    </MudAppBar>
 
-    <div class="scrim" @onclick="CloseDrawer"></div>
-
-    <aside id="sidebar" class="sidebar">
+    <MudDrawer id="sidebar" Class="sidebar" Elevation="0" Variant="@(Viewport.IsMobile ? DrawerVariant.Temporary : DrawerVariant.Persistent)"
+               Open="@(!Viewport.IsMobile || _drawerOpen)" OpenChanged="DrawerOpenChanged">
         <NavMenu OnNavigate="CloseDrawer" />
-    </aside>
+    </MudDrawer>
 
-    <main class="content">
-        @Body
-    </main>
-</div>
+    <MudMainContent Class="app-main">
+        <main class="content">
+            @Body
+        </main>
+    </MudMainContent>
+</MudLayout>
 
 @code {
+    private MudThemeProvider? _themeProvider;
+    private DotNetObjectReference<MainLayout>? _reference;
+    private ThemePreference _theme;
+    private bool _isDarkMode = true;
+    private bool _systemIsDark = true;
     private bool _drawerOpen;
 
-    private void ToggleDrawer()
+    protected override async Task OnInitializedAsync()
     {
-        _drawerOpen = !_drawerOpen;
+        Theme.Changed += ThemeChanged;
+        Viewport.Changed += ViewportStateChanged;
+        _theme = (await Preferences.GetAsync()).Theme;
+        _isDarkMode = _theme != ThemePreference.Light;
     }
 
-    private void CloseDrawer()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _reference = DotNetObjectReference.Create(this);
+        Viewport.Set(await Js.InvokeAsync<bool>("agsViewport.watch", _reference));
+        if (_themeProvider is not null)
+        {
+            await _themeProvider.WatchSystemDarkModeAsync(SystemThemeChangedAsync);
+            _systemIsDark = await _themeProvider.GetSystemDarkModeAsync();
+        }
+
+        ApplyTheme();
+    }
+
+    [JSInvokable]
+    public void ViewportChanged(bool isMobile) => Viewport.Set(isMobile);
+
+    private void ThemeChanged(ThemePreference theme)
+    {
+        _theme = theme;
+        _ = InvokeAsync(ApplyTheme);
+    }
+
+    private Task SystemThemeChangedAsync(bool isDark)
+    {
+        _systemIsDark = isDark;
+        ApplyTheme();
+        return Task.CompletedTask;
+    }
+
+    private void ApplyTheme()
+    {
+        _isDarkMode = _theme switch
+        {
+            ThemePreference.Light => false,
+            ThemePreference.Auto => _systemIsDark,
+            _ => true,
+        };
+        StateHasChanged();
+    }
+
+    private void ViewportStateChanged()
     {
         _drawerOpen = false;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private void CloseDrawer() => _drawerOpen = false;
+
+    private void DrawerOpenChanged(bool open)
+    {
+        if (Viewport.IsMobile)
+        {
+            _drawerOpen = open;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Theme.Changed -= ThemeChanged;
+        Viewport.Changed -= ViewportStateChanged;
+        if (_reference is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await Js.InvokeVoidAsync("agsViewport.unwatch", _reference);
+        }
+        catch (JSDisconnectedException)
+        {
+            // O circuito já caiu: o navegador descartou o ouvinte junto com a página.
+        }
+
+        _reference.Dispose();
     }
 }

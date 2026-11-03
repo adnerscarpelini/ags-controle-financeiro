@@ -1,0 +1,38 @@
+@* Ajuda curta ao lado de um rótulo, com mouse, teclado e toque. A abertura é controlada aqui porque o ShowOnClick da
+   biblioteca alterna no pointerup: no toque, o pointerenter abre e o pointerup fecha logo em seguida. *@
+<MudTooltip Text="@Text" ShowOnHover="false" ShowOnFocus="false" ShowOnClick="false" Visible="_open" Arrow="true" Placement="Placement" RootClass="help-tip">
+    <button type="button" class="help-tip-button" aria-label="@($"Ajuda: {Text}")"
+            @onpointerenter="PointerEntered" @onpointerleave="PointerLeft" @onfocusin="Open" @onfocusout="Close" @onclick="Open" @onclick:stopPropagation="true">
+        <MudIcon Icon="@Icons.Material.Outlined.HelpOutline" Size="Size.Small" aria-hidden="true" />
+    </button>
+</MudTooltip>
+
+@code {
+    private bool _open;
+
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = string.Empty;
+
+    [Parameter]
+    public Placement Placement { get; set; } = Placement.Top;
+
+    private void PointerEntered(PointerEventArgs args)
+    {
+        if (args.PointerType == "mouse")
+        {
+            _open = true;
+        }
+    }
+
+    private void PointerLeft(PointerEventArgs args)
+    {
+        if (args.PointerType == "mouse")
+        {
+            _open = false;
+        }
+    }
+
+    private void Open() => _open = true;
+
+    private void Close() => _open = false;
+}

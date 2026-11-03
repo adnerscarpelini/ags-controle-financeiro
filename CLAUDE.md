@@ -91,26 +91,26 @@ Não invente regras de negócio. Se uma issue não define um comportamento, perg
 
 ## Design da interface
 
-Tema **escuro por padrão** (claro e automático nas preferências), visual moderno e limpo, com um verde "dinheiro" como cor principal. Os tokens ficam como variáveis CSS num único arquivo; não use cores soltas nos componentes. A interface é responsiva: funciona no computador e no celular, e pode ser instalada como PWA. Detalhes em `docs/architecture/ui-design.md`.
+Tema **escuro por padrão** (claro e automático nas preferências), com fundo cinza neutro quase preto e visual moderno e limpo; o verde "dinheiro" é a cor de destaque. Os tokens ficam como variáveis CSS num único arquivo; não use cores soltas nos componentes. A interface é responsiva: funciona no computador e no celular, e pode ser instalada como PWA. Detalhes em `docs/architecture/ui-design.md`.
 
 | Token | Cor | Uso |
 | --- | --- | --- |
-| `Background` | `#0E1311` | fundo da janela |
-| `Surface` | `#151C19` | cards, painéis, grade |
-| `SurfaceRaised` | `#1C2521` | linha selecionada, menus, hover |
-| `Border` | `#27332E` | bordas e divisórias |
-| `TextPrimary` | `#E6EDE9` | texto principal |
-| `TextSecondary` | `#93A39B` | rótulos e texto secundário |
+| `Background` | `#121212` | fundo da janela |
+| `Surface` | `#1A1A1A` | cards, painéis, grade |
+| `SurfaceRaised` | `#242424` | linha selecionada, menus, hover |
+| `Border` | `#2E2E2E` | bordas e divisórias |
+| `TextPrimary` | `#EDEDED` | texto principal |
+| `TextSecondary` | `#A3A3A3` | rótulos e texto secundário |
 | `Accent` | `#10B981` | cor principal: botões, item ativo, foco, destaques |
 | `AccentHover` | `#34D399` | hover e estados ativos do accent |
 | `Income` | `#34D399` | receitas e valores positivos |
 | `Expense` | `#F87171` | despesas e valores negativos |
 | `Warning` | `#FBBF24` | alertas (teto estourado, fatura em aberto) |
 
-- CSS próprio com os tokens; biblioteca de componentes só se justificada numa issue. O tema é preferência do usuário (escuro, claro ou automático; ver `docs/preferences/settings.md`), mas o escuro é o padrão. Cada token é `light-dark(claro, escuro)` e todo texto mantém contraste mínimo 4,5:1 nos dois temas.
+- Componentes do **MudBlazor** ([decisão](docs/architecture/ui-library.md)), com `AppTheme` espelhando os tokens, e CSS próprio só com os tokens. O tema é preferência do usuário (escuro, claro ou automático; ver `docs/preferences/settings.md`), mas o escuro é o padrão. Cada token é `light-dark(claro, escuro)` e todo texto mantém contraste mínimo 4,5:1 nos dois temas.
 - Nada carregado de CDN: fontes, scripts e ícones são servidos pela própria aplicação.
 - Fonte Inter (servida localmente), números com dígitos tabulares e alinhados à direita. Valores em `R$ 1.234,56`, datas em `dd/MM/yyyy` (cultura `pt-BR`).
-- Cantos arredondados (8), espaçamento em múltiplos de 4, sem sombras pesadas nem gradientes.
+- Cantos mais arredondados (12 em cards e painéis, 16 em janelas), espaçamento em múltiplos de 4, sombras leves só em menus e janelas, sem gradientes.
 - O verde é a cor de marca; receitas usam o verde claro e despesas o vermelho. Não use cor como único sinal: valores negativos também levam o sinal.
 - Cores de banco só no texto, em peso normal: Itaú `#FB923C`, Nubank `#A78BFA`, Bradesco `#F87171`.
 

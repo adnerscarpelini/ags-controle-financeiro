@@ -62,34 +62,38 @@ a:hover {
     color: var(--color-expense);
 }
 
-/* Estrutura: menu lateral + conteúdo */
+/* Estrutura: menu lateral + conteúdo (MudLayout) */
 .app-shell {
-    display: grid;
-    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
     min-height: 100vh;
 }
 
-.sidebar {
-    position: sticky;
-    top: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    height: 100vh;
-    padding: var(--space-4);
-    overflow-y: auto;
-    background: var(--color-surface);
-    border-right: 1px solid var(--color-border);
+.app-main.mud-main-content {
+    padding-top: 0;
 }
 
 .content {
+    width: 100%;
+    max-width: 1360px;
     min-width: 0;
+    margin: 0 auto;
     padding: var(--space-8);
 }
 
-.topbar,
-.scrim {
+.topbar.mud-appbar {
     display: none;
+}
+
+.sidebar.mud-drawer {
+    border-right: 1px solid var(--color-border);
+}
+
+.sidebar .mud-drawer-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    height: 100%;
+    padding: var(--space-4);
+    overflow-y: auto;
 }
 
 .brand {
@@ -175,55 +179,33 @@ a:hover {
 
 /* Celular: o menu vira uma gaveta e o conteúdo ocupa a tela inteira */
 @media (max-width: 767.98px) {
-    .app-shell {
-        grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: auto 1fr;
+    .topbar.mud-appbar {
+        display: flex;
+        border-bottom: 1px solid var(--color-border);
     }
 
-    .topbar {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        display: flex;
-        align-items: center;
+    .topbar .mud-toolbar {
         gap: var(--space-3);
-        padding: var(--space-2) var(--space-4);
-        background: var(--color-surface);
-        border-bottom: 1px solid var(--color-border);
+        width: 100%;
+        padding: 0 var(--space-4);
+    }
+
+    .topbar-title {
         font-weight: 600;
     }
 
-    .sidebar {
-        position: fixed;
-        inset: 0 auto 0 0;
-        z-index: 30;
-        width: min(280px, 85vw);
-        transform: translateX(-100%);
-        visibility: hidden;
-        transition: transform 0.2s ease, visibility 0.2s;
+    .app-main.mud-main-content {
+        padding-top: var(--mud-appbar-height);
+        margin-left: 0 !important;
     }
 
-    .drawer-open .sidebar {
-        transform: none;
-        visibility: visible;
-    }
-
-    .drawer-open .scrim {
-        position: fixed;
-        inset: 0;
-        z-index: 20;
-        display: block;
-        background: var(--color-scrim);
+    /* Antes do circuito conectar, a gaveta do computador não cobre o conteúdo do celular. */
+    .sidebar.mud-drawer:not(.mud-drawer-temporary) {
+        display: none;
     }
 
     .content {
         padding: var(--space-4);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .sidebar {
-        transition: none;
     }
 }
 
@@ -559,3 +541,18 @@ a:hover {
 .monthly-plan-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .monthly-plan-preview dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 @media (max-width: 900px) { .monthly-plan-layout { grid-template-columns: minmax(0, 1fr); } .monthly-plan-cards { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); } }
+
+/* Ajuda (HelpTip) */
+.help-tip { display: inline-flex; vertical-align: middle; }
+.help-tip-button { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--color-text-secondary); cursor: help; }
+.help-tip-button:hover { color: var(--color-text-primary); }
+.help-tip-button .mud-icon-root { font-size: 16px; }
+.mud-tooltip { max-width: 280px; white-space: normal; text-align: left; }
+
+/* Estado vazio */
+.empty-state { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding: var(--space-8) var(--space-6); color: var(--color-text-secondary); text-align: center; }
+.empty-state p { margin: 0; }
+
+/* Janelas */
+.mud-dialog { border: 1px solid var(--color-border); border-radius: var(--radius-large); box-shadow: var(--shadow-raised); }
+.confirm-message { margin: 0; }

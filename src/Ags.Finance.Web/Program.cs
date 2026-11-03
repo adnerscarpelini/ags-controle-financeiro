@@ -15,10 +15,12 @@ using Ags.Finance.Web.Backup;
 using Ags.Finance.Web.BankLogos;
 using Ags.Finance.Web.Commands;
 using Ags.Finance.Web.Components;
+using Ags.Finance.Web.Components.Layout;
 using Ags.Finance.Web.Csv;
 using Ags.Finance.Web.Hosting;
 using Ags.Finance.Web.Persistence;
 using Microsoft.AspNetCore.DataProtection;
+using MudBlazor.Services;
 
 // Aplicação de um único usuário no Brasil: valores e datas saem como R$ 1.234,56 e dd/MM/yyyy
 // em todos os circuitos, independentemente da cultura do sistema ou do navegador.
@@ -101,6 +103,10 @@ builder.Services.AddScoped<AttachmentExport>();
 builder.Services.AddDataProtection()
     .SetApplicationName("ags-finance")
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(dataDirectory, "data-protection-keys")));
+
+builder.Services.AddMudServices();
+builder.Services.AddScoped<ThemeState>();
+builder.Services.AddScoped<ViewportState>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

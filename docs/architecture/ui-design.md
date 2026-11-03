@@ -2,20 +2,32 @@
 
 ## Decisão
 
-Visual moderno e limpo, com **tema escuro como padrão** e um **verde "dinheiro"** como cor principal, em Blazor. Todas as cores vêm de tokens declarados como variáveis CSS num único arquivo (`--color-accent`, `--color-background`…). A interface é responsiva e instalável como PWA (#38). O tema pode ser escuro, claro ou automático ([preferências](../preferences/settings.md)).
+Visual moderno e limpo, com **tema escuro como padrão**, fundo cinza neutro quase preto e um **verde "dinheiro"** como cor de destaque, em Blazor com [MudBlazor](ui-library.md). Todas as cores vêm de tokens declarados como variáveis CSS num único arquivo (`--color-accent`, `--color-background`…). A interface é responsiva e instalável como PWA (#38). O tema pode ser escuro, claro ou automático ([preferências](../preferences/settings.md)).
 
 **Estado:** layout, tokens e navegação implementados (issue #5); ver [layout-and-navigation.md](../web/layout-and-navigation.md).
+
+## Princípios de todas as telas
+
+Aprovados na [#95](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/95):
+
+- **Muito fácil de usar:** cada tela tem um objetivo claro e uma única ação principal em destaque.
+- **Clean, moderna e minimalista, mas poderosa:** o essencial primeiro, com filtros, opções e detalhes a um clique, sem remover funcionalidades.
+- **Textos explícitos:** títulos, menus e botões dizem o que fazem, como "Nova despesa", e evitam termos técnicos.
+- **Ícones com significado:** sempre com rótulo visível nos menus. Botão só com ícone exige tooltip e nome acessível.
+- **Tooltip em tudo que possa gerar dúvida:** campos, situações, totais e ações com efeito financeiro, com mouse, teclado e toque (`HelpTip`).
+- **Tabelas como padrão de consulta:** ordenação, paginação e ações por linha. Formulários abrem somente quando pedidos.
+- **Estados claros:** tela vazia com orientação e ação (`EmptyState`), carregamento, sucesso e erro em linguagem simples.
 
 ## Paleta
 
 | Token | Cor | Uso |
 | --- | --- | --- |
-| `Background` | `#0E1311` | fundo da janela |
-| `Surface` | `#151C19` | cards, painéis, grade |
-| `SurfaceRaised` | `#1C2521` | linha selecionada, menus, hover |
-| `Border` | `#27332E` | bordas e divisórias |
-| `TextPrimary` | `#E6EDE9` | texto principal |
-| `TextSecondary` | `#93A39B` | rótulos e texto secundário |
+| `Background` | `#121212` | fundo da janela |
+| `Surface` | `#1A1A1A` | cards, painéis, grade |
+| `SurfaceRaised` | `#242424` | linha selecionada, menus, hover |
+| `Border` | `#2E2E2E` | bordas e divisórias |
+| `TextPrimary` | `#EDEDED` | texto principal |
+| `TextSecondary` | `#A3A3A3` | rótulos e texto secundário |
 | `Accent` | `#10B981` | cor principal: botões, item ativo, foco |
 | `AccentHover` | `#34D399` | hover e estados ativos |
 | `Income` | `#34D399` | receitas e valores positivos |
@@ -33,7 +45,7 @@ Cores de banco, só no texto: Itaú `#FB923C`, Nubank `#A78BFA`, Bradesco `#F871
 - Abaixo de 768 px de largura, o menu lateral vira uma gaveta e o conteúdo ocupa a tela inteira. Alvos de toque com pelo menos 44 px.
 - Gráficos com uma biblioteca web escolhida na issue que os introduz, usando as mesmas cores. Valores com dígitos tabulares e alinhados à direita.
 - Cultura `pt-BR`: `R$ 1.234,56` e `dd/MM/yyyy`.
-- Cantos arredondados de 8, espaçamento em múltiplos de 4, sem sombras pesadas nem gradientes.
+- Cantos mais arredondados (12 em cards e painéis, 16 em janelas, 8 em itens menores), espaçamento em múltiplos de 4, sombras leves só em menus e janelas, sem gradientes.
 - Cor nunca é o único sinal: valores negativos também levam o sinal de menos.
 - O tema claro reaproveita os mesmos tokens: cada um é `light-dark(claro, escuro)` e `data-theme` (`dark`, `light` ou `auto`) no `<html>` escolhe o lado (#69). O escuro continua o padrão.
 - Todo texto precisa de contraste mínimo 4,5:1 (WCAG AA) nos dois temas; `UiTokensTests` verifica.
