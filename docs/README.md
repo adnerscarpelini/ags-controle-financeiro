@@ -91,3 +91,5 @@ A previsão consolidada de caixa da #58 continua pendente; efetivação e consul
 - [Documentos anexados](attachments/document-storage.md)
 
 - [Documentos de lançamentos](attachments/entry-documents.md)
+
+- [Documentos de faturas e pagamentos](attachments/invoice-documents.md)

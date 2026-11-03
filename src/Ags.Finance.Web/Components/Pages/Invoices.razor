@@ -20,7 +20,8 @@
 </section>
 @if (_message is not null) { <p role="status">@_message</p> }
 @if (_adjusting is { } adjusting) { <InvoiceTotalAdjustmentDialog @key="adjusting" Invoice="adjusting" Confirmed="AdjustmentConfirmedAsync" Cancelled="() => _adjusting = null" /> }
-@if (_paying is { } paying) { <InvoicePaymentDialog @key="paying" Invoice="paying" Confirmed="PaymentConfirmedAsync" Cancelled="() => _paying = null" /> }
+@if (_paying is { } paying) { <InvoicePaymentDialog @key="paying" Invoice="paying" Confirmed="PaymentConfirmedAsync" PaymentRecorded="ReloadInvoicesAsync" Cancelled="ClosePaymentAsync" /> }
+@if (_attachmentInvoice is { } documents) { <InvoiceAttachments @key="documents" CardExternalId="documents.CardExternalId" Month="documents.Month" /> }
 @if (_settling is { } settling)
 {
     <section class="panel" role="alertdialog" aria-label="Confirmar quitação">
@@ -63,9 +64,10 @@
                 <span>@StatusLabel(invoice.Status)</span>
                 <span class="@(invoice.RemainingBalance.IsNegative ? "invoice-credit" : string.Empty)">Em aberto: @invoice.RemainingBalance @(invoice.RemainingBalance.IsNegative ? "(crédito)" : string.Empty)</span>
                 <button class="button" @onclick="() => Select(invoice)">Ver composição</button>
+                <button class="button" @onclick="() => _attachmentInvoice = invoice">Anexos</button>
                 @if (invoice.Status == InvoiceStatus.Open) { <button class="button" @onclick="() => Ask(invoice, false)">Fechar</button> }
                 @if (invoice.Status == InvoiceStatus.Closed && !invoice.HasConfirmedPayment) { <button class="button" @onclick="() => Ask(invoice, true)">Reabrir</button> }
-                @if (invoice.Status != InvoiceStatus.Paid) { <button class="button" @onclick="() => StartPayment(invoice)">Pagar</button> }
+                @if (invoice.Status != InvoiceStatus.Paid) { <button class="button" @onclick="() => StartPayment(invoice)" disabled="@(_paying is not null)">Pagar</button> }
                 @if (invoice.Status != InvoiceStatus.Paid) { <button class="button" @onclick="() => StartAdjustment(invoice)">Ajustar valor</button> }
                 @if (invoice.Status == InvoiceStatus.Closed && invoice.RemainingBalance.Amount <= 0) { <button class="button" @onclick="() => _settling = invoice">Confirmar quitação</button> }
             </li>
@@ -111,6 +113,8 @@
     private IReadOnlyList<InvoiceDetails> _invoices = [];
     private IReadOnlyList<CreditCardDetails> _cards = [];
     private IReadOnlyList<AccountDetails> _accounts = [];
+    private InvoiceDetails? _attachmentInvoice;
+    private async Task ClosePaymentAsync() { _paying = null; await ReloadInvoicesAsync(); }
     private InvoiceDetails? _pending;
     private InvoiceDetails? _adjusting;
     private void StartAdjustment(InvoiceDetails invoice) { _pending = null; _paying = null; _settling = null; _adjusting = invoice; }
