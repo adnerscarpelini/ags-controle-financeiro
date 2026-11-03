@@ -29,3 +29,9 @@ sem regra financeira no componente. Em parcelas, a escolha é a primeira fatura 
 as seguintes são consecutivas. A antecipação registra os identificadores das parcelas
 movidas: detalhes podem mudar, mas data/cartão ficam protegidos. Registros anteriores
 à nova coluna não têm esses identificadores; dados legados não são corrigidos nesta issue.
+
+## Janela de despesa no cartão (#97)
+
+**+ Novo > Despesa cartão** abre a [janela de lançamento](cash-entries.md#janela-de-lançamento-97) com cartão e fatura no lugar de conta e Pago. A fatura aparece em opções com mês e situação: as protegidas ficam indisponíveis, e "Carregar próximas faturas" traz mais meses. Em **Mais detalhes** ficam Parcelado, Despesa fixa, final do cartão, reembolso, observação e anexo.
+
+Na edição, o campo Cartão também oferece "Sem cartão", como antes.

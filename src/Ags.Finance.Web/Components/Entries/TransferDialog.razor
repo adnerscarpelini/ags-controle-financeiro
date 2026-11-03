@@ -1,0 +1,148 @@
+@* Janela de transferência entre contas. A transferência continua pedindo confirmação antes de movimentar as contas. *@
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+@inject IAccountCatalog Accounts
+@inject IAccountMovementCatalog Movements
+@inject TimeProvider Clock
+@inject EntryChangeNotifier Notifier
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog entry-dialog">
+    <TitleContent>
+        <div class="dialog-title">
+            <h2>Nova transferência</h2>
+            <MudIconButton Icon="@Icons.Material.Outlined.Close" aria-label="Fechar" data-dialog-close OnClick="RequestCloseAsync" />
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <form id="transfer-form" class="entry-column" @onsubmit="() => SaveAsync(closeAfterSave: true)" @onsubmit:preventDefault @onkeydown="KeyDownAsync">
+            <MoneyField @ref="_amountField" Id="transfer-amount" Label="Valor" @bind-Value="_amount" Class="amount-card" AutoFocus="true" />
+            <div class="field">
+                <span class="field-label">Data</span>
+                <div class="pills">
+                    <button type="button" class="pill @(_date == Today ? "on" : null)" aria-pressed="@(_date == Today ? "true" : "false")" @onclick="() => _date = Today">Hoje</button>
+                    <button type="button" class="pill @(_date == Today.AddDays(-1) ? "on" : null)" aria-pressed="@(_date == Today.AddDays(-1) ? "true" : "false")" @onclick="() => _date = Today.AddDays(-1)">Ontem</button>
+                    <input id="transfer-date" class="input input-date" type="date" aria-label="Outra data" @bind="_date" required />
+                </div>
+            </div>
+            <div class="field">
+                <label for="transfer-source">Conta de origem <HelpTip Text="O valor sai desta conta corrente. A conta pode ficar negativa." /></label>
+                <select id="transfer-source" class="input" @bind="_source">
+                    <option value="@Guid.Empty">Selecione</option>
+                    @foreach (var account in _accounts.Where(x => x.IsActive && x.Kind == AccountKind.Checking)) { <option value="@account.ExternalId">@account.Name</option> }
+                </select>
+            </div>
+            <div class="field">
+                <label for="transfer-destination">Conta de destino <HelpTip Text="O valor entra nesta conta de investimento ou poupança. Transferência não é receita nem despesa." /></label>
+                <select id="transfer-destination" class="input" @bind="_destination">
+                    <option value="@Guid.Empty">Selecione</option>
+                    @foreach (var account in _accounts.Where(x => x.IsActive && x.Kind is AccountKind.Investment or AccountKind.Savings)) { <option value="@account.ExternalId">@account.Name</option> }
+                </select>
+            </div>
+        </form>
+        @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+        @if (_success is not null) { <p class="form-success" role="status" data-entry-success>@_success</p> }
+        @if (MissingReason is { } missing) { <p class="form-note" data-entry-missing>@missing</p> }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" data-save-new Disabled="@(!CanSave)" OnClick="() => SaveAsync(closeAfterSave: false)">Salvar e criar nova</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" form="transfer-form" data-save Disabled="@(!CanSave)">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    /// <summary>Conta de origem já escolhida, como no menu do card da conta.</summary>
+    [Parameter]
+    public Guid? SourceExternalId { get; set; }
+
+    private MoneyField? _amountField;
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private Guid _source;
+    private Guid _destination;
+    private DateOnly _date;
+    private decimal _amount;
+    private bool _busy;
+    private bool _loaded;
+    private string? _error;
+    private string? _success;
+
+    private DateOnly Today => DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+
+    private string? MissingReason
+    {
+        get
+        {
+            if (!_loaded) { return null; }
+            if (_amount <= 0) { return "Informe um valor maior que zero."; }
+            if (_source == Guid.Empty) { return "Escolha a conta de origem."; }
+            if (_destination == Guid.Empty) { return "Escolha a conta de destino."; }
+            return null;
+        }
+    }
+
+    private bool CanSave => _loaded && !_busy && MissingReason is null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _date = Today;
+        _accounts = await Accounts.GetAccountsAsync(false);
+        if (SourceExternalId is { } source && _accounts.Any(x => x.ExternalId == source && x.IsActive && x.Kind == AccountKind.Checking)) { _source = source; }
+        _loaded = true;
+    }
+
+    private string Name(Guid id) => _accounts.FirstOrDefault(x => x.ExternalId == id)?.Name ?? "Conta registrada";
+
+    private async Task SaveAsync(bool closeAfterSave)
+    {
+        if (!CanSave) { return; }
+        _busy = true;
+        _error = null;
+        _success = null;
+        try
+        {
+            var request = new TransferRequest(Guid.CreateVersion7(), _source, _destination, _date, new Money(_amount));
+            var question = $"{Name(_source)} → {Name(_destination)} · {request.Date:dd/MM/yyyy} · {request.Amount}";
+            if (!await ConfirmDialog.AskAsync(Dialogs, "Confirmar transferência", question, "Confirmar transferência")) { return; }
+            var result = await Movements.TransferAsync(request);
+            if (!result.Succeeded)
+            {
+                _error = result.Error;
+                return;
+            }
+
+            Notifier.Notify();
+            Snackbar.Add("Transferência registrada.", Severity.Success);
+            if (closeAfterSave)
+            {
+                Dialog?.Close(DialogResult.Ok(true));
+                return;
+            }
+
+            _amount = 0;
+            _success = "Transferência registrada. Preencha a próxima.";
+            if (_amountField is not null) { await _amountField.FocusAsync(); }
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task KeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape") { await RequestCloseAsync(); }
+    }
+
+    private async Task RequestCloseAsync()
+    {
+        var isDirty = _amount != 0 || _source != (SourceExternalId ?? Guid.Empty) || _destination != Guid.Empty || _date != Today;
+        if (isDirty && !await ConfirmDialog.AskAsync(Dialogs, "Descartar alterações?", "Os dados preenchidos nesta janela serão perdidos.", "Descartar", destructive: true, cancelText: "Continuar editando"))
+        {
+            return;
+        }
+
+        Dialog?.Cancel();
+    }
+}

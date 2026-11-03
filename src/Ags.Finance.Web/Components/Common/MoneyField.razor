@@ -1,0 +1,47 @@
+@* Campo de valor em reais: formato pt-BR e teclado numérico no celular. *@
+@using System.Globalization
+
+<div class="money-field @Class">
+    <label for="@Id">@Label</label>
+    <MudNumericField @ref="_field" T="decimal" InputId="@Id" Value="Value" ValueChanged="ValueChanged" Min="@Min" Format="N2" Culture="s_culture"
+                     HideSpinButtons="true" Immediate="true" InputMode="DecimalMode" Variant="Variant.Text" Adornment="Adornment.Start" AdornmentText="R$"
+                     AutoFocus="AutoFocus" Disabled="Disabled" />
+</div>
+
+@code {
+    private const InputMode DecimalMode = InputMode.@decimal;
+    private static readonly CultureInfo s_culture = CultureInfo.GetCultureInfo("pt-BR");
+    private MudNumericField<decimal>? _field;
+
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Label { get; set; } = "Valor";
+
+    [Parameter]
+    public decimal Value { get; set; }
+
+    [Parameter]
+    public EventCallback<decimal> ValueChanged { get; set; }
+
+    [Parameter]
+    public decimal Min { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public bool AutoFocus { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    public async Task FocusAsync()
+    {
+        if (_field is not null)
+        {
+            await _field.FocusAsync();
+        }
+    }
+}

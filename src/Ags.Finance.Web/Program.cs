@@ -15,6 +15,7 @@ using Ags.Finance.Web.Backup;
 using Ags.Finance.Web.BankLogos;
 using Ags.Finance.Web.Commands;
 using Ags.Finance.Web.Components;
+using Ags.Finance.Web.Components.Entries;
 using Ags.Finance.Web.Components.Layout;
 using Ags.Finance.Web.Csv;
 using Ags.Finance.Web.Hosting;
@@ -107,6 +108,8 @@ builder.Services.AddDataProtection()
 builder.Services.AddMudServices();
 builder.Services.AddScoped<ThemeState>();
 builder.Services.AddScoped<ViewportState>();
+builder.Services.AddScoped<EntryChangeNotifier>();
+builder.Services.AddScoped<EntryDialogs>();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
