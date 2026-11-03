@@ -1,0 +1,78 @@
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Reports.Contracts
+@using Ags.Finance.SharedKernel
+@inject IInvoiceReports Reports
+
+@if (_report is { } report)
+{
+    <section class="panel" aria-labelledby="invoice-report-title">
+        <h2 id="invoice-report-title">Faturas por cartão em @report.Month</h2>
+        @if (report.Cards.Count == 0)
+        {
+            <p>Nenhuma fatura neste mês.</p>
+        }
+        else
+        {
+            <div class="table-scroll">
+                <table>
+                    <caption class="visually-hidden">Faturas por cartão</caption>
+                    <thead><tr><th scope="col">Cartão</th><th scope="col" class="numeric">Fatura</th><th scope="col" class="numeric">Cashback/desconto</th><th scope="col" class="numeric">Pago</th>
+                        <th scope="col" class="numeric">Em aberto</th><th scope="col" class="numeric">Mês anterior</th><th scope="col" class="numeric">Média no ano</th><th scope="col" class="numeric">Em aberto daqui pra frente</th></tr></thead>
+                    <tbody>
+                        @foreach (var card in report.Cards)
+                        {
+                            <tr><th scope="row"><span class="invoice-card-name">
+                                @if (card.BankExternalId != Guid.Empty) { <BankLogo Bank="new BankDetails(card.BankExternalId, card.BankName, card.BankLogoVersion)" /> }
+                                <span class="catalog-color color-@card.Color">@card.CardName</span>@(card.IsArchived ? " (arquivado)" : string.Empty)</span></th>
+                                <td class="numeric">@card.Invoice</td><td class="numeric">@card.Allowances</td><td class="numeric">@card.Paid</td><td class="numeric">@card.Open</td>
+                                <td class="numeric">@card.PreviousMonth</td><td class="numeric">@card.YearAverage</td><td class="numeric">@card.OpenFromNowOn</td></tr>
+                        }
+                    </tbody>
+                    <tfoot><tr><th scope="row">Total</th><td class="numeric">@report.Total.Invoice</td><td class="numeric">@report.Total.Allowances</td><td class="numeric">@report.Total.Paid</td><td class="numeric">@report.Total.Open</td>
+                        <td class="numeric">@report.Total.PreviousMonth</td><td class="numeric">@report.Total.YearAverage</td><td class="numeric">@report.Total.OpenFromNowOn</td></tr></tfoot>
+                </table>
+            </div>
+        }
+        @if (report.Series.Count > 0)
+        {
+            <h3>Fatura de cada cartão por mês</h3>
+            <ul class="legend" aria-label="Cartões">@foreach (var series in report.Series) { <li><span class="swatch fill-@series.Color" aria-hidden="true"></span>@series.CardName</li> }</ul>
+            <div class="stacked-chart" role="img" aria-label="Fatura de cada cartão por mês, de @report.Months[0].Month a @report.Months[^1].Month">
+                @foreach (var column in report.Months)
+                {
+                    <div class="stacked-column @(column.Month == report.Month ? "stacked-selected" : string.Empty)" title="@column.Month: @column.Total">
+                        <div class="stacked-stack">
+                            @foreach (var amount in column.Cards.Where(x => x.Total.Amount > 0))
+                            {
+                                <span class="stacked-segment fill-@ColorOf(report, amount.CardExternalId)" style="height: @Height(report, amount.Total)%"></span>
+                            }
+                        </div>
+                        <span class="stacked-label">@column.Month.Month.ToString("00")/@(column.Month.Year % 100)</span>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+}
+
+@code {
+    private InvoiceReport? _report;
+    private AccountingMonth _loaded;
+
+    [Parameter, EditorRequired] public AccountingMonth Month { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_report is not null && _loaded == Month) { return; }
+        _loaded = Month;
+        _report = await Reports.GetAsync(Month);
+    }
+
+    private static string ColorOf(InvoiceReport report, Guid card) => report.Series.FirstOrDefault(x => x.CardExternalId == card)?.Color ?? "slate";
+
+    private static decimal Height(InvoiceReport report, Money amount)
+    {
+        var max = report.Months.Max(x => x.Cards.Where(c => c.Total.Amount > 0).Sum(c => c.Total.Amount));
+        return max <= 0 ? 0 : decimal.Round(amount.Amount / max * 100m, 1);
+    }
+}

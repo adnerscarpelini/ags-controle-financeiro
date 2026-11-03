@@ -1,5 +1,6 @@
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Accounts.Contracts;
+using Ags.Finance.Modules.Invoices;
 using Ags.Finance.Modules.Transactions;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
@@ -8,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Ags.Finance.Modules.Reports.Tests;
 
-/// <summary>Banco PostgreSQL isolado com Accounts, Transactions e Reports, e um relógio fixo em 02/11/2026.</summary>
+/// <summary>Banco PostgreSQL isolado com Accounts, Transactions e Reports, e um relógio fixo em 02/10/2026 (faturas de outubro ainda abertas).</summary>
 public abstract class ReportFixture : IAsyncLifetime
 {
     private PostgresTestDatabase? _database;
@@ -16,7 +17,7 @@ public abstract class ReportFixture : IAsyncLifetime
 
     protected PostgresTestDatabase Database => _database ?? throw new InvalidOperationException();
     protected ServiceProvider Provider => _provider ?? throw new InvalidOperationException();
-    protected FixedClock Clock { get; } = new(new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero));
+    protected FixedClock Clock { get; } = new(new DateTimeOffset(2026, 10, 2, 12, 0, 0, TimeSpan.Zero));
     protected Guid AccountId { get; private set; }
     protected Guid MerchantId { get; private set; }
     protected Guid ExpenseSubcategoryId { get; private set; }
@@ -29,6 +30,7 @@ public abstract class ReportFixture : IAsyncLifetime
         _provider = ConfigureServices(new ServiceCollection()).BuildServiceProvider();
         await Provider.MigrateAccountsModuleAsync();
         await Provider.MigrateTransactionsModuleAsync();
+        await Provider.MigrateInvoicesModuleAsync();
         var accounts = Provider.GetRequiredService<IAccountCatalog>();
         var bank = await accounts.CreateBankAsync("Banco Exemplo");
         AccountId = (await accounts.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta Exemplo", AccountKind.Checking, "green", new Money(1000), new DateOnly(2026, 1, 1)))).ExternalId!.Value;
@@ -47,7 +49,21 @@ public abstract class ReportFixture : IAsyncLifetime
     }
 
     protected virtual IServiceCollection ConfigureServices(IServiceCollection services)
-        => services.AddSingleton<TimeProvider>(Clock).AddAccountsModule(Database.ConnectionString).AddTransactionsModule(Database.ConnectionString).AddReportsModule();
+        => services.AddSingleton<TimeProvider>(Clock).AddAccountsModule(Database.ConnectionString).AddTransactionsModule(Database.ConnectionString).AddInvoicesModule(Database.ConnectionString).AddReportsModule();
+
+    protected async Task<Guid> CardAsync(string name, string color = "green")
+    {
+        var result = await Provider.GetRequiredService<IAccountCatalog>().SaveCreditCardAsync(new(null, AccountId, name, CardBrand.Visa, new Money(10000), 3, 10, true, color));
+        Assert.True(result.Succeeded, result.Error);
+        return result.ExternalId!.Value;
+    }
+
+    protected async Task PurchaseAsync(Guid card, DateOnly date, decimal amount, int installments = 1)
+    {
+        var request = new CreateEntryRequest(date, MerchantId, ExpenseSubcategoryId, AccountId, new Money(amount), CardExternalId: card);
+        var result = installments == 1 ? await Entries.CreateAsync(request) : await Entries.CreateInstallmentsAsync(request, installments);
+        Assert.True(result.Succeeded, result.Error);
+    }
 
     protected async Task<Guid> SubcategoryAsync(string category, string name, CategoryKind kind = CategoryKind.Expense)
     {

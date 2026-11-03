@@ -488,3 +488,20 @@ a:hover {
 .bar-expense { background: var(--color-expense); }
 .bar-income { background: var(--color-income); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+.invoice-card-name { display: inline-flex; align-items: center; gap: var(--space-2); }
+.invoice-card-name .bank-logo { width: 24px; height: 24px; }
+.legend { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-4); }
+.legend li { display: inline-flex; align-items: center; gap: var(--space-2); }
+.swatch { width: 12px; height: 12px; border-radius: 3px; }
+.fill-green { background: var(--color-accent-hover); }
+.fill-violet { background: var(--color-bank-nubank); }
+.fill-orange { background: var(--color-bank-itau); }
+.fill-rose { background: var(--color-expense); }
+.fill-slate { background: var(--color-text-secondary); }
+.stacked-chart { display: flex; align-items: flex-end; gap: var(--space-2); height: 220px; overflow-x: auto; padding-bottom: var(--space-1); }
+.stacked-column { flex: 1 0 28px; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: var(--space-1); }
+.stacked-stack { flex: 1; display: flex; flex-direction: column-reverse; justify-content: flex-start; }
+.stacked-segment { display: block; min-height: 1px; }
+.stacked-label { text-align: center; font-size: .75rem; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+.stacked-selected .stacked-label { color: var(--color-text-primary); font-weight: 700; }
