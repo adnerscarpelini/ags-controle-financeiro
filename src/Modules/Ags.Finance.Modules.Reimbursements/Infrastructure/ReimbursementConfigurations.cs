@@ -16,6 +16,17 @@ internal sealed class PersonConfiguration : IEntityTypeConfiguration<Person>
     }
 }
 
+internal sealed class ReimbursementReceiptConfiguration : IEntityTypeConfiguration<ReimbursementReceipt>
+{
+    public void Configure(EntityTypeBuilder<ReimbursementReceipt> builder)
+    {
+        builder.ToTable("receipts");
+        builder.HasOne<Person>().WithMany().HasForeignKey(x => x.PersonExternalId).HasPrincipalKey(x => x.ExternalId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(x => x.EntryExternalId).IsUnique();
+        builder.HasIndex(x => new { x.PersonExternalId, x.Month });
+    }
+}
+
 internal sealed class SharingRuleConfiguration : IEntityTypeConfiguration<SharingRule>
 {
     public void Configure(EntityTypeBuilder<SharingRule> builder)

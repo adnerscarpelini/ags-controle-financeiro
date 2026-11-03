@@ -6,9 +6,38 @@
 @inject IPersonCatalog People
 @inject ISharingRuleCatalog Rules
 @inject ISavedFilterCatalog SavedFilters
+@inject IReimbursementStatements Statements
 
 <PageHeader Title="Reembolsos" />
 @if (_message is not null) { <p role="status">@_message</p> }
+<section class="panel">
+    <h2>Valor a receber</h2>
+    <form @onsubmit="LoadStatementAsync" @onsubmit:preventDefault>
+        <div class="catalog-fields">
+            <div class="field"><label for="statement-person">Pessoa</label><select id="statement-person" @bind="_statementPerson">
+                <option value="@Guid.Empty">Selecione</option>@foreach (var person in _people) { <option value="@person.ExternalId">@person.Name</option> }
+            </select></div>
+            <div class="field"><label for="statement-month">Mês contábil</label><input id="statement-month" type="month" value="@_statementMonth" @onchange="args => _statementMonth = args.Value?.ToString() ?? string.Empty" required /></div>
+        </div>
+        <button class="button" disabled="@_busy">Calcular</button>
+    </form>
+    @if (_statement is { } statement)
+    {
+        <ul class="catalog-list" aria-label="Lançamentos do reembolso">
+            @foreach (var item in statement.Items)
+            {
+                <li><span>@item.Date.ToString("dd/MM/yyyy") · @item.Description · @item.Classification · @item.SavedFilterName</span>
+                    <span class="numeric">@item.Total × @item.Percent.ToString("0.##", CultureInfo.GetCultureInfo("pt-BR"))% = @item.Due</span></li>
+            }
+        </ul>
+        @if (statement.Items.Count == 0) { <p>Nenhum lançamento coberto por regras vigentes neste mês.</p> }
+        <dl>
+            <dt>Total devido</dt><dd class="numeric">@statement.TotalDue</dd>
+            <dt>Total recebido</dt><dd class="numeric">@statement.TotalReceived</dd>
+            <dt>Saldo</dt><dd class="numeric">@statement.Balance@(statement.HasCredit ? " (crédito da pessoa)" : string.Empty)</dd>
+        </dl>
+    }
+</section>
 <section class="panel">
     <h2>@(_personId is null ? "Nova pessoa" : "Editar pessoa")</h2>
     <form @onsubmit="SavePersonAsync" @onsubmit:preventDefault>
@@ -72,7 +101,26 @@
     private decimal _rulePercent = 100;
     private string _ruleStart = string.Empty;
 
+    private Guid _statementPerson;
+    private string _statementMonth = string.Empty;
+    private ReimbursementStatement? _statement;
+
     protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task LoadStatementAsync()
+    {
+        if (_statementPerson == Guid.Empty || !DateOnly.TryParseExact(_statementMonth + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        {
+            _message = "Selecione a pessoa e um mês contábil válido."; return;
+        }
+        _busy = true;
+        try
+        {
+            _statement = await Statements.GetAsync(_statementPerson, AccountingMonth.FromDate(date));
+            _message = _statement.Error;
+        }
+        finally { _busy = false; }
+    }
 
     private async Task ReloadAsync()
     {
