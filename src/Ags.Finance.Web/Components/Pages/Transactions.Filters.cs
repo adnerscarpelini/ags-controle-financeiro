@@ -1,5 +1,6 @@
 using System.Globalization;
 using Ags.Finance.Modules.Accounts.Contracts;
+using Ags.Finance.Modules.Preferences.Contracts;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
 
@@ -7,7 +8,8 @@ namespace Ags.Finance.Web.Components.Pages;
 
 public partial class Transactions
 {
-    private EntryQueryResult _query = new([], default, default, default, 0, 1, 100);
+    private int _pageSize = AppPreferences.Default.PageSize;
+    private EntryQueryResult _query = new([], default, default, default, 0, 1, AppPreferences.Default.PageSize);
     private IReadOnlyList<AccountDetails> _filterAccounts = [];
     private IReadOnlyList<CreditCardDetails> _filterCards = [];
     private IReadOnlyList<CardLastDigitsDetails> _filterFinals = [];
@@ -63,9 +65,9 @@ public partial class Transactions
         try
         {
             var result = _savedFilterId != Guid.Empty
-                ? await SavedFilterCatalog.RunAsync(_savedFilterId, month, _filterFrom, _filterTo, _page)
+                ? await SavedFilterCatalog.RunAsync(_savedFilterId, month, _filterFrom, _filterTo, _page, _pageSize)
                 : await Entries.QueryAsync(new(month, _filterFrom, _filterTo, Optional(_filterAccount), Optional(_filterCard), Optional(_filterFinal),
-                Optional(_filterCategory), Optional(_filterSubcategory), _filterText, _filterEffective, Page: _page));
+                Optional(_filterCategory), Optional(_filterSubcategory), _filterText, _filterEffective, Page: _page, PageSize: _pageSize));
             if (version != _queryVersion) { return; }
             _query = result; _entries = result.Entries; _page = result.Page;
             if (result.Error is not null) { _message = result.Error; }

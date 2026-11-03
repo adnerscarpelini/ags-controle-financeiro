@@ -38,8 +38,9 @@ public sealed class PwaTests
         Assert.Equal("pt-BR", root.GetProperty("lang").GetString());
         Assert.False(string.IsNullOrWhiteSpace(root.GetProperty("name").GetString()));
         var tokens = await Text(anonymous, "/css/tokens.css");
-        Assert.Contains($"--color-background: {root.GetProperty("background_color").GetString()}", tokens, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains($"--color-accent: {root.GetProperty("theme_color").GetString()}", tokens, StringComparison.OrdinalIgnoreCase);
+        // O manifesto usa a paleta escura (o lado escuro de light-dark(claro, escuro)).
+        Assert.Matches($@"--color-background: light-dark\(#[0-9A-Fa-f]{{6}}, {System.Text.RegularExpressions.Regex.Escape(root.GetProperty("background_color").GetString()!)}\)", tokens);
+        Assert.Matches($@"--color-accent: light-dark\(#[0-9A-Fa-f]{{6}}, {System.Text.RegularExpressions.Regex.Escape(root.GetProperty("theme_color").GetString()!)}\)", tokens);
         var icons = root.GetProperty("icons").EnumerateArray().ToList();
         Assert.Contains(icons, x => x.GetProperty("purpose").GetString() == "any" && x.GetProperty("sizes").GetString() == "192x192");
         Assert.Contains(icons, x => x.GetProperty("purpose").GetString() == "any" && x.GetProperty("sizes").GetString() == "512x512");

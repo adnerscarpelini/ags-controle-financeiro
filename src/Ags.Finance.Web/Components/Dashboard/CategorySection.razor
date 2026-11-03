@@ -4,7 +4,7 @@
 
 @if (_report is { } report)
 {
-    <CategoryTable Id="expense-categories" Title="Despesas por categoria" NameHeader="Categoria" Lines="report.Expenses" Total="report.TotalExpenses" Expense="true" Chart="true" />
+    <CategoryTable Id="expense-categories" Title="Despesas por categoria" NameHeader="Categoria" Lines="report.Expenses" Total="report.TotalExpenses" Expense="true" Chart="true" TopCount="TopCount" />
     <CategoryTable Id="income-origins" Title="Receitas por origem" NameHeader="Categoria > subcategoria" Lines="report.Income" Total="report.TotalIncome" />
 }
 
@@ -13,6 +13,9 @@
     private AccountingMonth _loaded;
 
     [Parameter, EditorRequired] public AccountingMonth Month { get; set; }
+
+    /// <summary>Quantas categorias entram no gráfico; a tabela continua completa.</summary>
+    [Parameter] public int TopCount { get; set; } = 10;
 
     protected override async Task OnParametersSetAsync()
     {

@@ -12,8 +12,8 @@
     {
         @if (Chart)
         {
-            <ol class="bar-chart" aria-label="@Title: 10 maiores">
-                @foreach (var line in Lines.Take(10))
+            <ol class="bar-chart" aria-label="@Title: @TopCount maiores">
+                @foreach (var line in Lines.Take(TopCount))
                 {
                     <li><span class="bar-label">@line.Name</span>
                         <span class="bar-track"><span class="bar-fill @(Expense ? "bar-expense" : "bar-income")" style="width: @Width(line)%"></span></span>
@@ -50,10 +50,11 @@
     [Parameter, EditorRequired] public Money Total { get; set; }
     [Parameter] public bool Expense { get; set; }
     [Parameter] public bool Chart { get; set; }
+    [Parameter] public int TopCount { get; set; } = 10;
 
     private decimal Width(CategoryLine line)
     {
-        var max = Lines.Max(x => x.Amount.Amount);
+        var max = Lines.Take(TopCount).Max(x => x.Amount.Amount);
         return max <= 0 ? 0 : decimal.Round(Math.Max(0, line.Amount.Amount) / max * 100m, 1);
     }
 

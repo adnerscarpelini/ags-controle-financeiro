@@ -1,5 +1,8 @@
+@using Ags.Finance.Modules.Preferences.Contracts
+@inject IPreferences Preferences
+@inject ILogger<App> Logger
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="@ThemeName">
 
 <head>
     <meta charset="utf-8" />
@@ -23,6 +26,7 @@
     <script src="_framework/blazor.web.js"></script>
     <script src="js/keyboard-shortcuts.js"></script>
     <script src="js/pwa.js"></script>
+    <script src="js/theme.js"></script>
 </body>
 
 </html>
@@ -30,6 +34,27 @@
 @code {
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
+
+    private string ThemeName { get; set; } = "dark";
+
+    // O tema escolhido já sai no HTML inicial (também no login), para a página não piscar no tema errado.
+    // Sem conseguir ler a preferência, vale o tema escuro.
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            ThemeName = (await Preferences.GetAsync(HttpContext.RequestAborted)).Theme switch
+            {
+                ThemePreference.Light => "light",
+                ThemePreference.Auto => "auto",
+                _ => "dark",
+            };
+        }
+        catch (Exception exception) when (exception is Npgsql.NpgsqlException or InvalidOperationException or OperationCanceledException)
+        {
+            Logger.LogWarning(exception, "Não foi possível ler o tema; usando o escuro.");
+        }
+    }
 
     // A página de login é renderizada só no servidor, sem circuito: ela precisa de uma requisição HTTP comum
     // para o cookie de sessão ser emitido. As demais rodam interativas.
