@@ -3,6 +3,7 @@ using Ags.Finance.Modules.Transactions.Application.CreateEntry;
 using Ags.Finance.Modules.Transactions.Application.ManageAccountMovements;
 using Ags.Finance.Modules.Transactions.Application.ManageClassifications;
 using Ags.Finance.Modules.Transactions.Application.ManageMerchants;
+using Ags.Finance.Modules.Transactions.Application.ManageSavedFilters;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.Modules.Transactions.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +36,8 @@ public static class DependencyInjection
         services.AddScoped<IAccountMovementCatalog, AccountMovementCatalog>();
         services.AddScoped<IEntryStore, EntryStore>();
         services.AddScoped<IEntryCatalog, EntryCatalog>();
+        services.AddScoped<ISavedFilterStore, SavedFilterStore>();
+        services.AddScoped<ISavedFilterCatalog, SavedFilterCatalog>();
         services.TryAddScoped<IInvoiceWriteGuard, OpenInvoiceWriteGuard>();
         return services;
     }

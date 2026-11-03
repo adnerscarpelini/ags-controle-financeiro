@@ -53,6 +53,10 @@ internal sealed partial class EntryCatalog
             && (filter.ToDate is null || adjustment.Date <= filter.ToDate) && (filter.CardExternalId is null || filter.CardExternalId == adjustment.CardExternalId)
             && (filter.AccountExternalId is null || filter.AccountExternalId == adjustment.AccountExternalId) && filter.CardLastDigitsExternalId is null
             && (filter.CategoryExternalId is null || filter.CategoryExternalId == Guid.Empty) && (filter.SubcategoryExternalId is null || filter.SubcategoryExternalId == Guid.Empty)
+            && (filter.CardExternalIds is not { Count: > 0 } cards || cards.Contains(adjustment.CardExternalId))
+            && (filter.AccountExternalIds is not { Count: > 0 } accounts || accounts.Contains(adjustment.AccountExternalId))
+            && filter.CardLastDigitsExternalIds is not { Count: > 0 } && filter.CategoryExternalIds is not { Count: > 0 }
+            && filter.SubcategoryExternalIds is not { Count: > 0 } && filter.MerchantExternalIds is not { Count: > 0 }
             && (string.IsNullOrWhiteSpace(filter.Text) || (Merchant.Normalize(filter.Text) is { Length: > 0 } compact && Merchant.Normalize("Ajuste de fatura").Contains(compact, StringComparison.Ordinal))
                 || SearchText.Normalize($"Total correto informado: {adjustment.CorrectTotal}").Contains(SearchText.Normalize(filter.Text.Trim()), StringComparison.Ordinal));
 }

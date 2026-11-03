@@ -25,6 +25,17 @@ internal sealed partial class EntryStore
             var subcategories = context.Set<Subcategory>().Where(x => x.CategoryExternalId == category).Select(x => x.ExternalId);
             query = query.Where(x => subcategories.Contains(x.SubcategoryExternalId));
         }
+        if (filter.AccountExternalIds is { Count: > 0 } accountIds) { var ids = accountIds.ToArray(); query = query.Where(x => ids.Contains(x.AccountExternalId)); }
+        if (filter.CardExternalIds is { Count: > 0 } cardIds) { var ids = cardIds.ToArray(); query = query.Where(x => x.CardExternalId != null && ids.Contains(x.CardExternalId.Value)); }
+        if (filter.CardLastDigitsExternalIds is { Count: > 0 } finalIds) { var ids = finalIds.ToArray(); query = query.Where(x => x.CardLastDigitsExternalId != null && ids.Contains(x.CardLastDigitsExternalId.Value)); }
+        if (filter.SubcategoryExternalIds is { Count: > 0 } subcategoryIds) { var ids = subcategoryIds.ToArray(); query = query.Where(x => ids.Contains(x.SubcategoryExternalId)); }
+        if (filter.MerchantExternalIds is { Count: > 0 } merchantIds) { var ids = merchantIds.ToArray(); query = query.Where(x => ids.Contains(x.MerchantExternalId)); }
+        if (filter.CategoryExternalIds is { Count: > 0 } categoryIds)
+        {
+            var ids = categoryIds.ToArray();
+            var inCategories = context.Set<Subcategory>().Where(x => ids.Contains(x.CategoryExternalId)).Select(x => x.ExternalId);
+            query = query.Where(x => inCategories.Contains(x.SubcategoryExternalId));
+        }
         if (filter.IsEffective is { } effective) { query = query.Where(x => x.IsEffective == effective); }
         if (filter.Kind is { } kind) { query = query.Where(x => x.Kind == (Domain.CategoryKind)kind); }
         if (!string.IsNullOrWhiteSpace(filter.Text))

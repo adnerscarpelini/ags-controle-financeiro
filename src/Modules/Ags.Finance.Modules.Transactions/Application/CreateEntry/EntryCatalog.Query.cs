@@ -10,10 +10,14 @@ internal sealed partial class EntryCatalog
     public Task<EntryQueryResult> QueryAsync(EntryFilter filter, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(token => QueryCoreAsync(filter, token), x => x.Error is null, cancellationToken);
 
+    private static bool ListsTooLarge(EntryFilter filter)
+        => new[] { filter.AccountExternalIds, filter.CardExternalIds, filter.CardLastDigitsExternalIds, filter.CategoryExternalIds, filter.SubcategoryExternalIds, filter.MerchantExternalIds }
+            .Any(x => x is { Count: > 200 });
+
     private async Task<EntryQueryResult> QueryCoreAsync(EntryFilter filter, CancellationToken cancellationToken)
     {
         if (filter.Month is { Year: 0 } || filter.FromDate > filter.ToDate || filter.Page < 1 || filter.PageSize is < 1 or > 200
-            || filter.Text.Length > 200 || (filter.Kind is { } kind && !Enum.IsDefined(kind)))
+            || filter.Text.Length > 200 || ListsTooLarge(filter) || (filter.Kind is { } kind && !Enum.IsDefined(kind)))
         {
             return new([], default, default, default, 0, 1, 100, "Informe filtros válidos, intervalo ordenado e página de 1 a 200 registros.");
         }
