@@ -1,5 +1,6 @@
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Accounts.Contracts;
+using Ags.Finance.Modules.Attachments;
 using Ags.Finance.Modules.Invoices.Contracts;
 using Ags.Finance.Modules.Preferences;
 using Ags.Finance.Modules.Preferences.Contracts;
@@ -13,6 +14,7 @@ namespace Ags.Finance.Modules.Invoices.Tests;
 
 public sealed partial class InvoiceTests : IAsyncLifetime
 {
+    private readonly string _attachmentsDirectory = Path.Combine(Path.GetTempPath(), "ags-invoice-attachments-" + Guid.NewGuid().ToString("N"));
     private PostgresTestDatabase? _database;
     private ServiceProvider? _provider;
     private ServiceProvider Provider => _provider ?? throw new InvalidOperationException();
@@ -26,7 +28,9 @@ public sealed partial class InvoiceTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         _database = await PostgresTestDatabase.CreateAsync();
-        _provider = new ServiceCollection().AddSingleton<TimeProvider>(_clock).AddAccountsModule(_database.ConnectionString).AddTransactionsModule(_database.ConnectionString).AddInvoicesModule(_database.ConnectionString).AddPreferencesModule(_database.ConnectionString).BuildServiceProvider();
+        Directory.CreateDirectory(_attachmentsDirectory);
+        _provider = new ServiceCollection().AddSingleton<TimeProvider>(_clock).AddAttachmentsModule(_database.ConnectionString, new(_attachmentsDirectory)).AddAccountsModule(_database.ConnectionString).AddTransactionsModule(_database.ConnectionString).AddInvoicesModule(_database.ConnectionString).AddPreferencesModule(_database.ConnectionString).BuildServiceProvider();
+        await Provider.MigrateAttachmentsModuleAsync();
         await Provider.MigrateAccountsModuleAsync();
         await Provider.MigrateTransactionsModuleAsync();
         await Provider.MigrateInvoicesModuleAsync();
@@ -52,6 +56,7 @@ public sealed partial class InvoiceTests : IAsyncLifetime
     {
         if (_provider is not null) { await _provider.DisposeAsync(); }
         if (_database is not null) { await _database.DisposeAsync(); }
+        if (Directory.Exists(_attachmentsDirectory)) { Directory.Delete(_attachmentsDirectory, true); }
     }
 
     private CreateEntryRequest Purchase(decimal amount, int month = 10) => new(new DateOnly(2026, 9, 14), _merchantId, _subcategoryId, _accountId, new Money(amount), Month: new AccountingMonth(2026, month), CardExternalId: _cardId);

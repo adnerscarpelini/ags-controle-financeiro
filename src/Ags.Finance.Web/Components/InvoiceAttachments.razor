@@ -1,0 +1,17 @@
+@using Ags.Finance.Modules.Attachments.Contracts
+@using Ags.Finance.Modules.Invoices.Contracts
+@using Ags.Finance.SharedKernel
+@inject IInvoiceAttachmentCatalog Documents
+
+<AttachmentEditor Owner="_owner" Upload="UploadAsync" Trash="TrashAsync" Kinds="s_kinds" Changed="ReloadAsync" />
+
+@code {
+    private static readonly AttachmentKind[] s_kinds = [AttachmentKind.Invoice, AttachmentKind.Receipt, AttachmentKind.Other];
+    [Parameter, EditorRequired] public Guid CardExternalId { get; set; }
+    [Parameter, EditorRequired] public AccountingMonth Month { get; set; }
+    private AttachmentOwner? _owner;
+    protected override Task OnParametersSetAsync() => ReloadAsync();
+    private async Task ReloadAsync() => _owner = await Documents.FindInvoiceOwnerAsync(CardExternalId, Month);
+    private Task<AttachmentResult> UploadAsync(AttachmentKind kind, string name, Stream content) => Documents.UploadInvoiceAsync(CardExternalId, Month, kind, name, content);
+    private Task<AttachmentResult> TrashAsync(Guid id) => _owner is { } owner ? Documents.TrashAsync(owner, id) : Task.FromResult(new AttachmentResult(null, "Fatura não encontrada."));
+}

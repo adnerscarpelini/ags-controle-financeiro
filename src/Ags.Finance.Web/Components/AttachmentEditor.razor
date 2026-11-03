@@ -19,7 +19,7 @@
 </section>
 
 @code {
-    [Parameter, EditorRequired] public AttachmentOwner Owner { get; set; } = default!;
+    [Parameter] public AttachmentOwner? Owner { get; set; }
     [Parameter, EditorRequired] public Func<AttachmentKind, string, Stream, Task<AttachmentResult>> Upload { get; set; } = default!;
     [Parameter, EditorRequired] public Func<Guid, Task<AttachmentResult>> Trash { get; set; } = default!;
     [Parameter] public EventCallback Changed { get; set; }

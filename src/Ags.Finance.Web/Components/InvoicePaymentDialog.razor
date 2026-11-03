@@ -1,6 +1,8 @@
 @using Ags.Finance.Modules.Accounts.Contracts
 @using Ags.Finance.Modules.Invoices.Contracts
 @using Ags.Finance.SharedKernel
+@using Ags.Finance.Modules.Attachments.Contracts
+@inject IInvoiceAttachmentCatalog Documents
 @inject IInvoicePaymentCatalog Payments
 @inject IAccountCatalog Accounts
 @inject TimeProvider Clock
@@ -10,7 +12,12 @@
     <p>Saldo restante: @Invoice.RemainingBalance</p>
     @if (Invoice.ForecastEntries.Count > 0 && !Invoice.ForecastIncluded) { <p class="invoice-forecast">As recorrentes previstas (@Invoice.ForecastTotal) ainda não entram no saldo.</p> }
     @if (_error is not null) { <p role="status">@_error</p> }
-    @if (_confirmation is { } confirmation)
+    @if (_confirmedPayment is not null)
+    {
+        <p>Pagamento confirmado e definitivo. Reenviar documentos não registra outro pagamento.</p>
+        <button class="button" @onclick="ConfirmAsync" disabled="@_busy">Reenviar somente anexos</button>
+    }
+    else if (_confirmation is { } confirmation)
     {
         <p>@confirmation.Date.ToString("dd/MM/yyyy") · @confirmation.Amount · Débito em @_accounts.First(x => x.ExternalId == confirmation.AccountExternalId).Name</p>
         <p>Este pagamento é definitivo: não poderá ser editado, excluído, cancelado ou estornado.</p>
@@ -32,13 +39,18 @@
             <button class="button" disabled="@(_busy || !_ready)">Revisar pagamento</button>
         </form>
     }
-    <button class="button" @onclick="() => Cancelled.InvokeAsync()" disabled="@_busy">Cancelar</button>
+    <AttachmentPicker @ref="_picker" Kinds="s_kinds" />
+    <button class="button" @onclick="() => Cancelled.InvokeAsync()" disabled="@_busy">@(_confirmedPayment is null ? "Cancelar" : "Fechar")</button>
 </section>
 
 @code {
     [Parameter, EditorRequired] public InvoiceDetails Invoice { get; set; } = default!;
+    [Parameter] public EventCallback PaymentRecorded { get; set; }
     [Parameter] public EventCallback Confirmed { get; set; }
     [Parameter] public EventCallback Cancelled { get; set; }
+    private static readonly AttachmentKind[] s_kinds = [AttachmentKind.Receipt, AttachmentKind.Invoice, AttachmentKind.Other];
+    private AttachmentPicker? _picker;
+    private Guid? _confirmedPayment;
     private IReadOnlyList<AccountDetails> _accounts = [];
     private Guid _account;
     private readonly Guid _confirmationId = Guid.CreateVersion7();
@@ -61,18 +73,29 @@
     }
     private void Review()
     {
-        if (!_ready || _busy) { return; }
+        if (!_ready || _busy || _confirmedPayment is not null) { return; }
         if (!_accounts.Any(x => x.ExternalId == _account)) { _error = "Selecione uma conta corrente ativa."; return; }
         _confirmation = new(_confirmationId, Invoice.CardExternalId, Invoice.Month, _account, _date, new Money(_amount), _settle, _details);
     }
     private async Task ConfirmAsync()
     {
-        if (_busy || _confirmation is not { } request) { return; }
+        if (_busy || (_confirmedPayment is null && _confirmation is null)) { return; }
         _busy = true;
         try
         {
-            var result = await Payments.ConfirmPaymentAsync(request); _error = result.Error;
-            if (result.Succeeded) { await Confirmed.InvokeAsync(); }
+            if (_confirmedPayment is null && _confirmation is { } request)
+            {
+                var result = await Payments.ConfirmPaymentAsync(request); _error = result.Error;
+                if (!result.Succeeded) { return; }
+                _confirmedPayment = result.ExternalId;
+                await PaymentRecorded.InvokeAsync();
+            }
+            if (_confirmedPayment is { } paymentId && _picker is not null)
+            {
+                if (!await _picker.SendAsync((kind, name, content) => Documents.UploadPaymentAsync(paymentId, kind, name, content)))
+                { _error = "Pagamento confirmado. O anexo falhou; tente reenviar somente o documento."; return; }
+            }
+            await Confirmed.InvokeAsync();
         }
         finally { _busy = false; }
     }

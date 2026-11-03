@@ -3,17 +3,20 @@
 
 <div class="table-scroll">
     <table aria-label="Pagamentos e abatimentos da fatura">
-        <thead><tr><th>Data</th><th>Tipo</th><th>Valor</th><th>Conta debitada</th><th>Detalhes</th></tr></thead>
+        <thead><tr><th>Data</th><th>Tipo</th><th>Valor</th><th>Conta debitada</th><th>Detalhes</th><th>Documentos</th></tr></thead>
         <tbody>@foreach (var payment in Invoice.PaymentHistory)
         {
             <tr><td>@payment.Date.ToString("dd/MM/yyyy")</td><td>@TypeLabel(payment.Kind)</td><td class="numeric">@payment.Amount</td>
-                <td>@(payment.AccountExternalId is { } account ? Accounts.FirstOrDefault(x => x.ExternalId == account)?.Name ?? "Conta registrada" : "Sem débito em conta")</td><td>@payment.Details</td></tr>
+                <td>@(payment.AccountExternalId is { } account ? Accounts.FirstOrDefault(x => x.ExternalId == account)?.Name ?? "Conta registrada" : "Sem débito em conta")</td><td>@payment.Details</td><td>@if (payment.Kind == InvoicePaymentKind.Payment) { <button class="button" @onclick="() => _payment = payment.ExternalId">Anexos do pagamento</button> }</td></tr>
         }</tbody>
     </table>
 </div>
 @if (Invoice.PaymentHistory.Count == 0) { <p>Nenhum pagamento ou abatimento registrado.</p> }
 
+@if (_payment is { } paymentId) { <InvoicePaymentAttachments @key="paymentId" PaymentExternalId="paymentId" /> }
+
 @code {
+    private Guid? _payment;
     [Parameter, EditorRequired] public InvoiceDetails Invoice { get; set; } = default!;
     [Parameter] public IReadOnlyList<AccountDetails> Accounts { get; set; } = [];
     private static string TypeLabel(InvoicePaymentKind kind) => kind switch { InvoicePaymentKind.Cashback => "Cashback", InvoicePaymentKind.Discount => "Desconto", _ => "Pagamento confirmado (irreversível)" };

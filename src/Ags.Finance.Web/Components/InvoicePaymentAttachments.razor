@@ -1,0 +1,13 @@
+@using Ags.Finance.Modules.Attachments.Contracts
+@using Ags.Finance.Modules.Invoices.Contracts
+@inject IInvoiceAttachmentCatalog Documents
+
+<AttachmentEditor Owner="Owner" Upload="UploadAsync" Trash="TrashAsync" Kinds="s_kinds" />
+
+@code {
+    private static readonly AttachmentKind[] s_kinds = [AttachmentKind.Receipt, AttachmentKind.Invoice, AttachmentKind.Other];
+    [Parameter, EditorRequired] public Guid PaymentExternalId { get; set; }
+    private AttachmentOwner Owner => new(AttachmentOwnerType.InvoicePayment, PaymentExternalId);
+    private Task<AttachmentResult> UploadAsync(AttachmentKind kind, string name, Stream content) => Documents.UploadPaymentAsync(PaymentExternalId, kind, name, content);
+    private Task<AttachmentResult> TrashAsync(Guid id) => Documents.TrashAsync(Owner, id);
+}
