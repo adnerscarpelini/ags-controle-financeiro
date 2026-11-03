@@ -64,6 +64,7 @@ incluindo a validação em campo da PWA (#38).
 - Web: [Instalação com Docker Compose e backup (#59/#31)](web/docker-deployment.md)
 - Web: [Certificado HTTPS](web/https-certificate.md)
 - Web: [Instalação como PWA (#38)](web/pwa.md)
+- Web: [Ocultar valores e cor da barra do navegador (#71)](web/hide-values.md)
 - Identity: [Criação e redefinição do usuário](identity/user-creation.md)
 - Identity: [Login com usuário e senha](identity/login.md)
 - Accounts: [Bancos, contas e cartões](accounts/banks-accounts-and-cards.md)

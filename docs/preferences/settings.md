@@ -39,6 +39,7 @@ mensagem e o que estava salvo é mantido.
 - Ao salvar, `js/theme.js` troca o atributo na hora, sem recarregar a página.
 - O contraste de todos os textos (e do rótulo dos botões) é no mínimo 4,5:1 (WCAG AA) nos dois temas;
   `UiTokensTests` calcula isso a partir dos próprios tokens.
+- A cor da barra do navegador (`theme-color`) acompanha o tema; ver [Ocultar valores e cor da barra](../web/hide-values.md).
 - A página de manutenção do restore e `offline.html` são servidas fora da aplicação e continuam escuras.
 
 ## Recorrentes do cartão na fatura
@@ -53,13 +54,13 @@ Ver [Recorrentes previstas na fatura](../invoices/recurring-forecast.md).
 - **Maiores categorias:** muda só a quantidade do gráfico; a tabela de categorias continua completa.
 - **Seções visíveis:** a seção desligada some do dashboard. Com todas desligadas, aparece um aviso com
   link para `/configuracoes`.
-- **Itens por página:** tamanho da consulta de `/lancamentos` (também ao aplicar filtros salvos). Os
+- **Itens por página:** tamanho da consulta de `/lancamentos` (também ao aplicar filtros salvos) e de `/pendentes` (#71). Os
   totais continuam somando todos os lançamentos do filtro.
 - **Duração da sessão:** gravada no ticket do cookie no login, então vale a partir do próximo login e não
   altera sessões abertas. "Manter conectado" continua com 30 dias.
 
 ## Fora do escopo
 
-Ocultar valores, moeda/idioma/fuso, bloqueio de login e tamanho mínimo da senha, regras financeiras,
+Moeda/idioma/fuso, bloqueio de login e tamanho mínimo da senha, regras financeiras,
 horário e retenção do backup (ficam na configuração do Compose, para não dependerem do banco que o
-backup protege), porta e certificado, e preferências por cartão.
+backup protege), porta e certificado, e preferências por cartão. Ocultar valores não é uma preferência do banco: é uma escolha por dispositivo, descrita em [Ocultar valores](../web/hide-values.md).

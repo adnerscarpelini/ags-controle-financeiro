@@ -14,7 +14,7 @@ aplicação no celular como um app: ícone na tela inicial e tela cheia, sem a b
 | Registro | `wwwroot/js/pwa.js`, tags em `App.razor` | Registra o service worker em contexto seguro; `manifest`, `apple-touch-icon` e `viewport-fit=cover` no `<head>`. |
 
 Os arquivos da PWA são estáticos e portanto públicos; **todas as páginas e endpoints de dados continuam exigindo login**
-(`AccessControlTests`, `PwaTests`). Nada é carregado de CDN. As cores do manifesto são as dos tokens (conferidas em teste); o `<head>` não repete cores literais, conforme a regra de tokens.
+(`AccessControlTests`, `PwaTests`). Nada é carregado de CDN. As cores do manifesto são as dos tokens escuros (conferidas em teste); a cor da barra do navegador acompanha o tema por `js/theme.js` ([#71](hide-values.md)); o `<head>` não repete cores literais, conforme a regra de tokens.
 
 ## Requisito: HTTPS confiado no aparelho
 

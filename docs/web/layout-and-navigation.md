@@ -4,7 +4,7 @@ Origem: [#5](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/5
 
 ## Comportamento
 
-- Menu lateral fixo (240 px) com sete seções, na ordem: Lançamentos, Faturas, Cashback, Reembolsos, Dashboard, Cadastros e Configurações. O item da página aberta fica com a cor `Accent`. No fim do menu fica o botão "Sair" (veja [login.md](../identity/login.md)). Configurações também traz a troca de senha.
+- Menu lateral fixo (240 px) com sete seções, na ordem: Lançamentos, Faturas, Cashback, Reembolsos, Dashboard, Cadastros e Configurações. O item da página aberta fica com a cor `Accent`. No fim do menu ficam o botão [Ocultar valores](hide-values.md) (que também fica na barra superior do celular) e o botão "Sair" (veja [login.md](../identity/login.md)). Configurações também traz a troca de senha.
 - As sete seções usam `/lancamentos`, `/faturas`, `/cashback`, `/reembolsos`, `/dashboard`, `/cadastros` e `/configuracoes`. A raiz `/` redireciona para `/dashboard`. Cadastros já acessa Contas e cartões (#6–#8); Configurações tem certificado e troca de senha. As demais páginas de negócio ainda são placeholders.
 - Abaixo de 768 px o menu vira uma gaveta: some da tela, abre pelo botão da barra superior e fecha ao escolher um item ou tocar na película escura. O conteúdo ocupa a largura inteira e não há rolagem horizontal. Itens e botão têm pelo menos 44 px de altura.
 - A cultura da aplicação é `pt-BR` em todos os circuitos (`Program.cs`): `R$ 1.234,56` e `dd/MM/yyyy`, independentemente da cultura do sistema ou do navegador.
