@@ -22,6 +22,9 @@ coverage*/
 *.coverage
 *.trx
 
+# Configuração local de execução (portas de cada máquina)
+**/Properties/launchSettings.json
+
 # SO
 .DS_Store
 Thumbs.db
