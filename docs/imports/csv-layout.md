@@ -118,7 +118,45 @@ que cria um cartão ou final dependente e arquivados de novo na mesma operação
 mensagem do módulo (o Contract de classificações não reativa categorias), então a reconstrução completa desses
 casos exige reativar a categoria no destino antes. Vale o mesmo para logos (binários, fora do CSV).
 
+## Importação de lançamentos ([#29](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/29))
+
+`ITransactionImport` (`Imports.Contracts`) e o painel **Importar lançamentos** aceitam o arquivo `transactions` e, para ocorrências
+recorrentes, o arquivo `recurring_series`. Qualquer outro formato (PDF, OFX, XLSX, CSV de banco) é rejeitado. O fluxo é o mesmo dos
+cadastros: prévia sem gravar, depois confirmar ou cancelar; os arquivos não ficam armazenados. O imports só lê e traduz o CSV; as regras
+são de Transactions (`IEntryImport`), executadas na mesma operação financeira.
+
+**Referências.** Descrição, subcategoria, conta, cartão e final são resolvidos pelo `ExternalId` já existente (importe os cadastros antes);
+nada é criado para corrigir o arquivo. Cadastros inativos, cartão sem final correspondente ou compra no cartão fora de classificação de despesa
+são rejeitados pelas regras de Transactions. O `kind` do arquivo precisa coincidir com a classificação.
+
+**Mês contábil e valores.** O mês de `accounting_month` e os centavos de `amount_cents` entram exatamente como informados; o cálculo
+automático só sugere em outras telas. Faturas Fechadas ou Pagas continuam protegidas (a validação do cartão usa o guard de faturas) e a
+importação não reabre nem altera pagamentos.
+
+**Estado.** Receitas e despesas avulsas e de cartão são sempre Efetivadas, na data do lançamento. Somente ocorrência recorrente fora do
+cartão pode estar Pendente (sem `effective_date`) ou Efetivada (com a data). A importação nunca efetiva nada por conta própria e não cria
+pagamento de fatura.
+
+**Parcelas.** O grupo precisa estar completo: as N parcelas, numeradas de 1 a N, mesmo cartão, data, descrição e classificação de despesa,
+meses contábeis consecutivos e valores iguais à divisão oficial (a diferença de centavos fica na primeira). A compra e as parcelas mantêm os
+identificadores do arquivo. Grupo incompleto ou inconsistente é rejeitado; nada é reconstruído por texto ou `(x/y)`.
+
+**Recorrência.** Cada ocorrência aponta para a série (`recurring_entry_external_id`) e traz `occurrence_month`. A série vem do arquivo
+`recurring_series`; para criar uma série nova, o arquivo de lançamentos precisa conter a primeira ocorrência (mês de `start_date`), que
+deve coincidir com o modelo da série. Uma série já existente aceita apenas ocorrências novas e só se a definição for idêntica. Ocorrência
+de série ausente é rejeitada.
+
+**Idempotência e conflito.** Mesmo `ExternalId` e mesmos dados: idêntico, ignorado (nenhum lançamento ou efeito financeiro duplicado).
+Mesmo `ExternalId` com dados diferentes, ou outra ocorrência no mesmo mês da série: conflito, arquivo rejeitado e nada é sobrescrito.
+
+**Tudo ou nada.** Qualquer problema, em qualquer linha dos dois arquivos, desfaz o lote inteiro. Os problemas voltam com arquivo, linha e coluna.
+
+**Fora do escopo desta versão (rejeitado ou não coberto).** Ajustes de fatura, transferências e pagamentos/cashbacks/descontos de fatura;
+séries editadas com mudança de dia ou de mês contábil para "esta e as seguintes" (os deslocamentos da série não existem no Contract), de modo
+que ocorrências futuras geradas depois da importação seguem a regra padrão da série; meses excluídos de uma série. As ocorrências do arquivo
+são sempre fiéis; só a geração futura pode divergir nesses casos.
+
 ## Estado
 
 Implementados: layout, escrita e leitura estrita, exportação de cadastros (#61) e de lançamentos e séries (#62), modelos e exemplos.
-Importação de cadastros (#28) implementada. A importação de lançamentos é a #29.
+Importação de cadastros (#28) e de lançamentos (#29) implementadas.

@@ -12,6 +12,7 @@ public static class DependencyInjection
         services.AddScoped<IRegistryExport, RegistryExporter>();
         services.AddScoped<IRegistryImport, RegistryImporter>();
         services.AddScoped<ITransactionExport, TransactionExporter>();
+        services.AddScoped<ITransactionImport, TransactionImporter>();
         return services;
     }
 }
