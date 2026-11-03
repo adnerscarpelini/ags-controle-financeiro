@@ -13,7 +13,7 @@ internal sealed class MerchantCatalog(IMerchantStore store, IClassificationCatal
             .Select(x => new MerchantDetails(x.ExternalId, x.Name, x.DefaultSubcategoryExternalId, x.IsActive)).ToList();
     }
 
-    public async Task<ClassificationResult> SaveAsync(Guid? externalId, string name, Guid? defaultSubcategoryExternalId, CancellationToken cancellationToken = default)
+    public async Task<ClassificationResult> SaveAsync(Guid? externalId, string name, Guid? defaultSubcategoryExternalId, Guid? newExternalId = null, CancellationToken cancellationToken = default)
     {
         var merchants = await store.GetAsync(cancellationToken);
         var merchant = externalId is null ? new Merchant() : merchants.FirstOrDefault(x => x.ExternalId == externalId);
@@ -24,6 +24,11 @@ internal sealed class MerchantCatalog(IMerchantStore store, IClassificationCatal
         if (defaultSubcategoryExternalId is { } subcategoryId && !(await classifications.GetSubcategoriesAsync(cancellationToken: cancellationToken)).Any(x => x.ExternalId == subcategoryId))
         {
             return new(null, "Selecione uma subcategoria ativa.");
+        }
+        if (externalId is null && newExternalId is { } merchantId)
+        {
+            if (merchantId == Guid.Empty || merchants.Any(x => x.ExternalId == merchantId)) { return new(null, "Identidade pública inválida ou já utilizada."); }
+            merchant.UseExternalId(merchantId);
         }
         var error = merchant.Update(name, defaultSubcategoryExternalId);
         if (error is not null)

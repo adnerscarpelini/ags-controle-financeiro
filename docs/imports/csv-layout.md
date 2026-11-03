@@ -88,7 +88,37 @@ atual, o **modelo vazio** (só versão e cabeçalhos) e um **exemplo** com dados
 Os endpoints são `GET /csv/cadastros/{tipo}`, `/modelo` e `/exemplo` e exigem login. A exportação é
 somente leitura: não altera cadastros nem saldos.
 
+## Importação de cadastros ([#28](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/28))
+
+`IRegistryImport` (`Imports.Contracts`) e o painel **Importar cadastros** de `/arquivos-csv` aceitam apenas o
+layout acima: versão, tipo e cabeçalho exatos, UTF-8, vírgula, tipos e obrigatoriedade por coluna. PDF, OFX, XLSX,
+CSV de banco ou qualquer outro layout são rejeitados; nada é adaptado, aliasado ou inferido.
+
+**Fluxo.** Enviar → prévia (novos, idênticos e problemas com linha e coluna) → confirmar ou cancelar. A prévia não grava
+nada; cancelar descarta o conteúdo. O arquivo fica só em memória durante o processamento e não é armazenado.
+
+**Ordem.** Bancos → contas → cartões → finais; categorias → subcategorias → descrições; pessoas. Referências são
+resolvidas pelo `ExternalId` já existente no destino; nada é criado para "consertar" um arquivo.
+
+**Atomicidade e invariantes.** Toda a gravação acontece pelos Contracts dos módulos dentro de uma única operação
+financeira (`IFinancialOperation`, mesma transação e travas das demais operações). A prévia executa exatamente o mesmo
+caminho e descarta a transação, então as invariantes reais dos módulos (nomes únicos, conta corrente para cartão, etc.)
+valem já na validação, e qualquer erro em qualquer linha desfaz o arquivo inteiro. Para isso os Contracts de criação
+ganharam um `ExternalId` opcional (nulo = gera como antes; usado só ao criar, nunca ao editar).
+
+**Política de conflito.** Mesmo `ExternalId` com os mesmos dados: idêntico, ignorado (reimportar não duplica nem altera).
+Mesmo `ExternalId` com dados diferentes: conflito, o arquivo é rejeitado e nada é sobrescrito. Nome já usado por outro
+registro: erro do módulo, com linha e coluna.
+
+**Arquivados.** Registro novo com `is_active=false` é criado e arquivado. Registro existente nunca é reativado nem arquivado
+pela importação (a diferença de estado é conflito). Contas e cartões arquivados são reativados apenas durante o passo
+que cria um cartão ou final dependente e arquivados de novo na mesma operação.
+
+**Limitação conhecida.** Subcategorias e descrições que dependem de categoria ou subcategoria desativada falham com a
+mensagem do módulo (o Contract de classificações não reativa categorias), então a reconstrução completa desses
+casos exige reativar a categoria no destino antes. Vale o mesmo para logos (binários, fora do CSV).
+
 ## Estado
 
 Implementados: layout, escrita e leitura estrita, exportação de cadastros (#61) e de lançamentos e séries (#62), modelos e exemplos.
-A importação é a #28 (cadastros) e a #29 (lançamentos).
+Importação de cadastros (#28) implementada. A importação de lançamentos é a #29.

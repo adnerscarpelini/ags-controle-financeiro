@@ -41,13 +41,13 @@ internal sealed class ReimbursementReceipts(IReimbursementStore store, IFinancia
         Guid categoryId;
         if (category is null)
         {
-            var created = await classifications.SaveCategoryAsync(null, CategoryName, CategoryKind.Income, cancellationToken);
+            var created = await classifications.SaveCategoryAsync(null, CategoryName, CategoryKind.Income, cancellationToken: cancellationToken);
             if (!created.Succeeded) { return created; }
             categoryId = created.ExternalId!.Value;
         }
         else { categoryId = category.ExternalId; }
         var subcategory = (await classifications.GetSubcategoriesAsync(true, cancellationToken)).FirstOrDefault(x => x.CategoryExternalId == categoryId && Same(x.Name, SubcategoryName));
-        return subcategory is not null ? new(subcategory.ExternalId, null) : await classifications.SaveSubcategoryAsync(null, categoryId, SubcategoryName, cancellationToken);
+        return subcategory is not null ? new(subcategory.ExternalId, null) : await classifications.SaveSubcategoryAsync(null, categoryId, SubcategoryName, cancellationToken: cancellationToken);
     }
 
     private async Task<ClassificationResult> EnsureMerchantAsync(Person person, Guid subcategoryId, CancellationToken cancellationToken)
@@ -57,7 +57,7 @@ internal sealed class ReimbursementReceipts(IReimbursementStore store, IFinancia
         {
             return existing.IsActive ? new(existing.ExternalId, null) : new(null, $"A descrição \"{existing.Name}\" está desativada. Escolha outra descrição do pagador para {person.Name}.");
         }
-        return await merchants.SaveAsync(null, person.PayerDescription, subcategoryId, cancellationToken);
+        return await merchants.SaveAsync(null, person.PayerDescription, subcategoryId, cancellationToken: cancellationToken);
     }
 
     private static bool Same(string left, string right) => string.Equals(left.Trim(), right, StringComparison.OrdinalIgnoreCase);

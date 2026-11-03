@@ -20,18 +20,23 @@ internal sealed class ClassificationCatalog(IClassificationStore store) : IClass
                 $"{x.Category.Name} > {x.Subcategory.Name}", (CategoryKind)x.Category.Kind, x.Subcategory.IsActive && x.Category.IsActive)).ToList();
     }
 
-    public async Task<ClassificationResult> SaveCategoryAsync(Guid? externalId, string name, CategoryKind kind, CancellationToken cancellationToken = default)
+    public async Task<ClassificationResult> SaveCategoryAsync(Guid? externalId, string name, CategoryKind kind, Guid? newExternalId = null, CancellationToken cancellationToken = default)
     {
         var category = externalId is null ? new Category() : (await store.GetCategoriesAsync(cancellationToken)).FirstOrDefault(x => x.ExternalId == externalId);
         if (category is null)
         {
             return new(null, "Categoria não encontrada.");
         }
+        if (externalId is null && newExternalId is { } categoryId)
+        {
+            if (categoryId == Guid.Empty || (await store.GetCategoriesAsync(cancellationToken)).Any(x => x.ExternalId == categoryId)) { return new(null, "Identidade pública inválida ou já utilizada."); }
+            category.UseExternalId(categoryId);
+        }
         var error = category.Update(name, (Domain.CategoryKind)kind);
         return error is null ? await PersistAsync(category, cancellationToken) : new(null, error);
     }
 
-    public async Task<ClassificationResult> SaveSubcategoryAsync(Guid? externalId, Guid categoryExternalId, string name, CancellationToken cancellationToken = default)
+    public async Task<ClassificationResult> SaveSubcategoryAsync(Guid? externalId, Guid categoryExternalId, string name, Guid? newExternalId = null, CancellationToken cancellationToken = default)
     {
         if (!(await store.GetCategoriesAsync(cancellationToken)).Any(x => x.ExternalId == categoryExternalId && x.IsActive))
         {
@@ -42,6 +47,11 @@ internal sealed class ClassificationCatalog(IClassificationStore store) : IClass
         if (subcategory is null)
         {
             return new(null, "Subcategoria não encontrada.");
+        }
+        if (externalId is null && newExternalId is { } subcategoryId)
+        {
+            if (subcategoryId == Guid.Empty || subcategories.Any(x => x.ExternalId == subcategoryId)) { return new(null, "Identidade pública inválida ou já utilizada."); }
+            subcategory.UseExternalId(subcategoryId);
         }
         var error = subcategory.Update(categoryExternalId, name);
         if (error is not null)

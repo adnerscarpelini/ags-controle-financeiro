@@ -18,4 +18,14 @@ internal abstract class Entity
     public DateTimeOffset CreatedAt { get; private set; }
 
     public DateTimeOffset UpdatedAt { get; private set; }
+
+    /// <summary>Preserva a identidade pública vinda de uma importação CSV oficial. Só vale em entidade ainda não gravada.</summary>
+    public void UseExternalId(Guid externalId)
+    {
+        if (Id != 0 || externalId == Guid.Empty)
+        {
+            throw new InvalidOperationException("A identidade pública só pode ser definida em uma entidade nova.");
+        }
+        ExternalId = externalId;
+    }
 }

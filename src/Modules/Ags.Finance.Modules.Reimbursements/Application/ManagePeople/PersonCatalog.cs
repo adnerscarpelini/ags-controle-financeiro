@@ -8,11 +8,16 @@ internal sealed class PersonCatalog(IReimbursementStore store) : IPersonCatalog
     public async Task<IReadOnlyList<PersonDetails>> GetAsync(CancellationToken cancellationToken = default)
         => (await store.GetPeopleAsync(cancellationToken)).Select(x => new PersonDetails(x.ExternalId, x.Name, x.PayerDescription)).ToList();
 
-    public async Task<ReimbursementResult> SaveAsync(Guid? externalId, string name, string payerDescription, CancellationToken cancellationToken = default)
+    public async Task<ReimbursementResult> SaveAsync(Guid? externalId, string name, string payerDescription, Guid? newExternalId = null, CancellationToken cancellationToken = default)
     {
         var people = await store.GetPeopleAsync(cancellationToken);
         var person = externalId is null ? new Person() : people.FirstOrDefault(x => x.ExternalId == externalId);
         if (person is null) { return new(null, "Pessoa não encontrada."); }
+        if (externalId is null && newExternalId is { } personId)
+        {
+            if (personId == Guid.Empty || people.Any(x => x.ExternalId == personId)) { return new(null, "Identidade pública inválida ou já utilizada."); }
+            person.UseExternalId(personId);
+        }
         var error = person.Update(name, payerDescription);
         if (error is not null) { return new(null, error); }
         var duplicate = people.FirstOrDefault(x => x.ExternalId != person.ExternalId && x.NormalizedName == person.NormalizedName);

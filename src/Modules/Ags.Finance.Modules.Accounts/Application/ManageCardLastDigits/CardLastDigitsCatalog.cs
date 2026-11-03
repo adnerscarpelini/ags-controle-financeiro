@@ -37,6 +37,12 @@ internal sealed class CardLastDigitsCatalog(IAccountsStore store) : ICardLastDig
             return new(null, "Final não encontrado neste cartão.");
         }
 
+        if (request.ExternalId is null && request.NewExternalId is { } digitsId)
+        {
+            if (digitsId == Guid.Empty || allDigits.Any(x => x.ExternalId == digitsId)) { return new(null, "Identidade pública inválida ou já utilizada."); }
+            digits.UseExternalId(digitsId);
+        }
+
         var error = digits.Update(request.CardExternalId, request.Digits, (CardUsage)request.Usage, request.Label);
         if (error is not null)
         {

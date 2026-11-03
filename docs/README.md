@@ -35,7 +35,7 @@
 - [Faturas por cartão no dashboard (#26)](reports/invoices-dashboard.md)
 - [Mapa de calor de despesas (#27)](reports/heat-map.md)
 - [Pendências dos próximos sete dias (#58)](reports/pending-agenda.md)
-- [Layout CSV oficial, exportação de cadastros e de lançamentos (#61, #62)](imports/csv-layout.md)
+- [Layout CSV oficial, exportação e importação de cadastros e exportação de lançamentos (#61, #62, #28)](imports/csv-layout.md)
 
 Esta pasta registra comportamento implementado e decisões de arquitetura.
 Requisitos, critérios de aceite e dúvidas permanecem nas issues.
