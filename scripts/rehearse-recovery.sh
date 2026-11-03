@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
-# Ensaio de recuperação de desastre (#59/#31), com dados fictícios e instalações descartáveis:
+# Ensaio de recuperação de desastre (#59/#31/#76), com dados fictícios e instalações descartáveis:
 #   instalação A: cria usuário e dados -> backup
 #   instalação B (vazia, senhas novas, sem o volume original): restaura -> confere login, registros, vínculos e totais.
 #
 # Roda em Linux ou dentro do WSL 2, com Docker Engine e Compose, a partir da raiz do repositório:
 #   scripts/rehearse-recovery.sh
-# Usa projetos Compose próprios (ags-rehearsal-a/b), portas altas e pastas temporárias; ao final apaga só o que criou.
+# Usa projetos Compose próprios (ags-rehearsal-<id>-a/b), portas altas e pastas temporárias; ao final apaga só o que criou.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 ROOT=$(pwd)
 WORK=$(mktemp -d /var/tmp/ags-rehearsal.XXXXXX)
+case "$(realpath "$WORK")" in /var/tmp/ags-rehearsal.*) ;; *) exit 1 ;; esac
+RUN_ID=$(printf '%s' "${WORK##*.}" | tr '[:upper:]' '[:lower:]')
 PORT_A=${REHEARSAL_PORT_A:-5391}
 PORT_B=${REHEARSAL_PORT_B:-5392}
 USER_NAME=ensaio
@@ -22,14 +24,15 @@ fail() { printf 'FALHOU: %s\n' "$*" >&2; exit 1; }
 
 compose() { # compose <instância> <argumentos...>
     local instance=$1; shift
-    docker compose -p "ags-rehearsal-$instance" --env-file "$WORK/$instance.env" "$@"
+    docker compose -p "ags-rehearsal-$RUN_ID-$instance" --env-file "$WORK/$instance.env" "$@"
 }
 
 write_env() { # write_env <instância> <porta>
     local instance=$1 port=$2
     install -d -m 0700 "$WORK/$instance-backups"
+    install -d -m 0700 "$WORK/$instance-attachments"
     # O processo da imagem roda como o UID 1654 (usuário "app") e precisa ser dono da pasta de backup.
-    docker run --rm -v "$WORK/$instance-backups:/d" alpine:3 chown 1654:1654 /d
+    docker run --rm -v "$WORK/$instance-backups:/d" -v "$WORK/$instance-attachments:/a" alpine:3 chown 1654:1654 /d /a
     cat > "$WORK/$instance.env" <<ENV
 POSTGRES_PASSWORD=$(openssl rand -hex 24)
 AGS_DB_PASSWORD=$(openssl rand -hex 24)
@@ -38,6 +41,7 @@ AGS_PORT=$port
 AGS_VERSION=0.0.0-rehearsal
 AGS_BACKUP_TIME=00:00
 AGS_BACKUP_DIR=$WORK/$instance-backups
+AGS_ATTACHMENTS_DIR=$WORK/$instance-attachments
 ENV
     chmod 600 "$WORK/$instance.env"
 }
@@ -113,6 +117,17 @@ sign_in "$PORT_A" "$JAR_A" || fail "login na instalação A"
 authenticated "$JAR_A" "$PORT_A" || fail "sessão da instalação A não foi aceita"
 CERT_A=$(compose a exec -T app sh -c 'sha256sum /data/certs/ags-finance.pfx' | cut -d' ' -f1)
 
+log "Instalação A: documento PDF inteiramente fictício e metadados da fatura"
+DOCUMENT_ID=019e0000-0000-7000-8000-000000000021
+DOCUMENT_KEY=invoices/2026/11/03/20261103T120000Z_invoice_${DOCUMENT_ID}.pdf
+compose a exec -T app sh -c 'mkdir -p /attachments/invoices/2026/11/03; printf "%s\n" "%PDF-1.7" "1 0 obj<</Type /Catalog>>endobj" "trailer<</Root 1 0 R>>" "%%EOF" > "$1"' sh "/attachments/$DOCUMENT_KEY"
+DOCUMENT_BYTES=$(compose a exec -T app stat -c %s "/attachments/$DOCUMENT_KEY")
+DOCUMENT_SHA=$(compose a exec -T app sha256sum "/attachments/$DOCUMENT_KEY" | cut -d' ' -f1)
+psql_app a "INSERT INTO invoices.invoices (\"CardExternalId\", \"Month\", \"Status\", \"AutoCloseSuppressed\", \"HasConfirmedPayment\", \"ExternalId\", \"CreatedAt\", \"UpdatedAt\") VALUES ('019e0000-0000-7000-8000-000000000003', 202701, 0, false, false, '019e0000-0000-7000-8000-000000000020', now(), now());
+INSERT INTO attachments.documents (\"OwnerType\", \"OwnerExternalId\", \"Kind\", \"OriginalFileName\", \"ContentType\", \"SizeBytes\", \"Sha256\", \"StorageKey\", \"ExternalId\", \"CreatedAt\", \"UpdatedAt\") VALUES ('Invoice', '019e0000-0000-7000-8000-000000000020', 'Invoice', 'fatura-ficticia.pdf', 'application/pdf', $DOCUMENT_BYTES, '$DOCUMENT_SHA', '$DOCUMENT_KEY', '$DOCUMENT_ID', now(), now())" >/dev/null
+curl -ksS -b "$JAR_A" "https://localhost:$PORT_A/attachments/$DOCUMENT_ID" -o "$WORK/document-a.pdf"
+[ "$(sha256sum "$WORK/document-a.pdf" | cut -d' ' -f1)" = "$DOCUMENT_SHA" ] || fail "download do documento fictício"
+
 log "Instalação A: o backup agendado (horário já passado hoje) é feito sozinho pela aplicação"
 for _ in $(seq 1 24); do
     if compose a run --rm -T app backup list 2>/dev/null | grep -q ' scheduled '; then break; fi
@@ -132,6 +147,13 @@ NAME=$(compose a run --rm -T app backup list 2>/dev/null | grep ' manual ' | hea
 [ -n "$NAME" ] || fail "nenhum backup manual listado"
 compose a run --rm -T app backup verify "$NAME"
 echo "Backup: $NAME"
+
+log "Instalação A: ZIP em fluxo e conferência independente de SHA256SUMS"
+compose a run --rm -T app attachments export --from 2027-01-01 --to 2027-01-31 --output /backups/documentos.zip
+docker run --rm -v "$WORK/a-backups:/d:ro" alpine:3 sh -c 'unzip -q /d/documentos.zip -d /tmp/export && cd /tmp/export && sha256sum -c SHA256SUMS'
+log "Instalação A: ZIP autenticado por HTTP, com I/O assíncrono do servidor"
+curl -fksS -b "$JAR_A" "https://localhost:$PORT_A/attachments/export?from=2027-01-01&to=2027-01-31" -o "$WORK/http-export.zip"
+docker run --rm -v "$WORK:/w:ro" alpine:3 sh -c 'unzip -q /w/http-export.zip -d /tmp/export && cd /tmp/export && sha256sum -c SHA256SUMS'
 
 log "Cópia do backup para fora das instalações (como seria para outro disco/máquina)"
 docker run --rm -v "$WORK/a-backups:/from:ro" -v "$WORK/b-backups:/to" alpine:3 sh -c 'cp -a /from/. /to/ && chown -R 1654:1654 /to'
@@ -166,7 +188,29 @@ log "Instalação B: certificado restaurado"
 CERT_B=$(compose b exec -T app sh -c 'sha256sum /data/certs/ags-finance.pfx' | cut -d' ' -f1)
 [ "$CERT_A" = "$CERT_B" ] || fail "o certificado restaurado difere do original"
 
+log "Instalação B: anexos restaurados a partir da cópia compartilhada do backup"
+compose b run --rm -T app attachments verify
+DOCUMENT_AFTER=$(compose b exec -T app sha256sum "/attachments/$DOCUMENT_KEY" | cut -d' ' -f1)
+[ "$DOCUMENT_AFTER" = "$DOCUMENT_SHA" ] || fail "SHA-256 do anexo restaurado"
+curl -ksS -b "$WORK/jar-b" "https://localhost:$PORT_B/attachments/$DOCUMENT_ID" -o "$WORK/document-b.pdf"
+[ "$(sha256sum "$WORK/document-b.pdf" | cut -d' ' -f1)" = "$DOCUMENT_SHA" ] || fail "abertura autenticada do anexo restaurado"
+
 log "Instalação B: novas gravações funcionam (sequências continuam sem colidir)"
 psql_app b "INSERT INTO accounts.banks (\"Name\", \"ExternalId\", \"CreatedAt\", \"UpdatedAt\") VALUES ('Banco Novo', '019e0000-0000-7000-8000-000000000009', now(), now())" >/dev/null
+
+log "Compatibilidade v1: dump sem schema de anexos e manifesto legado sem attachments.json"
+compose b stop app
+psql_app b 'DROP SCHEMA attachments CASCADE' >/dev/null
+compose b run --rm -T app backup create
+LEGACY=$(compose b run --rm -T app backup list 2>/dev/null | grep ' manual ' | head -1 | awk '{print $1}')
+LEGACY_JSON=$(compose b run --rm -T --entrypoint cat app "/backups/$LEGACY/manifest.json" | python3 -c 'import json,sys; m=json.loads(sys.stdin.buffer.read().decode("utf-8-sig")); m["formatVersion"]=1; m["files"]=[f for f in m["files"] if f["name"]!="attachments.json"]; json.dump(m,sys.stdout,indent=2)')
+printf '%s\n' "$LEGACY_JSON" | compose b run --rm -T --entrypoint sh app -c 'cat > "$1"' sh "/backups/$LEGACY/manifest.json"
+compose b run --rm -T --entrypoint rm app "/backups/$LEGACY/attachments.json"
+compose b run --rm -T app backup verify "$LEGACY"
+compose b run --rm -T app backup restore "$LEGACY" --yes
+[ "$(psql_app b 'SELECT count(*) FROM attachments.documents')" = "0" ] || fail "migrations após restaurar v1"
+compose b up -d --wait --wait-timeout 300 app
+sign_in "$PORT_B" "$WORK/jar-legacy" || fail "login após restaurar v1"
+[ "$(compose b exec -T app sha256sum "/attachments/$DOCUMENT_KEY" | cut -d' ' -f1)" = "$DOCUMENT_SHA" ] || fail "arquivo sem referência foi apagado no restore v1"
 
 FAILED=0

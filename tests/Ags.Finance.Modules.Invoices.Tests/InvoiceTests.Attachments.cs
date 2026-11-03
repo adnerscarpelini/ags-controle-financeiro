@@ -29,6 +29,21 @@ public sealed partial class InvoiceTests
         Assert.Empty(invoice.PaymentHistory);
     }
     [Fact]
+    public async Task CreatingAnOldInvoiceForADocumentDoesNotSuppressAutomaticClosing()
+    {
+        var month = new AccountingMonth(2026, 6);
+        Assert.True((await AttachInvoiceAsync(month)).Succeeded);
+        var owner = await Documents.FindInvoiceOwnerAsync(_cardId, month);
+        var before = Assert.Single(await Catalog.GetAsync());
+        Assert.Equal(InvoiceStatus.Open, before.Status);
+        Assert.Equal(1, await Lifecycle.CloseDueAsync());
+        var after = Assert.Single(await Catalog.GetAsync());
+        Assert.Equal(InvoiceStatus.Closed, after.Status);
+        Assert.Equal(before.Total, after.Total);
+        Assert.Equal(owner, await Documents.FindInvoiceOwnerAsync(_cardId, month));
+        Assert.Empty(after.PaymentHistory);
+    }
+    [Fact]
     public async Task PaidInvoiceAndItsPurchaseAcceptDocumentsAndRemovalWithoutAnyFinancialChange()
     {
         var entries = Provider.GetRequiredService<IEntryCatalog>();

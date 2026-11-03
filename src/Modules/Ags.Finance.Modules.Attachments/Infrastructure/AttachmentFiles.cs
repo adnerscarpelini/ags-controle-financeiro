@@ -7,6 +7,7 @@ namespace Ags.Finance.Modules.Attachments.Infrastructure;
 
 internal sealed class AttachmentFiles(AttachmentStorageOptions options) : IAttachmentFiles
 {
+    public bool IsDirectoryAvailable => Directory.Exists(options.Directory);
     public async Task<(long Bytes, string Sha256)> WriteAsync(string temporaryKey, Stream source, CancellationToken cancellationToken)
     {
         if (!Directory.Exists(options.Directory)) { throw new DirectoryNotFoundException(); }

@@ -9,6 +9,7 @@ WORKDIR /src
 COPY global.json Directory.Build.props Directory.Packages.props .editorconfig ./
 COPY src/Ags.Finance.SharedKernel/Ags.Finance.SharedKernel.csproj src/Ags.Finance.SharedKernel/
 COPY src/Ags.Finance.Web/Ags.Finance.Web.csproj src/Ags.Finance.Web/
+COPY src/Modules/Ags.Finance.Modules.Attachments/Ags.Finance.Modules.Attachments.csproj src/Modules/Ags.Finance.Modules.Attachments/
 COPY src/Modules/Ags.Finance.Modules.Accounts/Ags.Finance.Modules.Accounts.csproj src/Modules/Ags.Finance.Modules.Accounts/
 COPY src/Modules/Ags.Finance.Modules.Identity/Ags.Finance.Modules.Identity.csproj src/Modules/Ags.Finance.Modules.Identity/
 COPY src/Modules/Ags.Finance.Modules.Imports/Ags.Finance.Modules.Imports.csproj src/Modules/Ags.Finance.Modules.Imports/

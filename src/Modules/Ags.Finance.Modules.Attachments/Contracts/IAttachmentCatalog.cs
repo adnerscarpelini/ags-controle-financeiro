@@ -17,6 +17,7 @@ public sealed record AttachmentStorageOptions(string Directory, long MaxFileSize
 public interface IAttachmentCatalog
 {
     Task<IReadOnlyList<AttachmentDetails>> ListAsync(CancellationToken cancellationToken = default);
+    /// <summary>Inside an ambient transaction, the caller holds the maintenance lease through commit.</summary>
     Task<AttachmentResult> UploadAsync(AttachmentOwner owner, AttachmentKind kind, string originalFileName, Stream content, CancellationToken cancellationToken = default);
     Task<AttachmentContent?> OpenAsync(Guid externalId, CancellationToken cancellationToken = default);
     Task<AttachmentResult> TrashAsync(AttachmentOwner owner, Guid externalId, CancellationToken cancellationToken = default);

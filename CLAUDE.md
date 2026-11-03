@@ -54,6 +54,7 @@ Módulos: `Attachments`, `Identity`, `Accounts`, `Transactions`, `Invoices`, `Re
 - Valores monetários: `decimal` no código (`Money`), centavos em `BIGINT` no PostgreSQL. Nunca `float` ou `double`. Preservar `AccountingMonth` como inteiro `yyyyMM`.
 - O PostgreSQL tem volume persistente próprio. `DataDirectory` fica para certificados, chaves e arquivos da aplicação. Não manter dados ativos em pasta sincronizada.
 - Anexos originais ficam em pasta própria (`Attachments__Directory`, `AGS_ATTACHMENTS_DIR`), separada de DataDirectory e backup; metadados no schema `attachments`. PDF, JPEG, PNG e WebP até 20 MB, lixeira de 30 dias. Ver `docs/architecture/attachments-storage.md`.
+- Backup de anexos: manifesto v2, índice `attachments.json` por pacote e cópia incremental única em `<backup>/attachments/`, incluindo lixeira; copiar a pasta de backup inteira para fora da máquina. Backups v1 continuam verificáveis e restauráveis. Arquivos faltantes são copiados antes da restauração SQL; o ZIP de anexos não é reimportado nem substitui o backup.
 - Backup sob demanda com `pg_dump` e recuperação com `pg_restore`, incluindo preparação de papéis/permissões e arquivos associados. Validar recuperação em instalação vazia e guardar cópia fora da máquina. O backup é um serviço da aplicação (`Ags.Finance.Web/Backup`): comandos `backup create|list|verify|restore`, agenda diária, retenção (30 + mensal preservado) e tela `/backups` com restauração em modo de manutenção (#59/#31). Volumes e CSV não equivalem a backup de desastre.
 
 ### Regras de negócio centrais

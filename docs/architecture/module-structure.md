@@ -18,7 +18,7 @@ A aplicação é um **monólito modular**. Um único host web (`Ags.Finance.Web`
 | Preferences | `Ags.Finance.Modules.Preferences` | Parametrizações do aplicativo: tema, tela inicial, recorrentes na fatura, dashboard, paginação e duração da sessão (#69) | — |
 | Reimbursements | `Ags.Finance.Modules.Reimbursements` | Pessoas, regras de rateio (filtro salvo + percentual), valores a receber e recebidos | Accounts, Transactions |
 | Reports | `Ags.Finance.Modules.Reports` | Dashboard e análises, somente leitura | Identity, Accounts, Transactions, Invoices, Reimbursements, Preferences |
-| Imports | `Ags.Finance.Modules.Imports` | Importação/exportação CSV no layout oficial e versionado do sistema (#28/#29/#61/#62) | todos |
+| Imports | `Ags.Finance.Modules.Imports` | Importação/exportação CSV no layout oficial e versionado do sistema (#28/#29/#61/#62) | Identity, Accounts, Transactions, Invoices, Reimbursements |
 
 As dependências apontam sempre na direção da tabela, sem ciclos. `Reports` e `Imports` consomem os módulos de negócio (`Identity`, `Accounts`, `Transactions`, `Invoices`, `Reimbursements`), mas não um ao outro, para evitar ciclo. `Preferences` não depende de nenhum módulo; quem precisa de uma preferência (Invoices e Reports) a lê pelos `Contracts` dela, e Transactions continua sem consumi-la: o chamador informa o que for preciso. Uma dependência nova precisa ser registrada aqui.
 
@@ -29,7 +29,7 @@ As dependências apontam sempre na direção da tabela, sem ciclos. `Reports` e 
 | `Domain` | Entidades, objetos de valor, invariantes e regras de negócio | BCL e `SharedKernel` |
 | `Application` | Casos de uso, uma pasta por funcionalidade | `Domain`, `Contracts` próprios e de módulos permitidos |
 | `Infrastructure` | `DbContext`, mapeamentos, migrations, serviços externos | `Application` e `Domain` |
-| `Contracts` | API pública do módulo | BCL e `SharedKernel` |
+| `Contracts` | API pública do módulo | BCL, `SharedKernel` e DTOs dos `Contracts` de módulos permitidos para composição |
 | `DependencyInjection.cs` | Registro do módulo (`Add<Module>Module`) | todas as pastas do módulo |
 
 Somente `Contracts` e `DependencyInjection` são públicos. Os testes de arquitetura verificam essas regras.
@@ -46,3 +46,5 @@ Somente `Contracts` e `DependencyInjection` são públicos. Os testes de arquite
 - **Menos módulos** (Catálogo dentro de Transactions, Reembolsos dentro de Invoices): considerado; mantidos separados porque têm regras e motivos de mudança distintos.
 
 Attachments não depende de outros módulos. Transactions e Invoices validam o dono antes de chamar seus Contracts. Não há FK ou JOIN entre módulos. A data do upload define o caminho imutável, conforme [armazenamento](attachments-storage.md).
+
+Na composição de documentos (#74–#76), os Contracts de Transactions e Invoices reutilizam os DTOs pequenos de Attachments. Isso segue as dependências permitidas, como a composição de lançamentos nos Contracts de Invoices, sem expor entidades ou Infrastructure. As referências para o ZIP são consultas dos dados já persistidos: não geram recorrências nem fecham faturas.

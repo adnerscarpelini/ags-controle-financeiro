@@ -3,16 +3,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ags.Finance.Modules.Attachments.Infrastructure;
 
-/// <summary>Convenções de persistência comuns a todas as entidades do módulo.</summary>
+/// <summary>Persistence conventions shared by the module entities.</summary>
 internal static class PersistenceConventions
 {
-    /// <summary>Impede que a base <see cref="Entity"/> vire tabela. Chamar antes de aplicar os mapeamentos.</summary>
+    /// <summary>Keeps the <see cref="Entity"/> base out of the model before applying configurations.</summary>
     public static void IgnoreEntityBase(ModelBuilder modelBuilder)
     {
         modelBuilder.Ignore<Entity>();
     }
 
-    /// <summary>Chave primária e índice único de <see cref="Entity.ExternalId"/>. Chamar depois de aplicar os mapeamentos.</summary>
+    /// <summary>Applies the primary key and unique <see cref="Entity.ExternalId"/> index after configurations.</summary>
     public static void ApplyEntityRules(ModelBuilder modelBuilder)
     {
         foreach (var entityType in modelBuilder.Model.GetEntityTypes().ToList())

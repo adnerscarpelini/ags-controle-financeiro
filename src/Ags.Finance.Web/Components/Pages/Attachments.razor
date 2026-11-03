@@ -1,0 +1,88 @@
+@page "/anexos"
+@using Ags.Finance.Modules.Attachments.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.Modules.Invoices.Contracts
+@using Ags.Finance.Web.Attachments
+@inject IAttachmentCatalog Catalog
+@inject IEntryAttachmentCatalog Entries
+@inject IInvoiceAttachmentCatalog Invoices
+@inject AttachmentInventory Inventory
+@inject TimeProvider Clock
+
+<PageHeader Title="Anexos" />
+@if (_message is not null) { <p role="status">@_message</p> }
+<section class="panel attachment-controls">
+    <h2>Documentos e lixeira</h2>
+    <p>Uso de disco: @((_diskBytes / 1048576m).ToString("N2")) MB · @_all.Count registro(s).</p>
+    <div class="catalog-fields">
+        <div class="field"><label for="attachments-kind">Tipo</label><select id="attachments-kind" @bind="_kind"><option value="">Todos</option>@foreach (var kind in Enum.GetValues<AttachmentKind>()) { <option value="@kind">@AttachmentPicker.Label(kind)</option> }</select></div>
+        <div class="field"><label for="attachments-from">Upload de</label><input id="attachments-from" type="date" @bind="_from" /></div>
+        <div class="field"><label for="attachments-to">Upload até</label><input id="attachments-to" type="date" @bind="_to" /></div>
+        <label><input type="checkbox" @bind="_trash" />Mostrar lixeira</label>
+    </div>
+    <p>A lixeira permite baixar e restaurar por 30 dias. Donos excluídos impedem a restauração.</p>
+    <ul class="catalog-list">
+        @foreach (var row in Visible)
+        {
+            <li><span>@row.OriginalFileName · @AttachmentPicker.Label(row.Kind) · Upload @row.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @((row.SizeBytes + 1023) / 1024) KiB</span>
+                @if (row.DeletedAt is { } deleted) { <span>Na lixeira desde @deleted.ToLocalTime().ToString("dd/MM/yyyy")</span> }
+                <a class="button" href="@($"/attachments/{row.ExternalId}")" target="_blank" rel="noopener">Abrir</a>
+                <a class="button" href="@($"/attachments/{row.ExternalId}?download=true")">Baixar</a>
+                @if (row.DeletedAt is null) { <button class="button" @onclick="() => ChangeAsync(row, false)" disabled="@_busy">Mover para lixeira</button> }
+                else { <button class="button" @onclick="() => ChangeAsync(row, true)" disabled="@(_busy || row.DeletedAt <= Clock.GetUtcNow().AddDays(-30))">Restaurar</button> }
+            </li>
+        }
+    </ul>
+    @if (!Visible.Any()) { <p>Nenhum documento neste filtro.</p> }
+</section>
+<section class="panel attachment-controls">
+    <h2>Exportar ZIP</h2>
+    <p>Use a data do lançamento; faturas e pagamentos usam o mês da fatura. Na compra parcelada, vale a primeira parcela ainda existente, na ordem das parcelas. A lixeira fica de fora.</p>
+    <p>O ZIP contém indice.csv e SHA256SUMS, não é criptografado e não substitui o backup.</p>
+    <div class="catalog-fields">
+        <div class="field"><label for="attachment-export-from">Período de</label><input id="attachment-export-from" type="date" @bind="_exportFrom" /></div>
+        <div class="field"><label for="attachment-export-to">Período até</label><input id="attachment-export-to" type="date" @bind="_exportTo" /></div>
+    </div>
+    <a class="button" href="@ExportUrl">Exportar documentos do período e tipo selecionados</a>
+</section>
+
+@code {
+    private IReadOnlyList<AttachmentDetails> _all = [];
+    private AttachmentKind? _kind;
+    private DateOnly? _from;
+    private DateOnly? _to;
+    private DateOnly _exportFrom;
+    private DateOnly _exportTo;
+    private long _diskBytes;
+    private bool _trash;
+    private bool _busy;
+    private string? _message;
+    private string ExportUrl => FormattableString.Invariant($"/attachments/export?from={_exportFrom:yyyy-MM-dd}&to={_exportTo:yyyy-MM-dd}") + (_kind is { } kind ? $"&kind={kind}" : string.Empty);
+    private IEnumerable<AttachmentDetails> Visible => _all.Where(x => (x.DeletedAt is not null) == _trash && (_kind is null || x.Kind == _kind)
+        && (_from is null || DateOnly.FromDateTime(x.CreatedAt.LocalDateTime) >= _from) && (_to is null || DateOnly.FromDateTime(x.CreatedAt.LocalDateTime) <= _to)).OrderByDescending(x => x.CreatedAt);
+    protected override async Task OnInitializedAsync()
+    {
+        _exportTo = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime); _exportFrom = new(_exportTo.Year, _exportTo.Month, 1);
+        await LoadAsync();
+    }
+    private async Task LoadAsync()
+    {
+        _all = await Catalog.ListAsync();
+        try { _diskBytes = Inventory.DiskUsageBytes(); }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { _message = "Não foi possível consultar o uso da pasta de anexos."; }
+    }
+    private async Task ChangeAsync(AttachmentDetails row, bool restore)
+    {
+        if (_busy) { return; }
+        _busy = true;
+        try
+        {
+            var result = row.Owner.Type is AttachmentOwnerType.Entry or AttachmentOwnerType.Purchase
+                ? restore ? await Entries.RestoreAsync(row.Owner.ExternalId, row.ExternalId) : await Entries.TrashAsync(row.Owner.ExternalId, row.ExternalId)
+                : restore ? await Invoices.RestoreAsync(row.Owner, row.ExternalId) : await Invoices.TrashAsync(row.Owner, row.ExternalId);
+            _message = result.Error ?? (restore ? "Anexo restaurado." : "Anexo movido para a lixeira.");
+            await LoadAsync();
+        }
+        finally { _busy = false; }
+    }
+}

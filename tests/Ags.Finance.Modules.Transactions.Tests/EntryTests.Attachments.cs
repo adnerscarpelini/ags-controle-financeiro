@@ -66,4 +66,17 @@ public sealed partial class EntryTests
         Assert.True((await AttachAsync(entry)).Succeeded);
         Assert.Single(await Entries.GetAsync());
     }
+    [Fact]
+    public async Task ExportReferenceUsesTheFirstRemainingInstallmentAndNeverMovesTheStoredFile()
+    {
+        await Entries.CreateInstallmentsAsync(Request() with { CardExternalId = await CreateCardAsync() }, 3);
+        var rows = (await Entries.GetAsync()).OrderBy(x => x.InstallmentNumber).ToList();
+        Assert.True((await AttachAsync(rows[0].ExternalId)).Succeeded);
+        var key = Assert.Single(await Documents.ListAsync()).StorageKey;
+        Assert.True((await Entries.EditAsync(rows[1].ExternalId, Change(rows[1]) with { Date = new DateOnly(2028, 1, 3) }, EntryChangeScope.OnlyThis)).Succeeded);
+        await Entries.DeleteAsync(rows[0].ExternalId, EntryChangeScope.OnlyThis);
+        var reference = Assert.Single(await Documents.GetReferencesAsync());
+        Assert.Equal(new DateOnly(2028, 1, 3), reference.Date);
+        Assert.Equal(key, Assert.Single(await Documents.ListAsync()).StorageKey);
+    }
 }

@@ -58,7 +58,7 @@ public sealed class BackupServiceTests : IAsyncLifetime
         Assert.Equal("manual", package.Manifest.Kind);
         Assert.Equal(_clock.Now, package.Manifest.CreatedAt);
         Assert.Equal(_tools.ClientVersion, package.Manifest.PgDumpVersion);
-        Assert.Equal(["database.dump", "app-files.tar.gz"], package.Manifest.Files.Select(file => file.Name));
+        Assert.Equal(["database.dump", "app-files.tar.gz", "attachments.json"], package.Manifest.Files.Select(file => file.Name));
         Assert.Null(await service.VerifyAsync(package, CancellationToken.None));
         Assert.DoesNotContain(Directory.EnumerateFileSystemEntries(BackupDirectory), path => Path.GetFileName(path).StartsWith('.'));
         Assert.DoesNotContain("senha", await File.ReadAllTextAsync(Path.Combine(package.Path, BackupManifest.FileName)), StringComparison.OrdinalIgnoreCase);

@@ -136,3 +136,5 @@ as mudanças do banco.
 - **Nomes em snake_case:** exigiria um pacote a mais para o provider; adiado.
 
 Anexos (#73) guardam só metadados no schema `attachments`; os originais ficam em pasta própria. Ver [decisão](attachments-storage.md). Não estão no arquivo `app-files.tar.gz`.
+
+O backup v2 (#76) acrescenta `attachments.json` por pacote e uma cópia única incremental em `<backup>/attachments/`, conferida por tamanho e SHA-256. A lixeira também entra. Os índices dos pacotes mantidos determinam a retenção desses arquivos. Formato v1 continua aceito; migrations recriam o schema `attachments` após restaurar um dump anterior ao módulo. A pasta de backup inteira precisa ser copiada para fora da máquina.

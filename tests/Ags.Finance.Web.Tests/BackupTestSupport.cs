@@ -23,6 +23,9 @@ internal sealed class FakeBackupTools : IPostgresTools
 {
     public string ClientVersion { get; set; } = "18.0";
 
+    public Func<CancellationToken, Task>? AfterDumpAsync { get; set; }
+    public Func<CancellationToken, Task>? BeforeRestoreAsync { get; set; }
+
     public bool DumpFails { get; set; }
 
     public bool RestoreFails { get; set; }
@@ -48,6 +51,7 @@ internal sealed class FakeBackupTools : IPostgresTools
         }
 
         await File.WriteAllTextAsync(file, "PGDMP simulado", cancellationToken);
+        if (AfterDumpAsync is not null) { await AfterDumpAsync(cancellationToken); }
         return new ToolResult(0, string.Empty, string.Empty);
     }
 
@@ -56,10 +60,11 @@ internal sealed class FakeBackupTools : IPostgresTools
         return Task.FromResult(new ToolResult(0, "listagem", string.Empty));
     }
 
-    public Task<ToolResult> RestoreAsync(NpgsqlConnectionStringBuilder connection, string file, string preamble, CancellationToken cancellationToken)
+    public async Task<ToolResult> RestoreAsync(NpgsqlConnectionStringBuilder connection, string file, string preamble, CancellationToken cancellationToken)
     {
         RestoreCalls++;
         LastPreamble = preamble;
-        return Task.FromResult(RestoreFails ? new ToolResult(3, string.Empty, "psql: erro simulado") : new ToolResult(0, string.Empty, string.Empty));
+        if (BeforeRestoreAsync is not null) { await BeforeRestoreAsync(cancellationToken); }
+        return RestoreFails ? new ToolResult(3, string.Empty, "psql: erro simulado") : new ToolResult(0, string.Empty, string.Empty);
     }
 }
