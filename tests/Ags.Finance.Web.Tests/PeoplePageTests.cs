@@ -22,6 +22,7 @@ public sealed class PeoplePageTests
         await context.Services.MigrateReimbursementsModuleAsync();
         var catalog = context.Services.GetRequiredService<IPersonCatalog>();
         var page = context.Render<People>();
+        page.WaitForAssertion(() => Assert.Contains("Nenhuma pessoa cadastrada", page.Markup, StringComparison.Ordinal));
 
         page.Find("#person-name").Change("Pessoa Exemplo");
         page.Find("#person-percent").Change("150");

@@ -437,6 +437,7 @@ a:hover {
 .entry-expense { color: var(--color-expense); }
 .entry-income { color: var(--color-income); }
 .entry-month-future { color: var(--color-text-secondary); }
+.reimbursement-warning { color: var(--color-warning); }
 .color-green { color: var(--color-accent-hover); }
 .color-violet { color: var(--color-bank-nubank); }
 .color-orange { color: var(--color-bank-itau); }

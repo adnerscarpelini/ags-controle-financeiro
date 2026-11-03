@@ -50,7 +50,7 @@ internal sealed partial class EntryCatalog
         -adjustment.ExpenseDifference, $"Total correto informado: {adjustment.CorrectTotal}", true, adjustment.Date, adjustment.CreatedAt, CardExternalId: adjustment.CardExternalId, IsInvoiceAdjustment: true);
 
     private static bool MatchesAdjustment(InvoiceAdjustment adjustment, EntryFilter filter)
-        => !filter.PendingRecurringOnly && filter.IsEffective != false && (filter.Kind is null or Contracts.CategoryKind.Expense)
+        => !filter.PendingRecurringOnly && !filter.HasReimbursement && filter.IsEffective != false && (filter.Kind is null or Contracts.CategoryKind.Expense)
             && (filter.Month is null || filter.Month == adjustment.Month) && (filter.FromDate is null || adjustment.Date >= filter.FromDate)
             && (filter.ToDate is null || adjustment.Date <= filter.ToDate) && (filter.CardExternalId is null || filter.CardExternalId == adjustment.CardExternalId)
             && (filter.AccountExternalId is null || filter.AccountExternalId == adjustment.AccountExternalId) && filter.CardLastDigitsExternalId is null

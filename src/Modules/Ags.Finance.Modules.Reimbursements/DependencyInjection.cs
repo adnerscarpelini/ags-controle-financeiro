@@ -1,4 +1,5 @@
 using Ags.Finance.Modules.Reimbursements.Application;
+using Ags.Finance.Modules.Reimbursements.Application.ListReimbursements;
 using Ags.Finance.Modules.Reimbursements.Application.ManagePeople;
 using Ags.Finance.Modules.Reimbursements.Contracts;
 using Ags.Finance.Modules.Reimbursements.Infrastructure;
@@ -28,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<IReimbursementStore, ReimbursementStore>();
         services.AddScoped<IPersonCatalog, PersonCatalog>();
         services.AddScoped<IReimbursementWriteGuard, ReimbursementWriteGuard>();
+        services.AddScoped<IReimbursementOverviews, ReimbursementOverviews>();
         return services;
     }
 
