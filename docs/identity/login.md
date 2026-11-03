@@ -14,7 +14,7 @@ persistir as chaves de Data Protection e a identificação da aplicação para s
 - **Sem nenhum usuário cadastrado**, `/login` mostra a orientação de rodar `Ags.Finance.Web user create` no computador do serviço e não oferece formulário nem cadastro.
 - **Mensagens:** senha errada e usuário inexistente dão a mesma resposta ("Usuário ou senha incorretos."), e o tempo de resposta também não distingue os dois casos (o caso sem usuário gasta o tempo de um hash).
 - **Bloqueio:** cinco tentativas erradas seguidas bloqueiam novas tentativas por 5 minutos, mesmo com a senha certa. Tentativas durante o bloqueio não o prolongam. Uma entrada correta zera a contagem. O estado fica no banco (`FailedSignInCount`, `LockoutEnd`) e sobrevive a reinício do serviço. Só conta quando o usuário existe, para quem não conhece o nome de usuário não conseguir bloquear o dono.
-- **Sessão:** cookie `ags.session` (`HttpOnly`, `Secure`, `SameSite=Lax`). Sem "Manter conectado", é cookie de sessão do navegador e o ticket vale 12 horas. Com a opção marcada, o cookie é persistente e vale 30 dias, inclusive depois de fechar e abrir o navegador. A validade não é renovada (sem expiração deslizante).
+- **Sessão:** cookie `ags.session` (`HttpOnly`, `Secure`, `SameSite=Lax`). Sem "Manter conectado", é cookie de sessão do navegador e o ticket vale 12 horas por padrão (ou 24 horas / 7 dias, conforme a [preferência](../preferences/settings.md), lida no momento do login: mudá-la não altera sessões abertas). Com a opção marcada, o cookie é persistente e vale 30 dias, inclusive depois de fechar e abrir o navegador. A validade não é renovada (sem expiração deslizante).
 - **Sair:** botão "Sair" no fim do menu (`POST /account/sign-out`). Todas as respostas da aplicação (páginas e endpoints, menos arquivos estáticos) saem com `Cache-Control: no-store`, então o botão "voltar" do navegador não exibe páginas guardadas.
 - **Trocar a senha logado:** em Configurações, informando a senha atual, a nova e a confirmação (`POST /account/password`). A sessão atual continua com o mesmo prazo; todas as outras terminam. Errar a senha atual conta para o bloqueio, como no login.
 
@@ -40,7 +40,7 @@ Os três `POST` exigem o token antifalsificação (o middleware valida e o grupo
 | `Authentication/AuthenticationSetup.cs` | Cookie, política de fallback, estado de autenticação em cascata e o middleware de `no-store` |
 | `Authentication/AccountEndpoints.cs` | Os três endpoints acima |
 | `Authentication/SessionCookieEvents.cs`, `RevalidatingSessionStateProvider.cs` | Validação do carimbo (HTTP e circuito) |
-| `Authentication/SessionClaims.cs`, `SessionPolicy.cs`, `ReturnUrl.cs` | Identidade do cookie, prazos de 12 horas e 30 dias, saneamento do retorno |
+| `Authentication/SessionClaims.cs`, `SessionPolicy.cs`, `ReturnUrl.cs` | Identidade do cookie, prazos (12 horas por padrão, ajustável, e 30 dias), saneamento do retorno |
 | `Components/Pages/Login.razor`, `Layout/LoginLayout.razor`, `RedirectToLogin.razor` | Tela de login e redirecionamento quando a sessão acaba com a tela aberta |
 | `Modules/Identity/Application/{SignIn,ChangePassword,ValidateSession}` | Casos de uso; `Domain/User` guarda a regra do bloqueio |
 

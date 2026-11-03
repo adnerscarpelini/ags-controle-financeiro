@@ -29,7 +29,7 @@ efetivada o reduz. Compras de cartão compõem despesas/faturas; o caixa da cont
 pelo pagamento da fatura, sem nova despesa (#19/#51).
 
 A visão completa de pendentes (#57) inclui receitas e despesas. O dashboard (#58) usa a data
-prevista entre hoje e hoje + 6, com atrasados separados, no fuso de negócio configurado.
+prevista entre hoje e hoje + (N − 1) dias, com N escolhido nas preferências (#69; padrão 7), e com atrasados separados, no fuso de negócio configurado.
 O seletor de mês contábil não desloca essa janela.
 
 ## Faturas, pagamentos e ajustes
@@ -62,6 +62,14 @@ Cashback/Desconto é permitido em Aberta/Fechada e bloqueado em Paga, inclusive 
 origem e no destino de uma mudança. Pagamentos confirmados permanecem irreversíveis.
 O débito atômico e a quitação explícita da #51 estão implementados; pagamentos
 confirmados não podem ser editados ou excluídos pelos comandos de abatimento.
+
+## Recorrentes do cartão na fatura (#69)
+
+Em fatura Aberta, a ocorrência recorrente do cartão com data posterior a hoje é **prevista**. Pela preferência,
+ela soma no total só na data da cobrança (padrão, como o banco mostra) ou desde já. Fechada e Paga sempre somam tudo.
+É uma escolha de apresentação e de cálculo de total e saldo: não altera os lançamentos gravados, as despesas do
+mês nem as regras de quitação. O ajuste de total em fatura Aberta compara com o lançado até hoje.
+Detalhes em [recorrentes previstas na fatura](../invoices/recurring-forecast.md).
 
 ## Recorrência, histórico e arquivamento
 

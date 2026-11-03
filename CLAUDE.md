@@ -87,7 +87,7 @@ Não invente regras de negócio. Se uma issue não define um comportamento, perg
 
 ## Design da interface
 
-Tema **escuro por padrão**, visual moderno e limpo, com um verde "dinheiro" como cor principal. Os tokens ficam como variáveis CSS num único arquivo; não use cores soltas nos componentes. A interface é responsiva: funciona no computador e no celular, e pode ser instalada como PWA. Detalhes em `docs/architecture/ui-design.md`.
+Tema **escuro por padrão** (claro e automático nas preferências), visual moderno e limpo, com um verde "dinheiro" como cor principal. Os tokens ficam como variáveis CSS num único arquivo; não use cores soltas nos componentes. A interface é responsiva: funciona no computador e no celular, e pode ser instalada como PWA. Detalhes em `docs/architecture/ui-design.md`.
 
 | Token | Cor | Uso |
 | --- | --- | --- |
@@ -103,7 +103,7 @@ Tema **escuro por padrão**, visual moderno e limpo, com um verde "dinheiro" com
 | `Expense` | `#F87171` | despesas e valores negativos |
 | `Warning` | `#FBBF24` | alertas (teto estourado, fatura em aberto) |
 
-- CSS próprio com os tokens; biblioteca de componentes só se justificada numa issue. O tema claro pode existir depois, mas o escuro é o padrão.
+- CSS próprio com os tokens; biblioteca de componentes só se justificada numa issue. O tema é preferência do usuário (escuro, claro ou automático; ver `docs/preferences/settings.md`), mas o escuro é o padrão. Cada token é `light-dark(claro, escuro)` e todo texto mantém contraste mínimo 4,5:1 nos dois temas.
 - Nada carregado de CDN: fontes, scripts e ícones são servidos pela própria aplicação.
 - Fonte Inter (servida localmente), números com dígitos tabulares e alinhados à direita. Valores em `R$ 1.234,56`, datas em `dd/MM/yyyy` (cultura `pt-BR`).
 - Cantos arredondados (8), espaçamento em múltiplos de 4, sem sombras pesadas nem gradientes.
