@@ -17,6 +17,8 @@ public sealed class TransactionImportTests : ImportsFixture
     private static readonly TransactionExportFilter s_quarter = new(FromDate: new DateOnly(2026, 10, 1), ToDate: new DateOnly(2026, 12, 31));
     private static readonly string[] s_columns = [.. TransactionLayout.For(TransactionFileKind.Transactions).Columns];
 
+    private static readonly EntryFilter s_quarterFilter = new(FromDate: new DateOnly(2026, 10, 1), ToDate: new DateOnly(2026, 12, 31));
+
     private IEntryCatalog Entries => Get<IEntryCatalog>();
 
     /// <summary>Conjunto variado: avulsa, receita, cartão, mês manual, compra parcelada e série recorrente com uma ocorrência efetivada e as demais pendentes.</summary>
@@ -67,7 +69,7 @@ public sealed class TransactionImportTests : ImportsFixture
     }
 
     private static HashSet<string> Rows(CsvFile file, string type, IReadOnlyList<string> columns)
-        => CsvReader.Parse(file.Content, type, 1, columns).Table!.Rows.Select(x => string.Join("\u001f", x.Fields)).ToHashSet(StringComparer.Ordinal);
+        => CsvReader.Parse(file.Content, type, 2, columns).Table!.Rows.Select(x => string.Join("\u001f", x.Fields)).ToHashSet(StringComparer.Ordinal);
 
     private static string Text(CsvFile file) => Encoding.UTF8.GetString(file.Content, 3, file.Content.Length - 3);
 
@@ -205,12 +207,120 @@ public sealed class TransactionImportTests : ImportsFixture
         Assert.Equal((3, "merchant_external_id"), (missing.Issues[0].Line, missing.Issues[0].Field));
     }
 
+    private static string Row(Seed seed, string kind = "Expense", Guid? id = null, string person = "", string percent = "")
+        => $"{id ?? Guid.CreateVersion7():D},2026-10-05,2026-10,{kind},10000,{seed.Merchant:D},{seed.Subcategory:D},{seed.Account:D},,,,true,2026-10-05,,,,,,{person},{percent}";
+
+    private static byte[] File(params string[] rows) => Bytes($"ags-finance-csv,transactions,2\r\n{string.Join(",", s_columns)}\r\n{string.Join("\r\n", rows)}\r\n");
+
+    [Fact]
+    public async Task ExpenseAndSeriesWithPersonSurviveARoundTripInAnEmptyEnvironment()
+    {
+        var seed = await SeedAsync();
+        Assert.True((await Entries.CreateAsync(new(new DateOnly(2026, 10, 5), seed.Merchant, seed.Subcategory, seed.Account, new Money(100m), Reimbursement: new(seed.Person, 12.5m)))).Succeeded);
+        Assert.True((await Entries.CreateRecurringAsync(new(new(new DateOnly(2026, 10, 7), seed.Merchant, seed.Subcategory, seed.Account, new Money(40m), Reimbursement: new(seed.Person, 30m))))).Succeeded);
+        _ = await Entries.QueryAsync(s_quarterFilter);
+        var (entries, series) = await ExportPairAsync(Provider);
+        var registries = new Dictionary<RegistryKind, CsvFile>();
+        foreach (var kind in Enum.GetValues<RegistryKind>()) { registries[kind] = await Get<IRegistryExport>().ExportAsync(kind); }
+        var (database, target) = await EmptyEnvironmentAsync(registries);
+        await using (target)
+        await using (database)
+        {
+            var report = await target.GetRequiredService<ITransactionImport>().ImportAsync(entries.Content, series.Content);
+            Assert.True(report.Succeeded, string.Join("; ", report.Issues.Select(x => $"L{x.Line} {x.Field}: {x.Message}")));
+
+            var rebuilt = await target.GetRequiredService<IEntryCatalog>().GetAsync();
+            Assert.Equal(new EntryReimbursement(seed.Person, 12.5m), rebuilt.Single(x => x.RecurringEntryExternalId is null).Reimbursement);
+            Assert.All(rebuilt.Where(x => x.RecurringEntryExternalId is not null), x => Assert.Equal(new EntryReimbursement(seed.Person, 30m), x.Reimbursement));
+            var seriesId = rebuilt.First(x => x.RecurringEntryExternalId is not null).RecurringEntryExternalId!.Value;
+            Assert.Equal(new EntryReimbursement(seed.Person, 30m), (await target.GetRequiredService<IEntryCatalog>().GetRecurringAsync(seriesId))!.Template.Reimbursement);
+
+            var again = await target.GetRequiredService<ITransactionImport>().ImportAsync(entries.Content, series.Content);
+            Assert.True(again.Succeeded, string.Join("; ", again.Issues.Select(x => $"L{x.Line} {x.Field}: {x.Message}")));
+            Assert.Equal(0, again.NewCount);
+        }
+    }
+
+    [Theory]
+    [InlineData(true, false, "reimbursement_percent")]
+    [InlineData(false, true, "reimbursement_person_external_id")]
+    public async Task PersonAndPercentMustComeTogether(bool hasPerson, bool hasPercent, string field)
+    {
+        var seed = await SeedAsync();
+        var report = await Get<ITransactionImport>().ImportAsync(File(Row(seed, person: hasPerson ? seed.Person.ToString("D") : "", percent: hasPercent ? "50" : "")), null);
+        Assert.False(report.Succeeded);
+        Assert.Equal((3, field), (report.Issues[0].Line, report.Issues[0].Field));
+        Assert.Empty(await Entries.GetAsync());
+    }
+
+    [Theory]
+    [InlineData("100.01")]
+    [InlineData("-1")]
+    [InlineData("33.333")]
+    public async Task InvalidPercentIsRejectedOnItsLine(string percent)
+    {
+        var seed = await SeedAsync();
+        var report = await Get<ITransactionImport>().ImportAsync(File(Row(seed, person: seed.Person.ToString("D"), percent: percent)), null);
+        Assert.Equal((3, "reimbursement_percent"), (report.Issues[0].Line, report.Issues[0].Field));
+    }
+
+    [Fact]
+    public async Task IncomeWithPersonIsRejected()
+    {
+        var seed = await SeedAsync();
+        var report = await Get<ITransactionImport>().ImportAsync(File(Row(seed, "Income", person: seed.Person.ToString("D"), percent: "50")), null);
+        Assert.Contains(report.Issues, x => x.Field == "reimbursement_person_external_id");
+    }
+
+    [Fact]
+    public async Task UnknownPersonIsRejected()
+    {
+        var seed = await SeedAsync();
+        var report = await Get<ITransactionImport>().ImportAsync(File(Row(seed, person: Guid.CreateVersion7().ToString("D"), percent: "50")), null);
+        Assert.Equal((3, "reimbursement_person_external_id"), (report.Issues[0].Line, report.Issues[0].Field));
+        Assert.Empty(await Entries.GetAsync());
+    }
+
+    [Fact]
+    public async Task StoredPercentIsKeptEvenIfTheDefaultOfThePersonIsDifferent()
+    {
+        var seed = await SeedAsync();
+        Assert.True((await Get<ITransactionImport>().ImportAsync(File(Row(seed, person: seed.Person.ToString("D"), percent: "30")), null)).Succeeded);
+        Assert.Equal(30m, Assert.Single(await Entries.GetAsync()).Reimbursement!.Percent);
+    }
+
+    [Theory]
+    [InlineData("transactions")]
+    [InlineData("recurring_series")]
+    public async Task VersionOneOfTheEntryFilesIsRejected(string type)
+    {
+        var seed = await SeedAsync();
+        var line = Row(seed);
+        var bytes = Bytes($"ags-finance-csv,{type},1\r\n{string.Join(",", s_columns)}\r\n{line}\r\n");
+        var report = type == "transactions" ? await Get<ITransactionImport>().ImportAsync(bytes, null) : await Get<ITransactionImport>().ImportAsync(File(line), bytes);
+        Assert.False(report.Succeeded);
+        Assert.Empty(await Entries.GetAsync());
+    }
+
+    [Fact]
+    public async Task ExistingEntryWithDifferentPersonOrPercentIsAConflict()
+    {
+        var seed = await SeedAsync();
+        var id = Guid.CreateVersion7();
+        Assert.True((await Get<ITransactionImport>().ImportAsync(File(Row(seed, id: id, person: seed.Person.ToString("D"), percent: "30")), null)).Succeeded);
+
+        var report = await Get<ITransactionImport>().ImportAsync(File(Row(seed, id: id, person: seed.Person.ToString("D"), percent: "40")), null);
+
+        Assert.Equal("external_id", Assert.Single(report.Issues).Field);
+        Assert.Equal(30m, Assert.Single(await Entries.GetAsync()).Reimbursement!.Percent);
+    }
+
     [Fact]
     public async Task EntriesAreCreatedWithTheInformedAccountingMonthAndPreviewWritesNothing()
     {
         var seed = await SeedAsync();
         var id = Guid.CreateVersion7();
-        var text = $"ags-finance-csv,transactions,1\r\n{string.Join(",", s_columns)}\r\n{id:D},2026-10-05,2027-02,Expense,12345,{seed.Merchant:D},{seed.Subcategory:D},{seed.Account:D},,,Mês manual,true,2026-10-05,,,,,\r\n";
+        var text = $"ags-finance-csv,transactions,2\r\n{string.Join(",", s_columns)}\r\n{id:D},2026-10-05,2027-02,Expense,12345,{seed.Merchant:D},{seed.Subcategory:D},{seed.Account:D},,,Mês manual,true,2026-10-05,,,,,,,\r\n";
         var preview = await Get<ITransactionImport>().PreviewAsync(Bytes(text), null);
         Assert.True(preview.Succeeded);
         Assert.Equal((1, 0, false), (preview.NewCount, preview.IdenticalCount, preview.Applied));
@@ -225,7 +335,7 @@ public sealed class TransactionImportTests : ImportsFixture
     public async Task TransfersAdjustmentsAndOtherLayoutsAreNotAccepted()
     {
         var seed = await SeedAsync();
-        var transfer = $"ags-finance-csv,transactions,1\r\n{string.Join(",", s_columns)}\r\n{Guid.CreateVersion7():D},2026-10-05,2026-10,Transfer,100,{seed.Merchant:D},{seed.Subcategory:D},{seed.Account:D},,,x,true,2026-10-05,,,,,\r\n";
+        var transfer = $"ags-finance-csv,transactions,2\r\n{string.Join(",", s_columns)}\r\n{Guid.CreateVersion7():D},2026-10-05,2026-10,Transfer,100,{seed.Merchant:D},{seed.Subcategory:D},{seed.Account:D},,,x,true,2026-10-05,,,,,,,\r\n";
         var report = await Get<ITransactionImport>().ImportAsync(Bytes(transfer), null);
         Assert.False(report.Succeeded);
         Assert.Contains(report.Issues, x => x.Field == "kind");

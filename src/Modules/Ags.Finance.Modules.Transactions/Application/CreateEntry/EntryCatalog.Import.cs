@@ -99,6 +99,7 @@ internal sealed partial class EntryCatalog : IEntryImport
             }
             if (hasInstallment && hasRecurrence) { pass.Issue(entry.ExternalId, "installment_purchase_external_id", "Um lançamento não pode ser parcela e ocorrência recorrente ao mesmo tempo."); }
             if (entry.Kind is not (Contracts.CategoryKind.Income or Contracts.CategoryKind.Expense)) { pass.Issue(entry.ExternalId, "kind", "Use Income ou Expense."); }
+            if (entry.Reimbursement is not null && entry.Kind != Contracts.CategoryKind.Expense) { pass.Issue(entry.ExternalId, "reimbursement_person_external_id", "O reembolso só pode ser indicado em despesas."); }
         }
         var seriesIds = new HashSet<Guid>();
         foreach (var definition in series)
@@ -117,7 +118,7 @@ internal sealed partial class EntryCatalog : IEntryImport
         if (first is null) { pass.Issue(definition.ExternalId, "start_date", "O arquivo de lançamentos precisa conter a primeira ocorrência da série (mês de start_date)."); return false; }
         if (first.Date != definition.StartDate || first.MerchantExternalId != definition.MerchantExternalId || first.SubcategoryExternalId != definition.SubcategoryExternalId
             || first.AccountExternalId != definition.AccountExternalId || first.CardExternalId != definition.CardExternalId || first.CardLastDigitsExternalId != definition.CardLastDigitsExternalId
-            || first.Amount != definition.Amount || first.Details.Trim() != definition.Details.Trim())
+            || first.Amount != definition.Amount || first.Details.Trim() != definition.Details.Trim() || first.Reimbursement != definition.Reimbursement)
         {
             pass.Issue(definition.ExternalId, "start_date", "A primeira ocorrência difere do modelo da série."); return false;
         }
@@ -216,7 +217,12 @@ internal sealed partial class EntryCatalog : IEntryImport
     /// <summary>Valida o lançamento pelas mesmas regras da criação comum (cadastros ativos, cartão, fatura aberta, mês contábil informado) e preserva a identidade.</summary>
     private async Task<TransactionEntry?> PrepareImportedAsync(ImportedEntry row, ImportPass pass, CancellationToken cancellationToken)
     {
-        var request = new CreateEntryRequest(row.Date, row.MerchantExternalId, row.SubcategoryExternalId, row.AccountExternalId, row.Amount, row.Details, row.Month, row.CardExternalId, row.CardLastDigitsExternalId);
+        var request = new CreateEntryRequest(row.Date, row.MerchantExternalId, row.SubcategoryExternalId, row.AccountExternalId, row.Amount, row.Details, row.Month, row.CardExternalId, row.CardLastDigitsExternalId, row.Reimbursement);
+        if (row.Reimbursement is { } reimbursement && await reimbursements.RequirePersonAsync(reimbursement.PersonExternalId, cancellationToken) is { } personError)
+        {
+            pass.Issue(row.ExternalId, "reimbursement_person_external_id", personError);
+            return null;
+        }
         var prepared = await PrepareAsync(request, cancellationToken);
         if (prepared.Entry is not { } entry) { pass.Issue(row.ExternalId, "merchant_external_id", prepared.Error ?? "Lançamento inválido."); return null; }
         if ((Contracts.CategoryKind)entry.Kind != row.Kind) { pass.Issue(row.ExternalId, "kind", "O tipo não corresponde à classificação informada."); return null; }
@@ -244,7 +250,8 @@ internal sealed partial class EntryCatalog : IEntryImport
         => saved.StartDate == row.StartDate && saved.Day == row.Day && saved.MerchantExternalId == row.MerchantExternalId && saved.SubcategoryExternalId == row.SubcategoryExternalId
             && saved.AccountExternalId == row.AccountExternalId && saved.CardExternalId == row.CardExternalId && saved.CardLastDigitsExternalId == row.CardLastDigitsExternalId
             && saved.Amount == row.Amount && saved.Details.Trim() == row.Details.Trim() && saved.IsActive == row.IsActive && saved.EndMonth == row.EndMonth?.FirstDay
-            && saved.AccountingMonthOffset == 0 && saved.DateMonthOffset == 0;
+            && saved.AccountingMonthOffset == 0 && saved.DateMonthOffset == 0
+            && saved.ReimbursementPersonExternalId == row.Reimbursement?.PersonExternalId && saved.ReimbursementPercent == row.Reimbursement?.Percent;
 
     private static bool SameEntry(TransactionEntry saved, ImportedEntry row, Dictionary<Guid, InstallmentPurchase> purchases)
         => saved.Date == row.Date && saved.Month == row.Month && (Contracts.CategoryKind)saved.Kind == row.Kind && Math.Abs(saved.Amount.Amount) == row.Amount.Amount
@@ -253,5 +260,6 @@ internal sealed partial class EntryCatalog : IEntryImport
             && saved.IsEffective == row.IsEffective && saved.EffectiveDate == row.EffectiveDate && saved.InstallmentPurchaseExternalId == row.InstallmentPurchaseExternalId
             && saved.InstallmentNumber == row.InstallmentNumber
             && (saved.InstallmentPurchaseExternalId is not { } purchase || (purchases.TryGetValue(purchase, out var found) && found.Count == row.InstallmentCount))
-            && saved.RecurringEntryExternalId == row.RecurringEntryExternalId && saved.OccurrenceMonth == row.OccurrenceMonth;
+            && saved.RecurringEntryExternalId == row.RecurringEntryExternalId && saved.OccurrenceMonth == row.OccurrenceMonth
+            && saved.ReimbursementPersonExternalId == row.Reimbursement?.PersonExternalId && saved.ReimbursementPercent == row.Reimbursement?.Percent;
 }

@@ -22,7 +22,8 @@ internal sealed class TransactionExporter(IEntryCatalog entries, ISavedFilterCat
                 CsvFormat.Id(entry.CardLastDigitsExternalId), CsvFormat.EscapeText(entry.Details), CsvFormat.Bool(entry.IsEffective), entry.EffectiveDate is { } effective ? CsvFormat.Date(effective) : string.Empty,
                 CsvFormat.Id(entry.InstallmentPurchaseExternalId), entry.InstallmentNumber is { } number ? CsvFormat.Number(number) : string.Empty,
                 entry.InstallmentCount is { } count ? CsvFormat.Number(count) : string.Empty, CsvFormat.Id(entry.RecurringEntryExternalId),
-                entry.OccurrenceMonth is { } occurrence ? CsvFormat.Date(occurrence) : string.Empty]);
+                entry.OccurrenceMonth is { } occurrence ? CsvFormat.Date(occurrence) : string.Empty,
+                CsvFormat.Id(entry.Reimbursement?.PersonExternalId), entry.Reimbursement is { } reimbursement ? CsvFormat.Percent(reimbursement.Percent) : string.Empty]);
         }
         return new(new(layout.FileName, writer.ToBytes()), null);
     }
@@ -40,7 +41,8 @@ internal sealed class TransactionExporter(IEntryCatalog entries, ISavedFilterCat
             writer.Row([CsvFormat.Id(series.ExternalId), CsvFormat.Date(series.StartDate), CsvFormat.Number(series.Day), series.EndMonth is { } end ? Month(end) : string.Empty,
                 CsvFormat.Id(template.MerchantExternalId), CsvFormat.Id(template.SubcategoryExternalId), CsvFormat.Id(template.AccountExternalId), CsvFormat.Id(template.CardExternalId),
                 CsvFormat.Id(template.CardLastDigitsExternalId), CsvFormat.Number(Math.Abs(template.Amount.ToCents())), CsvFormat.EscapeText(template.Details),
-                template.Month is { } accounting ? Month(accounting) : string.Empty, CsvFormat.Bool(series.IsActive)]);
+                template.Month is { } accounting ? Month(accounting) : string.Empty, CsvFormat.Bool(series.IsActive),
+                CsvFormat.Id(template.Reimbursement?.PersonExternalId), template.Reimbursement is { } reimbursement ? CsvFormat.Percent(reimbursement.Percent) : string.Empty]);
         }
         return new(new(layout.FileName, writer.ToBytes()), null);
     }

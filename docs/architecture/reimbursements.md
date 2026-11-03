@@ -38,9 +38,10 @@ rejeitada.
 **Desfazer.** O registro do recebimento é removido antes da receita, para o guard não impedir a
 exclusão legítima; a transação ambiente garante o tudo ou nada.
 
-**Estado:** cadastro de pessoas (#78), pessoa e percentual em despesas (#79) e recorrentes
-(#80), análise do mês (#81), recebimento (#82) e desfazer (#83) entregues. O CSV está na issue
-[#84](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/84).
+**CSV.** Pessoa e percentual fazem parte dos layouts de lançamentos e séries; recebimentos não,
+porque recuperá-los é papel do backup (#84).
+
+**Estado:** implementado nas issues #78 a #84.
 
 ## Alternativas
 
