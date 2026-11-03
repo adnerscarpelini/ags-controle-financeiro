@@ -202,5 +202,26 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.HasIndex("CardExternalId", "Month");
             b.ToTable("invoice_adjustments", "transactions");
         });
+        modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.SavedFilter", b =>
+        {
+            b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint").HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+            b.Property<Guid>("ExternalId").HasColumnType("uuid");
+            b.Property<DateTimeOffset>("CreatedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("timestamp with time zone");
+            b.Property<string>("Name").IsRequired().HasMaxLength(100).HasColumnType("character varying(100)");
+            b.Property<string>("NormalizedName").IsRequired().HasMaxLength(100).HasColumnType("character varying(100)");
+            b.Property<Guid[]>("CategoryExternalIds").IsRequired().HasColumnType("uuid[]");
+            b.Property<Guid[]>("SubcategoryExternalIds").IsRequired().HasColumnType("uuid[]");
+            b.Property<Guid[]>("MerchantExternalIds").IsRequired().HasColumnType("uuid[]");
+            b.Property<Guid[]>("AccountExternalIds").IsRequired().HasColumnType("uuid[]");
+            b.Property<Guid[]>("CardExternalIds").IsRequired().HasColumnType("uuid[]");
+            b.Property<Guid[]>("CardLastDigitsExternalIds").IsRequired().HasColumnType("uuid[]");
+            b.Property<string>("Text").IsRequired().HasMaxLength(200).HasColumnType("character varying(200)");
+            b.Property<bool?>("IsEffective").HasColumnType("boolean");
+            b.HasKey("Id");
+            b.HasIndex("ExternalId").IsUnique();
+            b.HasIndex("NormalizedName").IsUnique();
+            b.ToTable("saved_filters", "transactions");
+        });
     }
 }

@@ -4,6 +4,7 @@
 @using Ags.Finance.Modules.Transactions.Contracts
 @using Ags.Finance.SharedKernel
 @inject IEntryCatalog Entries
+@inject ISavedFilterCatalog SavedFilterCatalog
 @inject IAccountCatalog Accounts
 @inject IMerchantCatalog Merchants
 @inject IClassificationCatalog Classifications
@@ -103,6 +104,20 @@
 </section>
 <section class="panel">
     <h2>Histórico</h2>
+    <div class="catalog-fields" aria-label="Filtros salvos">
+        <div class="field"><label for="saved-filter">Filtro salvo</label><select id="saved-filter" @bind="_savedFilterId" @bind:after="ApplySavedFilterAsync" disabled="@(_busy || _queryBusy)">
+            <option value="@Guid.Empty">Nenhum</option>@foreach (var item in _savedFilters) { <option value="@item.ExternalId">@item.Name</option> }
+        </select></div>
+        <div class="field"><label for="saved-filter-name">Nome do filtro</label><input id="saved-filter-name" @bind="_savedFilterName" maxlength="100" /></div>
+        <div>
+            <button class="button" type="button" @onclick="() => SaveCurrentFilterAsync(null)" disabled="@(_busy || _queryBusy)">Salvar filtro atual</button>
+            @if (_savedFilterId != Guid.Empty)
+            {
+                <button class="button" type="button" @onclick="() => SaveCurrentFilterAsync(_savedFilterId)" disabled="@(_busy || _queryBusy || _savedFilterName.Length == 0)">Renomear e atualizar</button>
+                <button class="button" type="button" @onclick="DeleteSavedFilterAsync" disabled="@(_busy || _queryBusy)">Excluir filtro</button>
+            }
+        </div>
+    </div>
     <form id="entry-filters" @onsubmit="ApplyFiltersAsync" @onsubmit:preventDefault>
         <div class="catalog-fields">
             <div class="field"><label for="filter-month">Mês contábil</label><input id="filter-month" type="month" value="@_filterMonth" @onchange="args => _filterMonth = args.Value?.ToString() ?? string.Empty" /></div>
