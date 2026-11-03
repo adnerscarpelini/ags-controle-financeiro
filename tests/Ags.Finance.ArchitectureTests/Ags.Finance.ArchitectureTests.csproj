@@ -19,6 +19,7 @@
     <ProjectReference Include="..\..\src\Modules\Ags.Finance.Modules.Accounts\Ags.Finance.Modules.Accounts.csproj" />
     <ProjectReference Include="..\..\src\Modules\Ags.Finance.Modules.Transactions\Ags.Finance.Modules.Transactions.csproj" />
     <ProjectReference Include="..\..\src\Modules\Ags.Finance.Modules.Invoices\Ags.Finance.Modules.Invoices.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Ags.Finance.Modules.Preferences\Ags.Finance.Modules.Preferences.csproj" />
     <ProjectReference Include="..\..\src\Modules\Ags.Finance.Modules.Reimbursements\Ags.Finance.Modules.Reimbursements.csproj" />
     <ProjectReference Include="..\..\src\Modules\Ags.Finance.Modules.Reports\Ags.Finance.Modules.Reports.csproj" />
     <ProjectReference Include="..\..\src\Modules\Ags.Finance.Modules.Imports\Ags.Finance.Modules.Imports.csproj" />

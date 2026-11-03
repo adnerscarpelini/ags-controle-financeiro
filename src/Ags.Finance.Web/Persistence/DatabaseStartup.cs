@@ -1,6 +1,7 @@
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Identity;
 using Ags.Finance.Modules.Invoices;
+using Ags.Finance.Modules.Preferences;
 using Ags.Finance.Modules.Reimbursements;
 using Ags.Finance.Modules.Transactions;
 using Ags.Finance.Web.Hosting;
@@ -85,6 +86,7 @@ internal static class DatabaseStartup
         await services.MigrateTransactionsModuleAsync(cancellationToken);
         await services.MigrateInvoicesModuleAsync(cancellationToken);
         await services.MigrateReimbursementsModuleAsync(cancellationToken);
+        await services.MigratePreferencesModuleAsync(cancellationToken);
     }
 
     /// <summary>

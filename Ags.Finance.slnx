@@ -8,6 +8,7 @@
     <Project Path="src/Modules/Ags.Finance.Modules.Identity/Ags.Finance.Modules.Identity.csproj" />
     <Project Path="src/Modules/Ags.Finance.Modules.Imports/Ags.Finance.Modules.Imports.csproj" />
     <Project Path="src/Modules/Ags.Finance.Modules.Invoices/Ags.Finance.Modules.Invoices.csproj" />
+    <Project Path="src/Modules/Ags.Finance.Modules.Preferences/Ags.Finance.Modules.Preferences.csproj" />
     <Project Path="src/Modules/Ags.Finance.Modules.Reimbursements/Ags.Finance.Modules.Reimbursements.csproj" />
     <Project Path="src/Modules/Ags.Finance.Modules.Reports/Ags.Finance.Modules.Reports.csproj" />
     <Project Path="src/Modules/Ags.Finance.Modules.Transactions/Ags.Finance.Modules.Transactions.csproj" />
@@ -18,6 +19,7 @@
     <Project Path="tests/Ags.Finance.Modules.Identity.Tests/Ags.Finance.Modules.Identity.Tests.csproj" />
     <Project Path="tests/Ags.Finance.Modules.Imports.Tests/Ags.Finance.Modules.Imports.Tests.csproj" />
     <Project Path="tests/Ags.Finance.Modules.Invoices.Tests/Ags.Finance.Modules.Invoices.Tests.csproj" />
+    <Project Path="tests/Ags.Finance.Modules.Preferences.Tests/Ags.Finance.Modules.Preferences.Tests.csproj" />
     <Project Path="tests/Ags.Finance.Modules.Reimbursements.Tests/Ags.Finance.Modules.Reimbursements.Tests.csproj" />
     <Project Path="tests/Ags.Finance.Modules.Reports.Tests/Ags.Finance.Modules.Reports.Tests.csproj" />
     <Project Path="tests/Ags.Finance.Modules.Transactions.Tests/Ags.Finance.Modules.Transactions.Tests.csproj" />
