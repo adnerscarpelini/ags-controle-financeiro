@@ -1,20 +1,22 @@
 using Ags.Finance.Modules.Accounts.Contracts;
+using Ags.Finance.Modules.Preferences.Contracts;
 using Ags.Finance.Modules.Reports.Contracts;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Reports.Application.PendingAgenda;
 
-internal sealed class PendingAgendaReport(IEntryCatalog entries, IAccountCatalog accounts, TimeProvider clock) : IPendingAgenda
+internal sealed class PendingAgendaReport(IEntryCatalog entries, IAccountCatalog accounts, IPreferences preferences, TimeProvider clock) : IPendingAgenda
 {
     private const int PageSize = 200;
-    private const int WindowDays = 6;
 
     public async Task<Contracts.PendingAgenda> GetAsync(CancellationToken cancellationToken = default)
     {
         // A data de negócio vem do fuso configurado na distribuição (TZ), nunca da data UTC nem da do navegador.
         var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
-        var end = today.AddDays(WindowDays);
+        // Janela fechada de N dias a partir de hoje (hoje + N - 1), com N vindo da preferência.
+        var windowDays = (await preferences.GetAsync(cancellationToken)).PendingWindowDays;
+        var end = today.AddDays(windowDays - 1);
         var names = (await accounts.GetAccountsAsync(false, cancellationToken)).ToDictionary(x => x.ExternalId, x => x.Name);
         var upcoming = await LoadAsync(new EntryFilter(FromDate: today, ToDate: end), names, cancellationToken);
         var overdue = await LoadAsync(new EntryFilter(ToDate: today.AddDays(-1)), names, cancellationToken);

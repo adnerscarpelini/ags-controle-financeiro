@@ -2,6 +2,7 @@ using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Invoices;
 using Ags.Finance.Modules.Invoices.Contracts;
+using Ags.Finance.Modules.Preferences;
 using Ags.Finance.Modules.Transactions;
 using Ags.Finance.SharedKernel;
 using Ags.Finance.Tests.Support;
@@ -18,10 +19,11 @@ public sealed class CashbackPageTests
     {
         await using var database = await PostgresTestDatabase.CreateAsync();
         await using var context = new BunitContext();
-        context.Services.AddAccountsModule(database.ConnectionString).AddTransactionsModule(database.ConnectionString).AddInvoicesModule(database.ConnectionString);
+        context.Services.AddAccountsModule(database.ConnectionString).AddTransactionsModule(database.ConnectionString).AddInvoicesModule(database.ConnectionString).AddPreferencesModule(database.ConnectionString);
         await context.Services.MigrateAccountsModuleAsync();
         await context.Services.MigrateTransactionsModuleAsync();
         await context.Services.MigrateInvoicesModuleAsync();
+        await context.Services.MigratePreferencesModuleAsync();
         var accounts = context.Services.GetRequiredService<IAccountCatalog>();
         var bank = await accounts.CreateBankAsync("Banco Exemplo");
         var account = await accounts.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta Exemplo", AccountKind.Checking, "green"));

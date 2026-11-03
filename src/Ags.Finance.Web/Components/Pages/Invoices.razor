@@ -33,8 +33,8 @@
 {
     <section class="panel" role="alertdialog" aria-label="Confirmar situação da fatura">
         <h2>@(_reopen ? "Reabrir fatura" : "Fechar fatura")</h2>
-        <p>@pending.CardName · @pending.Month · Total @pending.Total</p>
-        <p>@(_reopen ? "A fatura ficará Aberta até novo fechamento manual. Pagamentos confirmados impedem a reabertura." : "Fechar protege as compras, sem registrar pagamento. Saldo zero ou crédito não marca a fatura como Paga.")</p>
+        <p>@pending.CardName · @pending.Month · Total @pending.ProjectedTotal@(pending.ForecastEntries.Count > 0 ? " (inclui " + pending.ForecastTotal + " em recorrentes previstas)" : string.Empty)</p>
+        <p>@(_reopen ? "A fatura ficará Aberta até novo fechamento manual. Pagamentos confirmados impedem a reabertura." : "Fechar protege todas as compras, inclusive as recorrentes previstas, sem registrar pagamento. Saldo zero ou crédito não marca a fatura como Paga.")</p>
         <button class="button" @onclick="ConfirmAsync" disabled="@_busy">Confirmar</button>
         <button class="button" @onclick="() => _pending = null" disabled="@_busy">Cancelar</button>
     </section>
@@ -59,6 +59,7 @@
         @foreach (var invoice in _invoices)
         {
             <li><span>@invoice.CardName · @invoice.Month</span><span class="numeric">@invoice.Total</span>
+                @if (invoice.ForecastEntries.Count > 0) { <span class="invoice-forecast">@ForecastNote(invoice)</span> }
                 <span>@StatusLabel(invoice.Status)</span>
                 <span class="@(invoice.RemainingBalance.IsNegative ? "invoice-credit" : string.Empty)">Em aberto: @invoice.RemainingBalance @(invoice.RemainingBalance.IsNegative ? "(crédito)" : string.Empty)</span>
                 <button class="button" @onclick="() => Select(invoice)">Ver composição</button>
@@ -77,16 +78,29 @@
         <h2>@selected.CardName · @selected.Month</h2>
         <p>Situação: @StatusLabel(selected.Status)</p>
         <ul class="catalog-list">
-            @foreach (var entry in selected.Entries)
+            @foreach (var entry in selected.Entries.Where(x => !IsForecast(selected, x)))
             {
                 <li><span>@entry.Date.ToString("dd/MM/yyyy") · @entry.MerchantName · @entry.Classification</span>
                     <span class="numeric entry-expense">@entry.Amount</span><span>@entry.Details</span>
                     @if (entry.InstallmentNumber is not null) { <span>Parcela @entry.InstallmentNumber/@entry.InstallmentCount</span> }
-                    @if (entry.RecurringEntryExternalId is not null) { <span>Recorrente @(entry.Date > DateOnly.FromDateTime(Clock.GetLocalNow().DateTime) ? "· prevista" : string.Empty)</span> }
+                    @if (entry.RecurringEntryExternalId is not null) { <span>Recorrente</span> }
                 </li>
             }
         </ul>
+        @if (selected.ForecastEntries.Count > 0)
+        {
+            <h3>Recorrentes previstas</h3>
+            <p>Ainda não cobradas: o banco só as mostra na data de cada uma. @(selected.ForecastIncluded ? "Por preferência, já estão somadas ao total." : "Por preferência, só somam ao total na data.")</p>
+            <ul class="catalog-list" aria-label="Recorrentes previstas">
+                @foreach (var entry in selected.ForecastEntries)
+                {
+                    <li><span>@entry.Date.ToString("dd/MM/yyyy") · @entry.MerchantName · @entry.Classification</span>
+                        <span class="numeric invoice-forecast">@entry.Amount</span><span>@entry.Details</span><span>Recorrente · prevista</span></li>
+                }
+            </ul>
+        }
         <p>Total: <span class="numeric">@selected.Total</span></p>
+        @if (selected.ForecastEntries.Count > 0) { <p class="invoice-forecast">@ForecastNote(selected)</p> }
         <p>Cashback: @selected.CashbackTotal · Descontos: @selected.DiscountsTotal · Pagamentos: @selected.PaymentsTotal</p>
         <p class="@(selected.RemainingBalance.IsNegative ? "invoice-credit" : string.Empty)">Saldo restante: @selected.RemainingBalance @(selected.RemainingBalance.IsNegative ? "(crédito)" : string.Empty)</p>
         <InvoicePaymentHistory Invoice="selected" Accounts="_accounts" />
@@ -156,6 +170,10 @@
         }
         finally { _busy = false; }
     }
+    private static bool IsForecast(InvoiceDetails invoice, Ags.Finance.Modules.Transactions.Contracts.EntryDetails entry) => invoice.ForecastEntries.Any(x => x.ExternalId == entry.ExternalId);
+    private static string ForecastNote(InvoiceDetails invoice) => invoice.ForecastIncluded
+        ? $"Inclui {invoice.ForecastTotal} em recorrentes previstas."
+        : $"Previsto: + {invoice.ForecastTotal} (total previsto: {invoice.ProjectedTotal})";
     private static string StatusLabel(InvoiceStatus status) => status switch { InvoiceStatus.Closed => "Fechada", InvoiceStatus.Paid => "Paga", _ => "Aberta" };
     private async Task ReloadInvoicesAsync()
     {

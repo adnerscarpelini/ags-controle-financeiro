@@ -9,10 +9,14 @@ public sealed record PendingItem(Guid EntryExternalId, DateOnly Date, string Des
 public sealed record PendingGroup(IReadOnlyList<PendingItem> Items, Money ToReceive, Money ToPay);
 
 /// <summary>
-/// Janela fechada de <see cref="Today"/> até <see cref="WindowEnd"/> (hoje + 6) e, à parte, os atrasados (data prevista anterior a hoje).
+/// Janela fechada de <see cref="Today"/> até <see cref="WindowEnd"/> (hoje + N - 1, com N escolhido nas preferências: 7, 15 ou 30 dias) e, à parte, os atrasados (data prevista anterior a hoje).
 /// <see cref="Today"/> é a data no fuso de negócio; o mês contábil selecionado no dashboard não a desloca.
 /// </summary>
-public sealed record PendingAgenda(DateOnly Today, DateOnly WindowEnd, PendingGroup Upcoming, PendingGroup Overdue);
+public sealed record PendingAgenda(DateOnly Today, DateOnly WindowEnd, PendingGroup Upcoming, PendingGroup Overdue)
+{
+    /// <summary>Quantidade de dias da janela, contando hoje.</summary>
+    public int WindowDays => WindowEnd.DayNumber - Today.DayNumber + 1;
+}
 
 public interface IPendingAgenda
 {

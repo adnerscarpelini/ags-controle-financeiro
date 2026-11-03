@@ -1,11 +1,12 @@
 using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Invoices.Contracts;
+using Ags.Finance.Modules.Preferences.Contracts;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Invoices.Application.QueryInvoices;
 
-internal sealed partial class InvoiceCatalog(IEntryCatalog entries, IAccountCatalog accounts, IInvoiceStore store, IInvoicePaymentCatalog payments, IFinancialOperation operations) : IInvoiceCatalog
+internal sealed partial class InvoiceCatalog(IEntryCatalog entries, IAccountCatalog accounts, IInvoiceStore store, IInvoicePaymentCatalog payments, IFinancialOperation operations, IPreferences preferences, TimeProvider clock) : IInvoiceCatalog
 {
     public Task<IReadOnlyList<InvoiceDetails>> GetAsync(CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(GetCoreAsync, _ => true, cancellationToken);
@@ -33,14 +34,23 @@ internal sealed partial class InvoiceCatalog(IEntryCatalog entries, IAccountCata
         var groups = (await entries.GetAsync(cancellationToken)).Where(x => x.CardExternalId is not null)
             .GroupBy(x => (CardExternalId: x.CardExternalId!.Value, x.Month)).ToDictionary(x => x.Key, x => x.ToList());
         var history = await payments.GetHistoryAsync(cancellationToken: cancellationToken);
+        // Hoje no fuso de negócio: uma ocorrência recorrente só deixa de ser "prevista" na própria data.
+        var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
+        var sumUpfront = (await preferences.GetAsync(cancellationToken)).RecurringInvoices == RecurringInvoiceMode.SumUpfront;
         return groups.Keys.Union(states.Keys).OrderByDescending(x => x.Month).ThenBy(x => cards[x.CardExternalId].Name, StringComparer.CurrentCulture)
             .Select(key =>
             {
                 IReadOnlyList<EntryDetails> items = groups.GetValueOrDefault(key) ?? [];
                 var state = states.GetValueOrDefault(key);
+                var status = state?.Status ?? Domain.InvoiceStatus.Open;
+                IReadOnlyList<EntryDetails> forecast = status == Domain.InvoiceStatus.Open
+                    ? items.Where(x => x.RecurringEntryExternalId is not null && x.Date > today).ToList()
+                    : [];
+                var excluded = sumUpfront ? new HashSet<Guid>() : forecast.Select(x => x.ExternalId).ToHashSet();
                 return new InvoiceDetails(key.CardExternalId, cards[key.CardExternalId].Name, key.Month,
-                    new Money(-items.Sum(x => x.Amount.Amount)), items, (InvoiceStatus)(state?.Status ?? Domain.InvoiceStatus.Open), state?.ExternalId,
-                    history.Where(x => x.CardExternalId == key.CardExternalId && x.Month == key.Month).ToList(), state?.HasConfirmedPayment ?? false, state?.PaidAt);
+                    new Money(-items.Where(x => !excluded.Contains(x.ExternalId)).Sum(x => x.Amount.Amount)), items, (InvoiceStatus)status, state?.ExternalId,
+                    history.Where(x => x.CardExternalId == key.CardExternalId && x.Month == key.Month).ToList(), state?.HasConfirmedPayment ?? false, state?.PaidAt,
+                    forecast, sumUpfront);
             }).ToList();
     }
 }

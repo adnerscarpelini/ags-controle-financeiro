@@ -11,6 +11,7 @@
     <ProjectReference Include="..\Ags.Finance.Modules.Transactions\Ags.Finance.Modules.Transactions.csproj" />
     <ProjectReference Include="..\Ags.Finance.Modules.Invoices\Ags.Finance.Modules.Invoices.csproj" />
     <ProjectReference Include="..\Ags.Finance.Modules.Reimbursements\Ags.Finance.Modules.Reimbursements.csproj" />
+    <ProjectReference Include="..\Ags.Finance.Modules.Preferences\Ags.Finance.Modules.Preferences.csproj" />
   </ItemGroup>
 
   <ItemGroup>

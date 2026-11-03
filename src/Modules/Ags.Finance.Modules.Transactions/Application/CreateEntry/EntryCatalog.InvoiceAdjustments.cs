@@ -22,7 +22,9 @@ internal sealed partial class EntryCatalog
             if (protectedInvoice is not null) { return new ClassificationResult(null, protectedInvoice); }
             var generation = await GenerateRecurringAsync(new(Month: request.Month), token);
             if (!generation.Succeeded) { return new ClassificationResult(null, generation.Error); }
-            var gross = -(await store.GetAsync(token)).Where(x => x.CardExternalId == card.ExternalId && x.Month == request.Month).Sum(x => x.Amount.Amount)
+            // RecurringCutoff: ocorrências recorrentes com data depois dele ainda não foram cobradas pelo banco e ficam fora do total comparado.
+            var gross = -(await store.GetAsync(token)).Where(x => x.CardExternalId == card.ExternalId && x.Month == request.Month
+                    && !(request.RecurringCutoff is { } cutoff && x.RecurringEntryExternalId is not null && x.Date > cutoff)).Sum(x => x.Amount.Amount)
                 + adjustments.Where(x => x.CardExternalId == card.ExternalId && x.Month == request.Month).Sum(x => x.ExpenseDifference.Amount);
             var current = new Money(gross);
             if (request.ExpectedTotal is { } expected && expected != current) { return new ClassificationResult(null, "O total mudou desde a prévia. Cancele e confira novamente."); }
