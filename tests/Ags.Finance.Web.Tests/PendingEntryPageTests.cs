@@ -1,5 +1,7 @@
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Accounts.Contracts;
+using Ags.Finance.Modules.Preferences;
+using Ags.Finance.Modules.Preferences.Contracts;
 using Ags.Finance.Modules.Transactions;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
@@ -17,9 +19,10 @@ public sealed class PendingEntryPageTests
     {
         await using var database = await PostgresTestDatabase.CreateAsync();
         await using var context = new BunitContext();
-        context.Services.AddSingleton<TimeProvider>(new PendingClock()).AddAccountsModule(database.ConnectionString).AddTransactionsModule(database.ConnectionString);
+        context.Services.AddSingleton<TimeProvider>(new PendingClock()).AddAccountsModule(database.ConnectionString).AddTransactionsModule(database.ConnectionString).AddPreferencesModule(database.ConnectionString);
         await context.Services.MigrateAccountsModuleAsync();
         await context.Services.MigrateTransactionsModuleAsync();
+        await context.Services.MigratePreferencesModuleAsync();
         var accounts = context.Services.GetRequiredService<IAccountCatalog>();
         var bank = await accounts.CreateBankAsync("Banco Exemplo");
         var account = await accounts.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Corrente Exemplo", AccountKind.Checking, "green", new Money(1000), new DateOnly(2026, 10, 1)));
@@ -59,6 +62,34 @@ public sealed class PendingEntryPageTests
         Assert.Equal(new Money(950), (await entries.GetBalanceAsync(account.ExternalId.Value, new DateOnly(2026, 11, 2)))?.EffectiveBalance);
     }
 
+    [Fact]
+    public async Task PendingPageUsesThePreferredPageSizeWithoutChangingTheTotals()
+    {
+        await using var database = await PostgresTestDatabase.CreateAsync();
+        await using var context = new BunitContext();
+        context.Services.AddSingleton<TimeProvider>(new PendingClock()).AddAccountsModule(database.ConnectionString).AddTransactionsModule(database.ConnectionString).AddPreferencesModule(database.ConnectionString);
+        await context.Services.MigrateAccountsModuleAsync();
+        await context.Services.MigrateTransactionsModuleAsync();
+        await context.Services.MigratePreferencesModuleAsync();
+        Assert.True((await context.Services.GetRequiredService<IPreferences>().SaveAsync(AppPreferences.Default with { PageSize = 25 })).Succeeded);
+        var accounts = context.Services.GetRequiredService<IAccountCatalog>();
+        var bank = await accounts.CreateBankAsync("Banco Exemplo");
+        var account = await accounts.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Corrente Exemplo", AccountKind.Checking, "green", new Money(1000), new DateOnly(2026, 10, 1)));
+        var classes = context.Services.GetRequiredService<IClassificationCatalog>();
+        var expense = await classes.SaveCategoryAsync(null, "Despesas Exemplo", CategoryKind.Expense);
+        var sub = await classes.SaveSubcategoryAsync(null, expense.ExternalId!.Value, "Serviços Exemplo");
+        var merchant = await context.Services.GetRequiredService<IMerchantCatalog>().SaveAsync(null, "Descrição Exemplo", sub.ExternalId);
+        var entries = context.Services.GetRequiredService<IEntryCatalog>();
+        for (var index = 0; index < 60; index++)
+        {
+            Assert.True((await entries.CreateRecurringAsync(new(new(new DateOnly(2026, 11, 5), merchant.ExternalId!.Value, sub.ExternalId!.Value, account.ExternalId!.Value, new Money(1))))).Succeeded);
+        }
+
+        var page = context.Render<PendingEntries>();
+
+        page.WaitForAssertion(() => Assert.Contains("60 pendências · Página 1 de 3", page.Markup, StringComparison.Ordinal));
+        Assert.Equal(25, page.FindAll("[aria-label='Lançamentos pendentes'] li").Count);
+    }
     private sealed class PendingClock : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => new(2026, 11, 2, 12, 0, 0, TimeSpan.Zero);

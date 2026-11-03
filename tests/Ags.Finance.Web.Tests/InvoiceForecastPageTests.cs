@@ -3,10 +3,12 @@ using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Invoices;
 using Ags.Finance.Modules.Preferences;
 using Ags.Finance.Modules.Preferences.Contracts;
+using Ags.Finance.Modules.Reports;
 using Ags.Finance.Modules.Transactions;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
 using Ags.Finance.Tests.Support;
+using Ags.Finance.Web.Components.Dashboard;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,16 +16,12 @@ namespace Ags.Finance.Web.Tests;
 
 public sealed class InvoiceForecastPageTests
 {
-    [Theory]
-    [InlineData(RecurringInvoiceMode.SumOnDate, "R$ 100,00", "Previsto: + R$ 50,00 (total previsto: R$ 150,00)")]
-    [InlineData(RecurringInvoiceMode.SumUpfront, "R$ 150,00", "Inclui R$ 50,00 em recorrentes previstas.")]
-    public async Task InvoiceListAndCompositionShowTheForecastAccordingToThePreference(RecurringInvoiceMode mode, string total, string note)
+    /// <summary>Hoje é 20/09/2026; a fatura de outubro tem R$ 100,00 de compra e uma recorrente de R$ 50,00 em 27/09, ainda futura.</summary>
+    private static async Task SetUpAsync(BunitContext context, PostgresTestDatabase database, RecurringInvoiceMode mode)
     {
-        await using var database = await PostgresTestDatabase.CreateAsync();
-        await using var context = new BunitContext();
         context.Services.AddSingleton<TimeProvider>(new FixedClock(new DateTimeOffset(2026, 9, 20, 12, 0, 0, TimeSpan.Zero)))
             .AddAccountsModule(database.ConnectionString).AddTransactionsModule(database.ConnectionString)
-            .AddInvoicesModule(database.ConnectionString).AddPreferencesModule(database.ConnectionString);
+            .AddInvoicesModule(database.ConnectionString).AddPreferencesModule(database.ConnectionString).AddReportsModule();
         await context.Services.MigrateAccountsModuleAsync();
         await context.Services.MigrateTransactionsModuleAsync();
         await context.Services.MigrateInvoicesModuleAsync();
@@ -42,6 +40,16 @@ public sealed class InvoiceForecastPageTests
         CreateEntryRequest Purchase(decimal amount, DateOnly date) => new(date, merchant.ExternalId!.Value, subcategory.ExternalId!.Value, account.ExternalId!.Value, new Money(amount), CardExternalId: card.ExternalId);
         Assert.True((await entries.CreateAsync(Purchase(100, new DateOnly(2026, 9, 14)))).Succeeded);
         Assert.True((await entries.CreateRecurringAsync(new(Purchase(50, new DateOnly(2026, 9, 27))))).Succeeded);
+    }
+
+    [Theory]
+    [InlineData(RecurringInvoiceMode.SumOnDate, "R$ 100,00", "Previsto: + R$ 50,00 (total previsto: R$ 150,00)")]
+    [InlineData(RecurringInvoiceMode.SumUpfront, "R$ 150,00", "Inclui R$ 50,00 em recorrentes previstas.")]
+    public async Task InvoiceListAndCompositionShowTheForecastAccordingToThePreference(RecurringInvoiceMode mode, string total, string note)
+    {
+        await using var database = await PostgresTestDatabase.CreateAsync();
+        await using var context = new BunitContext();
+        await SetUpAsync(context, database, mode);
 
         var page = context.Render<Ags.Finance.Web.Components.Pages.Invoices>();
         page.WaitForAssertion(() => Assert.Contains("Cartão Exemplo", page.Find(".catalog-list").TextContent, StringComparison.Ordinal));
@@ -56,6 +64,27 @@ public sealed class InvoiceForecastPageTests
         Assert.Single(forecastList.QuerySelectorAll("li"));
         Assert.Contains("27/09/2026", forecastList.TextContent, StringComparison.Ordinal);
         Assert.Contains("Serviço Exemplo", forecastList.TextContent, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(RecurringInvoiceMode.SumOnDate, "R$ 100,00", "R$ 50,00")]
+    [InlineData(RecurringInvoiceMode.SumUpfront, "R$ 150,00", "R$ 0,00")]
+    public async Task DashboardInvoiceTableHasAForecastColumnThatSumsInTheTotalRow(RecurringInvoiceMode mode, string invoice, string forecast)
+    {
+        await using var database = await PostgresTestDatabase.CreateAsync();
+        await using var context = new BunitContext();
+        await SetUpAsync(context, database, mode);
+
+        var section = context.Render<InvoiceSection>(parameters => parameters.Add(x => x.Month, new AccountingMonth(2026, 10)));
+
+        section.WaitForAssertion(() => Assert.Contains("Cartão Exemplo", section.Find("tbody").TextContent, StringComparison.Ordinal));
+        var headers = section.FindAll("thead th").Select(x => x.TextContent).ToList();
+        Assert.Equal("Previsto", headers[^1]);
+        var row = section.Find("tbody tr").QuerySelectorAll("td").Select(x => x.TextContent.Trim()).ToList();
+        Assert.Equal(invoice, row[0]);
+        Assert.Equal(forecast, row[^1]);
+        var total = section.Find("tfoot tr").QuerySelectorAll("td").Select(x => x.TextContent.Trim()).ToList();
+        Assert.Equal(forecast, total[^1]);
     }
 
     private sealed class FixedClock(DateTimeOffset now) : TimeProvider

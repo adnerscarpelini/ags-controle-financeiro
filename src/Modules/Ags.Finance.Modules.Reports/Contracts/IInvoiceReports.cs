@@ -4,7 +4,7 @@ namespace Ags.Finance.Modules.Reports.Contracts;
 
 /// <summary>Uma linha por cartão (ou o total) para o mês consultado. <see cref="Invoice"/> é o total da fatura exibido em Faturas, ajustes (#52) incluídos uma vez.</summary>
 public sealed record CardInvoiceLine(Guid CardExternalId, string CardName, string Color, Guid BankExternalId, string BankName, Guid? BankLogoVersion, bool IsArchived,
-    Money Invoice, Money Allowances, Money Paid, Money Open, Money PreviousMonth, Money YearAverage, Money OpenFromNowOn);
+    Money Invoice, Money Allowances, Money Paid, Money Open, Money PreviousMonth, Money YearAverage, Money OpenFromNowOn, Money Forecast = default);
 
 public sealed record CardInvoiceAmount(Guid CardExternalId, Money Total);
 

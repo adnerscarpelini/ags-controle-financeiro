@@ -1,11 +1,13 @@
 @page "/pendentes"
 @using System.Globalization
 @using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Preferences.Contracts
 @using Ags.Finance.Modules.Transactions.Contracts
 @using Ags.Finance.SharedKernel
 @inject IEntryCatalog Entries
 @inject IAccountCatalog Accounts
 @inject TimeProvider Clock
+@inject IPreferences Preferences
 
 <PageHeader Title="Lançamentos pendentes" />
 <p>Receitas a receber e despesas a pagar recorrentes fora do cartão. A data prevista não registra baixa automaticamente.</p>
@@ -55,7 +57,8 @@
 
 @code {
     private IReadOnlyList<AccountDetails> _accounts = [];
-    private EntryQueryResult _result = new([], Money.Zero, Money.Zero, Money.Zero, 0, 1, 100);
+    private int _pageSize = AppPreferences.Default.PageSize;
+    private EntryQueryResult _result = new([], Money.Zero, Money.Zero, Money.Zero, 0, 1, AppPreferences.Default.PageSize);
     private Guid _account;
     private CategoryKind? _kind;
     private DateOnly? _from;
@@ -66,7 +69,7 @@
     private bool _busy;
     private string? _message;
     private EntryDetails? _selected;
-    protected override async Task OnInitializedAsync() { await ReloadAsync(1); }
+    protected override async Task OnInitializedAsync() { _pageSize = (await Preferences.GetAsync()).PageSize; await ReloadAsync(1); }
     private string Timing(DateOnly date) => date < _today ? "Atrasado" : date == _today ? "Hoje" : "Futuro";
     private string AccountName(Guid id)
     {
@@ -91,7 +94,7 @@
         {
             _today = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
             _accounts = await Accounts.GetAccountsAsync(false);
-            var result = await Entries.QueryPendingAsync(new(month, _from, _to, _account == Guid.Empty ? null : _account, Text: _text, Kind: _kind, Page: page));
+            var result = await Entries.QueryPendingAsync(new(month, _from, _to, _account == Guid.Empty ? null : _account, Text: _text, Kind: _kind, Page: page, PageSize: _pageSize));
             _message = result.Error;
             if (result.Error is null) { _result = result; }
         }

@@ -33,7 +33,9 @@ internal sealed class InvoiceReports(IInvoiceCatalog invoices, IAccountCatalog a
                 return new CardInvoiceLine(id, card.Name, card.Color, bankId, bank?.Name ?? string.Empty, bank?.LogoVersion, !card.IsAvailable,
                     current?.Total ?? Money.Zero, current is null ? Money.Zero : current.CashbackTotal + current.DiscountsTotal, current?.PaymentsTotal ?? Money.Zero,
                     current?.RemainingBalance ?? Money.Zero, own.FirstOrDefault(x => x.Month == previous)?.Total ?? Money.Zero,
-                    year.Count == 0 ? Money.Zero : new Money(year.Sum(x => x.Total.Amount) / year.Count), forward.GetValueOrDefault(id));
+                    year.Count == 0 ? Money.Zero : new Money(year.Sum(x => x.Total.Amount) / year.Count), forward.GetValueOrDefault(id),
+                    // Previsto fora do total: com "somar desde já" as recorrentes futuras já estão na fatura.
+                    current is null || current.ForecastIncluded ? Money.Zero : current.ForecastTotal);
             })
             .OrderBy(x => x.CardName, StringComparer.CurrentCultureIgnoreCase).ToList();
 
@@ -48,7 +50,7 @@ internal sealed class InvoiceReports(IInvoiceCatalog invoices, IAccountCatalog a
             .OrderBy(x => x.CardName, StringComparer.CurrentCultureIgnoreCase).ToList();
         var total = new CardInvoiceLine(Guid.Empty, "Total", string.Empty, Guid.Empty, string.Empty, null, false,
             Sum(lines, x => x.Invoice), Sum(lines, x => x.Allowances), Sum(lines, x => x.Paid), Sum(lines, x => x.Open),
-            Sum(lines, x => x.PreviousMonth), Sum(lines, x => x.YearAverage), Sum(lines, x => x.OpenFromNowOn));
+            Sum(lines, x => x.PreviousMonth), Sum(lines, x => x.YearAverage), Sum(lines, x => x.OpenFromNowOn), Sum(lines, x => x.Forecast));
         return new(month, lines, total, series, columns);
     }
 
