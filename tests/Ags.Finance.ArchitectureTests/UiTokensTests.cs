@@ -33,12 +33,12 @@ public sealed partial class UiTokensTests
 
         string[] dark =
         [
-            "--color-background: #0E1311",
-            "--color-surface: #151C19",
-            "--color-surface-raised: #1C2521",
-            "--color-border: #27332E",
-            "--color-text-primary: #E6EDE9",
-            "--color-text-secondary: #93A39B",
+            "--color-background: #121212",
+            "--color-surface: #1A1A1A",
+            "--color-surface-raised: #242424",
+            "--color-border: #2E2E2E",
+            "--color-text-primary: #EDEDED",
+            "--color-text-secondary: #A3A3A3",
             "--color-accent: #10B981",
             "--color-accent-hover: #34D399",
             "--color-income: #34D399",

@@ -9,14 +9,14 @@ namespace Ags.Finance.Web.Tests;
 /// Ocultar valores (#71). O mascaramento em si é JavaScript no navegador e foi verificado com um harness no Chrome;
 /// aqui ficam o botão no layout (computador e celular) e a entrega dos scripts.
 /// </summary>
-public sealed class PrivacyToggleTests : IDisposable
+public sealed class PrivacyToggleTests : IAsyncDisposable
 {
-    private readonly BunitContext _context = new();
+    private readonly BunitContext _context = new BunitContext().UseAppUi().UseDefaultPreferences();
     private readonly AppFactory _factory = new();
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        _context.Dispose();
+        await _context.DisposeAsync();
         _factory.Dispose();
     }
 

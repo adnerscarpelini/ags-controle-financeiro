@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Modules\Ags.Finance.Modules.Attachments\Ags.Finance.Modules.Attachments.csproj" />
+    <PackageReference Include="MudBlazor" />
     <PackageReference Include="Npgsql" />
   </ItemGroup>
 

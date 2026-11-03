@@ -2,6 +2,7 @@
 @using Microsoft.JSInterop
 @inject IPreferences Preferences
 @inject IJSRuntime Js
+@inject ThemeState Theme
 
 <section class="panel" aria-labelledby="preferences-title">
     <h2 id="preferences-title">Preferências</h2>
@@ -128,6 +129,7 @@
             if (result.Succeeded)
             {
                 await Js.InvokeVoidAsync("agsTheme.apply", _theme switch { ThemePreference.Light => "light", ThemePreference.Auto => "auto", _ => "dark" });
+                Theme.Apply(_theme);
             }
         }
         finally { _savingPreferences = false; }

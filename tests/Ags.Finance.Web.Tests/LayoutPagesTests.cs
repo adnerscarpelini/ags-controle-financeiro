@@ -72,11 +72,26 @@ public sealed partial class LayoutPagesTests : IDisposable
         Assert.DoesNotMatch(ExternalReferenceRegex(), html);
     }
 
+    [Fact]
+    public async Task TheLibraryLoadsInTheApplicationButNotOnTheLoginPage()
+    {
+        var html = await GetHtmlAsync("/dashboard");
+        Assert.Contains("_content/MudBlazor/MudBlazor.min.css", html, StringComparison.Ordinal);
+        Assert.Contains("_content/MudBlazor/MudBlazor.min.js", html, StringComparison.Ordinal);
+
+        using var client = _factory.CreateClient();
+        var login = await client.GetStringAsync(new Uri("/login", UriKind.Relative));
+        Assert.DoesNotContain("MudBlazor", login, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("/css/tokens.css")]
     [InlineData("/css/app.css")]
     [InlineData("/fonts/inter-latin-variable.woff2")]
     [InlineData("/img/favicon.png")]
+    [InlineData("/_content/MudBlazor/MudBlazor.min.css")]
+    [InlineData("/_content/MudBlazor/MudBlazor.min.js")]
+    [InlineData("/js/viewport.js")]
     public async Task StaticAssetsAreServedByTheApplication(string path)
     {
         using var client = _factory.CreateClient();
@@ -89,11 +104,13 @@ public sealed partial class LayoutPagesTests : IDisposable
     [Theory]
     [InlineData("/css/tokens.css")]
     [InlineData("/css/app.css")]
+    [InlineData("/_content/MudBlazor/MudBlazor.min.css")]
     public async Task StylesheetsDoNotReferenceExternalResources(string path)
     {
         using var client = _factory.CreateClient();
 
         var css = await client.GetStringAsync(new Uri(path, UriKind.Relative));
+        css = LicenseCommentRegex().Replace(css, string.Empty);
 
         Assert.DoesNotContain("http://", css, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("https://", css, StringComparison.OrdinalIgnoreCase);
@@ -107,6 +124,9 @@ public sealed partial class LayoutPagesTests : IDisposable
 
     [GeneratedRegex(@"<a\b[^>]*\bclass=""[^""]*nav-link[^""]*""[^>]*>|<a\b[^>]*\bhref=""[^""]*""[^>]*\bclass=""[^""]*nav-link[^""]*""[^>]*>")]
     private static partial Regex NavLinkRegex();
+
+    [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline)]
+    private static partial Regex LicenseCommentRegex();
 
     [GeneratedRegex(@"(?:src|href)\s*=\s*""(?:https?:)?//", RegexOptions.IgnoreCase)]
     private static partial Regex ExternalReferenceRegex();

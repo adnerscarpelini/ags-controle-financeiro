@@ -1,0 +1,45 @@
+@* Confirmação padrão. Use ConfirmDialog.AskAsync: devolve true só quando o usuário confirma. *@
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <p class="confirm-message">@Message</p>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" data-confirm-cancel>@CancelText</MudButton>
+        <MudButton Variant="Variant.Filled" Color="@(Destructive ? Color.Error : Color.Primary)" OnClick="Confirm" data-confirm-ok>@ConfirmText</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Message { get; set; } = string.Empty;
+
+    [Parameter]
+    public string ConfirmText { get; set; } = "Confirmar";
+
+    [Parameter]
+    public string CancelText { get; set; } = "Cancelar";
+
+    [Parameter]
+    public bool Destructive { get; set; }
+
+    public static async Task<bool> AskAsync(IDialogService dialogs, string title, string message, string confirmText = "Confirmar", bool destructive = false, string cancelText = "Cancelar")
+    {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.Message, message },
+            { x => x.ConfirmText, confirmText },
+            { x => x.CancelText, cancelText },
+            { x => x.Destructive, destructive },
+        };
+        var reference = await dialogs.ShowAsync<ConfirmDialog>(title, parameters, new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, BackdropClick = false });
+        var result = await reference.Result;
+        return result is { Canceled: false };
+    }
+
+    private void Confirm() => Dialog?.Close(DialogResult.Ok(true));
+
+    private void Cancel() => Dialog?.Cancel();
+}

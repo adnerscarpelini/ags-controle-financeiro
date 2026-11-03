@@ -12,7 +12,7 @@ public sealed class PreferencesSettingsTests
     private static async Task<(BunitContext Context, PostgresTestDatabase Database)> CreateAsync()
     {
         var database = await PostgresTestDatabase.CreateAsync();
-        var context = new BunitContext();
+        var context = new BunitContext().UseAppUi();
         context.Services.AddPreferencesModule(database.ConnectionString);
         await context.Services.MigratePreferencesModuleAsync();
         return (context, database);

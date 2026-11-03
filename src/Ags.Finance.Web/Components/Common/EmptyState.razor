@@ -1,0 +1,23 @@
+@* Tela ou lista vazia: diz o que aconteceu e oferece o próximo passo. *@
+<div class="empty-state" role="status">
+    <MudIcon Icon="@Icon" aria-hidden="true" />
+    <p>@Message</p>
+    @if (ActionText is not null)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnAction">@ActionText</MudButton>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string Icon { get; set; } = Icons.Material.Outlined.Inbox;
+
+    [Parameter, EditorRequired]
+    public string Message { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? ActionText { get; set; }
+
+    [Parameter]
+    public EventCallback OnAction { get; set; }
+}
