@@ -5,7 +5,8 @@
 
 <PageHeader Title="Configurações" />
 
-<PreferencesSettings />
+<PreferencesSettings InitialTab="@(PasswordOutcome is null ? "general" : "security")">
+    <SecurityContent>
 
 <section class="panel" aria-labelledby="password-title">
     <h2 id="password-title">Trocar senha</h2>
@@ -20,17 +21,17 @@
 
         <div class="field">
             <label for="current-password">Senha atual</label>
-            <input id="current-password" name="CurrentPassword" type="password" autocomplete="current-password" required />
+            <input id="current-password" class="input" name="CurrentPassword" type="password" autocomplete="current-password" required />
         </div>
 
         <div class="field">
             <label for="new-password">Nova senha (mínimo de 8 caracteres)</label>
-            <input id="new-password" name="NewPassword" type="password" autocomplete="new-password" minlength="8" required />
+            <input id="new-password" class="input" name="NewPassword" type="password" autocomplete="new-password" minlength="8" required />
         </div>
 
         <div class="field">
             <label for="confirm-password">Confirme a nova senha</label>
-            <input id="confirm-password" name="ConfirmPassword" type="password" autocomplete="new-password" minlength="8" required />
+            <input id="confirm-password" class="input" name="ConfirmPassword" type="password" autocomplete="new-password" minlength="8" required />
         </div>
 
         <button type="submit" class="button">Trocar senha</button>
@@ -116,6 +117,8 @@
         </details>
     }
 </section>
+    </SecurityContent>
+</PreferencesSettings>
 
 @code {
     private ServerCertificateInfo? _info;

@@ -64,3 +64,16 @@ Ver [Recorrentes previstas na fatura](../invoices/recurring-forecast.md).
 Moeda/idioma/fuso, bloqueio de login e tamanho mínimo da senha, regras financeiras,
 horário e retenção do backup (ficam na configuração do Compose, para não dependerem do banco que o
 backup protege), porta e certificado, e preferências por cartão. Ocultar valores não é uma preferência do banco: é uma escolha por dispositivo, descrita em [Ocultar valores](../web/hide-values.md).
+
+## Abas (#102)
+
+As preferências ficam em abas no topo de Configurações, com uma única ação **Salvar alterações**:
+
+| Aba | Preferências |
+| --- | --- |
+| Geral | Tema e tela inicial |
+| Lançamentos e faturas | Itens por página e recorrentes do cartão na fatura aberta |
+| Dashboard | Janela de pendências, maiores categorias e seções visíveis |
+| Segurança | Duração da sessão, além de trocar senha, backup e certificado, que têm ação própria |
+
+Trocar de aba com alterações não salvas avisa. Os campos continuam preenchidos, mas só valem depois de salvar. As preferências que podem gerar dúvida têm ajuda ao lado do rótulo.

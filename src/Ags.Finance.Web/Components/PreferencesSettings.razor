@@ -1,55 +1,68 @@
+@* Preferências em abas, com uma única ação de salvar. As abas mantêm os campos montados: trocar de aba não perde nada, mas avisa. *@
 @using Ags.Finance.Modules.Preferences.Contracts
 @using Microsoft.JSInterop
 @inject IPreferences Preferences
 @inject IJSRuntime Js
 @inject ThemeState Theme
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
 
-<section class="panel" aria-labelledby="preferences-title">
-    <h2 id="preferences-title">Preferências</h2>
-
-    @if (_preferencesMessage is not null)
+<div class="chips" role="group" aria-label="Assunto das configurações">
+    @foreach (var tab in s_tabs)
     {
-        <p class="@(_preferencesSaved ? "form-success" : "form-error")" role="status" data-testid="preferences-message">@_preferencesMessage</p>
+        <button type="button" class="chip @(_tab == tab.Key ? "on" : null)" aria-pressed="@(_tab == tab.Key ? "true" : "false")" data-settings-tab="@tab.Key" @onclick="() => ChangeTabAsync(tab.Key)">@tab.Label</button>
     }
+</div>
 
-    <form id="preferences-form" @onsubmit="SavePreferencesAsync" @onsubmit:preventDefault>
-        <h3>Aparência</h3>
+@if (_preferencesMessage is not null)
+{
+    <p class="@(_preferencesSaved ? "form-success" : "form-error")" role="status" data-testid="preferences-message">@_preferencesMessage</p>
+}
+
+<form id="preferences-form" class="panel settings-panel" aria-label="Preferências" @onsubmit="SavePreferencesAsync" @onsubmit:preventDefault>
+    <div hidden="@(_tab != "general")" data-settings-panel="general">
         <fieldset class="choices">
-            <legend>Tema</legend>
+            <legend>Tema <HelpTip Text="Automático segue o tema do seu aparelho." /></legend>
             <label class="choice"><input type="radio" name="pref-theme" value="dark" checked="@(_theme == ThemePreference.Dark)" @onchange="() => _theme = ThemePreference.Dark" /> Escuro</label>
             <label class="choice"><input type="radio" name="pref-theme" value="light" checked="@(_theme == ThemePreference.Light)" @onchange="() => _theme = ThemePreference.Light" /> Claro</label>
             <label class="choice"><input type="radio" name="pref-theme" value="auto" checked="@(_theme == ThemePreference.Auto)" @onchange="() => _theme = ThemePreference.Auto" /> Automático (segue o sistema)</label>
         </fieldset>
-
-        <h3>Geral</h3>
         <div class="field">
-            <label for="pref-start-page">Tela inicial</label>
-            <select id="pref-start-page" @bind="_startPage">
+            <label for="pref-start-page">Tela inicial <HelpTip Text="A tela que abre ao entrar na aplicação." /></label>
+            <select id="pref-start-page" class="input" @bind="_startPage">
                 <option value="@StartPage.Dashboard">Dashboard</option>
                 <option value="@StartPage.Transactions">Lançamentos</option>
-                <option value="@StartPage.Invoices">Faturas</option>
+                <option value="@StartPage.Invoices">Cartões e faturas</option>
             </select>
         </div>
+    </div>
 
-        <h3>Faturas</h3>
+    <div hidden="@(_tab != "entries")" data-settings-panel="entries">
+        <div class="field">
+            <label for="pref-page-size">Itens por página <HelpTip Text="Quantos lançamentos aparecem por vez na tabela de Lançamentos. Dá para mudar na própria tabela, só naquela consulta." /></label>
+            <select id="pref-page-size" class="input" @bind="_pageSize">
+                @foreach (var size in PreferenceOptions.PageSizes) { <option value="@size">@size itens</option> }
+            </select>
+        </div>
         <fieldset class="choices">
-            <legend>Recorrentes do cartão na fatura aberta</legend>
+            <legend>Recorrentes do cartão na fatura aberta <HelpTip Text="Como as despesas fixas do cartão entram no total da fatura antes de o banco cobrar." /></legend>
             <label class="choice"><input type="radio" name="pref-recurring" value="on-date" checked="@(_recurring == RecurringInvoiceMode.SumOnDate)" @onchange="() => _recurring = RecurringInvoiceMode.SumOnDate" />
                 <span>Somar só na data da cobrança<small class="hint">O total fica igual ao do banco; o valor ainda não cobrado aparece como previsto.</small></span></label>
             <label class="choice"><input type="radio" name="pref-recurring" value="upfront" checked="@(_recurring == RecurringInvoiceMode.SumUpfront)" @onchange="() => _recurring = RecurringInvoiceMode.SumUpfront" />
                 <span>Somar desde já<small class="hint">O total já inclui as recorrentes futuras, mesmo antes de o banco cobrar.</small></span></label>
         </fieldset>
+    </div>
 
-        <h3>Dashboard</h3>
+    <div hidden="@(_tab != "dashboard")" data-settings-panel="dashboard">
         <div class="field">
-            <label for="pref-pending-window">Janela de pendências</label>
-            <select id="pref-pending-window" @bind="_pendingWindowDays">
+            <label for="pref-pending-window">Janela de pendências <HelpTip Text="Quantos dias à frente o Dashboard mostra em pendências próximas." /></label>
+            <select id="pref-pending-window" class="input" @bind="_pendingWindowDays">
                 @foreach (var days in PreferenceOptions.PendingWindowDays) { <option value="@days">Próximos @days dias</option> }
             </select>
         </div>
         <div class="field">
-            <label for="pref-top-categories">Maiores categorias no gráfico</label>
-            <select id="pref-top-categories" @bind="_topCategories">
+            <label for="pref-top-categories">Maiores categorias no gráfico <HelpTip Text="Quantas categorias aparecem no gráfico de despesas e receitas do Dashboard." /></label>
+            <select id="pref-top-categories" class="input" @bind="_topCategories">
                 @foreach (var top in PreferenceOptions.TopCategories) { <option value="@top">@top categorias</option> }
             </select>
         </div>
@@ -61,31 +74,42 @@
             <label class="choice"><input id="pref-section-invoices" type="checkbox" @bind="_showInvoices" /> Faturas</label>
             <label class="choice"><input id="pref-section-heatmap" type="checkbox" @bind="_showHeatMap" /> Mapa de calor</label>
         </fieldset>
+    </div>
 
-        <h3>Lançamentos</h3>
+    <div hidden="@(_tab != "security")" data-settings-panel="security">
         <div class="field">
-            <label for="pref-page-size">Itens por página</label>
-            <select id="pref-page-size" @bind="_pageSize">
-                @foreach (var size in PreferenceOptions.PageSizes) { <option value="@size">@size itens</option> }
-            </select>
-        </div>
-
-        <h3>Segurança</h3>
-        <div class="field">
-            <label for="pref-session-hours">Duração da sessão sem "Manter conectado"</label>
-            <select id="pref-session-hours" @bind="_sessionHours">
+            <label for="pref-session-hours">Duração da sessão sem "Manter conectado" <HelpTip Text="Vale a partir do próximo login. Sessões já abertas não mudam, e Manter conectado continua com 30 dias." /></label>
+            <select id="pref-session-hours" class="input" @bind="_sessionHours">
                 <option value="12">12 horas</option>
                 <option value="24">24 horas</option>
                 <option value="168">7 dias</option>
             </select>
-            <small class="hint">Vale a partir do próximo login. Sessões já abertas não mudam, e "Manter conectado" continua com 30 dias.</small>
         </div>
+    </div>
 
-        <button type="submit" class="button" disabled="@_savingPreferences">Salvar preferências</button>
-    </form>
-</section>
+    <div class="settings-actions">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" data-save-preferences Disabled="@_savingPreferences">Salvar alterações</MudButton>
+    </div>
+</form>
+
+<div hidden="@(_tab != "security")" class="settings-security">
+    @SecurityContent
+</div>
 
 @code {
+    private sealed record Tab(string Key, string Label);
+
+    private static readonly Tab[] s_tabs = [new("general", "Geral"), new("entries", "Lançamentos e faturas"), new("dashboard", "Dashboard"), new("security", "Segurança")];
+
+    /// <summary>Senha, certificado e backup: têm ações próprias e ficam fora do formulário de preferências.</summary>
+    [Parameter]
+    public RenderFragment? SecurityContent { get; set; }
+
+    [Parameter]
+    public string InitialTab { get; set; } = "general";
+
+    private string _tab = "general";
+    private string _savedSnapshot = string.Empty;
     private ThemePreference _theme;
     private StartPage _startPage;
     private RecurringInvoiceMode _recurring;
@@ -102,8 +126,11 @@
     private bool _preferencesSaved;
     private bool _savingPreferences;
 
+    private string Snapshot() => string.Join('|', _theme, _startPage, _recurring, _pendingWindowDays, _topCategories, _showSummary, _showPending, _showCategories, _showInvoices, _showHeatMap, _pageSize, _sessionHours);
+
     protected override async Task OnInitializedAsync()
     {
+        _tab = InitialTab;
         var saved = await Preferences.GetAsync();
         _theme = saved.Theme;
         _startPage = saved.StartPage;
@@ -114,6 +141,18 @@
             (saved.Sections.Summary, saved.Sections.Pending, saved.Sections.Categories, saved.Sections.Invoices, saved.Sections.HeatMap);
         _pageSize = saved.PageSize;
         _sessionHours = saved.SessionHours;
+        _savedSnapshot = Snapshot();
+    }
+
+    private async Task ChangeTabAsync(string tab)
+    {
+        if (tab == _tab) { return; }
+        if (Snapshot() != _savedSnapshot && !await ConfirmDialog.AskAsync(Dialogs, "Alterações não salvas", "Você alterou preferências e ainda não salvou. Elas continuam preenchidas, mas só valem depois de Salvar alterações.", "Trocar de aba", cancelText: "Continuar aqui"))
+        {
+            return;
+        }
+
+        _tab = tab;
     }
 
     private async Task SavePreferencesAsync()
@@ -128,6 +167,8 @@
             _preferencesMessage = result.Error ?? "Preferências salvas.";
             if (result.Succeeded)
             {
+                _savedSnapshot = Snapshot();
+                Snackbar.Add("Preferências salvas.", Severity.Success);
                 await Js.InvokeVoidAsync("agsTheme.apply", _theme switch { ThemePreference.Light => "light", ThemePreference.Auto => "auto", _ => "dark" });
                 Theme.Apply(_theme);
             }

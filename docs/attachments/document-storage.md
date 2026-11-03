@@ -9,3 +9,7 @@ Os arquivos são guardados pela data do upload; editar a data financeira não mu
 A lixeira permite download e restauração por 30 dias. Depois a rotina diária elimina arquivo e registro. A restauração exige que o dono ainda exista. Documentos não são importados como dados financeiros e não fazem parte do CSV.
 
 Configuração e preparação da pasta: [Docker Compose](../web/docker-deployment.md#pasta-de-anexos-73). Decisão técnica: [armazenamento](../architecture/attachments-storage.md).
+
+## Tela de Anexos (#102)
+
+`/anexos` mostra os documentos em tabela, com busca pelo nome e abas **Ativos** e **Lixeira**. Na lixeira, a coluna Remoção mostra quando cada item deixa de poder ser restaurado. Tipo e datas ficam em Filtros, e a exportação em ZIP continua na própria tela, em um painel que abre quando pedido.

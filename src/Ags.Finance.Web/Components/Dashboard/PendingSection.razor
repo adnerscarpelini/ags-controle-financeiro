@@ -4,19 +4,17 @@
 @if (_agenda is { } agenda)
 {
     <section class="panel" aria-labelledby="pending-title">
-        <h2 id="pending-title">Próximos @agenda.WindowDays dias</h2>
-        <p>De @agenda.Today.ToString("dd/MM/yyyy") até @agenda.WindowEnd.ToString("dd/MM/yyyy"), pela data prevista. É previsão: não altera o saldo efetivo das contas.</p>
-        <dl class="metric-grid">
-            <div class="metric"><dt>A receber</dt><dd class="numeric entry-income">@agenda.Upcoming.ToReceive</dd></div>
-            <div class="metric"><dt>A pagar</dt><dd class="numeric entry-expense">@Negative(agenda.Upcoming.ToPay)</dd></div>
-        </dl>
+        <h2 id="pending-title">Próximos @agenda.WindowDays dias <HelpTip Text="@($"De {agenda.Today:dd/MM/yyyy} até {agenda.WindowEnd:dd/MM/yyyy}, pela data prevista. É previsão: não altera o saldo efetivo das contas.")" /></h2>
+        <div class="stat-cards">
+            <StatCard Icon="@Icons.Material.Outlined.ArrowUpward" Tone="income" Label="A receber" Value="@agenda.Upcoming.ToReceive.ToString()" Testid="to-receive" />
+            <StatCard Icon="@Icons.Material.Outlined.ArrowDownward" Tone="expense" Label="A pagar" Value="@Negative(agenda.Upcoming.ToPay).ToString()" Testid="to-pay" />
+        </div>
         <PendingList Items="agenda.Upcoming.Items" Empty="@($"Nenhuma pendência nos próximos {agenda.WindowDays} dias.")" Label="@($"Pendências dos próximos {agenda.WindowDays} dias")" />
-        <h3>Atrasados</h3>
-        <p>Data prevista anterior a hoje; não entram nos totais acima.</p>
-        <dl class="metric-grid">
-            <div class="metric"><dt>Atrasado a receber</dt><dd class="numeric entry-income">@agenda.Overdue.ToReceive</dd></div>
-            <div class="metric"><dt>Atrasado a pagar</dt><dd class="numeric entry-expense">@Negative(agenda.Overdue.ToPay)</dd></div>
-        </dl>
+        <h3>Atrasados <HelpTip Text="Data prevista anterior a hoje; não entram nos totais acima." /></h3>
+        <div class="stat-cards">
+            <StatCard Icon="@Icons.Material.Outlined.Schedule" Tone="warning" Label="Atrasado a receber" Value="@agenda.Overdue.ToReceive.ToString()" Testid="overdue-receive" />
+            <StatCard Icon="@Icons.Material.Outlined.Schedule" Tone="warning" Label="Atrasado a pagar" Value="@Negative(agenda.Overdue.ToPay).ToString()" Testid="overdue-pay" />
+        </div>
         <PendingList Items="agenda.Overdue.Items" Empty="Nenhuma pendência atrasada." Label="Pendências atrasadas" />
         <p><a href="/pendentes">Ver todas as pendências</a></p>
     </section>

@@ -37,6 +37,7 @@ Origem: [#5](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/5
 | `Components/PageHeader.razor` | Título da página (`<PageTitle>` e `<h1>`), usado por todas as seções. |
 | `Components/Cards/*.razor`, `CreditCardView.razor` e `Pages/InvoiceDetail.razor` | Carteira, janelas de cartão e de fatura e detalhe da fatura. |
 | `Components/Common/RegistryPage.razor` e `Components/Registries/*.razor` | Padrão das telas de cadastro e suas janelas. |
+| `Components/Dashboard/*.razor` | Seções do Dashboard, com `StatCard` e `MonthPicker`. |
 | `Components/Accounts/*.razor` | Card da conta e janelas de conta, ajuste de saldo e movimentos. |
 | `Components/Pages/*.razor` | Uma página por seção. |
 

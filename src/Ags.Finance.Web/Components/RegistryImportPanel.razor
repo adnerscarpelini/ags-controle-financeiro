@@ -7,7 +7,7 @@
         categorias, subcategorias, descrições e pessoas. A prévia não grava nada; ao confirmar, o arquivo entra por inteiro ou não entra. O arquivo enviado não fica guardado.</p>
     @if (_message is not null) { <p role="status">@_message</p> }
     <div class="catalog-fields">
-        <div class="field"><label for="import-kind">Tipo de cadastro</label><select id="import-kind" @bind="_kind" disabled="@_busy">
+        <div class="field"><label for="import-kind">Tipo de cadastro</label><select id="import-kind" class="input" @bind="_kind" disabled="@_busy">
             @foreach (var item in s_items) { <option value="@item.Kind">@item.Label</option> }
         </select></div>
         <div class="field"><label for="import-file">Arquivo CSV (até 10 MB)</label><InputFile id="import-file" accept=".csv,text/csv" OnChange="FileSelectedAsync" disabled="@_busy" /></div>
@@ -24,8 +24,8 @@
         {
             <table>
                 <caption class="visually-hidden">Problemas encontrados no arquivo</caption>
-                <thead><tr><th scope="col">Linha</th><th scope="col">Coluna</th><th scope="col">Problema</th></tr></thead>
-                <tbody>@foreach (var issue in report.Issues.Take(200)) { <tr><td class="numeric">@(issue.Line == 0 ? "-" : issue.Line.ToString())</td><td>@issue.Field</td><td>@issue.Message</td></tr> }</tbody>
+                <thead><tr><th scope="col">Arquivo</th><th scope="col">Linha</th><th scope="col">Coluna</th><th scope="col">Problema</th></tr></thead>
+                <tbody>@foreach (var issue in report.Issues.Take(200)) { <tr><td>@_fileName</td><td class="numeric">@(issue.Line == 0 ? "-" : issue.Line.ToString())</td><td>@issue.Field</td><td>@issue.Message</td></tr> }</tbody>
             </table>
             @if (report.Issues.Count > 200) { <p>Mostrando os 200 primeiros problemas.</p> }
         }
@@ -53,6 +53,7 @@
     private const long MaxBytes = 10 * 1024 * 1024;
     private RegistryKind _kind = RegistryKind.Banks;
     private byte[]? _content;
+    private string _fileName = string.Empty;
     private RegistryImportReport? _report;
     private string? _message;
     private bool _busy;
@@ -63,6 +64,7 @@
         _report = null; _content = null; _message = null;
         try
         {
+            _fileName = args.File.Name;
             await using var stream = args.File.OpenReadStream(MaxBytes);
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer);

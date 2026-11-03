@@ -3,120 +3,108 @@
 @using Ags.Finance.Modules.Accounts.Contracts
 @using Ags.Finance.Modules.Reimbursements.Contracts
 @using Ags.Finance.SharedKernel
+@using Ags.Finance.Web.Components.Layout
+@using Ags.Finance.Web.Components.Registries
 @inject IReimbursementOverviews Overviews
 @inject IPersonCatalog People
 @inject IReimbursementReceipts Receipts
 @inject IAccountCatalog Accounts
 @inject TimeProvider Clock
+@inject IDialogService Dialogs
+@inject ViewportState Viewport
+@inject ISnackbar Snackbar
 
-<PageHeader Title="Reembolsos" />
-@if (_message is not null) { <p role="status">@_message</p> }
-<section class="panel">
-    <h2>Filtrar reembolsos</h2>
-    <form id="reimbursement-filters" @onsubmit="LoadAsync" @onsubmit:preventDefault>
-        <div class="catalog-fields">
-            <div class="field"><label for="reimbursement-month">Mês de referência</label><input id="reimbursement-month" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" disabled="@_allMonths" /></div>
-            <div class="field"><label for="reimbursement-person">Pessoa</label><select id="reimbursement-person" @bind="_personId">
+<div class="page-head">
+    <PageHeader Title="Reembolsos" />
+    <HelpTip Text="Quanto cada pessoa deve devolver das despesas. Pendente é calculado na leitura; só o recebimento é gravado e pode ser desfeito." />
+    <div class="page-head-actions">
+        <MudTooltip Text="Filtrar por pessoa, situação e todos os meses">
+            <MudIconButton Icon="@Icons.Material.Outlined.FilterList" Variant="Variant.Outlined" aria-label="Filtros" aria-expanded="@(_filtersOpen ? "true" : "false")" data-toggle-filters OnClick="() => _filtersOpen = !_filtersOpen" />
+        </MudTooltip>
+        <MudButton id="reimbursement-receive" Variant="Variant.Filled" Color="Color.Primary" Disabled="@(_selected.Count == 0 || _busy)" OnClick="OpenReceiveAsync">Registrar recebimento (@_selected.Count)</MudButton>
+    </div>
+</div>
+
+@if (_message is not null) { <p class="form-error" role="alert" data-reimbursement-error>@_message</p> }
+
+@if (_filtersOpen)
+{
+    <section class="panel filters-panel" aria-label="Filtros">
+        <form id="reimbursement-filters" class="catalog-fields" @onsubmit="LoadAsync" @onsubmit:preventDefault>
+            <div class="field"><label for="reimbursement-person">Pessoa</label><select id="reimbursement-person" class="input" @bind="_personId" @bind:after="LoadAsync">
                 <option value="@Guid.Empty">Todas</option>@foreach (var person in _people) { <option value="@person.ExternalId">@person.Name</option> }
             </select></div>
-            <div class="field"><label for="reimbursement-status">Situação</label><select id="reimbursement-status" @bind="_status">
+            <div class="field"><label for="reimbursement-status">Situação</label><select id="reimbursement-status" class="input" @bind="_status" @bind:after="LoadAsync">
                 <option value="">Todas</option><option value="@ReimbursementStatus.Pending">Pendente</option><option value="@ReimbursementStatus.Received">Recebido</option>
             </select></div>
-        </div>
-        <label class="checkbox"><input id="reimbursement-all-months" type="checkbox" @bind="_allMonths" />Todos os meses</label>
-        <button class="button" disabled="@_busy">Filtrar</button>
-    </form>
-    @if (!_overview.PendingBeforeMonth.IsZero)
-    {
-        <p class="reimbursement-warning" role="note">Há <span class="numeric">@_overview.PendingBeforeMonth</span> pendentes em meses anteriores. Marque "Todos os meses" para vê-los.</p>
-    }
+            <div class="field"><label for="reimbursement-all-months">Todos os meses</label><input id="reimbursement-all-months" class="switch" type="checkbox" role="switch" @bind="_allMonths" @bind:after="LoadAsync" /></div>
+        </form>
+    </section>
+}
+
+@if (!_overview.PendingBeforeMonth.IsZero)
+{
+    <p class="form-warning" role="note">Há <span class="numeric">@_overview.PendingBeforeMonth</span> pendentes em meses anteriores. Ligue "Todos os meses" nos filtros para vê-los.</p>
+}
+
+<section class="stat-cards" aria-label="Totais dos reembolsos">
+    <StatCard Icon="@Icons.Material.Outlined.Replay" Label="Esperado" Help="Soma do que as pessoas devem devolver no filtro atual." Value="@_overview.Expected.ToString()" Testid="expected" />
+    <StatCard Icon="@Icons.Material.Outlined.Check" Tone="income" Label="Recebido" Value="@_overview.Received.ToString()" Testid="received" />
+    <StatCard Icon="@Icons.Material.Outlined.Schedule" Tone="warning" Label="Pendente" Value="@_overview.Pending.ToString()" Testid="pending" />
 </section>
-@if (_receiving)
-{
-    <section class="panel" role="dialog" aria-label="Registrar recebimento">
-        <h2>Registrar recebimento</h2>
-        <div class="catalog-fields">
-            <div class="field"><label for="receipt-date">Data</label><input id="receipt-date" type="date" @bind="_receiptDate" required /></div>
-            <div class="field"><label for="receipt-account">Conta corrente</label><select id="receipt-account" @bind="_receiptAccount">
-                <option value="@Guid.Empty">Selecione</option>@foreach (var account in _accounts) { <option value="@account.ExternalId">@account.Name</option> }
-            </select></div>
-        </div>
-        <ul class="catalog-list" aria-label="Valores recebidos">
-            @foreach (var item in SelectedItems)
-            {
-                <li><span>@item.PersonName · @item.Description · Esperado: <span class="numeric">@item.Expected</span></span>
-                    <div class="field"><label for="received-@item.EntryExternalId">Valor recebido (R$)</label><input id="received-@item.EntryExternalId" type="number" step="0.01" min="0" @bind="_received[item.EntryExternalId]" required /></div></li>
-            }
-        </ul>
-        <ul class="catalog-list" aria-label="Receitas que serão criadas">
-            @foreach (var person in SelectedItems.GroupBy(x => x.PersonName).OrderBy(x => x.Key, StringComparer.CurrentCultureIgnoreCase))
-            {
-                var total = new Money(person.Sum(x => _received[x.EntryExternalId]));
-                <li><span>@person.Key: <span class="numeric">@total</span> · @(total.IsZero ? "sem lançamento" : "uma receita na conta escolhida")</span></li>
-            }
-        </ul>
-        <button class="button" @onclick="ConfirmReceiveAsync" disabled="@_busy">Confirmar recebimento</button>
-        <button class="button" @onclick="() => _receiving = false" disabled="@_busy">Cancelar</button>
-    </section>
-}
-@if (_undoing is { } undoing)
-{
-    <section class="panel" role="alertdialog" aria-label="Desfazer recebimento">
-        <h2>Desfazer recebimento</h2>
-        <p>@undoing.PersonName · @undoing.Date.ToString("dd/MM/yyyy") · <span class="numeric">@undoing.Total</span></p>
-        <p>@(undoing.AccountExternalId is { } account ? $"A receita será excluída da conta {AccountName(account)}." : "Este recebimento não gerou lançamento.") Todos estes itens voltam a Pendente:</p>
-        <ul class="catalog-list" aria-label="Itens do recebimento">
-            @foreach (var item in undoing.Items)
-            {
-                <li><span>@item.Date.ToString("dd/MM/yyyy") · @item.Description · Mês @item.Month</span>
-                    <span>Esperado: <span class="numeric">@item.Expected</span> · Recebido: <span class="numeric">@item.Received</span></span></li>
-            }
-        </ul>
-        <button class="button" @onclick="ConfirmUndoAsync" disabled="@_busy">Confirmar</button>
-        <button class="button" @onclick="() => _undoing = null" disabled="@_busy">Cancelar</button>
-    </section>
-}
-<section class="panel">
-    <h2>Reembolsos</h2>
-    @if (_overview.Items.Any(x => x.Status == ReimbursementStatus.Pending))
-    {
-        <label class="checkbox"><input id="reimbursement-select-all" type="checkbox" checked="@AllPendingSelected" @onchange="ToggleAll" />Selecionar todos os pendentes</label>
-        <button class="button" id="reimbursement-receive" @onclick="StartReceive" disabled="@(_selected.Count == 0 || _busy)">Receber selecionados (@_selected.Count)</button>
-    }
-    <ul class="catalog-list" aria-label="Reembolsos">
-        @foreach (var item in _overview.Items)
-        {
-            <li>
+
+<section class="panel data-panel">
+    <MonthPicker Value="_month" ValueChanged="MonthChangedAsync" Disabled="_allMonths" />
+    <MudTable T="ReimbursementItem" Items="_overview.Items" Elevation="0" Hover="true" Class="data-table" Breakpoint="Breakpoint.Sm" aria-label="Reembolsos">
+        <HeaderContent>
+            <MudTh Class="col-select">
+                @if (HasPending)
+                {
+                    <input id="reimbursement-select-all" type="checkbox" class="row-select" aria-label="Selecionar todos os pendentes" checked="@AllPendingSelected" @onchange="ToggleAll" />
+                }
+            </MudTh>
+            <MudTh>Despesa</MudTh>
+            <MudTh>Pessoa</MudTh>
+            <MudTh>Percentual</MudTh>
+            <MudTh Class="numeric">A receber</MudTh>
+            <MudTh Class="numeric">Recebido</MudTh>
+            <MudTh>Situação</MudTh>
+            <MudTh>Ações</MudTh>
+        </HeaderContent>
+        <RowTemplate Context="item">
+            <MudTd Class="col-select">
                 @if (item.Status == ReimbursementStatus.Pending)
                 {
-                    <label class="checkbox"><input type="checkbox" aria-label="Selecionar @item.Description de @item.PersonName" checked="@_selected.Contains(item.EntryExternalId)" @onchange="args => Toggle(item.EntryExternalId, args)" />Selecionar</label>
+                    <input type="checkbox" class="row-select" aria-label="Selecionar @item.Description de @item.PersonName" checked="@_selected.Contains(item.EntryExternalId)" @onchange="args => Toggle(item.EntryExternalId, args)" />
                 }
-                <span>@item.Date.ToString("dd/MM/yyyy") · @item.Description · @item.Classification · Mês @item.Month</span>
-                <span>@item.PersonName · @item.ExpenseAmount × @Percent(item.Percent)</span>
-                @if (!item.IsExpenseEffective) { <span>Despesa ainda pendente</span> }
-                <span>Esperado: <span class="numeric">@item.Expected</span></span>
-                <span>Recebido: <span class="numeric">@(item.Received is { } received ? received.ToString() : "—")</span></span>
-                <span>@(item.ReceivedDate is { } receivedDate ? $"Recebido em {receivedDate:dd/MM/yyyy}" : "Pendente")</span>
-                @if (item.ReceiptExternalId is { } receipt) { <button class="button" @onclick="() => AskUndoAsync(receipt)" disabled="@_busy">Desfazer recebimento</button> }
-            </li>
-        }
-    </ul>
-    @if (_overview.Items.Count == 0 && !_busy) { <p>Nenhum reembolso neste filtro.</p> }
-    @if (_overview.Items.Count > 0)
-    {
-        <footer aria-label="Totais dos reembolsos">
-            <p>Esperado: <span class="numeric">@_overview.Expected</span></p>
-            <p>Recebido: <span class="numeric">@_overview.Received</span></p>
-            <p>Pendente: <span class="numeric">@_overview.Pending</span></p>
-            <ul class="catalog-list" aria-label="Totais por pessoa">
-                @foreach (var total in _overview.People)
+            </MudTd>
+            <MudTd DataLabel="Despesa" Class="col-description">
+                <span class="row-title">@item.Description</span>
+                <span class="row-note">@item.Date.ToString("dd/MM/yyyy") · @item.Classification.Replace(" > ", " › ", StringComparison.Ordinal) · Mês @item.Month · @item.ExpenseAmount × @Percent(item.Percent)@(item.IsExpenseEffective ? string.Empty : " · Despesa ainda pendente")</span>
+            </MudTd>
+            <MudTd DataLabel="Pessoa">@item.PersonName</MudTd>
+            <MudTd DataLabel="Percentual">@Percent(item.Percent)</MudTd>
+            <MudTd DataLabel="A receber" Class="numeric">@item.Expected</MudTd>
+            <MudTd DataLabel="Recebido" Class="numeric">@(item.Received is { } received ? received.ToString() : "—")</MudTd>
+            <MudTd DataLabel="Situação"><span class="tag">@(item.ReceivedDate is { } receivedDate ? $"Recebido em {receivedDate:dd/MM/yyyy}" : "Pendente")</span></MudTd>
+            <MudTd DataLabel="Ações" Class="col-actions">
+                @if (item.ReceiptExternalId is { } receipt)
                 {
-                    <li><span>@total.PersonName</span>
-                        <span>Esperado: <span class="numeric">@total.Expected</span></span>
-                        <span>Recebido: <span class="numeric">@total.Received</span></span>
-                        <span>Pendente: <span class="numeric">@total.Pending</span></span></li>
+                    <MudButton Variant="Variant.Text" Size="Size.Small" data-undo-receipt Disabled="@_busy" OnClick="() => AskUndoAsync(receipt)">Desfazer recebimento</MudButton>
                 }
-            </ul>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <EmptyState Icon="@Icons.Material.Outlined.Replay" Message="Nenhum reembolso neste filtro. Informe a pessoa e o percentual em uma despesa para acompanhar aqui." />
+        </NoRecordsContent>
+    </MudTable>
+    @if (_overview.People.Count > 0)
+    {
+        <footer class="table-footer" aria-label="Totais por pessoa">
+            @foreach (var total in _overview.People)
+            {
+                <span data-person-total>@total.PersonName · Esperado: @total.Expected · Recebido: @total.Received · Pendente: @total.Pending</span>
+            }
         </footer>
     }
 </section>
@@ -124,50 +112,46 @@
 @code {
     private IReadOnlyList<PersonDetails> _people = [];
     private ReimbursementOverview _overview = new([], [], default, default, default, default);
-    private string _month = string.Empty;
+    private ReferenceMonth _month;
     private Guid _personId;
     private ReimbursementStatus? _status;
     private bool _allMonths;
+    private bool _filtersOpen;
     private bool _busy;
     private string? _message;
-    private IReadOnlyList<AccountDetails> _accounts = [];
     private readonly HashSet<Guid> _selected = [];
-    private readonly Dictionary<Guid, decimal> _received = [];
-    private bool _receiving;
-    private DateOnly _receiptDate;
-    private Guid _receiptAccount;
     private IReadOnlyList<AccountDetails> _allAccounts = [];
-    private ReimbursementReceiptDetails? _undoing;
 
     private string AccountName(Guid externalId) => _allAccounts.FirstOrDefault(x => x.ExternalId == externalId)?.Name ?? "selecionada";
 
     private IEnumerable<ReimbursementItem> SelectedItems => _overview.Items.Where(x => _selected.Contains(x.EntryExternalId));
+
+    private bool HasPending => _overview.Items.Any(x => x.Status == ReimbursementStatus.Pending);
+
     private bool AllPendingSelected => _overview.Items.Where(x => x.Status == ReimbursementStatus.Pending).All(x => _selected.Contains(x.EntryExternalId));
 
     protected override async Task OnInitializedAsync()
     {
-        _month = Clock.GetLocalNow().ToString("yyyy-MM", CultureInfo.InvariantCulture);
+        _month = ReferenceMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime));
         _people = await People.GetAsync();
         _allAccounts = await Accounts.GetAccountsAsync(false);
-        _accounts = _allAccounts.Where(x => x.IsActive && x.Kind == AccountKind.Checking).ToList();
+        await LoadAsync();
+    }
+
+    private async Task MonthChangedAsync(ReferenceMonth month)
+    {
+        _month = month;
         await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
-        ReferenceMonth? month = null;
-        if (!_allMonths)
-        {
-            if (!DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)) { _message = "Informe um mês de referência válido."; return; }
-            month = ReferenceMonth.FromDate(date);
-        }
         _busy = true;
         try
         {
-            _overview = await Overviews.GetAsync(new(month, _personId == Guid.Empty ? null : _personId, _status));
+            _overview = await Overviews.GetAsync(new(_allMonths ? null : _month, _personId == Guid.Empty ? null : _personId, _status));
             _message = _overview.Error;
             _selected.IntersectWith(_overview.Items.Where(x => x.Status == ReimbursementStatus.Pending).Select(x => x.EntryExternalId));
-            _receiving = false;
         }
         finally { _busy = false; }
     }
@@ -184,45 +168,44 @@
         if (args.Value is true) { _selected.UnionWith(_overview.Items.Where(x => x.Status == ReimbursementStatus.Pending).Select(x => x.EntryExternalId)); }
     }
 
-    private void StartReceive()
+    private async Task OpenReceiveAsync()
     {
-        _receiptDate = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
-        _received.Clear();
-        foreach (var item in SelectedItems) { _received[item.EntryExternalId] = decimal.Parse(item.Expected.Amount.ToString("0.##", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture); }
-        _receiving = true;
+        var parameters = new DialogParameters<ReimbursementReceiptDialog>
+        {
+            { x => x.Items, SelectedItems.ToList() },
+            { x => x.Accounts, _allAccounts.Where(x => x.IsActive && x.Kind == AccountKind.Checking).ToList() },
+            { x => x.Received, EventCallback.Factory.Create(this, ReceivedAsync) },
+        };
+        await Dialogs.ShowAsync<ReimbursementReceiptDialog>("Registrar recebimento", parameters, AppDialogs.Options(Viewport, MaxWidth.Medium));
+    }
+
+    private async Task ReceivedAsync()
+    {
+        _selected.Clear();
+        await LoadAsync();
     }
 
     private async Task AskUndoAsync(Guid receipt)
     {
-        _undoing = await Receipts.FindAsync(receipt);
-        if (_undoing is null) { _message = "Este recebimento não existe mais."; await LoadAsync(); }
-    }
+        var undoing = await Receipts.FindAsync(receipt);
+        if (undoing is null)
+        {
+            _message = "Este recebimento não existe mais.";
+            await LoadAsync();
+            return;
+        }
 
-    private async Task ConfirmUndoAsync()
-    {
-        if (_undoing is not { } undoing || _busy) { return; }
+        var effect = undoing.AccountExternalId is { } account ? $"A receita será excluída da conta {AccountName(account)}." : "Este recebimento não gerou lançamento.";
+        var confirmed = await ConfirmDialog.AskAsync(Dialogs, "Desfazer recebimento",
+            $"{undoing.PersonName} · {undoing.Date:dd/MM/yyyy} · {undoing.Total}. {effect} Todos estes itens voltam a Pendente:", "Desfazer recebimento",
+            details: undoing.Items.Select(x => $"{x.Date:dd/MM/yyyy} · {x.Description} · Mês {x.Month} · Esperado: {x.Expected} · Recebido: {x.Received}").ToList(), detailsLabel: "Itens do recebimento");
+        if (!confirmed) { return; }
         _busy = true;
         try
         {
             var result = await Receipts.UndoAsync(undoing.ExternalId);
-            _message = result.Error ?? "Recebimento desfeito. Os itens voltaram a Pendente.";
-            _undoing = null;
-        }
-        finally { _busy = false; }
-        await LoadAsync();
-    }
-
-    private async Task ConfirmReceiveAsync()
-    {
-        if (_busy) { return; }
-        _busy = true;
-        try
-        {
-            var items = SelectedItems.Select(x => new ReceiveReimbursementItem(x.EntryExternalId, x.Expected, new Money(_received[x.EntryExternalId]))).ToList();
-            var result = await Receipts.ReceiveAsync(new(_receiptDate, _receiptAccount == Guid.Empty ? null : _receiptAccount, items));
-            _message = result.Error ?? "Recebimento registrado.";
-            if (!result.Succeeded) { return; }
-            _selected.Clear();
+            _message = result.Error;
+            if (result.Succeeded) { Snackbar.Add("Recebimento desfeito. Os itens voltaram a Pendente.", Severity.Success); }
         }
         finally { _busy = false; }
         await LoadAsync();

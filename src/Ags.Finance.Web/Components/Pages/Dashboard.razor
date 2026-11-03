@@ -1,20 +1,19 @@
 @page "/dashboard"
-@using System.Globalization
 @using Ags.Finance.Modules.Preferences.Contracts
 @using Ags.Finance.SharedKernel
 @using Ags.Finance.Web.Components.Dashboard
 @inject TimeProvider Clock
 @inject IPreferences Preferences
 
-<PageHeader Title="Dashboard" />
-@if (_message is not null) { <p role="status">@_message</p> }
-<section class="panel">
-    <div class="field"><label for="dashboard-month">Mês de referência</label>
-        <input id="dashboard-month" type="month" value="@FormatMonth(_month)" @onchange="MonthChanged" /></div>
-</section>
+<div class="page-head">
+    <PageHeader Title="Dashboard" />
+    <div class="page-head-actions">
+        <MonthPicker Value="_month" ValueChanged="month => _month = month" />
+    </div>
+</div>
 @if (!_sections.AnyVisible)
 {
-    <section class="panel" data-testid="no-sections"><p>Nenhuma seção do dashboard está visível. Escolha o que exibir em <a href="configuracoes">Configurações</a>.</p></section>
+    <section class="panel" data-testid="no-sections"><EmptyState Icon="@Icons.Material.Outlined.Home" Message="Nenhuma seção do dashboard está visível." /><p class="form-note center">Escolha o que exibir em <a href="configuracoes">Configurações</a>.</p></section>
 }
 @if (_sections.Summary) { <SummaryCards Month="_month" /> }
 @if (_sections.Pending) { <PendingSection /> }
@@ -24,7 +23,6 @@
 
 @code {
     private ReferenceMonth _month;
-    private string? _message;
     private DashboardSections _sections = DashboardSections.All;
     private int _topCategories = AppPreferences.Default.TopCategories;
 
@@ -34,17 +32,5 @@
         var preferences = await Preferences.GetAsync();
         _sections = preferences.Sections;
         _topCategories = preferences.TopCategories;
-    }
-
-    private static string FormatMonth(ReferenceMonth month) => $"{month.Year:0000}-{month.Month:00}";
-
-    private void MonthChanged(ChangeEventArgs args)
-    {
-        if (DateOnly.TryParseExact((args.Value?.ToString() ?? string.Empty) + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
-        {
-            _month = ReferenceMonth.FromDate(date);
-            _message = null;
-        }
-        else { _message = "Informe um mês de referência válido."; }
     }
 }

@@ -5,73 +5,74 @@
 @inject BackupStatus Status
 @inject RestoreCoordinator Coordinator
 
-<PageHeader Title="Backup e restauração" />
+<div class="page-head">
+    <PageHeader Title="Backup e restauração" />
+    <HelpTip Text="Cópia completa para recuperar os dados. Guarde a pasta de backup fora desta máquina: o volume sozinho não protege contra a perda do computador." />
+    <div class="page-head-actions">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Backup" data-create-backup Disabled="@(_busy || Settings.Directory is null)" OnClick="CreateAsync">Criar backup</MudButton>
+    </div>
+</div>
 
-<section class="panel" aria-labelledby="backup-title">
-    <h2 id="backup-title">Backups</h2>
+@if (Settings.Directory is null)
+{
+    <p class="form-error" role="alert">A pasta de backup não está configurada (Backup:Directory).</p>
+}
+else
+{
+    <p class="form-note">
+        Backup diário às @Settings.ScheduleTime.ToString("HH:mm") (@(Settings.ScheduleEnabled ? "ativo" : "desativado")),
+        com retenção de @Settings.RetentionDays backups e um backup mensal sempre preservado.
+    </p>
+    <p class="form-note" data-testid="backup-last">@LastResultText()</p>
+}
 
-    @if (Settings.Directory is null)
-    {
-        <p class="form-error" role="alert">A pasta de backup não está configurada (Backup:Directory).</p>
-    }
-    else
-    {
+@if (_message is not null)
+{
+    <p class="@(_failed ? "form-error" : "form-success")" role="status" data-testid="backup-message">@_message</p>
+}
+
+@if (_pendingRestore is not null)
+{
+    <section class="panel notice" role="alertdialog" aria-label="Confirmar restauração">
         <p>
-            Backup diário às @Settings.ScheduleTime.ToString("HH:mm") (@(Settings.ScheduleEnabled ? "ativo" : "desativado")),
-            com retenção de @Settings.RetentionDays backups e um backup mensal sempre preservado.
+            A restauração <strong>substitui todos os dados atuais</strong> pelos do backup @_pendingRestore.Name.
+            Antes, um backup do estado atual é feito por segurança.
         </p>
-        <p data-testid="backup-last">@LastResultText()</p>
-    }
-
-    @if (_message is not null)
-    {
-        <p class="@(_failed ? "form-error" : "form-success")" role="status" data-testid="backup-message">@_message</p>
-    }
-
-    <button class="button" type="button" @onclick="CreateAsync" disabled="@(_busy || Settings.Directory is null)">Fazer backup agora</button>
-    <p class="hint">Copie os backups concluídos para fora da máquina: o volume sozinho não protege contra a perda do computador.</p>
-</section>
-
-<section class="panel" aria-labelledby="backup-list-title">
-    <h2 id="backup-list-title">Backups disponíveis</h2>
-
-    @if (_pendingRestore is not null)
-    {
-        <div class="notice" role="alertdialog" aria-label="Confirmar restauração">
-            <p>
-                A restauração <strong>substitui todos os dados atuais</strong> pelos do backup @_pendingRestore.Name e reinicia a aplicação.
-                Um backup do estado atual é feito antes, e a aplicação fica em manutenção durante a operação.
-            </p>
-            <div class="field">
-                <label for="restore-confirmation">Digite o nome do backup para confirmar</label>
-                <input id="restore-confirmation" @bind="_confirmation" @bind:event="oninput" autocomplete="off" />
-            </div>
-            <button class="button" type="button" @onclick="RestoreAsync" disabled="@(_busy || _confirmation.Trim() != _pendingRestore.Name)">Restaurar este backup</button>
-            <button class="button" type="button" @onclick="CancelRestore" disabled="@_busy">Cancelar</button>
+        <p>
+            Enquanto ela acontece, a aplicação fica em manutenção: ninguém consegue usar as telas até terminar.
+            Depois a aplicação reinicia sozinha, e será preciso entrar de novo.
+        </p>
+        <div class="field">
+            <label for="restore-confirmation">Digite o nome do backup para confirmar</label>
+            <input id="restore-confirmation" class="input" @bind="_confirmation" @bind:event="oninput" autocomplete="off" />
         </div>
-    }
+        <div class="filters-actions">
+            <MudButton Variant="Variant.Filled" Color="Color.Error" data-confirm-restore Disabled="@(_busy || _confirmation.Trim() != _pendingRestore.Name)" OnClick="RestoreAsync">Restaurar este backup</MudButton>
+            <MudButton data-cancel-restore Disabled="@_busy" OnClick="CancelRestore">Cancelar</MudButton>
+        </div>
+    </section>
+}
 
-    @if (_packages.Count == 0)
-    {
-        <p>Nenhum backup encontrado.</p>
-    }
-    else
-    {
-        <ul class="catalog-list">
-            @foreach (var package in _packages)
-            {
-                <li>
-                    <span>
-                        @package.Manifest.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @KindLabel(package.Manifest.Kind)@(package.Manifest.Monthly ? " · mensal" : string.Empty)
-                        · @FormatSize(package.Manifest) · PostgreSQL @package.Manifest.PostgresServerVersion
-                    </span>
-                    <div>
-                        <button class="button" type="button" @onclick="() => AskRestore(package)" disabled="@_busy">Restaurar</button>
-                    </div>
-                </li>
-            }
-        </ul>
-    }
+<section class="panel data-panel">
+    <MudTable T="BackupPackage" Items="_packages" Elevation="0" Hover="true" Class="data-table" Breakpoint="Breakpoint.Sm" aria-label="Backups disponíveis">
+        <HeaderContent>
+            <MudTh>Pacote</MudTh>
+            <MudTh>Tipo</MudTh>
+            <MudTh Class="numeric">Tamanho</MudTh>
+            <MudTh>PostgreSQL</MudTh>
+            <MudTh>Ações</MudTh>
+        </HeaderContent>
+        <RowTemplate Context="package">
+            <MudTd DataLabel="Pacote"><span class="row-title">@package.Manifest.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span><span class="row-note">@package.Name</span></MudTd>
+            <MudTd DataLabel="Tipo">@KindLabel(package.Manifest.Kind)@(package.Manifest.Monthly ? " · mensal" : string.Empty)</MudTd>
+            <MudTd DataLabel="Tamanho" Class="numeric">@FormatSize(package.Manifest)</MudTd>
+            <MudTd DataLabel="PostgreSQL">@package.Manifest.PostgresServerVersion</MudTd>
+            <MudTd DataLabel="Ações" Class="col-actions"><MudButton Variant="Variant.Outlined" Size="Size.Small" data-restore Disabled="@_busy" OnClick="() => AskRestore(package)">Restaurar</MudButton></MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <EmptyState Icon="@Icons.Material.Outlined.Backup" Message="Nenhum backup encontrado. Crie o primeiro para proteger seus dados." />
+        </NoRecordsContent>
+    </MudTable>
 </section>
 
 @code {

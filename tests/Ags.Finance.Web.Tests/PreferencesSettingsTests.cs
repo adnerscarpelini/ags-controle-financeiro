@@ -87,4 +87,42 @@ public sealed class PreferencesSettingsTests
             Assert.True(page.Find("#pref-section-pending").HasAttribute("checked"));
         }
     }
+
+    [Fact]
+    public async Task TheSettingsAreGroupedInTabsWithASingleSaveAndChangingTabWithUnsavedChangesWarns()
+    {
+        var (context, database) = await CreateAsync();
+        await using (database)
+        await using (context)
+        {
+            var dialogs = context.Render<MudBlazor.MudDialogProvider>();
+            var page = context.Render<PreferencesSettings>();
+            page.WaitForAssertion(() => Assert.Equal("50", page.Find("#pref-page-size").GetAttribute("value")));
+            Assert.Equal(["general", "entries", "dashboard", "security"], page.FindAll("[data-settings-tab]").Select(x => x.GetAttribute("data-settings-tab")));
+            Assert.Equal("Salvar alterações", Assert.Single(page.FindAll("[data-save-preferences]")).TextContent.Trim());
+            Assert.False(page.Find("[data-settings-panel='general']").HasAttribute("hidden"));
+            Assert.True(page.Find("[data-settings-panel='security']").HasAttribute("hidden"));
+
+            await page.Find("[data-settings-tab='entries']").ClickAsync(new());
+            Assert.Empty(dialogs.FindAll("[data-confirm-ok]"));
+            Assert.False(page.Find("[data-settings-panel='entries']").HasAttribute("hidden"));
+
+            await page.Find("#pref-page-size").ChangeAsync("25");
+            _ = page.Find("[data-settings-tab='dashboard']").ClickAsync(new());
+            dialogs.WaitForAssertion(() => Assert.Contains("Alterações não salvas", dialogs.Markup, StringComparison.Ordinal));
+            await dialogs.Find("[data-confirm-cancel]").ClickAsync(new());
+            page.WaitForAssertion(() => Assert.False(page.Find("[data-settings-panel='entries']").HasAttribute("hidden")));
+
+            _ = page.Find("[data-settings-tab='dashboard']").ClickAsync(new());
+            dialogs.WaitForAssertion(() => Assert.NotEmpty(dialogs.FindAll("[data-confirm-ok]")));
+            await dialogs.Find("[data-confirm-ok]").ClickAsync(new());
+            page.WaitForAssertion(() => Assert.False(page.Find("[data-settings-panel='dashboard']").HasAttribute("hidden")));
+            Assert.Equal("25", page.Find("#pref-page-size").GetAttribute("value"));
+
+            context.JSInterop.SetupVoid("agsTheme.apply", "dark").SetVoidResult();
+            await page.Find("#preferences-form").SubmitAsync(EventArgs.Empty);
+            await page.Find("[data-settings-tab='general']").ClickAsync(new());
+            Assert.Empty(dialogs.FindAll("[data-confirm-ok]"));
+        }
+    }
 }

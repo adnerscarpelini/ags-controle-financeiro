@@ -1,0 +1,86 @@
+@* Registrar o recebimento dos reembolsos selecionados. Cada pessoa gera uma receita na conta escolhida. *@
+@using System.Globalization
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Reimbursements.Contracts
+@using Ags.Finance.SharedKernel
+@inject IReimbursementReceipts Receipts
+@inject TimeProvider Clock
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <div class="entry-column" aria-label="Registrar recebimento">
+            <div class="field-row">
+                <div class="field"><label for="receipt-date">Data</label><input id="receipt-date" class="input" type="date" @bind="_date" required /></div>
+                <div class="field">
+                    <label for="receipt-account">Conta corrente <HelpTip Text="Onde as receitas de reembolso entram. Só contas correntes ativas aparecem." /></label>
+                    <select id="receipt-account" class="input" @bind="_account">
+                        <option value="@Guid.Empty">Selecione</option>@foreach (var account in Accounts) { <option value="@account.ExternalId">@account.Name</option> }
+                    </select>
+                </div>
+            </div>
+            <ul class="catalog-list" aria-label="Valores recebidos">
+                @foreach (var item in Items)
+                {
+                    <li><span>@item.PersonName · @item.Description · Esperado: <span class="numeric">@item.Expected</span></span>
+                        <div class="field"><label for="received-@item.EntryExternalId">Valor recebido (R$) <HelpTip Text="Receber menos que o esperado encerra o item." /></label><input id="received-@item.EntryExternalId" class="input" type="number" inputmode="decimal" step="0.01" min="0" @bind="_received[item.EntryExternalId]" /></div></li>
+                }
+            </ul>
+            <ul class="catalog-list" aria-label="Receitas que serão criadas">
+                @foreach (var person in Items.GroupBy(x => x.PersonName).OrderBy(x => x.Key, StringComparer.CurrentCultureIgnoreCase))
+                {
+                    var total = new Money(person.Sum(x => _received[x.EntryExternalId]));
+                    <li><span>@person.Key: <span class="numeric">@total</span> · @(total.IsZero ? "sem lançamento" : "uma receita na conta escolhida")</span></li>
+                }
+            </ul>
+            @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-cancel Disabled="@_busy" OnClick="() => Dialog?.Cancel()">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" data-confirm-ok Disabled="@_busy" OnClick="ConfirmAsync">Confirmar recebimento</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ReimbursementItem> Items { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<AccountDetails> Accounts { get; set; } = [];
+
+    [Parameter]
+    public EventCallback Received { get; set; }
+
+    private readonly Dictionary<Guid, decimal> _received = [];
+    private DateOnly _date;
+    private Guid _account;
+    private bool _busy;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        _date = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+        foreach (var item in Items) { _received[item.EntryExternalId] = decimal.Parse(item.Expected.Amount.ToString("0.##", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture); }
+    }
+
+    private async Task ConfirmAsync()
+    {
+        if (_busy) { return; }
+        _busy = true;
+        try
+        {
+            var items = Items.Select(x => new ReceiveReimbursementItem(x.EntryExternalId, x.Expected, new Money(_received[x.EntryExternalId]))).ToList();
+            var result = await Receipts.ReceiveAsync(new(_date, _account == Guid.Empty ? null : _account, items));
+            _error = result.Error;
+            if (!result.Succeeded) { return; }
+            await Received.InvokeAsync();
+            Snackbar.Add("Recebimento registrado.", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(true));
+        }
+        finally { _busy = false; }
+    }
+}
