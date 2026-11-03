@@ -59,4 +59,5 @@ internal sealed class CreditCard : Entity
         return null;
     }
     public void Deactivate() => IsActive = false;
+    public void Reactivate() => IsActive = true;
 }

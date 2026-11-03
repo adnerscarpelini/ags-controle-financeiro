@@ -6,6 +6,7 @@
 
 <PageHeader Title="Contas e cartões" />
 <p><a href="/cadastros">Cadastros</a> / Contas e cartões</p>
+<label class="checkbox"><input id="show-archived" type="checkbox" @bind="_showArchived" />Exibir arquivados e cartões indisponíveis pela conta</label>
 
 @if (_message is not null)
 {
@@ -14,10 +15,10 @@
 
 @if (_pendingId is not null)
 {
-    <section class="panel" role="alertdialog" aria-labelledby="deactivate-title">
-        <h2 id="deactivate-title">Desativar em vez de excluir</h2>
-        <p>Para preservar o histórico, este cadastro será mantido e deixará de aparecer nas seleções.</p>
-        <button class="button" @onclick="ConfirmDeactivationAsync">Desativar</button>
+    <section class="panel" role="alertdialog" aria-labelledby="archive-title">
+        <h2 id="archive-title">@(_restoring ? "Desarquivar cadastro" : "Arquivar cadastro")</h2>
+        <p>@(_restoring ? "O mesmo cadastro será restaurado. Cartões continuam sujeitos à disponibilidade da conta vinculada." : "O cadastro será mantido, junto de saldos, histórico e pendências, e deixará de aparecer nas seleções de novos lançamentos.")</p>
+        <button class="button" @onclick="ConfirmArchiveAsync">@(_restoring ? "Desarquivar" : "Arquivar")</button>
         <button class="button" @onclick="() => _pendingId = null">Cancelar</button>
     </section>
 }
@@ -73,16 +74,16 @@
         <button class="button" type="button" @onclick="ResetAccount">Limpar</button>
     </form>
     <ul class="catalog-list">
-        @foreach (var account in _accounts)
+        @foreach (var account in _accounts.Where(x => _showArchived || x.IsActive))
         {
             <li>
                 <span class="catalog-color color-@account.Color">@account.Name</span>
-                <span>@(_banks.FirstOrDefault(x => x.ExternalId == account.BankExternalId)?.Name) · @KindLabel(account.Kind) · @(account.IsActive ? "Ativa" : "Desativada")</span>
+                <span>@(_banks.FirstOrDefault(x => x.ExternalId == account.BankExternalId)?.Name) · @KindLabel(account.Kind) · @(account.IsActive ? "Ativa" : "Arquivada")</span>
                 @if (account.OpeningDate is { } openingDate) { <span>Saldo inicial: @account.OpeningBalance em @openingDate.ToString("dd/MM/yyyy")</span> }
                 <div>
                     <button class="button" @onclick="() => EditAccount(account)">Editar</button>
                     @if (account.IsActive) { <a class="button" href="@($"/transferencias?account={account.ExternalId}")">Ajustar saldo</a> }
-                    @if (account.IsActive) { <button class="button" @onclick="() => AskDeactivation(account.ExternalId, false)">Excluir / desativar</button> }
+                    <button class="button" @onclick="() => AskArchive(account.ExternalId, false, !account.IsActive)">@(account.IsActive ? "Arquivar" : "Desarquivar")</button>
                 </div>
             </li>
         }
@@ -132,16 +133,16 @@
         <button class="button" type="button" @onclick="ResetCard">Limpar</button>
     </form>
     <ul class="catalog-list">
-        @foreach (var card in _cards)
+        @foreach (var card in _cards.Where(x => _showArchived || x.IsAvailable))
         {
             <li>
                 <span class="catalog-color color-@card.Color">@card.Name</span>
-                <span>@card.Brand · <span class="numeric">@card.CreditLimit</span> · @(card.IsActive ? "Ativo" : "Desativado")</span>
+                <span>@card.Brand · <span class="numeric">@card.CreditLimit</span> · @AvailabilityLabel(card)</span>
                 <span>Fecha dia @card.ClosingDay · vence dia @card.DueDay · @(card.IncludesClosingDay ? "Inclui" : "Não inclui") o dia do fechamento</span>
                 <div>
                     <button class="button" @onclick="() => EditCard(card)">Editar</button>
                     <button class="button" @onclick="() => _digitsCard = card">Finais do cartão</button>
-                    @if (card.IsActive) { <button class="button" @onclick="() => AskDeactivation(card.ExternalId, true)">Excluir / desativar</button> }
+                    <button class="button" @onclick="() => AskArchive(card.ExternalId, true, !card.IsActive)">@(card.IsActive ? "Arquivar" : "Desarquivar")</button>
                 </div>
             </li>
         }
@@ -181,6 +182,9 @@
     private bool _busy;
     private Guid? _pendingId;
     private bool _pendingCard;
+    private bool _restoring;
+    private bool _showArchived;
+    private static string AvailabilityLabel(CreditCardDetails card) => !card.IsActive ? "Arquivado individualmente" : !card.IsAccountActive ? "Indisponível: conta arquivada" : "Disponível";
 
     protected override async Task OnInitializedAsync()
     {
@@ -279,16 +283,20 @@
         _cardColor = string.Empty;
     }
 
-    private void AskDeactivation(Guid id, bool isCard)
+    private void AskArchive(Guid id, bool isCard, bool restoring)
     {
         _pendingId = id;
         _pendingCard = isCard;
+        _restoring = restoring;
     }
 
-    private async Task ConfirmDeactivationAsync()
+    private async Task ConfirmArchiveAsync()
     {
         if (_pendingId is not Guid id) { return; }
-        await ApplyAsync(() => _pendingCard ? Catalog.DeactivateCreditCardAsync(id) : Catalog.DeactivateAccountAsync(id));
+        await ApplyAsync(() => _pendingCard
+            ? _restoring ? Catalog.ReactivateCreditCardAsync(id) : Catalog.DeactivateCreditCardAsync(id)
+            : _restoring ? Catalog.ReactivateAccountAsync(id) : Catalog.DeactivateAccountAsync(id));
+        if (!_failed) { _message = _restoring ? "Cadastro desarquivado." : "Cadastro arquivado."; }
         _pendingId = null;
     }
 
