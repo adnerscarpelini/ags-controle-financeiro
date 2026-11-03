@@ -95,7 +95,7 @@ Cobertura: `MigrationTests` (cada módulo) provam o schema, o histórico própri
 que todas as tabelas ficam no schema e que snapshot e modelo coincidem; `PersistenceConventionsTests`
 (Transactions) prova centavos em `bigint`, `yyyyMM`, `ExternalId` v7 com índice único, `Id` identity e
 carimbos UTC de um relógio falso; `DatabaseStartupTests` (Web) sobe a aplicação, confere os cinco schemas, a
-ausência de FK entre tabelas e o tratamento de configuração ausente, credenciais erradas e banco
+ausência de FK entre módulos e o tratamento de configuração ausente, credenciais erradas e banco
 indisponível.
 
 ### Limpeza do desenvolvimento anterior

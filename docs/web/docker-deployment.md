@@ -178,6 +178,8 @@ aplica migrations que faltarem. O backup e o servidor precisam ter a mesma vers�
 `scripts/rehearse-recovery.sh` automatiza o ensaio completo, com dados fictícios e projetos Compose descartáveis
 (`ags-rehearsal-a/b`): usuário e registros com vínculos → backup → instalação nova **vazia e sem o volume original** →
 restauração → login, registros, vínculos, totais e sequências conferidos, sessão antiga ainda válida, certificado idêntico.
+As definições das chaves estrangeiras são comparadas antes e depois da restauração.
+Vínculos dentro do schema de um módulo são permitidos; FKs entre schemas são rejeitadas.
 Rode-o a partir da raiz, em Linux ou no WSL: `scripts/rehearse-recovery.sh`.
 
 ## Atualização

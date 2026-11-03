@@ -96,6 +96,8 @@ INSERT INTO accounts.card_last_digits (\"CardExternalId\", \"Digits\", \"Usage\"
 
 SUMMARY_SQL="SELECT (SELECT count(*) FROM identity.users) || '|' || (SELECT count(*) FROM accounts.banks) || '|' || (SELECT count(*) FROM accounts.accounts) || '|' || (SELECT count(*) FROM accounts.credit_cards) || '|' || (SELECT sum(\"CreditLimit\") FROM accounts.credit_cards) || '|' || (SELECT count(*) FROM accounts.card_last_digits) || '|' || (SELECT string_agg(c.\"Name\", ',' ORDER BY c.\"Name\") FROM accounts.credit_cards c JOIN accounts.accounts a ON a.\"ExternalId\" = c.\"AccountExternalId\")"
 BEFORE=$(psql_app a "$SUMMARY_SQL")
+FOREIGN_KEYS_SQL="SELECT coalesce(string_agg(format('%I.%I:%I:%s', n.nspname, t.relname, c.conname, pg_get_constraintdef(c.oid)), ';' ORDER BY n.nspname, t.relname, c.conname), '') FROM pg_constraint c JOIN pg_class t ON t.oid = c.conrelid JOIN pg_namespace n ON n.oid = t.relnamespace WHERE c.contype = 'f' AND n.nspname <> 'pg_catalog'"
+FOREIGN_KEYS_BEFORE=$(psql_app a "$FOREIGN_KEYS_SQL")
 echo "Resumo antes: $BEFORE"
 [ "$BEFORE" = "1|1|1|2|2000000|1|Cartão Dois,Cartão Ensaio" ] || fail "dados fictícios inesperados: $BEFORE"
 
@@ -142,7 +144,9 @@ log "Instalação B: confere registros, vínculos e totais"
 AFTER=$(psql_app b "$SUMMARY_SQL")
 echo "Resumo depois: $AFTER"
 [ "$AFTER" = "$BEFORE" ] || fail "dados divergentes: antes=$BEFORE depois=$AFTER"
-[ "$(psql_app b "SELECT count(*) FROM information_schema.table_constraints WHERE constraint_type = 'FOREIGN KEY' AND table_schema <> 'pg_catalog'")" = "0" ] || fail "FK inesperada"
+[ "$(psql_app b "$FOREIGN_KEYS_SQL")" = "$FOREIGN_KEYS_BEFORE" ] || fail "chaves estrangeiras divergentes após a restauração"
+# FKs dentro do próprio módulo são permitidas; apenas vínculos entre schemas violam a fronteira.
+[ "$(psql_app b "SELECT count(*) FROM pg_constraint c JOIN pg_class source ON source.oid = c.conrelid JOIN pg_class target ON target.oid = c.confrelid WHERE c.contype = 'f' AND source.relnamespace <> target.relnamespace")" = "0" ] || fail "FK entre módulos inesperada"
 [ "$(psql_app b "SELECT last_value > 0 FROM pg_sequences WHERE schemaname = 'accounts' AND sequencename = 'credit_cards_Id_seq'")" = "t" ] || fail "sequência do banco não restaurada"
 
 log "Instalação B: login com a mesma senha e continuidade da sessão (chaves de Data Protection restauradas)"
