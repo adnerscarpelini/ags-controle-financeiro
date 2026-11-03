@@ -1,8 +1,14 @@
+using Ags.Finance.Modules.Reimbursements.Application;
+using Ags.Finance.Modules.Reimbursements.Application.ManagePeople;
+using Ags.Finance.Modules.Reimbursements.Application.ManageSharingRules;
+using Ags.Finance.Modules.Reimbursements.Contracts;
 using Ags.Finance.Modules.Reimbursements.Infrastructure;
+using Ags.Finance.Modules.Transactions.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Npgsql;
 
 namespace Ags.Finance.Modules.Reimbursements;
 
@@ -14,18 +20,26 @@ public static class DependencyInjection
 
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<AuditTimestampsInterceptor>();
-        services.AddDbContext<ReimbursementsDbContext>((provider, options) => options
-            .UseNpgsql(connectionString, npgsql => npgsql.MigrationsHistoryTable(ReimbursementsDbContext.MigrationsHistoryTable, ReimbursementsDbContext.Schema))
+        services.TryAddSingleton(_ => NpgsqlDataSource.Create(connectionString));
+        services.AddDbContextFactory<ReimbursementsDbContext>((provider, options) => options
+            .UseNpgsql(provider.GetRequiredService<NpgsqlDataSource>(), npgsql => npgsql.MigrationsHistoryTable(ReimbursementsDbContext.MigrationsHistoryTable, ReimbursementsDbContext.Schema))
             .ConfigureWarnings(warnings => warnings.Ignore(CoreEventId.NoEntityTypeConfigurationsWarning))
             .AddInterceptors(provider.GetRequiredService<AuditTimestampsInterceptor>()));
 
+        services.AddScoped<IReimbursementStore, ReimbursementStore>();
+        services.AddScoped<IPersonCatalog, PersonCatalog>();
+        services.AddScoped<ISharingRuleCatalog, SharingRuleCatalog>();
+        services.AddScoped<ISavedFilterUsageGuard, SharingRuleFilterUsageGuard>();
         return services;
     }
 
     public static async Task MigrateReimbursementsModuleAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
     {
         await using var scope = services.CreateAsyncScope();
-        var context = scope.ServiceProvider.GetRequiredService<ReimbursementsDbContext>();
-        await context.Database.MigrateAsync(cancellationToken);
+        var context = await scope.ServiceProvider.GetRequiredService<IDbContextFactory<ReimbursementsDbContext>>().CreateDbContextAsync(cancellationToken);
+        await using (context)
+        {
+            await context.Database.MigrateAsync(cancellationToken);
+        }
     }
 }
