@@ -1,0 +1,97 @@
+@using System.Globalization
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+@inject IMonthlyPlanCatalog Plans
+@inject IClassificationCatalog Classifications
+
+<section class="panel" role="dialog" aria-label="Definir planejamento mensal">
+    <h2>@(Plan is null ? "Definir novo planejamento" : "Editar planejamento") · @Month</h2>
+    <p>Etapa @_step de 3</p>
+    @if (_error is not null) { <p role="alert">@_error</p> }
+    @if (_step == 1)
+    {
+        <h3>Renda mensal</h3>
+        <div class="field"><label for="plan-income">Quanto ganha por mês (R$)</label><input id="plan-income" type="number" step="0.01" min="0" @bind="_income" @bind:after="PreviewAsync" /></div>
+        <div class="field"><label for="plan-saving">Percentual a economizar</label><input id="plan-saving" type="number" step="0.01" min="0" max="100" @bind="_saving" @bind:after="PreviewAsync" /></div>
+    }
+    @if (_step == 2)
+    {
+        <h3>Categorização de gastos</h3>
+        <details open><summary>Gerenciar categorias</summary>
+            @foreach (var category in _categories)
+            {
+                <div class="catalog-fields" @key="category.Id">
+                    <label class="checkbox"><input type="checkbox" @bind="category.Selected" @bind:after="PreviewAsync" />@category.Name</label>
+                    @if (category.Selected) { <div class="field"><label for="@($"plan-target-{category.Id}")">Meta (R$)</label><input id="@($"plan-target-{category.Id}")" type="number" step="0.01" min="0" @bind="category.Target" @bind:after="PreviewAsync" /></div> }
+                </div>
+            }
+        </details>
+    }
+    @if (_step == 3)
+    {
+        <h3>Visualização do cartão</h3>
+        <div class="field"><label for="plan-card-view">Contar compras</label><select id="plan-card-view" @bind="_cardView"><option value="@MonthlyPlanCardView.InvoiceDate">Pela data da fatura</option><option value="@MonthlyPlanCardView.PurchaseDate">Pela data da compra</option></select></div>
+    }
+    @if (_preview is { } preview)
+    {
+        <dl class="monthly-plan-preview">
+            <dt>Orçamento de gastos</dt><dd>@preview.SpendingBudget</dd><dt>Valor economizado</dt><dd>@preview.SavingsAmount</dd>
+            @if (_step > 1) { <dt>Total categorizado</dt><dd>@preview.CategorizedTotal</dd><dt>Falta categorizar</dt><dd class="@(preview.UnclassifiedBudget.IsNegative ? "entry-expense" : string.Empty)">@preview.UnclassifiedBudget</dd> }
+        </dl>
+    }
+    @if (_step > 1) { <button class="button" @onclick="() => _step--" disabled="@_busy">Voltar</button> }
+    @if (_step < 3) { <button class="button" id="plan-next" @onclick="NextAsync" disabled="@_busy">Avançar</button> }
+    else { <button class="button" id="plan-save" @onclick="SaveAsync" disabled="@_busy">Salvar planejamento</button> }
+    <button class="button" @onclick="() => Cancelled.InvokeAsync()" disabled="@_busy">Cancelar</button>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public ReferenceMonth Month { get; set; }
+    [Parameter] public MonthlyPlanDetails? Plan { get; set; }
+    [Parameter] public EventCallback Saved { get; set; }
+    [Parameter] public EventCallback Cancelled { get; set; }
+    private int _step = 1;
+    private decimal _income;
+    private decimal _saving = 20m;
+    private MonthlyPlanCardView _cardView = MonthlyPlanCardView.InvoiceDate;
+    private List<CategoryTarget> _categories = [];
+    private MonthlyPlanDetails? _preview;
+    private string? _error;
+    private bool _busy;
+    protected override async Task OnInitializedAsync()
+    {
+        _income = Plan?.Income.Amount ?? 0m;
+        _saving = Plan?.SavingsPercent ?? 20m;
+        _cardView = Plan?.CardView ?? MonthlyPlanCardView.InvoiceDate;
+        _categories = (await Classifications.GetCategoriesAsync(false)).Where(x => x.Kind == CategoryKind.Expense)
+            .Select(x => new CategoryTarget(x.ExternalId, x.Name, Plan?.Categories.Any(c => c.CategoryExternalId == x.ExternalId) == true, Plan?.Categories.FirstOrDefault(c => c.CategoryExternalId == x.ExternalId)?.Target.Amount ?? 0m)).ToList();
+        await PreviewAsync();
+    }
+    private MonthlyPlanRequest Request() => new(Month, new Money(_income), _saving, _cardView, _categories.Where(x => x.Selected).Select(x => new MonthlyPlanTarget(x.Id, new Money(x.Target))).ToList());
+    private async Task PreviewAsync()
+    {
+        var preview = await Plans.PreviewAsync(Request());
+        _error = preview.Error;
+        _preview = preview.Plan;
+    }
+    private async Task NextAsync() { await PreviewAsync(); if (_error is null) { _step++; } }
+    private async Task SaveAsync()
+    {
+        if (_busy) { return; }
+        _busy = true;
+        try
+        {
+            var result = Plan is null ? await Plans.CreateAsync(Request()) : await Plans.EditAsync(Request());
+            _error = result.Error;
+            if (result.Succeeded) { await Saved.InvokeAsync(); }
+        }
+        finally { _busy = false; }
+    }
+    private sealed class CategoryTarget(Guid id, string name, bool selected, decimal target)
+    {
+        public Guid Id { get; } = id;
+        public string Name { get; } = name;
+        public bool Selected { get; set; } = selected;
+        public decimal Target { get; set; } = target;
+    }
+}

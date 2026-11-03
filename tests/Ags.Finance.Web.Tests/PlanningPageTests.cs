@@ -15,8 +15,8 @@ namespace Ags.Finance.Web.Tests;
 
 public sealed class PlanningPageTests
 {
-    /// <summary>Hoje é 03/11/2026. Com dados, há um lançamento de R$ 100,00 e uma recorrente de R$ 50,00 em "Casa", além de uma receita em "Trabalho".</summary>
-    private static async Task SetUpAsync(BunitContext context, PostgresTestDatabase database, bool withData = true)
+    private static readonly ReferenceMonth s_month = new(2026, 11);
+    private static async Task<Guid> SetUpAsync(BunitContext context, PostgresTestDatabase database)
     {
         context.Services.AddSingleton<TimeProvider>(new FixedClock(new DateTimeOffset(2026, 11, 3, 12, 0, 0, TimeSpan.Zero)))
             .AddAccountsModule(database.ConnectionString).AddTransactionsModule(database.ConnectionString)
@@ -25,159 +25,142 @@ public sealed class PlanningPageTests
         await context.Services.MigrateTransactionsModuleAsync();
         await context.Services.MigrateInvoicesModuleAsync();
         await context.Services.MigratePreferencesModuleAsync();
-        if (!withData) { return; }
-
-        var accounts = context.Services.GetRequiredService<IAccountCatalog>();
-        var bank = await accounts.CreateBankAsync("Banco Exemplo");
-        var account = await accounts.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta Exemplo", AccountKind.Checking, "green"));
-        var classifications = context.Services.GetRequiredService<IClassificationCatalog>();
-        var home = await classifications.SaveCategoryAsync(null, "Casa", CategoryKind.Expense);
-        var services = await classifications.SaveSubcategoryAsync(null, home.ExternalId!.Value, "Assinaturas");
-        var work = await classifications.SaveCategoryAsync(null, "Trabalho", CategoryKind.Income);
-        var salary = await classifications.SaveSubcategoryAsync(null, work.ExternalId!.Value, "Salário");
-        var merchant = await context.Services.GetRequiredService<IMerchantCatalog>().SaveAsync(null, "Serviço Exemplo", services.ExternalId!.Value);
-        var entries = context.Services.GetRequiredService<IEntryCatalog>();
-        CreateEntryRequest Request(decimal amount, Guid subcategory, DateOnly date) => new(date, merchant.ExternalId!.Value, subcategory, account.ExternalId!.Value, new Money(amount));
-        Assert.True((await entries.CreateAsync(Request(100, services.ExternalId!.Value, new DateOnly(2026, 11, 1)))).Succeeded);
-        Assert.True((await entries.CreateAsync(Request(900, salary.ExternalId!.Value, new DateOnly(2026, 11, 1)))).Succeeded);
-        Assert.True((await entries.CreateRecurringAsync(new(Request(50, services.ExternalId!.Value, new DateOnly(2026, 12, 20)) with { IsPaid = false }))).Succeeded);
+        var category = await context.Services.GetRequiredService<IClassificationCatalog>().SaveCategoryAsync(null, "Alimentação", CategoryKind.Expense);
+        return category.ExternalId!.Value;
     }
-
-    private static IRenderedComponent<Planning> Render(BunitContext context)
+    private static async Task ClickAsync(IRenderedComponent<MonthlyPlanning> page, string text)
+        => await page.FindAll("button").Single(x => x.TextContent.Trim() == text).ClickAsync(new());
+    private static IRenderedComponent<MonthlyPlanning> Render(BunitContext context)
     {
-        var page = context.Render<Planning>();
-        page.WaitForAssertion(() => Assert.DoesNotContain("Consultando", page.Markup, StringComparison.Ordinal));
+        var page = context.Render<MonthlyPlanning>();
+        page.WaitForAssertion(() => Assert.NotEmpty(page.FindAll("#define-monthly-plan, .monthly-plan-actions")));
         return page;
     }
 
     [Fact]
-    public async Task ShowsTheNineteenMonthsWithTheCurrentOneHighlighted()
+    public async Task EmptyMonthOffersCreationAndCopyAndMissingPreviousMonthDoesNotCreateAnything()
     {
         await using var database = await PostgresTestDatabase.CreateAsync();
         await using var context = new BunitContext();
         await SetUpAsync(context, database);
         var page = Render(context);
-
-        var headers = page.FindAll("thead th.numeric");
-        Assert.Equal(20, headers.Count);
-        Assert.Equal("mai/26", headers[0].TextContent);
-        Assert.Equal("nov/27", headers[18].TextContent);
-        var current = page.Find("thead th[aria-current='date']");
-        Assert.Equal("nov/26", current.TextContent);
-        Assert.Contains("planning-current", current.ClassList);
+        Assert.Contains("novembro de 2026", page.Markup, StringComparison.Ordinal);
+        await page.Find("#copy-monthly-plan").ClickAsync(new());
+        Assert.Contains("O mês anterior não tem planejamento.", page.Find("[role=status]").TextContent);
+        Assert.Null(await context.Services.GetRequiredService<IMonthlyPlanCatalog>().GetAsync(s_month));
+        await ClickAsync(page, "Próximo mês");
+        Assert.Contains("dezembro de 2026", page.Markup, StringComparison.Ordinal);
+        await ClickAsync(page, "Mês anterior");
+        Assert.Contains("novembro de 2026", page.Markup, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task ArrowsMoveThePeriodOneMonth()
+    public async Task WizardCalculatesPreviewValidatesAndSavesTheThreeSteps()
     {
         await using var database = await PostgresTestDatabase.CreateAsync();
         await using var context = new BunitContext();
-        await SetUpAsync(context, database);
+        var category = await SetUpAsync(context, database);
         var page = Render(context);
-
-        await page.FindAll("button").First(x => x.TextContent == "Próximo mês").ClickAsync(new());
-        page.WaitForAssertion(() => Assert.Equal("jun/26", page.FindAll("thead th.numeric")[0].TextContent));
-        Assert.Equal(20, page.FindAll("thead th.numeric").Count);
-
-        await page.FindAll("button").First(x => x.TextContent == "Mês anterior").ClickAsync(new());
-        page.WaitForAssertion(() => Assert.Equal("mai/26", page.FindAll("thead th.numeric")[0].TextContent));
+        await page.Find("#define-monthly-plan").ClickAsync(new());
+        Assert.Equal("20", page.Find("#plan-saving").GetAttribute("value"));
+        await page.Find("#plan-income").ChangeAsync(new() { Value = "1000" });
+        Assert.Contains("R$ 800,00", page.Find(".monthly-plan-preview").TextContent);
+        Assert.Contains("R$ 200,00", page.Find(".monthly-plan-preview").TextContent);
+        await page.Find("#plan-saving").ChangeAsync(new() { Value = "101" });
+        await page.Find("#plan-next").ClickAsync(new());
+        Assert.NotEmpty(page.FindAll("[role=alert]"));
+        Assert.NotEmpty(page.FindAll("#plan-income"));
+        await page.Find("#plan-saving").ChangeAsync(new() { Value = "20" });
+        await page.Find("#plan-next").ClickAsync(new());
+        await page.Find("input[type=checkbox]").ChangeAsync(new() { Value = true });
+        await page.Find($"#plan-target-{category}").ChangeAsync(new() { Value = "-1" });
+        await page.Find("#plan-next").ClickAsync(new());
+        Assert.NotEmpty(page.FindAll("[role=alert]"));
+        await page.Find($"#plan-target-{category}").ChangeAsync(new() { Value = "200" });
+        Assert.Contains("R$ 600,00", page.Find(".monthly-plan-preview").TextContent);
+        await page.Find("#plan-next").ClickAsync(new());
+        Assert.Equal("InvoiceDate", page.Find("#plan-card-view").GetAttribute("value"));
+        await page.Find("#plan-save").ClickAsync(new());
+        page.WaitForAssertion(() => Assert.NotEmpty(page.FindAll(".monthly-plan-actions")));
+        var saved = (await context.Services.GetRequiredService<IMonthlyPlanCatalog>().GetAsync(s_month))!;
+        Assert.Equal((new Money(800), new Money(600)), (saved.SpendingBudget, saved.UnclassifiedBudget));
+        Assert.Equal(new Money(200), Assert.Single(saved.Categories).Target);
     }
 
     [Fact]
-    public async Task CategoriesStartClosedAndOpenIntoSubcategoriesWithoutChangingTheTotals()
+    public async Task CopyKeepsSettingsAndCategoryActionsAndPlanDeletionRequireTheExplicitActions()
     {
         await using var database = await PostgresTestDatabase.CreateAsync();
         await using var context = new BunitContext();
-        await SetUpAsync(context, database);
+        var category = await SetUpAsync(context, database);
+        var plans = context.Services.GetRequiredService<IMonthlyPlanCatalog>();
+        Assert.True((await plans.CreateAsync(new(s_month.AddMonths(-1), new Money(1000), 30m, MonthlyPlanCardView.PurchaseDate, [new(category, new Money(200))]))).Succeeded);
         var page = Render(context);
-        var totals = page.Find("tbody tr").TextContent;
-
-        Assert.Empty(page.FindAll(".planning-subcategory"));
-        var toggle = page.FindAll(".planning-toggle").First(x => x.TextContent.Contains("Casa", StringComparison.Ordinal));
-        Assert.Equal("false", toggle.GetAttribute("aria-expanded"));
-
-        await toggle.ClickAsync(new());
-        var row = Assert.Single(page.FindAll(".planning-subcategory"));
-        Assert.Contains("Assinaturas", row.TextContent, StringComparison.Ordinal);
-        Assert.Equal(totals, page.Find("tbody tr").TextContent);
-
-        await page.FindAll(".planning-toggle").First(x => x.TextContent.Contains("Casa", StringComparison.Ordinal)).ClickAsync(new());
-        Assert.Empty(page.FindAll(".planning-subcategory"));
-        Assert.Equal(totals, page.Find("tbody tr").TextContent);
+        await page.Find("#copy-monthly-plan").ClickAsync(new());
+        page.WaitForAssertion(() => Assert.NotEmpty(page.FindAll(".monthly-plan-actions")));
+        Assert.Equal(MonthlyPlanCardView.PurchaseDate, (await plans.GetAsync(s_month))!.CardView);
+        await page.Find("#monthly-plan-card-view").ChangeAsync(new() { Value = "InvoiceDate" });
+        Assert.Equal(MonthlyPlanCardView.InvoiceDate, (await plans.GetAsync(s_month))!.CardView);
+        await ClickAsync(page, "Editar");
+        await page.Find("#monthly-plan-target").ChangeAsync(new() { Value = "900" });
+        await ClickAsync(page, "Salvar meta");
+        Assert.Equal(new Money(-200), (await plans.GetAsync(s_month))!.UnclassifiedBudget);
+        Assert.Equal(new Money(200), Assert.Single((await plans.GetAsync(s_month.AddMonths(-1)))!.Categories).Target);
+        await page.Find("#monthly-plan-search").InputAsync(new() { Value = "inexistente" });
+        Assert.Empty(page.FindAll("tbody tr"));
+        await page.Find("#monthly-plan-search").InputAsync(new() { Value = "Alimentação" });
+        Assert.Single(page.FindAll("tbody tr"));
+        await ClickAsync(page, "Remover");
+        await ClickAsync(page, "Cancelar");
+        Assert.Single((await plans.GetAsync(s_month))!.Categories);
+        await ClickAsync(page, "Remover");
+        await ClickAsync(page, "Confirmar exclusão");
+        Assert.Empty((await plans.GetAsync(s_month))!.Categories);
+        await ClickAsync(page, "Novo orçamento de categoria");
+        await page.Find("#monthly-plan-category").ChangeAsync(new() { Value = category.ToString() });
+        await page.Find("#monthly-plan-target").ChangeAsync(new() { Value = "200" });
+        await ClickAsync(page, "Salvar meta");
+        Assert.Single((await plans.GetAsync(s_month))!.Categories);
+        await ClickAsync(page, "Excluir planejamento");
+        await ClickAsync(page, "Cancelar");
+        Assert.NotNull(await plans.GetAsync(s_month));
+        await ClickAsync(page, "Excluir planejamento");
+        await ClickAsync(page, "Confirmar exclusão");
+        Assert.Null(await plans.GetAsync(s_month));
+        Assert.NotNull(await plans.GetAsync(s_month.AddMonths(-1)));
     }
 
     [Fact]
-    public async Task ExpandAllAndCollapseAllAffectEveryCategory()
+    public async Task ExceededCategoryAndRealIncomeCardsShowTheAcceptanceValues()
     {
         await using var database = await PostgresTestDatabase.CreateAsync();
         await using var context = new BunitContext();
-        await SetUpAsync(context, database);
+        var category = await SetUpAsync(context, database);
+        var classifications = context.Services.GetRequiredService<IClassificationCatalog>();
+        var subcategory = (await classifications.SaveSubcategoryAsync(null, category, "Compras")).ExternalId!.Value;
+        var incomeCategory = (await classifications.SaveCategoryAsync(null, "Trabalho", CategoryKind.Income)).ExternalId!.Value;
+        var income = (await classifications.SaveSubcategoryAsync(null, incomeCategory, "Salário")).ExternalId!.Value;
+        var merchant = (await context.Services.GetRequiredService<IMerchantCatalog>().SaveAsync(null, "Loja Exemplo", subcategory)).ExternalId!.Value;
+        var accounts = context.Services.GetRequiredService<IAccountCatalog>();
+        var bank = (await accounts.CreateBankAsync("Banco Exemplo")).ExternalId!.Value;
+        var account = (await accounts.SaveAccountAsync(new(null, bank, "Conta Exemplo", AccountKind.Checking, "green"))).ExternalId!.Value;
+        var entries = context.Services.GetRequiredService<IEntryCatalog>();
+        foreach (var (amount, paid, classification) in new[] { (296.66m, true, subcategory), (50m, false, subcategory), (200m, true, income), (900m, false, income) })
+        {
+            Assert.True((await entries.CreateAsync(new(new DateOnly(2026, 11, 2), merchant, classification, account, new Money(amount), IsPaid: paid))).Succeeded);
+        }
+        Assert.True((await context.Services.GetRequiredService<IMonthlyPlanCatalog>().CreateAsync(new(s_month, new Money(1000), Categories: [new(category, new Money(200))]))).Succeeded);
         var page = Render(context);
-
-        await page.FindAll("button").First(x => x.TextContent == "Expandir tudo").ClickAsync(new());
-        Assert.Equal(2, page.FindAll(".planning-subcategory").Count);
-        await page.FindAll("button").First(x => x.TextContent == "Recolher tudo").ClickAsync(new());
-        Assert.Empty(page.FindAll(".planning-subcategory"));
+        var row = page.FindAll("tbody tr")[0];
+        Assert.Contains("R$ 296,66", row.TextContent);
+        Assert.Contains("R$ 50,00", row.TextContent);
+        Assert.Contains("R$ 346,66", row.TextContent);
+        Assert.Contains("Excederam R$ 146,66", row.TextContent);
+        Assert.Contains("monthly-plan-exceeded", row.ClassList);
+        Assert.Contains("R$ 200,00", page.Find("aside").TextContent);
+        Assert.Contains(new Money(-600).ToString(), page.Find("aside").TextContent);
+        Assert.Contains("-300,00%", page.Find("aside").TextContent);
     }
-
-    [Fact]
-    public async Task ForecastCellIsMarkedAndItsDetailUsesTheFormatTheValueMaskRecognizes()
-    {
-        await using var database = await PostgresTestDatabase.CreateAsync();
-        await using var context = new BunitContext();
-        await SetUpAsync(context, database);
-        var page = Render(context);
-
-        const string Detail = "Despesas em dez/26: lançado R$ 0,00 + previsto R$ 50,00 = R$ 50,00";
-        var marked = page.FindAll(".planning-forecast").First(x => x.GetAttribute("title") == Detail);
-        Assert.Equal(Detail, marked.GetAttribute("aria-label"));
-        Assert.Equal("button", marked.GetAttribute("type"));
-        Assert.Equal("-R$ 50,00", marked.TextContent);
-
-        await marked.ClickAsync(new());
-        Assert.Equal(Detail, page.Find("[data-testid='planning-detail']").TextContent);
-    }
-
-    [Fact]
-    public async Task ALaunchedValueIsNotMarked()
-    {
-        await using var database = await PostgresTestDatabase.CreateAsync();
-        await using var context = new BunitContext();
-        await SetUpAsync(context, database);
-        var page = Render(context);
-
-        Assert.DoesNotContain(page.FindAll(".planning-forecast"), x => x.GetAttribute("title")!.Contains("nov/26", StringComparison.Ordinal));
-        Assert.Contains("R$ 900,00", page.Find("tbody tr").TextContent, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task AccumulatedBalanceRowSaysItIsNotAnAccountBalance()
-    {
-        await using var database = await PostgresTestDatabase.CreateAsync();
-        await using var context = new BunitContext();
-        await SetUpAsync(context, database);
-        var page = Render(context);
-
-        var row = page.FindAll("tbody tr").First(x => x.TextContent.Contains("Saldo acumulado", StringComparison.Ordinal));
-        Assert.Contains("não é saldo de conta", row.TextContent, StringComparison.Ordinal);
-        Assert.Equal("-", row.QuerySelectorAll("td")[0].TextContent);
-        Assert.Equal("R$ 800,00", row.QuerySelectorAll("td")[6].TextContent);
-        Assert.Equal("R$ 750,00", row.QuerySelectorAll("td")[7].TextContent);
-    }
-
-    [Fact]
-    public async Task AnEmptyPeriodShowsAMessage()
-    {
-        await using var database = await PostgresTestDatabase.CreateAsync();
-        await using var context = new BunitContext();
-        await SetUpAsync(context, database, withData: false);
-        var page = Render(context);
-
-        Assert.Contains("Nenhuma receita ou despesa neste período.", page.Markup, StringComparison.Ordinal);
-        Assert.Empty(page.FindAll("table"));
-        Assert.Empty(page.FindAll("[role='alert']"));
-    }
-
     private sealed class FixedClock(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;

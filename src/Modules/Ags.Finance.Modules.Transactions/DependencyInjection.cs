@@ -3,6 +3,7 @@ using Ags.Finance.Modules.Transactions.Application.CreateEntry;
 using Ags.Finance.Modules.Transactions.Application.ManageAccountMovements;
 using Ags.Finance.Modules.Transactions.Application.ManageClassifications;
 using Ags.Finance.Modules.Transactions.Application.ManageMerchants;
+using Ags.Finance.Modules.Transactions.Application.ManageMonthlyPlans;
 using Ags.Finance.Modules.Transactions.Application.ManageSavedFilters;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.Modules.Transactions.Infrastructure;
@@ -34,6 +35,8 @@ public static class DependencyInjection
         services.AddScoped<IMerchantCatalog, MerchantCatalog>();
         services.AddScoped<IAccountMovementStore, AccountMovementStore>();
         services.AddScoped<IAccountMovementCatalog, AccountMovementCatalog>();
+        services.AddScoped<IMonthlyPlanStore, MonthlyPlanStore>();
+        services.AddScoped<IMonthlyPlanCatalog, MonthlyPlanCatalog>();
         services.AddScoped<IEntryStore, EntryStore>();
         services.AddScoped<IEntryCatalog, EntryCatalog>();
         services.AddScoped<IEntryAttachmentCatalog, EntryAttachmentCatalog>();

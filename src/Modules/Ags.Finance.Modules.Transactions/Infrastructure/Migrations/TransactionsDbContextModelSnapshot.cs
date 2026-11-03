@@ -248,5 +248,41 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.HasIndex("NormalizedName").IsUnique();
             b.ToTable("saved_filters", "transactions");
         });
+        modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.MonthlyPlan", b =>
+        {
+            b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint").HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+            b.Property<Guid>("ExternalId").HasColumnType("uuid");
+            b.Property<DateTimeOffset>("CreatedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("timestamp with time zone");
+            b.HasKey("Id");
+            b.HasIndex("ExternalId").IsUnique();
+            b.HasAlternateKey("ExternalId");
+            b.Property<int>("Month").HasColumnType("integer");
+            b.Property<long>("Income").HasColumnType("bigint");
+            b.Property<decimal>("SavingsPercent").HasColumnType("numeric");
+            b.Property<int>("CardView").HasColumnType("integer");
+            b.HasIndex("Month").IsUnique();
+            b.ToTable("monthly_plans", "transactions");
+        });
+        modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.MonthlyPlanCategory", b =>
+        {
+            b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint").HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+            b.Property<Guid>("ExternalId").HasColumnType("uuid");
+            b.Property<DateTimeOffset>("CreatedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("timestamp with time zone");
+            b.HasKey("Id");
+            b.HasIndex("ExternalId").IsUnique();
+            b.Property<Guid>("MonthlyPlanExternalId").HasColumnType("uuid");
+            b.Property<Guid>("CategoryExternalId").HasColumnType("uuid");
+            b.Property<long>("Target").HasColumnType("bigint");
+            b.HasIndex("MonthlyPlanExternalId", "CategoryExternalId").IsUnique().HasDatabaseName("IX_monthly_plan_categories_Plan_Category");
+            b.HasIndex("CategoryExternalId");
+            b.ToTable("monthly_plan_categories", "transactions");
+        });
+        modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.MonthlyPlanCategory", b =>
+        {
+            b.HasOne("Ags.Finance.Modules.Transactions.Domain.MonthlyPlan", null).WithMany().HasForeignKey("MonthlyPlanExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+            b.HasOne("Ags.Finance.Modules.Transactions.Domain.Category", null).WithMany().HasForeignKey("CategoryExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+        });
     }
 }

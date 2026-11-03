@@ -13,7 +13,7 @@ A aplicação é um **monólito modular**. Um único host web (`Ags.Finance.Web`
 | Attachments | `Ags.Finance.Modules.Attachments` | Arquivos originais, metadados, lixeira e integridade (#73) | — |
 | Identity | `Ags.Finance.Modules.Identity` | Usuário único, hash de senha, comandos `user create` e `user reset-password` | — |
 | Accounts | `Ags.Finance.Modules.Accounts` | Bancos/logos, contas, cartões/finais, calendário e arquivamento cadastral | — |
-| Transactions | `Ags.Finance.Modules.Transactions` | Categorias, descrições, lançamentos, parcelas, recorrência, efetivação e filtros salvos | Accounts, Attachments |
+| Transactions | `Ags.Finance.Modules.Transactions` | Categorias, descrições, lançamentos, parcelas, recorrência, efetivação, filtros salvos e planejamento mensal | Accounts, Attachments |
 | Invoices | `Ags.Finance.Modules.Invoices` | Faturas e suas situações, pagamentos, cashback, descontos, ajustes e antecipação de parcelas | Accounts, Transactions, Preferences, Attachments |
 | Preferences | `Ags.Finance.Modules.Preferences` | Parametrizações do aplicativo: tema, tela inicial, recorrentes na fatura, dashboard, paginação e duração da sessão (#69) | — |
 | Reimbursements | `Ags.Finance.Modules.Reimbursements` | Pessoas e percentual padrão, reembolsos a receber e recebidos ([modelo](reimbursements.md)) | Accounts, Transactions |
@@ -48,3 +48,18 @@ Somente `Contracts` e `DependencyInjection` são públicos. Os testes de arquite
 Attachments não depende de outros módulos. Transactions e Invoices validam o dono antes de chamar seus Contracts. Não há FK ou JOIN entre módulos. A data do upload define o caminho imutável, conforme [armazenamento](attachments-storage.md).
 
 Na composição de documentos (#74–#76), os Contracts de Transactions e Invoices reutilizam os DTOs pequenos de Attachments. Isso segue as dependências permitidas, como a composição de lançamentos nos Contracts de Invoices, sem expor entidades ou Infrastructure. As referências para o ZIP são consultas dos dados já persistidos: não geram recorrências nem fecham faturas.
+
+## Planejamento mensal (#94)
+
+`Transactions` guarda `MonthlyPlan` e `MonthlyPlanCategory`, pois já é dono das categorias.
+As tabelas `transactions.monthly_plans` e `transactions.monthly_plan_categories` usam o DbContext
+existente, sua migration `MonthlyPlans` e o histórico próprio de Transactions. Há um planejamento
+por mês (índice único), metas monetárias em centavos e FKs somente dentro do schema.
+`IMonthlyPlanCatalog` valida e grava o agregado numa operação financeira atômica, inclusive cópia,
+edição de metas e exclusão em cascata. `IMonthlyPlanStore` é a fronteira de persistência específica.
+
+`Reports` continua sem tabelas: `IMonthlyPlanReports` consulta os Contracts de Transactions e reutiliza
+`LedgerSource`/`Ledger`. Não há dependência nova nem ampliação do SharedKernel. Guardar tudo em Reports
+exigiria introduzir persistência num módulo de leitura; guardar em Preferences misturaria orçamento
+por categoria com configuração do aplicativo. A escolha mantém a composição existente, ao custo de
+Transactions também cuidar do orçamento. Consulte [o comportamento mensal](../reports/monthly-planning.md).

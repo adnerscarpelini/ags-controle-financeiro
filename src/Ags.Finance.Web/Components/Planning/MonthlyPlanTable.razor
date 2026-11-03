@@ -1,0 +1,25 @@
+@using System.Globalization
+@using Ags.Finance.Modules.Reports.Contracts
+
+<div class="table-scroll">
+    <table aria-label="Orçamento por categoria">
+        <thead><tr><th>Categoria</th><th>Meta planejada</th><th>Despesas pagas</th><th>Despesas previstas</th><th>Total gasto</th><th>Progresso</th><th>Ações</th></tr></thead>
+        <tbody>@foreach (var row in Rows)
+        {
+            <tr @key="row.CategoryExternalId" class="@(row.Exceeded ? "monthly-plan-exceeded" : string.Empty)">
+                <th>@row.Name</th><td class="numeric">@row.Target</td><td class="numeric">@row.Paid</td><td class="numeric">@row.Forecast</td><td class="numeric">@row.Total</td>
+                <td><span>@(row.Exceeded ? $"Excederam {-row.Remaining}" : $"Restam {row.Remaining}")</span>
+                    <div class="monthly-plan-bar" aria-label="@($"Pagas {row.Paid}; previstas {row.Forecast}")"><span class="monthly-plan-paid" style="@Width(row.PaidProgress)"></span><span class="monthly-plan-forecast" style="@Width(row.ForecastProgress)"></span></div>
+                </td>
+                <td>@if (row.CategoryExternalId is not null) { <button class="button" @onclick="() => Edit.InvokeAsync(row)">Editar</button><button class="button" @onclick="() => Remove.InvokeAsync(row)">Remover</button> }</td>
+            </tr>
+        }</tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<MonthlyPlanLine> Rows { get; set; } = [];
+    [Parameter] public EventCallback<MonthlyPlanLine> Edit { get; set; }
+    [Parameter] public EventCallback<MonthlyPlanLine> Remove { get; set; }
+    private static string Width(decimal ratio) => $"width: {(ratio * 100m).ToString("0.####", CultureInfo.InvariantCulture)}%";
+}
