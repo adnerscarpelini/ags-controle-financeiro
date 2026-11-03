@@ -38,6 +38,7 @@ public sealed class TransactionPageTests
         await context.Services.GetRequiredService<IMerchantCatalog>().SaveAsync(null, "Loja Exemplo", subcategory.ExternalId);
         var page = context.Render<Transactions>();
         page.WaitForAssertion(() => Assert.Contains("Feira", page.Find("#entry-subcategory").TextContent, StringComparison.Ordinal));
+        Assert.True(page.Find("#entry-paid").HasAttribute("checked"));
         await page.Find("#entry-date").ChangeAsync("2026-10-05");
         await page.Find("#entry-merchant").InputAsync("Loja Exemplo");
         Assert.Equal(subcategory.ExternalId!.Value.ToString(), page.Find("#entry-subcategory").GetAttribute("value"));
@@ -50,6 +51,7 @@ public sealed class TransactionPageTests
         Assert.Equal(new AccountingMonth(2026, 11), entry.Month);
         Assert.Equal("2026-10-05", page.Find("#entry-date").GetAttribute("value"));
         Assert.Equal(string.Empty, page.Find("#entry-merchant").GetAttribute("value"));
+        Assert.True(page.Find("#entry-paid").HasAttribute("checked"));
         await page.Find("#entry-card").ChangeAsync(card.ExternalId!.Value.ToString());
         Assert.Equal("2026-11", page.Find("#entry-month").GetAttribute("value"));
         await page.Find("#entry-date").ChangeAsync("2026-10-02");
@@ -124,6 +126,7 @@ public sealed class TransactionPageTests
         await page.Find("#entry-date").ChangeAsync("2026-09-10");
         await page.Find("#entry-merchant").InputAsync("Loja Exemplo");
         page.Find("#entry-amount").Change("50");
+        page.Find("#entry-paid").Change(false);
         page.Find("#entry-repeat").Change(true);
         page.Find("#entry-repeat-until").Change("2026-12");
         await page.Find("form").SubmitAsync(EventArgs.Empty);
@@ -152,10 +155,10 @@ public sealed class TransactionPageTests
         Assert.Empty(page.FindAll(".catalog-list li"));
         page.Find("#filter-month").Change("2026-11");
         await page.Find("#entry-filters").SubmitAsync(EventArgs.Empty);
-        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Registrar baixa manual").ClickAsync(new());
+        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Pagar").ClickAsync(new());
         await page.FindAll("[aria-label='Registrar baixa manual'] button")[1].ClickAsync(new());
         Assert.Single(page.FindAll(".catalog-list li"));
-        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Registrar baixa manual").ClickAsync(new());
+        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Pagar").ClickAsync(new());
         await page.WaitForElement("#effective-date").ChangeAsync("2026-11-12");
         await page.Find("[aria-label='Registrar baixa manual'] button").ClickAsync(new());
         Assert.Empty(page.FindAll(".catalog-list li"));

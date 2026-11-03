@@ -31,7 +31,12 @@ public sealed class PendingEntryPageTests
         var sub = await classes.SaveSubcategoryAsync(null, expense.ExternalId!.Value, "Serviços Exemplo");
         var merchant = await context.Services.GetRequiredService<IMerchantCatalog>().SaveAsync(null, "Descrição Exemplo", sub.ExternalId);
         var entries = context.Services.GetRequiredService<IEntryCatalog>();
-        for (var day = 1; day <= 3; day++) { await entries.CreateRecurringAsync(new(new(new DateOnly(2026, 11, day), merchant.ExternalId!.Value, sub.ExternalId!.Value, account.ExternalId!.Value, new Money(50)))); }
+        for (var day = 1; day <= 3; day++)
+        {
+            var request = new CreateEntryRequest(new DateOnly(2026, 11, day), merchant.ExternalId!.Value, sub.ExternalId!.Value, account.ExternalId!.Value, new Money(50), IsPaid: false);
+            if (day == 1) { Assert.True((await entries.CreateAsync(request)).Succeeded); }
+            else { Assert.True((await entries.CreateRecurringAsync(new(request))).Succeeded); }
+        }
         await accounts.DeactivateAccountAsync(account.ExternalId!.Value);
         var page = context.Render<PendingEntries>();
         page.WaitForAssertion(() => Assert.Equal(3, page.FindAll("[aria-label='Lançamentos pendentes'] li").Count));
@@ -82,7 +87,7 @@ public sealed class PendingEntryPageTests
         var entries = context.Services.GetRequiredService<IEntryCatalog>();
         for (var index = 0; index < 60; index++)
         {
-            Assert.True((await entries.CreateRecurringAsync(new(new(new DateOnly(2026, 11, 5), merchant.ExternalId!.Value, sub.ExternalId!.Value, account.ExternalId!.Value, new Money(1))))).Succeeded);
+            Assert.True((await entries.CreateRecurringAsync(new(new(new DateOnly(2026, 11, 5), merchant.ExternalId!.Value, sub.ExternalId!.Value, account.ExternalId!.Value, new Money(1), IsPaid: false)))).Succeeded);
         }
 
         var page = context.Render<PendingEntries>();

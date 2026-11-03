@@ -49,6 +49,7 @@ internal sealed partial class EntryCatalog
             error = await RequireReimbursementChangeAsync(entry, ChangesProtectedData(entry, updated, keepAmount), cancellationToken);
             if (error is not null) { return new(null, error); }
             entry.ApplyChange(updated, keepAmount);
+            ApplyPaidState(entry, request.IsPaid);
         }
         return await store.SaveEntriesAsync(affected, cancellationToken) ? new(externalId, null) : new(null, "Não foi possível salvar todos os lançamentos.");
     }

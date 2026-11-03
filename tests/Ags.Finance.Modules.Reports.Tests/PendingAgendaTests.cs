@@ -14,7 +14,7 @@ public sealed class PendingAgendaTests : ReportFixture
     private async Task<Guid> PendingAsync(DateOnly date, decimal amount, bool income = false, AccountingMonth? month = null)
     {
         var request = new Ags.Finance.Modules.Transactions.Contracts.CreateEntryRequest(date, MerchantId, income ? IncomeSubcategoryId : ExpenseSubcategoryId, AccountId, new Money(amount), Month: month);
-        var result = await Entries.CreateRecurringAsync(new(request));
+        var result = await Entries.CreateRecurringAsync(new(request with { IsPaid = false }));
         Assert.True(result.Succeeded, result.Error);
         return (await Entries.QueryPendingAsync(new(FromDate: date, ToDate: date, PageSize: 200))).Entries.Single(x => x.RecurringEntryExternalId == result.ExternalId).ExternalId;
     }

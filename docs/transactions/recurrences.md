@@ -18,8 +18,9 @@ ocorrência fica nessa ocorrência; as seguintes seguem o calendário. A consult
 de fatura por mês inclui suas ocorrências e compõe também as faturas futuras já
 registradas, como as que contêm parcelas.
 
-Ocorrências de caixa, de receita ou despesa, nascem Pendentes mesmo quando a data
-já passou. Futuras aparecem como previstas. Passar o tempo não registra baixa,
+A primeira ocorrência fora do cartão segue a chave Pago/Recebido, ligada por padrão
+([#88](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/88)). As seguintes
+nascem Pendentes, mesmo quando a data já passou. Futuras aparecem como previstas. Passar o tempo não registra baixa,
 não cria outro lançamento e não movimenta saldo efetivo. O orçamento inclui os
 valores previstos; efetivar uma ocorrência usa a operação específica da #56.
 Compras recorrentes no cartão seguem a composição da fatura e não debitam caixa.
@@ -71,15 +72,10 @@ de cada ocorrência; nunca registra uma baixa.
 
 ## Baixa manual por ocorrência
 
-A [#56](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/56)
-permite confirmar a baixa com a data efetiva, sugerindo hoje no fuso do negócio.
-Valor, conta e mês contábil vêm da ocorrência. Uma conta arquivada permanece como
-origem, identificada na confirmação; não é trocada silenciosamente.
-A confirmação atualiza a ocorrência existente e grava data e instante de auditoria.
-Repetir a confirmação retorna sucesso sem alterar a baixa original ou movimentar
-novamente o saldo. Cartões são rejeitados por essa operação.
-
-O saldo usa a data efetiva e o estado da própria ocorrência, na mesma transação:
-não há lançamento de caixa duplicado nem acumulador que possa ficar divergente.
-Ocorrências efetivadas ainda podem ser editadas/excluídas pelo alcance autorizado,
-recalculando o saldo derivado. Todas preserva o passado já confirmado.
+A #88 amplia a baixa manual da #56 a qualquer lançamento fora do cartão. A confirmação
+permite editar valor, data e conta somente da ocorrência selecionada, sem alterar a série.
+A conta arquivada original continua selecionada; outra conta ativa pode ser escolhida.
+Alterar valor respeita a proteção dos reembolsos já recebidos. Repetir a confirmação
+retorna sucesso sem alterar a baixa original ou movimentar novamente o saldo.
+Desligar a chave na edição desfaz a baixa da ocorrência e restaura o saldo derivado.
+Cartões são rejeitados pelas operações de baixa e desfazimento.

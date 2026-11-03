@@ -84,7 +84,7 @@ public sealed class TransactionExportTests : ImportsFixture
     public async Task PendingAndEffectiveStatesAreKeptAndExportingNeverEffectivatesAnything()
     {
         var seed = await SeedAsync();
-        Assert.True((await Entries.CreateRecurringAsync(new(new(new DateOnly(2026, 11, 5), seed.Merchant, seed.Subcategory, seed.Account, new Money(40m))))).Succeeded);
+        Assert.True((await Entries.CreateRecurringAsync(new(new(new DateOnly(2026, 11, 5), seed.Merchant, seed.Subcategory, seed.Account, new Money(40m), IsPaid: false)))).Succeeded);
         await AddAsync(seed, new DateOnly(2026, 11, 6), 15m);
         var balance = (await Entries.GetBalanceAsync(seed.Account, new DateOnly(2026, 12, 31)))!.EffectiveBalance;
         var rows = (await ExportRowsAsync(new(Month: new AccountingMonth(2026, 11)))).Rows;

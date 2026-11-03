@@ -11,11 +11,11 @@ public sealed partial class EntryTests
     public async Task PendingQueryCombinesFiltersOrdersByExpectedDateAndTotalsTheWholeResult()
     {
         var income = await IncomeSubcategoryAsync();
-        await Entries.CreateRecurringAsync(new(Request() with { Date = new DateOnly(2026, 11, 1), Amount = new Money(50) }));
-        await Entries.CreateRecurringAsync(new(Request() with { Date = new DateOnly(2026, 11, 2), Amount = new Money(100), SubcategoryExternalId = income }));
-        await Entries.CreateRecurringAsync(new(Request() with { Date = new DateOnly(2026, 11, 3), Amount = new Money(200) }));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 11, 1), Amount = new Money(50) }));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 11, 2), Amount = new Money(100), SubcategoryExternalId = income }));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 11, 3), Amount = new Money(200) }));
         await Entries.CreateAsync(Request() with { Date = new DateOnly(2026, 11, 1) });
-        await Entries.CreateRecurringAsync(new(Request() with { Date = new DateOnly(2026, 11, 1), CardExternalId = await CreateCardAsync() }));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 11, 1), CardExternalId = await CreateCardAsync() }));
         var filter = new EntryFilter(Month: new AccountingMonth(2026, 11), PageSize: 1);
         var all = await Entries.QueryPendingAsync(filter);
         Assert.Equal(3, all.TotalCount);
@@ -35,7 +35,7 @@ public sealed partial class EntryTests
     [Fact]
     public async Task ArchivedPendingAccountRemainsVisibleAndConfirmationUsesThatSameAccount()
     {
-        await Entries.CreateRecurringAsync(new(Request() with { Date = new DateOnly(2026, 11, 1), Amount = new Money(100) }));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 11, 1), Amount = new Money(100) }));
         await Provider.GetRequiredService<IAccountCatalog>().DeactivateAccountAsync(_accountId);
         var filter = new EntryFilter(FromDate: new DateOnly(2026, 11, 1), ToDate: new DateOnly(2026, 12, 31), AccountExternalId: _accountId);
         var pending = await Entries.QueryPendingAsync(filter);

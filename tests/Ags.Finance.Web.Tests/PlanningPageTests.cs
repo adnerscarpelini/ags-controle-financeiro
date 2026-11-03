@@ -40,7 +40,7 @@ public sealed class PlanningPageTests
         CreateEntryRequest Request(decimal amount, Guid subcategory, DateOnly date) => new(date, merchant.ExternalId!.Value, subcategory, account.ExternalId!.Value, new Money(amount));
         Assert.True((await entries.CreateAsync(Request(100, services.ExternalId!.Value, new DateOnly(2026, 11, 1)))).Succeeded);
         Assert.True((await entries.CreateAsync(Request(900, salary.ExternalId!.Value, new DateOnly(2026, 11, 1)))).Succeeded);
-        Assert.True((await entries.CreateRecurringAsync(new(Request(50, services.ExternalId!.Value, new DateOnly(2026, 12, 20))))).Succeeded);
+        Assert.True((await entries.CreateRecurringAsync(new(Request(50, services.ExternalId!.Value, new DateOnly(2026, 12, 20)) with { IsPaid = false }))).Succeeded);
     }
 
     private static IRenderedComponent<Planning> Render(BunitContext context)

@@ -34,7 +34,7 @@ public sealed partial class EntryTests
     [InlineData(RecurringChangeScope.All)]
     public async Task RecurringEditsPreserveOccurrenceAttachmentsAndDoNotShareThemWithDecember(RecurringChangeScope scope)
     {
-        await Entries.CreateRecurringAsync(new(Request() with { Date = new DateOnly(2026, 10, 10) }));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 10, 10) }));
         var november = await OccurrenceAsync(2026, 11);
         var december = await OccurrenceAsync(2026, 12);
         Assert.True((await AttachAsync(november.ExternalId)).Succeeded);

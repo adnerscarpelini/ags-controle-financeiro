@@ -1,3 +1,4 @@
+@using Ags.Finance.SharedKernel
 @using Ags.Finance.Modules.Transactions.Contracts
 @using Ags.Finance.Modules.Accounts.Contracts
 @inject IEntryAttachmentCatalog Documents
@@ -8,16 +9,18 @@
 <section class="panel" role="alertdialog" aria-label="Registrar baixa manual">
     <h2>Registrar baixa manual</h2>
     <p>@Entry.MerchantName · @Entry.Amount · Conta: @_accountName · Mês contábil: @Entry.Month</p>
-    <p>A baixa usa os dados desta ocorrência. Para alterá-los, cancele e edite o lançamento.</p>
+    <p>As alterações valem somente para este lançamento.</p>
     @if (_archived) { <p>A conta está arquivada. A baixa será registrada na mesma conta e continuará no histórico.</p> }
     @if (_ready)
     {
-        <div class="field"><label for="effective-date">Data efetiva</label><input id="effective-date" type="date" @bind="_date" required /></div>
+        <div class="field"><label for="effective-date">Data da baixa</label><input id="effective-date" type="date" @bind="_date" required /></div>
     }
     else { <p>Carregando conta…</p> }
+    <div class="field"><label for="effective-amount">Valor (R$)</label><input id="effective-amount" type="number" min="0.01" step="0.01" @bind="_amount" /></div>
+    <div class="field"><label for="effective-account">Conta</label><select id="effective-account" @bind="_accountId">@foreach (var account in _accounts) { <option value="@account.ExternalId">@account.Name @(!account.IsActive ? "(arquivada)" : "")</option> }</select></div>
     @if (_error is not null) { <p role="status">@_error</p> }
     <AttachmentPicker @ref="_picker" />
-    <button class="button" @onclick="ConfirmAsync" disabled="@(_busy || !_ready)">@(_confirmed ? "Reenviar anexos (baixa já registrada)" : "Confirmar baixa")</button>
+    <button class="button" @onclick="ConfirmAsync" disabled="@(_busy || !_ready)">@(_confirmed ? "Reenviar anexos (baixa já registrada)" : Entry.Kind == CategoryKind.Expense ? "Pagar" : "Receber")</button>
     <button class="button" @onclick="() => Cancelled.InvokeAsync()" disabled="@_busy">Cancelar</button>
 </section>
 
@@ -28,6 +31,9 @@
     private AttachmentPicker? _picker;
     private bool _confirmed;
     private DateOnly _date;
+    private decimal _amount;
+    private Guid _accountId;
+    private IReadOnlyList<AccountDetails> _accounts = [];
     private string _accountName = string.Empty;
     private bool _archived;
     private bool _busy;
@@ -36,7 +42,10 @@
     protected override async Task OnInitializedAsync()
     {
         _date = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
-        var account = (await Accounts.GetAccountsAsync(false)).FirstOrDefault(x => x.ExternalId == Entry.AccountExternalId);
+        _amount = Math.Abs(Entry.Amount.Amount);
+        _accountId = Entry.AccountExternalId;
+        _accounts = (await Accounts.GetAccountsAsync(false)).Where(x => x.IsActive || x.ExternalId == Entry.AccountExternalId).ToList();
+        var account = _accounts.FirstOrDefault(x => x.ExternalId == Entry.AccountExternalId);
         _accountName = account?.Name ?? "Conta registrada";
         _archived = account?.IsActive == false;
         _ready = true;
@@ -47,7 +56,7 @@
         _busy = true;
         try
         {
-            var result = _confirmed ? new ClassificationResult(Entry.ExternalId, null) : await Entries.ConfirmEffectiveAsync(Entry.ExternalId, _date);
+            var result = _confirmed ? new ClassificationResult(Entry.ExternalId, null) : await Entries.ConfirmEffectiveAsync(Entry.ExternalId, new ConfirmEffectiveRequest(_date, new Money(_amount), _accountId));
             _error = result.Error;
             if (result.Succeeded)
             {

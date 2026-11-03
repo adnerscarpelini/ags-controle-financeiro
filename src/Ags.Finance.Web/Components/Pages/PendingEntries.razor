@@ -10,7 +10,7 @@
 @inject IPreferences Preferences
 
 <PageHeader Title="Lançamentos pendentes" />
-<p>Receitas a receber e despesas a pagar recorrentes fora do cartão. A data prevista não registra baixa automaticamente.</p>
+<p>Receitas a receber e despesas a pagar fora do cartão. A data prevista não registra baixa automaticamente.</p>
 @if (_message is not null) { <p role="status">@_message</p> }
 @if (_selected is { } selected)
 {
@@ -43,8 +43,8 @@
         <li><span>@entry.Date.ToString("dd/MM/yyyy") · @Timing(entry.Date) · @(entry.Kind == CategoryKind.Income ? "Receita a receber" : "Despesa a pagar")</span>
             <span>@entry.MerchantName · @AccountName(entry.AccountExternalId) · @entry.Classification</span>
             <span class="numeric @(entry.Amount.IsNegative ? "entry-expense" : "entry-income")">@(entry.Amount.IsNegative ? string.Empty : "+")@entry.Amount</span>
-            <span>Recorrência @entry.RecurringEntryExternalId · Mês contábil @entry.Month</span>
-            <button class="button" @onclick="() => _selected = entry" disabled="@_busy">Registrar baixa manual</button></li>
+            @if (entry.RecurringEntryExternalId is not null) { <span>Recorrência @entry.RecurringEntryExternalId</span> }
+            <button class="button" @onclick="() => _selected = entry" disabled="@_busy">@(entry.Kind == CategoryKind.Expense ? "Pagar" : "Receber")</button></li>
     }</ul>
     @if (_result.TotalCount == 0 && !_busy) { <p>Nenhuma pendência neste filtro.</p> }
     <footer aria-label="Totais das pendências">

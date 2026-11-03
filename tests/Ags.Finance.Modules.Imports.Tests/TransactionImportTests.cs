@@ -32,10 +32,10 @@ public sealed class TransactionImportTests : ImportsFixture
         Assert.True((await Entries.CreateAsync(new(new DateOnly(2026, 10, 1), seed.Merchant, seed.Subcategory, seed.Account, new Money(100m), "Cartão avulso", null, seed.Card, seed.Final))).Succeeded);
         Assert.True((await Entries.CreateAsync(new(new DateOnly(2026, 10, 8), seed.Merchant, seed.Subcategory, seed.Account, new Money(0.01m), "Mês manual", new AccountingMonth(2027, 2)))).Succeeded);
         Assert.True((await Entries.CreateInstallmentsAsync(new(new DateOnly(2026, 10, 6), seed.Merchant, seed.Subcategory, seed.Account, new Money(100m), "Geladeira", null, seed.Card, seed.Final), 3)).Succeeded);
-        var series = await Entries.CreateRecurringAsync(new(new(new DateOnly(2026, 10, 5), seed.Merchant, seed.Subcategory, seed.Account, new Money(40m), "Assinatura")));
+        var series = await Entries.CreateRecurringAsync(new(new(new DateOnly(2026, 10, 5), seed.Merchant, seed.Subcategory, seed.Account, new Money(40m), "Assinatura", IsPaid: false)));
         Assert.True(series.Succeeded, series.Error);
         var first = (await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 10), PendingRecurringOnly: true))).Entries.Single();
-        Assert.True((await Entries.ConfirmEffectiveAsync(first.ExternalId, new DateOnly(2026, 10, 7))).Succeeded);
+        Assert.True((await Entries.ConfirmEffectiveAsync(first.ExternalId, first.Date)).Succeeded);
         _ = await Entries.QueryAsync(new(FromDate: new DateOnly(2026, 10, 1), ToDate: new DateOnly(2026, 12, 31)));
         return seed;
     }
@@ -88,6 +88,26 @@ public sealed class TransactionImportTests : ImportsFixture
             break;
         }
         return string.Join("\r\n", lines);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SingleCashEntryRoundTripsPendingOrPaidState(bool paid)
+    {
+        var seed = await SeedAsync();
+        Assert.True((await Entries.CreateAsync(new(new DateOnly(2026, 10, 5), seed.Merchant, seed.Subcategory, seed.Account, new Money(100), IsPaid: paid))).Succeeded);
+        var (file, _) = await ExportPairAsync(Provider);
+        var (database, target) = await EmptyEnvironmentAsync(await ExportRegistriesAsync());
+        await using (target)
+        await using (database)
+        {
+            var report = await target.GetRequiredService<ITransactionImport>().ImportAsync(file.Content, null);
+            Assert.True(report.Succeeded, string.Join("; ", report.Issues.Select(x => x.Message)));
+            var entry = Assert.Single(await target.GetRequiredService<IEntryCatalog>().GetAsync());
+            Assert.Equal(paid, entry.IsEffective);
+            Assert.Equal(paid ? entry.Date : (DateOnly?)null, entry.EffectiveDate);
+        }
     }
 
     [Fact]
@@ -192,7 +212,7 @@ public sealed class TransactionImportTests : ImportsFixture
     }
 
     [Fact]
-    public async Task PendingNonRecurringEntryAndMissingReferenceAreReportedWithLineAndColumn()
+    public async Task InconsistentPendingDateAndMissingReferenceAreReportedWithLineAndColumn()
     {
         var seed = await SeedAsync();
         await Entries.CreateAsync(new(new DateOnly(2026, 10, 5), seed.Merchant, seed.Subcategory, seed.Account, new Money(10m), "Original"));
@@ -200,7 +220,7 @@ public sealed class TransactionImportTests : ImportsFixture
         var renamed = Replace(file, "external_id", file.Split("\r\n")[2].Split(',')[0], Guid.CreateVersion7().ToString("D"));
         var pending = Replace(renamed, "is_effective", "true", "false");
         var report = await Get<ITransactionImport>().PreviewAsync(Bytes(pending), null);
-        Assert.Contains(report.Issues, x => x is { Line: 3, Field: "is_effective" });
+        Assert.Contains(report.Issues, x => x is { Line: 3, Field: "effective_date" });
         var fresh = Replace(renamed, "merchant_external_id", seed.Merchant.ToString("D"), Guid.NewGuid().ToString("D"));
         var missing = await Get<ITransactionImport>().PreviewAsync(Bytes(fresh), null);
         Assert.False(missing.Succeeded);

@@ -235,7 +235,7 @@ public sealed class ReimbursementReceiptTests : ReimbursementFixture
     public async Task ReceivedOccurrenceInTheScopeOfAnEditRejectsTheWholeOperation()
     {
         var person = await PersonAsync();
-        Assert.True((await Entries.CreateRecurringAsync(new(new(new DateOnly(2026, 10, 5), MerchantId, SubcategoryId, AccountId, new Money(100), Reimbursement: new(person, 100m))))).Succeeded);
+        Assert.True((await Entries.CreateRecurringAsync(new(new(new DateOnly(2026, 10, 5), MerchantId, SubcategoryId, AccountId, new Money(100), Reimbursement: new(person, 100m), IsPaid: false)))).Succeeded);
         Assert.True((await Entries.EnsureRecurringMonthAsync(new AccountingMonth(2026, 11))).Succeeded);
         var occurrences = (await Entries.GetAsync()).OrderBy(x => x.Month).ToList();
         Assert.True((await Receipts.ReceiveAsync(Request(Item(occurrences[1].ExternalId, 100m)))).Succeeded);
@@ -254,7 +254,7 @@ public sealed class ReimbursementReceiptTests : ReimbursementFixture
     public async Task ReceivedPendingExpenseCanStillBeConfirmed()
     {
         var person = await PersonAsync();
-        Assert.True((await Entries.CreateRecurringAsync(new(new(new DateOnly(2026, 10, 5), MerchantId, SubcategoryId, AccountId, new Money(100), Reimbursement: new(person, 100m))))).Succeeded);
+        Assert.True((await Entries.CreateRecurringAsync(new(new(new DateOnly(2026, 10, 5), MerchantId, SubcategoryId, AccountId, new Money(100), Reimbursement: new(person, 100m), IsPaid: false)))).Succeeded);
         var occurrence = Assert.Single(await Entries.GetAsync());
         Assert.False(occurrence.IsEffective);
         Assert.True((await Receipts.ReceiveAsync(Request(Item(occurrence.ExternalId, 100m)))).Succeeded);

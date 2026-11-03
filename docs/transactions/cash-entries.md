@@ -12,11 +12,17 @@ da classificação: receita positiva, despesa negativa. Transferência tem opera
 própria. Valor zero/negativo, datas inválidas e cadastros ausentes/inativos são
 rejeitados pelos casos de uso; não apenas pelo formulário.
 
-Avulsos fora do cartão já nascem Efetivados com data efetiva e instante UTC da
-confirmação. O saldo efetivo é calculado pela abertura de Accounts mais os movimentos
-efetivados entre a referência inicial e a data consultada, inclusive. Movimentos
-anteriores à abertura permanecem no histórico e no orçamento. Não há saldo mutável
-duplicado. Cartões e pendências serão integrados nas #12 e #56.
+A [#88](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/88) permite
+escolher Pago (despesa) ou Recebido (receita), ligado por padrão e reiniciado em cada
+novo lançamento. Desligado, o lançamento nasce Pendente: entra na previsão e nos
+totais do mês, sem movimentar o saldo atual. Passar a data apenas o torna atrasado.
+
+Pagar/Receber abre confirmação com valor, data e conta editáveis. As alterações
+valem só para o lançamento; a confirmação repetida não gera outro efeito. Ao editar
+e desligar a chave, ou desfazer a baixa pelo contrato, ele volta a Pendente e o saldo
+é restaurado. O saldo é derivado da abertura e dos lançamentos pagos/recebidos pela
+data da baixa, sem acumulador duplicado. Cartões não têm chave nem baixa manual:
+o caixa é afetado pelo pagamento da fatura. Receitas de reembolso continuam Recebidas.
 
 A mesclagem de descrições transfere as referências dos lançamentos antes de remover
 a origem, na mesma transação. As FKs locais preservam classificação e descrição;

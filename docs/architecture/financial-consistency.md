@@ -18,8 +18,10 @@ O mês contábil calculado por Accounts é uma sugestão editável, conforme
 A escolha manual pertence a Transactions (#12/#14), preservando a data da compra.
 Mover uma compra exige faturas de origem e destino Abertas (#50).
 
-Pendente/Efetivado é estado do lançamento ou da ocorrência, não da conta nem da série.
-Recorrentes fora do cartão nascem Pendentes; avulsos fora do cartão, Efetivados.
+Pendente/Pago ou Recebido é estado do lançamento ou da ocorrência, não da conta nem da série.
+Fora do cartão, a chave Pago/Recebido nasce ligada e determina o estado inicial (#88).
+Na recorrência, só a primeira ocorrência segue a chave; as seguintes nascem Pendentes.
+A baixa permite editar valor, data e conta só da ocorrência e pode ser desfeita.
 A passagem da data deixa uma ocorrência atrasada, sem baixa automática (#16/#56).
 Efetivar só uma ocorrência não modifica a série nem os meses seguintes.
 
@@ -68,7 +70,7 @@ confirmados não podem ser editados ou excluídos pelos comandos de abatimento.
 Reembolso é indicado na despesa, por pessoa e percentual, e separado da baixa dela: uma despesa
 Pendente já entra nos reembolsos do mês contábil. Receber não altera a despesa, a baixa nem a
 fatura, então uma compra em fatura Fechada ou Paga pode ser recebida. O recebimento cria uma
-receita avulsa Efetivada por pessoa, com crédito único em conta. Receita e despesa continuam
+receita avulsa Recebida por pessoa, com crédito único em conta. Receita e despesa continuam
 brutas nos relatórios, sem compensação. Ver [Reembolsos](reimbursements.md).
 
 ## Recorrentes do cartão na fatura (#69)

@@ -21,7 +21,7 @@ public sealed class PlanningTests : ReportFixture
 
     private async Task<Guid> RecurringAsync(DateOnly date, decimal amount, Guid? card = null, AccountingMonth? end = null, Guid? subcategory = null)
     {
-        var result = await Entries.CreateRecurringAsync(new(Request(date, amount, card, subcategory), end));
+        var result = await Entries.CreateRecurringAsync(new(Request(date, amount, card, subcategory) with { IsPaid = false }, end));
         Assert.True(result.Succeeded, result.Error);
         return result.ExternalId!.Value;
     }

@@ -61,7 +61,7 @@ public sealed partial class EntryTests
     [Fact]
     public async Task SavedPendingFilterDropsAnOccurrenceOnceItIsEffectivated()
     {
-        Assert.True((await Entries.CreateRecurringAsync(new(Request()))).Succeeded);
+        Assert.True((await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false }))).Succeeded);
         var saved = await SavedFilters.SaveAsync(null, "Pendentes", SavedFilterCriteria.Empty with { AccountExternalIds = [_accountId], IsEffective = false });
         var month = new AccountingMonth(2026, 10);
         var occurrence = Assert.Single((await SavedFilters.RunAsync(saved.ExternalId!.Value, month)).Entries);

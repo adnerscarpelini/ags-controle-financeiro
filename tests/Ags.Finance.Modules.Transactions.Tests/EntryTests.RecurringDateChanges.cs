@@ -8,7 +8,7 @@ public sealed partial class EntryTests
     [Fact]
     public async Task BillingMonthChangePreservesTheFirstManualExceptionWithoutApplyingItToEveryFutureOccurrence()
     {
-        await Entries.CreateRecurringAsync(new(Request() with { Date = new DateOnly(2026, 10, 10), Month = new AccountingMonth(2026, 12) }, new AccountingMonth(2026, 12)));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 10, 10), Month = new AccountingMonth(2026, 12) }, new AccountingMonth(2026, 12)));
         var first = (await Entries.GetAsync()).Single(x => x.OccurrenceMonth == new DateOnly(2026, 10, 1));
         var result = await Entries.EditRecurringAsync(first.ExternalId, new(Change(first) with { Month = new AccountingMonth(2027, 1) }, RecurringChangeScope.ThisAndFollowing));
         Assert.True(result.Succeeded, result.Error);
@@ -26,7 +26,7 @@ public sealed partial class EntryTests
     [InlineData(RecurringChangeScope.All, true)]
     public async Task MovingDateAcrossMonthsKeepsMaterializedAndFutureOccurrencesConsistent(RecurringChangeScope scope, bool materialized)
     {
-        await Entries.CreateRecurringAsync(new(Request() with { Date = new DateOnly(2026, 10, 10), Amount = new Money(50) }, new AccountingMonth(2026, 12)));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 10, 10), Amount = new Money(50) }, new AccountingMonth(2026, 12)));
         var october = await OccurrenceAsync(2026, 10);
         var november = await OccurrenceAsync(2026, 11);
         EntryDetails? december = materialized ? await OccurrenceAsync(2026, 12) : null;

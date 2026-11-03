@@ -17,7 +17,7 @@ internal sealed partial class EntryCatalog
         var series = RecurringEntry.Create(first, request.EndMonth?.FirstDay);
         if (series is null) { return new(null, "O término não pode ser anterior ao início da recorrência."); }
         first.SetRecurring(series.ExternalId, FirstDay(first.Date));
-        if (first.CardExternalId is null) { first.SetPending(); }
+        if (first.CardExternalId is null && request.Entry.IsPaid == false) { first.SetPending(); }
         await store.AddRecurringAsync(series, first, cancellationToken);
         return new(series.ExternalId, null);
     }
