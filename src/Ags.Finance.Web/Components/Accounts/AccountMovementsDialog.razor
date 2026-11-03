@@ -1,0 +1,71 @@
+@* Histórico de transferências, ajustes e pagamentos de fatura de uma conta. *@
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@implements IDisposable
+@inject IAccountMovementCatalog Movements
+@inject EntryDialogs EntryWindows
+@inject EntryChangeNotifier EntryChanges
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <p class="form-note">Transferências e ajustes de saldo não são receitas nem despesas.</p>
+        <MudTable T="AccountMovementDetails" Items="_movements" Elevation="0" Class="data-table" Breakpoint="Breakpoint.Sm" aria-label="Movimentações de contas">
+            <HeaderContent>
+                <MudTh>Data</MudTh>
+                <MudTh>Tipo</MudTh>
+                <MudTh Class="numeric">Valor</MudTh>
+                <MudTh>Operação</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="movement">
+                <MudTd DataLabel="Data">@movement.Date.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd DataLabel="Tipo">
+                    @KindLabel(movement.Kind)
+                    @if (movement.AdjustmentTarget is { } target) { <span class="row-note">Saldo informado: @target</span> }
+                </MudTd>
+                <MudTd DataLabel="Valor" Class="@(movement.Amount.IsNegative ? "numeric entry-expense" : "numeric entry-income")">@(movement.Amount.IsNegative || movement.Amount.IsZero ? string.Empty : "+")@movement.Amount</MudTd>
+                <MudTd DataLabel="Operação"><span class="row-note">@movement.OperationExternalId</span></MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <EmptyState Icon="@Icons.Material.Outlined.SwapHoriz" Message="Nenhum movimento nesta conta." />
+            </NoRecordsContent>
+        </MudTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-done OnClick="() => Dialog?.Close(DialogResult.Ok(true))">Fechar</MudButton>
+        @if (Account.IsActive && Account.Kind == AccountKind.Checking)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.SwapHoriz" data-new-transfer OnClick="() => EntryWindows.ShowTransferAsync(Account.ExternalId)">Nova transferência</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public AccountDetails Account { get; set; } = default!;
+
+    private IReadOnlyList<AccountMovementDetails> _movements = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        EntryChanges.Changed += ReloadAsync;
+        _movements = await Movements.GetAsync(Account.ExternalId);
+    }
+
+    private Task ReloadAsync() => InvokeAsync(async () =>
+    {
+        _movements = await Movements.GetAsync(Account.ExternalId);
+        StateHasChanged();
+    });
+
+    private static string KindLabel(AccountMovementKind kind) => kind switch
+    {
+        AccountMovementKind.BalanceAdjustment => "Ajuste de saldo",
+        AccountMovementKind.InvoicePayment => "Pagamento de fatura",
+        _ => "Transferência",
+    };
+
+    public void Dispose() => EntryChanges.Changed -= ReloadAsync;
+}

@@ -21,3 +21,7 @@ Ajustes de saldo não são receita/despesa, não entram nos totais do orçamento
 exigem estabelecimento fictício. O histórico mostra a diferença e o saldo-alvo.
 Corrigir exige novo ajuste; não há edição/exclusão silenciosa do anterior.
 Não é ajuste de total de fatura, cuja operação pertence à #52.
+
+## Janela de ajuste (#99)
+
+**Ajustar saldo** fica no menu ⋮ do card da conta, em `/contas`, e abre `Components/Accounts/BalanceAdjustmentDialog.razor`. O primeiro passo pede a data e o saldo correto; o segundo mostra saldo calculado, saldo correto e diferença antes de confirmar. A regra continua em `IAccountMovementCatalog`.

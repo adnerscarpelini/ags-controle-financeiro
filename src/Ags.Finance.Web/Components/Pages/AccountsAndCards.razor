@@ -6,7 +6,6 @@
 @inject TimeProvider Clock
 
 <PageHeader Title="Contas e cartões" />
-<p><a href="/transferencias">Transferências e ajustes de saldo</a></p>
 <label class="checkbox"><input id="show-archived" type="checkbox" @bind="_showArchived" />Exibir arquivados e cartões indisponíveis pela conta</label>
 
 @if (_message is not null)
@@ -85,7 +84,6 @@
                 @if (account.OpeningDate is { } openingDate) { <span>Saldo inicial: @account.OpeningBalance em @openingDate.ToString("dd/MM/yyyy")</span> }
                 <div>
                     <button class="button" @onclick="() => EditAccount(account)">Editar</button>
-                    @if (account.IsActive) { <a class="button" href="@($"/transferencias?account={account.ExternalId}")">Ajustar saldo</a> }
                     <button class="button" @onclick="() => AskArchive(account.ExternalId, false, !account.IsActive)">@(account.IsActive ? "Arquivar" : "Desarquivar")</button>
                 </div>
             </li>

@@ -1,0 +1,128 @@
+@page "/contas"
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+@using Ags.Finance.Web.Components.Accounts
+@using Ags.Finance.Web.Components.Layout
+@implements IDisposable
+@inject IAccountCatalog Catalog
+@inject IEntryCatalog Entries
+@inject TimeProvider Clock
+@inject EntryDialogs EntryWindows
+@inject EntryChangeNotifier EntryChanges
+@inject IDialogService Dialogs
+@inject ViewportState Viewport
+@inject ISnackbar Snackbar
+
+<div class="page-head">
+    <PageHeader Title="Contas" />
+    <div class="page-head-actions">
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.SwapHoriz" data-new-transfer OnClick="() => EntryWindows.ShowTransferAsync()">Transferir</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Add" data-new-account OnClick="() => OpenAccountAsync(null)">Nova conta</MudButton>
+    </div>
+</div>
+
+@if (_message is not null) { <p class="form-error" role="alert">@_message</p> }
+
+@if (_loaded && !_accounts.Any(x => x.IsActive) && !_showArchived)
+{
+    <section class="panel">
+        <EmptyState Icon="@Icons.Material.Outlined.AccountBalance" Message="Nenhuma conta ainda. Cadastre a primeira para começar a lançar." ActionText="Cadastrar conta" OnAction="() => OpenAccountAsync(null)" />
+    </section>
+}
+else
+{
+    <div class="split">
+        <div class="split-main card-grid">
+            @foreach (var account in VisibleAccounts)
+            {
+                <AccountCard @key="account.ExternalId" Account="account" Bank="BankOf(account)" Forecast="_forecasts.GetValueOrDefault(account.ExternalId)"
+                             AddExpense="() => EntryWindows.ShowNewAsync(EntryDialogType.Expense, account.ExternalId)"
+                             Edit="() => OpenAccountAsync(account)"
+                             Transfers="() => OpenMovementsAsync(account)"
+                             Adjust="() => OpenAdjustmentAsync(account)"
+                             ToggleArchive="() => ToggleArchiveAsync(account)" />
+            }
+            <button type="button" class="add-card" data-add-account @onclick="() => OpenAccountAsync(null)">
+                <MudIcon Icon="@Icons.Material.Outlined.Add" aria-hidden="true" />
+                Nova conta
+            </button>
+        </div>
+        <aside class="split-aside" aria-label="Resumo das contas">
+            <StatCard Icon="@Icons.Material.Outlined.AccountBalance" Label="Saldo atual total" Help="Soma das contas ativas considerando só o que já foi pago ou recebido." Value="@(_total?.CurrentBalance.ToString() ?? Money.Zero.ToString())" Testid="current-total" />
+            <StatCard Icon="@Icons.Material.Outlined.Schedule" Label="Saldo previsto total" Help="Saldo atual somado às pendências do mês das contas ativas." Value="@(_total?.ForecastBalance.ToString() ?? Money.Zero.ToString())" Testid="forecast-total" />
+            <button type="button" class="link-button" data-toggle-archived aria-pressed="@(_showArchived ? "true" : "false")" @onclick="() => _showArchived = !_showArchived">@(_showArchived ? "Ocultar contas arquivadas" : "Ver contas arquivadas")</button>
+        </aside>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<BankDetails> _banks = [];
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private readonly Dictionary<Guid, BalanceForecast?> _forecasts = [];
+    private BalanceForecast? _total;
+    private bool _showArchived;
+    private bool _loaded;
+    private string? _message;
+
+    private IEnumerable<AccountDetails> VisibleAccounts => _accounts.Where(x => _showArchived || x.IsActive);
+
+    private DateOnly Today => DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+
+    protected override async Task OnInitializedAsync()
+    {
+        EntryChanges.Changed += EntriesChangedAsync;
+        await ReloadAsync();
+    }
+
+    private Task EntriesChangedAsync() => InvokeAsync(async () =>
+    {
+        await ReloadAsync();
+        StateHasChanged();
+    });
+
+    private async Task ReloadAsync()
+    {
+        var month = ReferenceMonth.FromDate(Today);
+        _banks = await Catalog.GetBanksAsync();
+        _accounts = await Catalog.GetAccountsAsync(activeOnly: false);
+        foreach (var account in _accounts) { _forecasts[account.ExternalId] = await Entries.GetBalanceForecastAsync(account.ExternalId, Today, month); }
+        _total = await Entries.GetBalanceForecastAsync(null, Today, month);
+        _loaded = true;
+    }
+
+    private BankDetails? BankOf(AccountDetails account) => _banks.FirstOrDefault(x => x.ExternalId == account.BankExternalId);
+
+    private async Task OpenAccountAsync(AccountDetails? account)
+    {
+        var parameters = new DialogParameters<AccountDialog> { { x => x.Account, account } };
+        await Dialogs.ShowAsync<AccountDialog>(account is null ? "Nova conta" : "Editar conta", parameters, AppDialogs.Options(Viewport));
+    }
+
+    private async Task OpenAdjustmentAsync(AccountDetails account)
+    {
+        var parameters = new DialogParameters<BalanceAdjustmentDialog> { { x => x.Account, account } };
+        await Dialogs.ShowAsync<BalanceAdjustmentDialog>("Ajustar saldo", parameters, AppDialogs.Options(Viewport, MaxWidth.ExtraSmall));
+    }
+
+    private async Task OpenMovementsAsync(AccountDetails account)
+    {
+        var parameters = new DialogParameters<AccountMovementsDialog> { { x => x.Account, account } };
+        await Dialogs.ShowAsync<AccountMovementsDialog>($"Transferências e movimentos de {account.Name}", parameters, AppDialogs.Options(Viewport, MaxWidth.Medium));
+    }
+
+    private async Task ToggleArchiveAsync(AccountDetails account)
+    {
+        var restoring = !account.IsActive;
+        var confirmed = await ConfirmDialog.AskAsync(Dialogs, restoring ? "Restaurar conta" : "Arquivar conta",
+            restoring ? "A mesma conta volta às seleções de novos lançamentos." : "A conta será mantida, junto de saldos, histórico e pendências, e deixará de aparecer nas seleções de novos lançamentos.",
+            restoring ? "Restaurar" : "Arquivar");
+        if (!confirmed) { return; }
+        var result = restoring ? await Catalog.ReactivateAccountAsync(account.ExternalId) : await Catalog.DeactivateAccountAsync(account.ExternalId);
+        _message = result.Error;
+        if (result.Succeeded) { Snackbar.Add(restoring ? "Conta restaurada." : "Conta arquivada.", Severity.Success); }
+        await ReloadAsync();
+    }
+
+    public void Dispose() => EntryChanges.Changed -= EntriesChangedAsync;
+}

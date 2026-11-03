@@ -25,3 +25,7 @@ uma entrada entre contas do mesmo patrimônio.
 ## Janela de transferência (#97)
 
 **+ Novo > Transferência** abre `Components/Entries/TransferDialog.razor`, com valor, data, conta de origem e conta de destino. Salvar continua pedindo a confirmação com contas, data e valor antes de movimentar as contas.
+
+## Tela de Contas (#99)
+
+Na [tela de Contas](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/99), `/contas`, o botão **Transferir** abre a janela, e o menu ⋮ de uma conta traz **Transferências**, com o histórico de movimentos da conta e a opção de nova transferência a partir dela. `/transferencias` redireciona para `/contas`.

@@ -1,0 +1,108 @@
+@* Criar ou editar uma conta. A abertura registrada fica preservada: correções de saldo são feitas por ajuste. *@
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.SharedKernel
+@inject IAccountCatalog Catalog
+@inject TimeProvider Clock
+@inject EntryChangeNotifier Notifier
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <form id="account-form" class="entry-column" @onsubmit="SaveAsync" @onsubmit:preventDefault>
+            <div class="field">
+                <label for="account-bank">Banco</label>
+                <select id="account-bank" class="input" @bind="_bank">
+                    <option value="@Guid.Empty">Selecione</option>
+                    @foreach (var bank in _banks) { <option value="@bank.ExternalId">@bank.Name</option> }
+                </select>
+                @if (_loaded && _banks.Count == 0) { <p class="form-note" data-no-banks>Nenhum banco cadastrado. Cadastre um em Cadastros › Bancos.</p> }
+            </div>
+            <div class="field"><label for="account-name">Nome da conta</label><input id="account-name" class="input" maxlength="100" @bind="_name" @bind:event="oninput" /></div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="account-kind">Tipo <HelpTip Text="Só conta corrente tem saldo inicial e paga fatura de cartão. Investimento e poupança recebem transferências." /></label>
+                    <select id="account-kind" class="input" @bind="_kind">
+                        <option value="@AccountKind.Checking">Corrente</option>
+                        <option value="@AccountKind.Investment">Investimento</option>
+                        <option value="@AccountKind.Savings">Poupança</option>
+                    </select>
+                </div>
+                <CatalogColor Id="account-color" @bind-Value="_color" />
+            </div>
+            @if (_kind == AccountKind.Checking)
+            {
+                <MoneyField Id="opening-balance" Label="Saldo inicial" @bind-Value="_openingBalance" Min="decimal.MinValue" Disabled="_openingLocked" />
+                <div class="field">
+                    <label for="opening-date">Data de referência <HelpTip Text="A partir de quando o saldo inicial vale. Depois de registrado, correções são feitas por ajuste de saldo." /></label>
+                    <input id="opening-date" class="input" type="date" disabled="@_openingLocked" @bind="_openingDate" />
+                </div>
+            }
+        </form>
+        @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-cancel Disabled="@_busy" OnClick="() => Dialog?.Cancel()">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" form="account-form" data-save Disabled="@(_busy || _name.Trim().Length == 0)">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    /// <summary>Na edição, a conta aberta.</summary>
+    [Parameter]
+    public AccountDetails? Account { get; set; }
+
+    private IReadOnlyList<BankDetails> _banks = [];
+    private Guid _bank;
+    private string _name = string.Empty;
+    private AccountKind _kind = AccountKind.Checking;
+    private string _color = string.Empty;
+    private decimal _openingBalance;
+    private DateOnly? _openingDate;
+    private bool _openingLocked;
+    private bool _busy;
+    private bool _loaded;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _openingDate = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+        if (Account is { } account)
+        {
+            _bank = account.BankExternalId;
+            _name = account.Name;
+            _kind = account.Kind;
+            _color = account.Color;
+            _openingBalance = account.OpeningBalance.Amount;
+            _openingDate = account.OpeningDate ?? _openingDate;
+            _openingLocked = account.OpeningDate is not null;
+        }
+
+        _banks = await Catalog.GetBanksAsync();
+        _loaded = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_busy) { return; }
+        _busy = true;
+        _error = null;
+        try
+        {
+            var isOpening = _kind == AccountKind.Checking && !_openingLocked;
+            var result = await Catalog.SaveAccountAsync(new(Account?.ExternalId, _bank, _name, _kind, _color, isOpening ? new Money(_openingBalance) : null, isOpening ? _openingDate : null));
+            if (!result.Succeeded)
+            {
+                _error = result.Error;
+                return;
+            }
+
+            Notifier.Notify();
+            Snackbar.Add("Conta salva.", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(true));
+        }
+        finally { _busy = false; }
+    }
+}
