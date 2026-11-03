@@ -146,7 +146,9 @@ public sealed class BackupServiceTests : IAsyncLifetime
     public async Task VerifyDetectsAMissingFile()
     {
         using var service = CreateService();
-        var package = (await service.CreateAsync(BackupService.KindManual, CancellationToken.None)).Package!;
+        var result = await service.CreateAsync(BackupService.KindManual, CancellationToken.None);
+        Assert.True(result.Succeeded, result.Error);
+        var package = Assert.IsType<BackupPackage>(result.Package);
         File.Delete(Path.Combine(package.Path, BackupManifest.AppFilesName));
 
         var problem = await service.VerifyAsync(package, CancellationToken.None);
