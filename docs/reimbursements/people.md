@@ -12,6 +12,9 @@ nem séries já gravados.
 
 **Persistência.** Schema `reimbursements`, tabela `people`. O percentual é `numeric(5,2)`.
 
+**Exclusão.** Uma pessoa usada em lançamentos ou séries não pode ser excluída. O
+arquivamento de pessoas não existe.
+
 **CSV.** O tipo `people` está na [versão 2 do layout](../imports/csv-layout.md).
 
 O modelo e as decisões estão em [Reembolsos](../architecture/reimbursements.md).

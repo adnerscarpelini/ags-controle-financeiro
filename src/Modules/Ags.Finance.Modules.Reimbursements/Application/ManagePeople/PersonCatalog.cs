@@ -1,9 +1,10 @@
 using Ags.Finance.Modules.Reimbursements.Contracts;
 using Ags.Finance.Modules.Reimbursements.Domain;
+using Ags.Finance.Modules.Transactions.Contracts;
 
 namespace Ags.Finance.Modules.Reimbursements.Application.ManagePeople;
 
-internal sealed class PersonCatalog(IReimbursementStore store) : IPersonCatalog
+internal sealed class PersonCatalog(IReimbursementStore store, IEntryCatalog entries) : IPersonCatalog
 {
     public async Task<IReadOnlyList<PersonDetails>> GetAsync(CancellationToken cancellationToken = default)
         => (await store.GetPeopleAsync(cancellationToken)).Select(x => new PersonDetails(x.ExternalId, x.Name, x.DefaultPercent)).ToList();
@@ -29,6 +30,10 @@ internal sealed class PersonCatalog(IReimbursementStore store) : IPersonCatalog
     {
         var person = (await store.GetPeopleAsync(cancellationToken)).FirstOrDefault(x => x.ExternalId == externalId);
         if (person is null) { return new(null, "Pessoa não encontrada."); }
+        if (await entries.IsReimbursementPersonUsedAsync(externalId, cancellationToken))
+        {
+            return new(null, $"{person.Name} está em lançamentos ou recorrências e não pode ser excluída. Remova a pessoa desses lançamentos antes.");
+        }
         await store.DeletePersonAsync(person, cancellationToken);
         return new(externalId, null);
     }

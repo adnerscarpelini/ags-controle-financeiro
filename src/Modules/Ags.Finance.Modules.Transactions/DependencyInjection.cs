@@ -42,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<ISavedFilterStore, SavedFilterStore>();
         services.AddScoped<ISavedFilterCatalog, SavedFilterCatalog>();
         services.TryAddScoped<IInvoiceWriteGuard, OpenInvoiceWriteGuard>();
+        services.TryAddScoped<IReimbursementWriteGuard, OpenReimbursementWriteGuard>();
         return services;
     }
 

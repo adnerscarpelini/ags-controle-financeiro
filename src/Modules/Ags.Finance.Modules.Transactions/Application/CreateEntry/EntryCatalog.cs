@@ -6,7 +6,7 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Transactions.Application.CreateEntry;
 
-internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementStore cashMovements, IClassificationCatalog classifications, IMerchantCatalog merchants, IAccountCatalog accounts, ICardLastDigitsCatalog cardDigits, IAccountingMonthCalculator calendar, TimeProvider clock, IFinancialOperation operations, IInvoiceWriteGuard invoices, IAttachmentCatalog? attachments = null) : IEntryCatalog
+internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementStore cashMovements, IClassificationCatalog classifications, IMerchantCatalog merchants, IAccountCatalog accounts, ICardLastDigitsCatalog cardDigits, IAccountingMonthCalculator calendar, TimeProvider clock, IFinancialOperation operations, IInvoiceWriteGuard invoices, IReimbursementWriteGuard reimbursements, IAttachmentCatalog? attachments = null) : IEntryCatalog
 {
     public Task<ClassificationResult> CreateAsync(CreateEntryRequest request, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(token => CreateCoreAsync(request, token), x => x.Succeeded, cancellationToken);
@@ -42,6 +42,8 @@ internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementSt
             entry.SetCard(cardId, template.CardLastDigitsExternalId);
             entry.SetEffective(template.Date, clock.GetUtcNow());
             entry.SetInstallment(purchase.ExternalId, index + 1, parts[index]);
+            error = entry.SetReimbursement(template.ReimbursementPersonExternalId, template.ReimbursementPercent);
+            if (error is not null) { return new(null, error); }
             generated.Add(entry);
         }
         return await store.AddPurchaseAsync(purchase, generated, cancellationToken) ? new(purchase.ExternalId, null) : new(null, "Não foi possível gravar a compra parcelada.");
@@ -88,6 +90,13 @@ internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementSt
         {
             return (null, error);
         }
+        error = entry.SetReimbursement(request.Reimbursement?.PersonExternalId, request.Reimbursement?.Percent);
+        if (error is not null) { return (null, error); }
+        if (request.Reimbursement is { } reimbursement)
+        {
+            error = await reimbursements.RequirePersonAsync(reimbursement.PersonExternalId, cancellationToken);
+            if (error is not null) { return (null, error); }
+        }
         if (card is not null)
         {
             error = await invoices.RequireOpenAsync(card.ExternalId, entry.Month, cancellationToken);
@@ -119,9 +128,15 @@ internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementSt
             return new EntryDetails(x.ExternalId, x.Date, x.Month, x.MerchantExternalId, descriptions[x.MerchantExternalId].Name,
                 x.SubcategoryExternalId, subcategory.CategoryExternalId, subcategory.DisplayName, x.AccountExternalId, (Contracts.CategoryKind)x.Kind,
                 x.Amount, x.Details, x.IsEffective, x.EffectiveDate, x.EffectiveAt, x.CardExternalId, x.CardLastDigitsExternalId, x.InstallmentPurchaseExternalId, x.InstallmentNumber,
-                x.InstallmentPurchaseExternalId is { } purchaseId ? purchases[purchaseId].Count : null, x.RecurringEntryExternalId, x.OccurrenceMonth);
+                x.InstallmentPurchaseExternalId is { } purchaseId ? purchases[purchaseId].Count : null, x.RecurringEntryExternalId, x.OccurrenceMonth, Reimbursement: ReimbursementOf(x));
         }).ToList();
     }
+
+    private static EntryReimbursement? ReimbursementOf(TransactionEntry entry)
+        => entry.ReimbursementPersonExternalId is { } person && entry.ReimbursementPercent is { } percent ? new(person, percent) : null;
+
+    public Task<bool> IsReimbursementPersonUsedAsync(Guid personExternalId, CancellationToken cancellationToken = default)
+        => operations.ExecuteAsync(async token => (await store.GetAsync(token)).Any(x => x.ReimbursementPersonExternalId == personExternalId), _ => true, cancellationToken);
 
     public Task<AccountBalance?> GetBalanceAsync(Guid accountExternalId, DateOnly referenceDate, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(token => GetBalanceCoreAsync(accountExternalId, referenceDate, token), _ => true, cancellationToken);

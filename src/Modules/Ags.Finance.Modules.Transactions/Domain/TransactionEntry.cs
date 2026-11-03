@@ -22,6 +22,8 @@ internal sealed class TransactionEntry : Entity
     public bool IsEffective { get; private set; }
     public DateOnly? EffectiveDate { get; private set; }
     public DateTimeOffset? EffectiveAt { get; private set; }
+    public Guid? ReimbursementPersonExternalId { get; private set; }
+    public decimal? ReimbursementPercent { get; private set; }
 
     public string? Update(DateOnly date, AccountingMonth month, Guid merchantExternalId, Guid subcategoryExternalId, Guid accountExternalId, CategoryKind kind, Money amount, string details, bool allowZeroAmount = false)
     {
@@ -46,6 +48,19 @@ internal sealed class TransactionEntry : Entity
         Amount = kind == CategoryKind.Expense ? -amount : amount;
         Details = details.Trim();
         NormalizedDetails = SearchText.Normalize(Details);
+        return null;
+    }
+
+    public string? SetReimbursement(Guid? personExternalId, decimal? percent)
+    {
+        if (personExternalId is not null || percent is not null)
+        {
+            if (Kind != CategoryKind.Expense) { return "O reembolso só pode ser indicado em despesas."; }
+            if (personExternalId is null || personExternalId == Guid.Empty || percent is not { } value) { return "Informe a pessoa e o percentual do reembolso."; }
+            if (value is < 0 or > 100 || decimal.Round(value, 2) != value) { return "Informe um percentual de reembolso de 0 a 100, com até duas casas decimais."; }
+        }
+        ReimbursementPersonExternalId = personExternalId;
+        ReimbursementPercent = percent;
         return null;
     }
 
@@ -85,6 +100,8 @@ internal sealed class TransactionEntry : Entity
         if (!keepAmount) { Amount = prepared.Amount; }
         Details = prepared.Details;
         NormalizedDetails = prepared.NormalizedDetails;
+        ReimbursementPersonExternalId = prepared.ReimbursementPersonExternalId;
+        ReimbursementPercent = prepared.ReimbursementPercent;
         if (IsEffective && dateChanged) { EffectiveDate = prepared.Date; }
     }
 

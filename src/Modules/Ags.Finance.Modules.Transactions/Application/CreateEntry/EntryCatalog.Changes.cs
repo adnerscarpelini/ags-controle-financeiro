@@ -40,7 +40,8 @@ internal sealed partial class EntryCatalog
                 CardExternalId = request.CardExternalId == baseline.CardExternalId ? entry.CardExternalId : request.CardExternalId,
                 CardLastDigitsExternalId = request.CardLastDigitsExternalId == baseline.CardLastDigitsExternalId ? entry.CardLastDigitsExternalId : request.CardLastDigitsExternalId,
                 Amount = request.Amount == selectedAmount ? new Money(Math.Abs(entry.Amount.Amount)) : request.Amount,
-                Details = request.Details == baseline.Details ? entry.Details : request.Details
+                Details = request.Details == baseline.Details ? entry.Details : request.Details,
+                Reimbursement = request.Reimbursement == baseline.Reimbursement ? ReimbursementOf(entry) : request.Reimbursement
             };
             var prepared = await PrepareAsync(changed, cancellationToken, entry);
             if (prepared.Entry is not { } updated) { return new(null, prepared.Error); }
@@ -79,11 +80,11 @@ internal sealed partial class EntryCatalog
             if (source is null) { return new ClassificationResult(null, "Lançamento não encontrado."); }
             return await CreateCoreAsync(new(DateOnly.FromDateTime(clock.GetLocalNow().DateTime), source.MerchantExternalId,
                 source.SubcategoryExternalId, source.AccountExternalId, new Money(Math.Abs(source.Amount.Amount)), source.Details,
-                source.Month, source.CardExternalId, source.CardLastDigitsExternalId), token);
+                source.Month, source.CardExternalId, source.CardLastDigitsExternalId, ReimbursementOf(source)), token);
         }, x => x.Succeeded, cancellationToken);
 
     private static CreateEntryRequest ToRequest(TransactionEntry entry)
-        => new(entry.Date, entry.MerchantExternalId, entry.SubcategoryExternalId, entry.AccountExternalId, new Money(Math.Abs(entry.Amount.Amount)), entry.Details, entry.Month, entry.CardExternalId, entry.CardLastDigitsExternalId);
+        => new(entry.Date, entry.MerchantExternalId, entry.SubcategoryExternalId, entry.AccountExternalId, new Money(Math.Abs(entry.Amount.Amount)), entry.Details, entry.Month, entry.CardExternalId, entry.CardLastDigitsExternalId, ReimbursementOf(entry));
 
     private Task<string?> RequireSourceOpenAsync(TransactionEntry entry, CancellationToken cancellationToken)
         => entry.CardExternalId is { } card ? invoices.RequireOpenAsync(card, entry.Month, cancellationToken) : Task.FromResult<string?>(null);

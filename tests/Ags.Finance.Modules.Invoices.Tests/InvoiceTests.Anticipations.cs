@@ -36,6 +36,21 @@ public sealed partial class InvoiceTests
         Assert.Contains(selected.MerchantName, Assert.Single(invoice.PaymentHistory).Details, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task AnticipationKeepsThePersonAndPercentOfTheInstallments()
+    {
+        _clock.Now = new DateTimeOffset(2026, 5, 1, 12, 0, 0, TimeSpan.Zero);
+        var entries = Provider.GetRequiredService<IEntryCatalog>();
+        var reimbursement = new EntryReimbursement(Guid.CreateVersion7(), 50m);
+        Assert.True((await entries.CreateInstallmentsAsync(Purchase(1000, 6) with { Date = new DateOnly(2026, 5, 14), Reimbursement = reimbursement }, 10)).Succeeded);
+        _clock.Now = new DateTimeOffset(2026, 9, 1, 12, 0, 0, TimeSpan.Zero);
+        var selected = (await entries.GetAsync()).Single(x => x.InstallmentNumber == 4);
+        var result = await Provider.GetRequiredService<IInvoiceAnticipationCatalog>().AnticipateAsync(new(Guid.CreateVersion7(), selected.ExternalId, 3, Money.Zero, new AccountingMonth(2026, 9)));
+        Assert.True(result.Succeeded, result.Error);
+        var moved = (await entries.GetAsync()).Where(x => x.InstallmentNumber >= 8).ToList();
+        Assert.All(moved, x => Assert.Equal((new AccountingMonth(2026, 9), reimbursement), (x.Month, x.Reimbursement)));
+    }
+
     [Theory]
     [InlineData(7, 0)]
     [InlineData(3, 300)]

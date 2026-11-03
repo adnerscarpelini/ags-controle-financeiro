@@ -10,7 +10,9 @@ internal sealed class EntryConfiguration : IEntityTypeConfiguration<TransactionE
     {
         builder.ToTable("entries");
         builder.Property(x => x.Details).HasMaxLength(1000).IsRequired();
+        builder.Property(x => x.ReimbursementPercent).HasPrecision(5, 2);
         builder.HasIndex(x => x.Month);
+        builder.HasIndex(x => x.ReimbursementPersonExternalId);
         builder.HasIndex(x => new { x.Date, x.Id });
         builder.HasIndex(x => new { x.CardExternalId, x.Month });
         builder.HasIndex(x => new { x.AccountExternalId, x.EffectiveDate });

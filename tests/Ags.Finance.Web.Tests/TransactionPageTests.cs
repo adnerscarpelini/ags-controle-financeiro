@@ -3,6 +3,8 @@ using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Invoices;
 using Ags.Finance.Modules.Invoices.Contracts;
 using Ags.Finance.Modules.Preferences;
+using Ags.Finance.Modules.Reimbursements;
+using Ags.Finance.Modules.Reimbursements.Contracts;
 using Ags.Finance.Modules.Transactions;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
@@ -20,9 +22,10 @@ public sealed class TransactionPageTests
     {
         await using var database = await PostgresTestDatabase.CreateAsync();
         await using var context = new BunitContext();
-        context.Services.AddSingleton<TimeProvider>(new PreviewClock()).AddAccountsModule(database.ConnectionString).AddTransactionsModule(database.ConnectionString).AddInvoicesModule(database.ConnectionString).AddPreferencesModule(database.ConnectionString);
+        context.Services.AddSingleton<TimeProvider>(new PreviewClock()).AddAccountsModule(database.ConnectionString).AddTransactionsModule(database.ConnectionString).AddReimbursementsModule(database.ConnectionString).AddInvoicesModule(database.ConnectionString).AddPreferencesModule(database.ConnectionString);
         await context.Services.MigrateAccountsModuleAsync();
         await context.Services.MigrateTransactionsModuleAsync();
+        await context.Services.MigrateReimbursementsModuleAsync();
         await context.Services.MigrateInvoicesModuleAsync();
         await context.Services.MigratePreferencesModuleAsync();
         var accounts = context.Services.GetRequiredService<IAccountCatalog>();
@@ -185,6 +188,59 @@ public sealed class TransactionPageTests
         await payable.FindAll("[aria-label='Registrar pagamento de fatura'] button").Single(x => x.TextContent == "Confirmar pagamento irreversível").ClickAsync(new());
         Assert.Contains("Paga", payable.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("11/2026", StringComparison.Ordinal)).TextContent, StringComparison.Ordinal);
         Assert.Single(await context.Services.GetRequiredService<IInvoicePaymentCatalog>().GetHistoryAsync());
+    }
+
+    [Fact]
+    public async Task ReimbursementFieldsAppearOnlyForExpensesAndThePersonPrefillsThePercent()
+    {
+        await using var database = await PostgresTestDatabase.CreateAsync();
+        await using var context = new BunitContext();
+        context.Services.AddSingleton<TimeProvider>(new PreviewClock()).AddAccountsModule(database.ConnectionString).AddTransactionsModule(database.ConnectionString).AddReimbursementsModule(database.ConnectionString).AddInvoicesModule(database.ConnectionString).AddPreferencesModule(database.ConnectionString);
+        await context.Services.MigrateAccountsModuleAsync();
+        await context.Services.MigrateTransactionsModuleAsync();
+        await context.Services.MigrateReimbursementsModuleAsync();
+        await context.Services.MigrateInvoicesModuleAsync();
+        await context.Services.MigratePreferencesModuleAsync();
+        var accounts = context.Services.GetRequiredService<IAccountCatalog>();
+        var bank = await accounts.CreateBankAsync("Banco Exemplo");
+        var account = await accounts.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta Exemplo", AccountKind.Checking, "green"));
+        var classifications = context.Services.GetRequiredService<IClassificationCatalog>();
+        var expenses = await classifications.SaveCategoryAsync(null, "Casa", CategoryKind.Expense);
+        var expense = await classifications.SaveSubcategoryAsync(null, expenses.ExternalId!.Value, "Internet");
+        var incomes = await classifications.SaveCategoryAsync(null, "Receitas", CategoryKind.Income);
+        var income = await classifications.SaveSubcategoryAsync(null, incomes.ExternalId!.Value, "Salário");
+        await context.Services.GetRequiredService<IMerchantCatalog>().SaveAsync(null, "Provedor Exemplo", expense.ExternalId);
+        var people = context.Services.GetRequiredService<IPersonCatalog>();
+        var person = (await people.SaveAsync(null, "Pessoa Exemplo", 50m)).ExternalId!.Value;
+        var page = context.Render<Transactions>();
+        page.WaitForAssertion(() => Assert.Contains("Internet", page.Find("#entry-subcategory").TextContent, StringComparison.Ordinal));
+
+        Assert.Empty(page.FindAll("#entry-reimbursement-person"));
+        await page.Find("#entry-subcategory").ChangeAsync(income.ExternalId!.Value.ToString());
+        Assert.Empty(page.FindAll("#entry-reimbursement-person"));
+
+        await page.Find("#entry-merchant").InputAsync("Provedor Exemplo");
+        await page.Find("#entry-subcategory").ChangeAsync(expense.ExternalId!.Value.ToString());
+        await page.Find("#entry-reimbursement-person").ChangeAsync(person.ToString());
+        Assert.Equal("50", page.Find("#entry-reimbursement-percent").GetAttribute("value"));
+
+        await page.Find("#entry-reimbursement-percent").ChangeAsync("30");
+        page.Find("#entry-account").Change(account.ExternalId!.Value.ToString());
+        page.Find("#entry-amount").Change("100");
+        await page.Find("form").SubmitAsync(EventArgs.Empty);
+
+        var entries = context.Services.GetRequiredService<IEntryCatalog>();
+        var entry = Assert.Single(await entries.GetAsync());
+        Assert.Equal(new EntryReimbursement(person, 30m), entry.Reimbursement);
+        Assert.Equal(50m, Assert.Single(await people.GetAsync()).DefaultPercent);
+        page.WaitForAssertion(() => Assert.Contains("Reembolso: Pessoa Exemplo · 30%", page.Find(".catalog-list li").TextContent, StringComparison.Ordinal));
+
+        await people.SaveAsync(person, "Pessoa Exemplo", 70m);
+        await page.FindAll(".catalog-list li button").Single(x => x.TextContent == "Editar").ClickAsync(new());
+        Assert.Equal("30", page.Find("#entry-reimbursement-percent").GetAttribute("value"));
+
+        await page.Find("#entry-subcategory").ChangeAsync(income.ExternalId!.Value.ToString());
+        Assert.Empty(page.FindAll("#entry-reimbursement-person"));
     }
 
     private sealed class PreviewClock : TimeProvider
