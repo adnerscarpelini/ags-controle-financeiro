@@ -4,6 +4,7 @@
     <Project Path="src/Ags.Finance.Web/Ags.Finance.Web.csproj" />
   </Folder>
   <Folder Name="/src/Modules/">
+    <Project Path="src/Modules/Ags.Finance.Modules.Attachments/Ags.Finance.Modules.Attachments.csproj" />
     <Project Path="src/Modules/Ags.Finance.Modules.Accounts/Ags.Finance.Modules.Accounts.csproj" />
     <Project Path="src/Modules/Ags.Finance.Modules.Identity/Ags.Finance.Modules.Identity.csproj" />
     <Project Path="src/Modules/Ags.Finance.Modules.Imports/Ags.Finance.Modules.Imports.csproj" />
@@ -14,6 +15,7 @@
     <Project Path="src/Modules/Ags.Finance.Modules.Transactions/Ags.Finance.Modules.Transactions.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Ags.Finance.Modules.Attachments.Tests/Ags.Finance.Modules.Attachments.Tests.csproj" />
     <Project Path="tests/Ags.Finance.ArchitectureTests/Ags.Finance.ArchitectureTests.csproj" />
     <Project Path="tests/Ags.Finance.Modules.Accounts.Tests/Ags.Finance.Modules.Accounts.Tests.csproj" />
     <Project Path="tests/Ags.Finance.Modules.Identity.Tests/Ags.Finance.Modules.Identity.Tests.csproj" />

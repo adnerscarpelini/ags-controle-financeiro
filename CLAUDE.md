@@ -33,7 +33,7 @@ tests/
   Ags.Finance.ArchitectureTests/
 ```
 
-Módulos: `Identity`, `Accounts`, `Transactions`, `Invoices`, `Reimbursements`, `Preferences`, `Reports` e `Imports`. Responsabilidades e dependências permitidas estão em `docs/architecture/module-structure.md`.
+Módulos: `Attachments`, `Identity`, `Accounts`, `Transactions`, `Invoices`, `Reimbursements`, `Preferences`, `Reports` e `Imports`. Responsabilidades e dependências permitidas estão em `docs/architecture/module-structure.md`.
 
 ### Regras de fronteira
 
@@ -47,12 +47,13 @@ Módulos: `Identity`, `Accounts`, `Transactions`, `Invoices`, `Reimbursements`, 
 
 ### Persistência e recuperação (decisão PostgreSQL)
 
-- Um banco PostgreSQL, com **schema, DbContext e histórico de migrations próprios por módulo** (`identity`, `accounts`, `transactions`, `invoices`, `reimbursements`, `preferences`), conforme [a decisão de persistência](docs/architecture/persistence-postgresql.md). A conexão vem de `ConnectionStrings__Finance` e nunca é versionada nem registrada em log.
+- Um banco PostgreSQL, com **schema, DbContext e histórico de migrations próprios por módulo** (`identity`, `accounts`, `transactions`, `invoices`, `reimbursements`, `preferences`, `attachments`), conforme [a decisão de persistência](docs/architecture/persistence-postgresql.md). A conexão vem de `ConnectionStrings__Finance` e nunca é versionada nem registrada em log.
 - Sem FK, JOIN ou SQL que cruze tabelas de módulos diferentes. Uma referência a outro módulo guarda o `ExternalId` dele.
 - Toda entidade com tabela própria tem `Id` (`long`, chave primária), `ExternalId` (`Guid`, gerado no domínio com `Guid.CreateVersion7()`, índice único), `CreatedAt` e `UpdatedAt` (`DateTimeOffset` UTC, vindos de `TimeProvider`, preenchidos por um interceptor do módulo).
 - Mapeamentos com `IEntityTypeConfiguration<T>` na `Infrastructure`; o domínio não tem atributos de persistência.
 - Valores monetários: `decimal` no código (`Money`), centavos em `BIGINT` no PostgreSQL. Nunca `float` ou `double`. Preservar `AccountingMonth` como inteiro `yyyyMM`.
 - O PostgreSQL tem volume persistente próprio. `DataDirectory` fica para certificados, chaves e arquivos da aplicação. Não manter dados ativos em pasta sincronizada.
+- Anexos originais ficam em pasta própria (`Attachments__Directory`, `AGS_ATTACHMENTS_DIR`), separada de DataDirectory e backup; metadados no schema `attachments`. PDF, JPEG, PNG e WebP até 20 MB, lixeira de 30 dias. Ver `docs/architecture/attachments-storage.md`.
 - Backup sob demanda com `pg_dump` e recuperação com `pg_restore`, incluindo preparação de papéis/permissões e arquivos associados. Validar recuperação em instalação vazia e guardar cópia fora da máquina. O backup é um serviço da aplicação (`Ags.Finance.Web/Backup`): comandos `backup create|list|verify|restore`, agenda diária, retenção (30 + mensal preservado) e tela `/backups` com restauração em modo de manutenção (#59/#31). Volumes e CSV não equivalem a backup de desastre.
 
 ### Regras de negócio centrais

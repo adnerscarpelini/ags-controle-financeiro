@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using Ags.Finance.Modules.Accounts;
+using Ags.Finance.Modules.Attachments;
 using Ags.Finance.Modules.Identity;
 using Ags.Finance.Modules.Imports;
 using Ags.Finance.Modules.Invoices;
@@ -8,6 +9,7 @@ using Ags.Finance.Modules.Preferences;
 using Ags.Finance.Modules.Reimbursements;
 using Ags.Finance.Modules.Reports;
 using Ags.Finance.Modules.Transactions;
+using Ags.Finance.Web.Attachments;
 using Ags.Finance.Web.Authentication;
 using Ags.Finance.Web.Backup;
 using Ags.Finance.Web.BankLogos;
@@ -71,7 +73,11 @@ catch (InvalidOperationException exception)
     return 1;
 }
 
+var attachmentOptions = AttachmentSetup.ReadOptions(builder.Configuration, dataDirectory);
+if (attachmentOptions.Error is { } attachmentError) { await Console.Error.WriteLineAsync(attachmentError); }
+
 builder.Services
+    .AddAttachmentsModule(connectionString, attachmentOptions)
     .AddIdentityModule(connectionString)
     .AddAccountsModule(connectionString)
     .AddTransactionsModule(connectionString)
@@ -81,6 +87,7 @@ builder.Services
     .AddReportsModule()
     .AddImportsModule();
 builder.Services.AddHostedService<Ags.Finance.Web.Invoices.InvoiceClosingScheduler>();
+builder.Services.AddHostedService<AttachmentCleanup>();
 
 // Sem as chaves em disco, recriar o container invalidaria o cookie de sessão e o antiforgery.
 builder.Services.AddDataProtection()
@@ -120,6 +127,7 @@ app.UseAntiforgery();
 
 app.MapAccountEndpoints();
 app.MapBankLogoEndpoints();
+app.MapAttachmentEndpoints();
 app.MapCsvEndpoints();
 app.MapTransactionCsvEndpoints();
 app.MapRazorComponents<App>()

@@ -1,4 +1,5 @@
 using Ags.Finance.Modules.Accounts;
+using Ags.Finance.Modules.Attachments;
 using Ags.Finance.Modules.Identity;
 using Ags.Finance.Modules.Invoices;
 using Ags.Finance.Modules.Preferences;
@@ -81,6 +82,8 @@ internal static class DatabaseStartup
     {
         await WaitUntilReadyAsync(connectionString, readyTimeout, logger, cancellationToken);
 
+        if (services.GetService<Ags.Finance.Modules.Attachments.Contracts.AttachmentStorageOptions>() is not null)
+        { await services.MigrateAttachmentsModuleAsync(cancellationToken); }
         await services.MigrateIdentityModuleAsync(cancellationToken);
         await services.MigrateAccountsModuleAsync(cancellationToken);
         await services.MigrateTransactionsModuleAsync(cancellationToken);

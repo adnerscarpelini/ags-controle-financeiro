@@ -12,11 +12,22 @@ body:
         - maintenance
     validations:
       required: true
-  - type: input
+  - type: dropdown
     id: module
     attributes:
       label: Módulo
-      value: Transversal
+      options:
+        - Transversal
+        - Attachments
+        - Identity
+        - Accounts
+        - Transactions
+        - Invoices
+        - Reimbursements
+        - Preferences
+        - Reports
+        - Imports
+        - Web
   - type: textarea
     id: motivation
     attributes:

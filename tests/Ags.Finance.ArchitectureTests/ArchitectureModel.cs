@@ -15,10 +15,11 @@ internal static class ArchitectureModel
     /// </summary>
     public static readonly IReadOnlyDictionary<string, string[]> AllowedDependencies = new Dictionary<string, string[]>
     {
+        ["Attachments"] = [],
         ["Identity"] = [],
         ["Accounts"] = [],
-        ["Transactions"] = ["Accounts"],
-        ["Invoices"] = ["Accounts", "Transactions", "Preferences"],
+        ["Transactions"] = ["Accounts", "Attachments"],
+        ["Invoices"] = ["Accounts", "Transactions", "Preferences", "Attachments"],
         ["Preferences"] = [],
         ["Reimbursements"] = ["Accounts", "Transactions"],
         ["Reports"] = ["Identity", "Accounts", "Transactions", "Invoices", "Reimbursements", "Preferences"],
@@ -27,6 +28,7 @@ internal static class ArchitectureModel
 
     private static readonly Dictionary<string, Assembly> s_moduleAssemblies = new()
     {
+        ["Attachments"] = typeof(Modules.Attachments.DependencyInjection).Assembly,
         ["Identity"] = typeof(Modules.Identity.DependencyInjection).Assembly,
         ["Accounts"] = typeof(Modules.Accounts.DependencyInjection).Assembly,
         ["Transactions"] = typeof(Modules.Transactions.DependencyInjection).Assembly,
