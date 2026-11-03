@@ -1,0 +1,22 @@
+@using Ags.Finance.Modules.Reports.Contracts
+
+@if (Items.Count == 0)
+{
+    <p>@Empty</p>
+}
+else
+{
+    <ul class="catalog-list" aria-label="@Label">
+        @foreach (var item in Items)
+        {
+            <li><span>@item.Date.ToString("dd/MM/yyyy") · @item.Description · @item.AccountName</span>
+                <span class="numeric @(item.IsIncome ? "entry-income" : "entry-expense")">@(item.IsIncome ? "+" : "-")@item.Amount</span></li>
+        }
+    </ul>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<PendingItem> Items { get; set; } = [];
+    [Parameter, EditorRequired] public string Empty { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+}
