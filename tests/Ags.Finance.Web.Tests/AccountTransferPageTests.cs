@@ -32,6 +32,7 @@ public sealed class AccountTransferPageTests
             Dialogs.Find("#transfer-amount").Input(amount);
             await Dialogs.Find("#transfer-source").ChangeAsync(Source.ToString());
             await Dialogs.Find("#transfer-destination").ChangeAsync(Destination.ToString());
+            Dialogs.WaitForAssertion(() => Assert.False(Dialogs.Find("[data-save]").HasAttribute("disabled")));
         }
     }
 
@@ -61,9 +62,9 @@ public sealed class AccountTransferPageTests
         Assert.True(scenario.Dialogs.Find("[data-save]").HasAttribute("disabled"));
         Assert.Equal("Informe um valor maior que zero.", scenario.Dialogs.Find("[data-entry-missing]").TextContent);
         scenario.Dialogs.Find("#transfer-amount").Input("10");
-        Assert.Equal("Escolha a conta de origem.", scenario.Dialogs.Find("[data-entry-missing]").TextContent);
+        scenario.Dialogs.WaitForAssertion(() => Assert.Equal("Escolha a conta de origem.", scenario.Dialogs.Find("[data-entry-missing]").TextContent));
         await scenario.Dialogs.Find("#transfer-source").ChangeAsync(scenario.Source.ToString());
-        Assert.Equal("Escolha a conta de destino.", scenario.Dialogs.Find("[data-entry-missing]").TextContent);
+        scenario.Dialogs.WaitForAssertion(() => Assert.Equal("Escolha a conta de destino.", scenario.Dialogs.Find("[data-entry-missing]").TextContent));
         Assert.DoesNotContain("Reserva Exemplo", scenario.Dialogs.Find("#transfer-source").TextContent, StringComparison.Ordinal);
     }
 

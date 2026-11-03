@@ -2,11 +2,10 @@
 @using Ags.Finance.Modules.Accounts.Contracts
 @using Ags.Finance.SharedKernel
 @inject IAccountCatalog Catalog
-@inject ICardLastDigitsCatalog CardFinals
 @inject TimeProvider Clock
 
-<PageHeader Title="Contas e cartões" />
-<label class="checkbox"><input id="show-archived" type="checkbox" @bind="_showArchived" />Exibir arquivados e cartões indisponíveis pela conta</label>
+<PageHeader Title="Bancos e contas" />
+<label class="checkbox"><input id="show-archived" type="checkbox" @bind="_showArchived" />Exibir arquivados</label>
 
 @if (_message is not null)
 {
@@ -84,80 +83,16 @@
                 @if (account.OpeningDate is { } openingDate) { <span>Saldo inicial: @account.OpeningBalance em @openingDate.ToString("dd/MM/yyyy")</span> }
                 <div>
                     <button class="button" @onclick="() => EditAccount(account)">Editar</button>
-                    <button class="button" @onclick="() => AskArchive(account.ExternalId, false, !account.IsActive)">@(account.IsActive ? "Arquivar" : "Desarquivar")</button>
+                    <button class="button" @onclick="() => AskArchive(account.ExternalId, !account.IsActive)">@(account.IsActive ? "Arquivar" : "Desarquivar")</button>
                 </div>
             </li>
         }
     </ul>
 </section>
 
-<section class="panel">
-    <h2>@(_cardId is null ? "Novo cartão" : "Editar cartão")</h2>
-    <form @onsubmit="SaveCardAsync" @onsubmit:preventDefault>
-        <div class="catalog-fields">
-            <div class="field">
-                <label for="card-name">Nome do cartão</label>
-                <input id="card-name" @bind="_cardName" maxlength="100" required />
-            </div>
-            <div class="field">
-                <label for="card-account">Conta corrente para pagamento</label>
-                <select id="card-account" @bind="_cardAccount" required>
-                    <option value="@Guid.Empty">Selecione</option>
-                    @foreach (var account in _accounts.Where(x => x.IsActive && x.Kind == AccountKind.Checking))
-                    { <option value="@account.ExternalId">@account.Name</option> }
-                </select>
-            </div>
-            <div class="field">
-                <label for="card-brand">Bandeira</label>
-                <select id="card-brand" @bind="_cardBrand">
-                    <option value="@CardBrand.Visa">Visa</option>
-                    <option value="@CardBrand.Mastercard">Mastercard</option>
-                    <option value="@CardBrand.Elo">Elo</option>
-                </select>
-            </div>
-            <div class="field">
-                <label for="card-limit">Limite (R$)</label>
-                <input id="card-limit" type="number" step="0.01" min="0" @bind="_creditLimit" required />
-            </div>
-            <div class="field">
-                <label for="closing-day">Dia de fechamento</label>
-                <input id="closing-day" type="number" min="1" max="31" @bind="_closingDay" required />
-            </div>
-            <div class="field">
-                <label for="due-day">Dia de vencimento</label>
-                <input id="due-day" type="number" min="1" max="31" @bind="_dueDay" required />
-            </div>
-            <CatalogColor Id="card-color" @bind-Value="_cardColor" />
-        </div>
-        <label class="checkbox"><input type="checkbox" @bind="_includesClosingDay" />Compras no dia do fechamento entram na fatura que fecha</label>
-        <button class="button" type="submit" disabled="@_busy">Salvar cartão</button>
-        <button class="button" type="button" @onclick="ResetCard">Limpar</button>
-    </form>
-    <ul class="catalog-list card-wallet" aria-label="Carteira de cartões">
-        @foreach (var card in _cards.Where(x => _showArchived || x.IsAvailable))
-        {
-            var account = _accounts.FirstOrDefault(x => x.ExternalId == card.AccountExternalId);
-            var bank = _banks.FirstOrDefault(x => x.ExternalId == account?.BankExternalId);
-            <li @key="card.ExternalId">
-                <CreditCardView Card="card" Account="account" Bank="bank" Finals="_cardFinals.GetValueOrDefault(card.ExternalId, [])"
-                                Edit="() => EditCard(card)" ShowFinals="() => _digitsCard = card"
-                                ToggleArchive="() => AskArchive(card.ExternalId, true, !card.IsActive)" />
-            </li>
-        }
-    </ul>
-</section>
-
-@if (_digitsCard is not null)
-{
-    <CardLastDigitsPanel @key="_digitsCard.ExternalId" CardExternalId="_digitsCard.ExternalId" CardName="_digitsCard.Name" Changed="RefreshAsync" />
-}
-
 @code {
-    private CreditCardDetails? _digitsCard;
-    private readonly Dictionary<Guid, IReadOnlyList<CardLastDigitsDetails>> _cardFinals = [];
     private IReadOnlyList<BankDetails> _banks = [];
     private IReadOnlyList<AccountDetails> _accounts = [];
-    private IReadOnlyList<CreditCardDetails> _cards = [];
     private string _bankName = string.Empty;
     private Guid? _accountId;
     private Guid _accountBank;
@@ -167,20 +102,10 @@
     private decimal _openingBalance;
     private DateOnly? _openingDate;
     private bool _openingLocked;
-    private Guid? _cardId;
-    private Guid _cardAccount;
-    private string _cardName = string.Empty;
-    private CardBrand _cardBrand;
-    private decimal _creditLimit;
-    private int _closingDay = 3;
-    private int _dueDay = 10;
-    private bool _includesClosingDay;
-    private string _cardColor = string.Empty;
     private string? _message;
     private bool _failed;
     private bool _busy;
     private Guid? _pendingId;
-    private bool _pendingCard;
     private bool _restoring;
     private bool _showArchived;
     private BankDetails? _logoBank;
@@ -196,9 +121,6 @@
     {
         _banks = await Catalog.GetBanksAsync();
         _accounts = await Catalog.GetAccountsAsync(activeOnly: false);
-        _cards = await Catalog.GetCreditCardsAsync(activeOnly: false);
-        _cardFinals.Clear();
-        foreach (var card in _cards) { _cardFinals[card.ExternalId] = await CardFinals.GetAsync(card.ExternalId); }
     }
 
     private async Task ApplyAsync(Func<Task<CatalogResult>> operation)
@@ -229,12 +151,6 @@
         if (!_failed) { ResetAccount(); }
     }
 
-    private async Task SaveCardAsync()
-    {
-        await ApplyAsync(() => Catalog.SaveCreditCardAsync(new(_cardId, _cardAccount, _cardName, _cardBrand, new Money(_creditLimit), _closingDay, _dueDay, _includesClosingDay, _cardColor)));
-        if (!_failed) { ResetCard(); }
-    }
-
     private void EditAccount(AccountDetails account)
     {
         _accountId = account.ExternalId;
@@ -245,19 +161,6 @@
         _openingBalance = account.OpeningBalance.Amount;
         _openingDate = account.OpeningDate ?? DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
         _openingLocked = account.OpeningDate is not null;
-    }
-
-    private void EditCard(CreditCardDetails card)
-    {
-        _cardId = card.ExternalId;
-        _cardAccount = card.AccountExternalId;
-        _cardName = card.Name;
-        _cardBrand = card.Brand;
-        _creditLimit = card.CreditLimit.Amount;
-        _closingDay = card.ClosingDay;
-        _dueDay = card.DueDay;
-        _includesClosingDay = card.IncludesClosingDay;
-        _cardColor = card.Color;
     }
 
     private void ResetAccount()
@@ -272,32 +175,16 @@
         _openingLocked = false;
     }
 
-    private void ResetCard()
-    {
-        _cardId = null;
-        _cardAccount = Guid.Empty;
-        _cardName = string.Empty;
-        _cardBrand = CardBrand.Visa;
-        _creditLimit = 0;
-        _closingDay = 3;
-        _dueDay = 10;
-        _includesClosingDay = false;
-        _cardColor = string.Empty;
-    }
-
-    private void AskArchive(Guid id, bool isCard, bool restoring)
+    private void AskArchive(Guid id, bool restoring)
     {
         _pendingId = id;
-        _pendingCard = isCard;
         _restoring = restoring;
     }
 
     private async Task ConfirmArchiveAsync()
     {
         if (_pendingId is not Guid id) { return; }
-        await ApplyAsync(() => _pendingCard
-            ? _restoring ? Catalog.ReactivateCreditCardAsync(id) : Catalog.DeactivateCreditCardAsync(id)
-            : _restoring ? Catalog.ReactivateAccountAsync(id) : Catalog.DeactivateAccountAsync(id));
+        await ApplyAsync(() => _restoring ? Catalog.ReactivateAccountAsync(id) : Catalog.DeactivateAccountAsync(id));
         if (!_failed) { _message = _restoring ? "Cadastro desarquivado." : "Cadastro arquivado."; }
         _pendingId = null;
     }

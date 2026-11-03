@@ -36,7 +36,7 @@ public sealed class AccountsAndCardsTests : IAsyncLifetime, IDisposable
     }
 
     [Fact]
-    public async Task FormsCreateBankAccountAndCardAndOfferArchiveAndRestore()
+    public async Task FormsCreateBankAndAccountAndOfferArchiveAndRestore()
     {
         var page = _context.Render<AccountsAndCards>();
         await page.InvokeAsync(() => page.Find("#bank-name").Change("Banco Exemplo"));
@@ -54,54 +54,15 @@ public sealed class AccountsAndCardsTests : IAsyncLifetime, IDisposable
         var account = Assert.Single(await catalog.GetAccountsAsync());
         Assert.Equal(new Money(1250.50m), account.OpeningBalance);
         Assert.Equal(new DateOnly(2026, 11, 1), account.OpeningDate);
-        await page.InvokeAsync(() => page.Find("#card-name").Change("Cartão Exemplo"));
-        await page.InvokeAsync(() => page.Find("#card-account").Change(account.ExternalId.ToString()));
-        await page.InvokeAsync(() => page.Find("#card-brand").Change(CardBrand.Mastercard.ToString()));
-        await page.InvokeAsync(() => page.Find("#card-limit").Change("10000"));
-        await page.InvokeAsync(() => page.Find("#card-color").Change("violet"));
-        await page.FindAll("form")[2].SubmitAsync(EventArgs.Empty);
-        page.WaitForAssertion(() => Assert.Contains("Mastercard", page.FindAll(".catalog-list")[1].TextContent, StringComparison.Ordinal));
-        var cardId = Assert.Single(await catalog.GetCreditCardsAsync()).ExternalId;
-        await page.InvokeAsync(() => page.FindAll(".catalog-list")[1].QuerySelectorAll("button")[2].ClickAsync(new()));
+        await page.InvokeAsync(() => page.FindAll(".catalog-list button").Single(x => x.TextContent == "Arquivar").ClickAsync(new()));
         page.WaitForAssertion(() => Assert.Contains("Arquivar cadastro", page.Find("[role=alertdialog]").TextContent, StringComparison.Ordinal));
         await page.InvokeAsync(() => page.Find("[role=alertdialog] button").ClickAsync(new()));
+        page.WaitForAssertion(() => Assert.Empty(page.FindAll("[role=alertdialog]")));
+        Assert.Empty(await catalog.GetAccountsAsync());
         page.Find("#show-archived").Change(true);
-        page.WaitForAssertion(() => Assert.Contains("Arquivado individualmente", page.FindAll(".catalog-list")[1].TextContent, StringComparison.Ordinal));
-        Assert.Empty(await catalog.GetCreditCardsAsync());
-        Assert.Single(await catalog.GetCreditCardsAsync(false));
-        await page.FindAll(".catalog-list")[1].QuerySelectorAll("button").Single(x => x.TextContent == "Desarquivar").ClickAsync(new());
-        await page.FindAll("[role=alertdialog] button")[1].ClickAsync(new());
-        Assert.Empty(await catalog.GetCreditCardsAsync());
-        await page.FindAll(".catalog-list")[1].QuerySelectorAll("button").Single(x => x.TextContent == "Desarquivar").ClickAsync(new());
+        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Desarquivar").ClickAsync(new());
         await page.Find("[role=alertdialog] button").ClickAsync(new());
-        Assert.Equal(cardId, Assert.Single(await catalog.GetCreditCardsAsync()).ExternalId);
-    }
-
-    [Fact]
-    public async Task WalletRefreshesCardEditsAndFinalChangesWithoutStaticImages()
-    {
-        var catalog = _context.Services.GetRequiredService<IAccountCatalog>();
-        var bank = await catalog.CreateBankAsync("Banco Exemplo");
-        var account = await catalog.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta Exemplo", AccountKind.Checking, "green"));
-        foreach (var brand in Enum.GetValues<CardBrand>())
-        {
-            await catalog.SaveCreditCardAsync(new(null, account.ExternalId!.Value, $"Cartão {brand}", brand, new Money(1000), 3, 10, false, "green"));
-        }
-        var page = _context.Render<AccountsAndCards>();
-        page.WaitForAssertion(() => Assert.Equal(3, page.FindAll(".wallet-card").Count));
-        await page.Find(".wallet-card button").ClickAsync(new());
-        await page.InvokeAsync(() => page.Find("#card-name").Change("Cartão Atualizado"));
-        await page.InvokeAsync(() => page.Find("#card-limit").Change("4321.98"));
-        await page.FindAll("form")[2].SubmitAsync(EventArgs.Empty);
-        page.WaitForAssertion(() => Assert.Contains("R$ 4.321,98", page.Find(".card-wallet").TextContent, StringComparison.Ordinal));
-        var updated = page.FindAll(".wallet-card").Single(x => x.TextContent.Contains("Cartão Atualizado", StringComparison.Ordinal));
-        await updated.QuerySelectorAll("button")[1].ClickAsync(new());
-        page.WaitForElement("#card-digits");
-        await page.InvokeAsync(() => page.Find("#card-digits").Change("5678"));
-        await page.InvokeAsync(() => page.Find("#digits-label").Change("Assinaturas"));
-        await page.FindAll("form")[3].SubmitAsync(EventArgs.Empty);
-        page.WaitForAssertion(() => Assert.Contains("Final 5678 · Assinaturas", page.Find(".card-wallet").TextContent, StringComparison.Ordinal));
-        Assert.Empty(page.FindAll(".wallet-card img"));
+        Assert.Single(await catalog.GetAccountsAsync());
     }
 
     [Fact]

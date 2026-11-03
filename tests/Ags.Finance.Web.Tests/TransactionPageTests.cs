@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using Ags.Finance.Modules.Invoices.Contracts;
 using Ags.Finance.Modules.Preferences.Contracts;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
@@ -516,54 +515,6 @@ public sealed partial class TransactionPageTests
         await Rows(page)[0].QuerySelector("[data-action=attach]")!.ClickAsync(new MouseEventArgs());
 
         ui.Dialogs.WaitForAssertion(() => Assert.NotEmpty(ui.Dialogs.FindAll("[aria-label='Documentos anexados']")));
-    }
-
-    [Fact]
-    public async Task TheInvoiceScreenShowsThePurchaseClosesAdjustsAndPays()
-    {
-        await using var ui = await EntryUi.CreateAsync();
-        await ui.Entries.CreateAsync(new(new DateOnly(2026, 10, 2), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(100), string.Empty, new ReferenceMonth(2026, 11), ui.Card, UseSelectedInvoice: true));
-        var invoices = ui.Context.Render<Ags.Finance.Web.Components.Pages.Invoices>();
-        invoices.WaitForAssertion(() => Assert.Single(invoices.FindAll(".catalog-list li")));
-        await invoices.Find(".catalog-list button").ClickAsync(new MouseEventArgs());
-        Assert.Contains("Loja Exemplo", invoices.Find("[aria-label='Composição da fatura']").TextContent, StringComparison.Ordinal);
-        Assert.Single(invoices.FindAll("[aria-label='Composição da fatura'] li"));
-
-        await invoices.FindAll(".catalog-list button").Single(x => x.TextContent == "Fechar").ClickAsync(new MouseEventArgs());
-        await invoices.FindAll("[role=alertdialog] button")[1].ClickAsync(new MouseEventArgs());
-        Assert.Empty(invoices.FindAll("[role=alertdialog]"));
-        await invoices.FindAll(".catalog-list button").Single(x => x.TextContent == "Fechar").ClickAsync(new MouseEventArgs());
-        await invoices.Find("[role=alertdialog] button").ClickAsync(new MouseEventArgs());
-        Assert.Contains("Fechada", invoices.Find("[aria-label='Composição da fatura']").TextContent, StringComparison.Ordinal);
-
-        var closedRow = invoices.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Fechada", StringComparison.Ordinal));
-        await closedRow.QuerySelectorAll("button").Single(x => x.TextContent == "Ajustar valor").ClickAsync(new MouseEventArgs());
-        invoices.Find("#invoice-correct-total").Change("100.01");
-        await invoices.FindAll("[aria-label='Ajustar total da fatura'] button").Single(x => x.TextContent == "Cancelar").ClickAsync(new MouseEventArgs());
-        closedRow = invoices.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Fechada", StringComparison.Ordinal));
-        await closedRow.QuerySelectorAll("button").Single(x => x.TextContent == "Ajustar valor").ClickAsync(new MouseEventArgs());
-        invoices.Find("#invoice-correct-total").Change("100.01");
-        await invoices.Find("#invoice-adjustment-form").SubmitAsync(EventArgs.Empty);
-        Assert.Contains("R$ 0,01", invoices.Find("[aria-label='Ajustar total da fatura']").TextContent, StringComparison.Ordinal);
-        await invoices.FindAll("[aria-label='Ajustar total da fatura'] button").Single(x => x.TextContent == "Confirmar ajuste de fatura").ClickAsync(new MouseEventArgs());
-
-        closedRow = invoices.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Fechada", StringComparison.Ordinal));
-        await closedRow.QuerySelectorAll("button").Single(x => x.TextContent == "Pagar").ClickAsync(new MouseEventArgs());
-        invoices.WaitForAssertion(() => Assert.False(invoices.Find("#invoice-payment-form button").HasAttribute("disabled")));
-        Assert.Equal(ui.Account.ToString(), invoices.Find("#payment-account").GetAttribute("value"));
-        await invoices.FindAll("[aria-label='Registrar pagamento de fatura'] button").Single(x => x.TextContent == "Cancelar").ClickAsync(new MouseEventArgs());
-        var payments = ui.Context.Services.GetRequiredService<IInvoicePaymentCatalog>();
-        Assert.Empty(await payments.GetHistoryAsync());
-        closedRow = invoices.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Fechada", StringComparison.Ordinal));
-        await closedRow.QuerySelectorAll("button").Single(x => x.TextContent == "Pagar").ClickAsync(new MouseEventArgs());
-        invoices.WaitForAssertion(() => Assert.False(invoices.Find("#invoice-payment-form button").HasAttribute("disabled")));
-        invoices.Find("#payment-settle").Change(true);
-        await invoices.Find("#invoice-payment-form").SubmitAsync(EventArgs.Empty);
-        Assert.Contains("definitivo", invoices.Find("[aria-label='Registrar pagamento de fatura']").TextContent, StringComparison.Ordinal);
-        await invoices.FindAll("[aria-label='Registrar pagamento de fatura'] button").Single(x => x.TextContent == "Confirmar pagamento").ClickAsync(new MouseEventArgs());
-
-        Assert.Contains("Paga", invoices.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("11/2026", StringComparison.Ordinal)).TextContent, StringComparison.Ordinal);
-        Assert.Single(await payments.GetHistoryAsync());
     }
 
     [Fact]

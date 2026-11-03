@@ -1,0 +1,22 @@
+@* Anexos de uma fatura. *@
+@using Ags.Finance.SharedKernel
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <InvoiceAttachments CardExternalId="CardExternalId" Month="Month" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-done OnClick="() => Dialog?.Close(DialogResult.Ok(true))">Fechar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid CardExternalId { get; set; }
+
+    [Parameter, EditorRequired]
+    public ReferenceMonth Month { get; set; }
+}

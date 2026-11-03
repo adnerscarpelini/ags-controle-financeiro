@@ -63,3 +63,7 @@ e Reports, ignoram esses pagamentos. Repetir a reabertura não devolve dinheiro 
 vezes; reenviar a confirmação original de um pagamento desfeito não o recria.
 Pagamento, movimento de conta e estado da fatura usam a mesma transação: qualquer
 falha reverte tudo. Enquanto Paga, compras e ajustes continuam protegidos.
+
+## Janela de pagamento (#100)
+
+**Pagar fatura** abre `InvoicePaymentDialog`, com valor, data e a conta vinculada já selecionada, que pode ser trocada. O segundo passo revisa e avisa que o pagamento só pode ser desfeito reabrindo a fatura. Se o anexo falhar, o pagamento continua registrado e a janela oferece reenviar somente o documento.

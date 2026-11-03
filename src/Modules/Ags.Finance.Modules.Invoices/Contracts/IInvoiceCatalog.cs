@@ -30,6 +30,16 @@ public sealed record InvoiceDetails(Guid CardExternalId, string CardName, Refere
     public bool OnlyForecast => !ForecastIncluded && ForecastEntries.Count > 0 && ForecastEntries.Count == Entries.Count;
 }
 
+public sealed record InvoiceDates(DateOnly ClosingDate, DateOnly DueDate);
+
+/// <summary>Limite usado: saldo restante das faturas ainda não pagas do cartão, inclusive parcelas futuras. Crédito de uma fatura não reduz outra.</summary>
+public sealed record CardLimit(Guid CardExternalId, Money Limit, Money Used)
+{
+    public Money Available => Limit - Used;
+
+    public int UsedPercent => Limit.Amount <= 0 ? 0 : (int)Math.Min(100, Math.Round(Used.Amount / Limit.Amount * 100, MidpointRounding.AwayFromZero));
+}
+
 public sealed record SelectableInvoice(ReferenceMonth Month, InvoiceStatus Status);
 public sealed record InvoiceSelection(ReferenceMonth? CalculatedMonth, ReferenceMonth? SuggestedMonth, IReadOnlyList<SelectableInvoice> Invoices, string? Error = null);
 
@@ -38,5 +48,10 @@ public interface IInvoiceCatalog
     Task<InvoiceSelection> GetSelectableInvoicesAsync(Guid cardExternalId, DateOnly date, ReferenceMonth? through = null, CancellationToken cancellationToken = default);
     Task<InvoiceObligations> GetObligationsAsync(ReferenceMonth selectedMonth, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<InvoiceDetails>> GetAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Datas de fechamento e vencimento da fatura, pelo calendário atual do cartão. Cartão inexistente devolve null.</summary>
+    Task<InvoiceDates?> GetDatesAsync(Guid cardExternalId, ReferenceMonth month, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<CardLimit>> GetCardLimitsAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<InvoiceDetails>> GetMonthAsync(ReferenceMonth month, CancellationToken cancellationToken = default);
 }

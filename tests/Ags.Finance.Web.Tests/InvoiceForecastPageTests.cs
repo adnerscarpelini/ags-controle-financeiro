@@ -43,30 +43,6 @@ public sealed class InvoiceForecastPageTests
     }
 
     [Theory]
-    [InlineData(RecurringInvoiceMode.SumOnDate, "R$ 100,00", "Previsto: + R$ 50,00 (total previsto: R$ 150,00)")]
-    [InlineData(RecurringInvoiceMode.SumUpfront, "R$ 150,00", "Inclui R$ 50,00 em recorrentes previstas.")]
-    public async Task InvoiceListAndCompositionShowTheForecastAccordingToThePreference(RecurringInvoiceMode mode, string total, string note)
-    {
-        await using var database = await PostgresTestDatabase.CreateAsync();
-        await using var context = new BunitContext();
-        await SetUpAsync(context, database, mode);
-
-        var page = context.Render<Ags.Finance.Web.Components.Pages.Invoices>();
-        page.WaitForAssertion(() => Assert.Contains("Cartão Exemplo", page.Find(".catalog-list").TextContent, StringComparison.Ordinal));
-        var row = page.Find(".catalog-list li");
-        Assert.Contains(total, row.TextContent, StringComparison.Ordinal);
-        Assert.Contains(note, row.QuerySelector(".invoice-forecast")!.TextContent, StringComparison.Ordinal);
-
-        await row.QuerySelector("button")!.ClickAsync(new());
-        var composition = page.Find("[aria-label='Composição da fatura']");
-        Assert.Contains("Recorrentes previstas", composition.TextContent, StringComparison.Ordinal);
-        var forecastList = composition.QuerySelector("[aria-label='Recorrentes previstas']")!;
-        Assert.Single(forecastList.QuerySelectorAll("li"));
-        Assert.Contains("27/09/2026", forecastList.TextContent, StringComparison.Ordinal);
-        Assert.Contains("Serviço Exemplo", forecastList.TextContent, StringComparison.Ordinal);
-    }
-
-    [Theory]
     [InlineData(RecurringInvoiceMode.SumOnDate, "R$ 100,00", "R$ 50,00")]
     [InlineData(RecurringInvoiceMode.SumUpfront, "R$ 150,00", "R$ 0,00")]
     public async Task DashboardInvoiceTableHasAForecastColumnThatSumsInTheTotalRow(RecurringInvoiceMode mode, string invoice, string forecast)

@@ -1,45 +1,6 @@
 @page "/compromissos"
-@using System.Globalization
-@using Ags.Finance.Modules.Invoices.Contracts
-@using Ags.Finance.SharedKernel
-@inject IInvoiceCatalog Catalog
-@inject TimeProvider Clock
-
-<PageHeader Title="Saldos de faturas e parcelas futuras" />
-<p><a href="/faturas">Faturas</a></p>
-@if (_message is not null) { <p role="status">@_message</p> }
-<section class="panel">
-    <h2>Em aberto daqui para frente</h2>
-    <form id="obligations-filter" @onsubmit="ReloadAsync" @onsubmit:preventDefault>
-        <div class="field"><label for="obligations-month">Mês de referência de referência</label><input id="obligations-month" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" required /></div>
-        <button class="button" disabled="@_busy">Consultar</button>
-    </form>
-    <p>Inclui a fatura do mês selecionado e as seguintes que contêm parcelas lançadas, descontando pagamentos e abatimentos. Valores de cadastros arquivados permanecem incluídos.</p>
-    <ul class="catalog-list" aria-label="Em aberto por cartão">@foreach (var card in _result.Cards) { <li><span>@card.CardName</span><span class="numeric @(card.RemainingBalance.IsNegative ? "invoice-credit" : string.Empty)">@card.RemainingBalance @(card.RemainingBalance.IsNegative ? "(crédito)" : string.Empty)</span></li> }</ul>
-</section>
-<section class="panel">
-    <h2>Saldo restante por mês — todos os cartões</h2>
-    <ul class="catalog-list" aria-label="Em aberto por mês">@foreach (var month in _result.Months)
-    {
-        <li><span>@month.Month @if (month.Month == _current) { <strong>· Mês corrente</strong> }</span>
-            <span class="numeric @(month.RemainingBalance.IsNegative ? "invoice-credit" : string.Empty)">@(month.FullyPaid ? "- (pago)" : month.RemainingBalance.ToString()) @(month.RemainingBalance.IsNegative ? "(crédito)" : string.Empty)</span></li>
-    }</ul>
-    <p>Saldo zero ou crédito sem confirmação de quitação não significa fatura Paga.</p>
-</section>
+@inject NavigationManager Navigation
 
 @code {
-    private InvoiceObligations _result = new(default, [], []);
-    private string _month = string.Empty;
-    private ReferenceMonth _current;
-    private string? _message;
-    private bool _busy;
-    protected override async Task OnInitializedAsync() { _month = Clock.GetLocalNow().ToString("yyyy-MM", CultureInfo.InvariantCulture); await ReloadAsync(); }
-    private async Task ReloadAsync()
-    {
-        if (_busy) { return; }
-        if (!DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)) { _message = "Informe um mês válido."; return; }
-        _busy = true;
-        try { _current = ReferenceMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime)); _result = await Catalog.GetObligationsAsync(ReferenceMonth.FromDate(date)); _message = _result.Error; }
-        finally { _busy = false; }
-    }
+    protected override void OnInitialized() => Navigation.NavigateTo("/cartoes?abrir=compromissos", replace: true);
 }

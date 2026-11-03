@@ -1,0 +1,20 @@
+@* Finais do cartão, em janela a partir do menu do card. *@
+@using Ags.Finance.Modules.Accounts.Contracts
+@inject EntryChangeNotifier Notifier
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <CardLastDigitsPanel CardExternalId="Card.ExternalId" CardName="@Card.Name" Changed="Notifier.Notify" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-done OnClick="() => Dialog?.Close(DialogResult.Ok(true))">Fechar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public CreditCardDetails Card { get; set; } = default!;
+}

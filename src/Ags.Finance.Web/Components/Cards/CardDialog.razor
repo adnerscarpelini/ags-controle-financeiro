@@ -1,0 +1,102 @@
+@* Criar ou editar um cartão. *@
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.SharedKernel
+@inject IAccountCatalog Catalog
+@inject EntryChangeNotifier Notifier
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <form id="card-form" class="entry-column" @onsubmit="SaveAsync" @onsubmit:preventDefault>
+            <div class="field"><label for="card-name">Nome do cartão</label><input id="card-name" class="input" maxlength="100" @bind="_name" @bind:event="oninput" /></div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="card-account">Conta corrente para pagamento</label>
+                    <select id="card-account" class="input" @bind="_account">
+                        <option value="@Guid.Empty">Selecione</option>
+                        @foreach (var account in _accounts) { <option value="@account.ExternalId">@account.Name</option> }
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="card-brand">Bandeira</label>
+                    <select id="card-brand" class="input" @bind="_brand">
+                        <option value="@CardBrand.Visa">Visa</option>
+                        <option value="@CardBrand.Mastercard">Mastercard</option>
+                        <option value="@CardBrand.Elo">Elo</option>
+                    </select>
+                </div>
+            </div>
+            <MoneyField Id="card-limit" Label="Limite" @bind-Value="_limit" />
+            <div class="field-row">
+                <div class="field"><label for="closing-day">Dia de fechamento <HelpTip Text="Compras depois deste dia entram na fatura seguinte." /></label><input id="closing-day" class="input" type="number" inputmode="numeric" min="1" max="31" @bind="_closingDay" /></div>
+                <div class="field"><label for="due-day">Dia de vencimento <HelpTip Text="O dia em que a fatura vence. O mês de vencimento é o mês de referência das compras." /></label><input id="due-day" class="input" type="number" inputmode="numeric" min="1" max="31" @bind="_dueDay" /></div>
+            </div>
+            <CatalogColor Id="card-color" @bind-Value="_color" />
+            <label class="checkbox"><input id="card-includes-closing" type="checkbox" @bind="_includesClosingDay" />Compras no dia do fechamento entram na fatura que fecha</label>
+        </form>
+        @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-cancel Disabled="@_busy" OnClick="() => Dialog?.Cancel()">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" form="card-form" data-save Disabled="@(_busy || _name.Trim().Length == 0)">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    /// <summary>Na edição, o cartão aberto.</summary>
+    [Parameter]
+    public CreditCardDetails? Card { get; set; }
+
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private string _name = string.Empty;
+    private Guid _account;
+    private CardBrand _brand;
+    private decimal _limit;
+    private int _closingDay = 3;
+    private int _dueDay = 10;
+    private bool _includesClosingDay;
+    private string _color = string.Empty;
+    private bool _busy;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Card is { } card)
+        {
+            _name = card.Name;
+            _account = card.AccountExternalId;
+            _brand = card.Brand;
+            _limit = card.CreditLimit.Amount;
+            _closingDay = card.ClosingDay;
+            _dueDay = card.DueDay;
+            _includesClosingDay = card.IncludesClosingDay;
+            _color = card.Color;
+        }
+
+        _accounts = (await Catalog.GetAccountsAsync(activeOnly: false)).Where(x => x.Kind == AccountKind.Checking && (x.IsActive || x.ExternalId == _account)).ToList();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_busy) { return; }
+        _busy = true;
+        _error = null;
+        try
+        {
+            var result = await Catalog.SaveCreditCardAsync(new(Card?.ExternalId, _account, _name, _brand, new Money(_limit), _closingDay, _dueDay, _includesClosingDay, _color));
+            if (!result.Succeeded)
+            {
+                _error = result.Error;
+                return;
+            }
+
+            Notifier.Notify();
+            Snackbar.Add("Cartão salvo.", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(true));
+        }
+        finally { _busy = false; }
+    }
+}
