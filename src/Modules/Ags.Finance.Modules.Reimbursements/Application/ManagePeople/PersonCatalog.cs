@@ -28,6 +28,10 @@ internal sealed class PersonCatalog(IReimbursementStore store) : IPersonCatalog
         {
             return new(null, $"{person.Name} possui regras de rateio. Exclua as regras antes de excluir a pessoa.");
         }
+        if ((await store.GetReceiptsAsync(externalId, cancellationToken)).Count > 0)
+        {
+            return new(null, $"{person.Name} possui reembolsos recebidos e não pode ser excluída.");
+        }
         await store.DeletePersonAsync(person, cancellationToken);
         return new(externalId, null);
     }

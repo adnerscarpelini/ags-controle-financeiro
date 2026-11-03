@@ -29,6 +29,7 @@
 - [Filtros salvos de lançamentos (#33)](transactions/saved-filters.md)
 - [Pessoas e regras de rateio (#21)](reimbursements/people-and-sharing-rules.md)
 - [Valor a receber de uma pessoa no mês (#22)](reimbursements/monthly-statement.md)
+- [Reembolso recebido (#23)](reimbursements/received-reimbursements.md)
 
 Esta pasta registra comportamento implementado e decisões de arquitetura.
 Requisitos, critérios de aceite e dúvidas permanecem nas issues.
