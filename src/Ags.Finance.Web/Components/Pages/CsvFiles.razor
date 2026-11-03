@@ -1,0 +1,37 @@
+@page "/arquivos-csv"
+@using Ags.Finance.Modules.Imports.Contracts
+@using Ags.Finance.Web.Csv
+
+<PageHeader Title="Arquivos CSV" />
+<p><a href="/cadastros">Cadastros</a> / Arquivos CSV</p>
+<section class="panel">
+    <h2>Cadastros</h2>
+    <p>Layout oficial e versionado do sistema, em UTF-8 com vírgula como separador. A exportação só lê dados: não altera cadastros nem saldos.
+        CSV não substitui o backup do banco de dados.</p>
+    <ul class="catalog-list">
+        @foreach (var item in s_items)
+        {
+            <li><span>@item.Label</span>
+                <a class="button" data-enhance-nav="false" href="/csv/cadastros/@CsvEndpoints.Slug(item.Kind)">Exportar</a>
+                <a class="button" data-enhance-nav="false" href="/csv/cadastros/@CsvEndpoints.Slug(item.Kind)/modelo">Modelo vazio</a>
+                <a class="button" data-enhance-nav="false" href="/csv/cadastros/@CsvEndpoints.Slug(item.Kind)/exemplo">Exemplo fictício</a></li>
+        }
+    </ul>
+</section>
+
+@code {
+    private sealed record Item(RegistryKind Kind, string Label);
+
+    // Na ordem de importação documentada.
+    private static readonly Item[] s_items =
+    [
+        new(RegistryKind.Banks, "Bancos"),
+        new(RegistryKind.Accounts, "Contas"),
+        new(RegistryKind.Cards, "Cartões"),
+        new(RegistryKind.CardDigits, "Finais de cartão"),
+        new(RegistryKind.Categories, "Categorias"),
+        new(RegistryKind.Subcategories, "Subcategorias"),
+        new(RegistryKind.Merchants, "Descrições"),
+        new(RegistryKind.People, "Pessoas"),
+    ];
+}
