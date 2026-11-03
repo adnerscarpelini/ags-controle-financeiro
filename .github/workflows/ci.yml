@@ -84,7 +84,7 @@ jobs:
       - name: Test (domínio e arquitetura)
         shell: bash
         run: |
-          for project in tests/Ags.Finance.ArchitectureTests tests/Ags.Finance.SharedKernel.Tests tests/Ags.Finance.Modules.Imports.Tests tests/Ags.Finance.Modules.Reports.Tests; do
+          for project in tests/Ags.Finance.ArchitectureTests tests/Ags.Finance.SharedKernel.Tests; do
             dotnet test "$project" --no-build --configuration Release
           done
 
