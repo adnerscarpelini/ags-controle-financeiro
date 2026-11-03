@@ -1,0 +1,23 @@
+@using Ags.Finance.Modules.Reports.Contracts
+@using Ags.Finance.SharedKernel
+@inject ICategoryReports Reports
+
+@if (_report is { } report)
+{
+    <CategoryTable Id="expense-categories" Title="Despesas por categoria" NameHeader="Categoria" Lines="report.Expenses" Total="report.TotalExpenses" Expense="true" Chart="true" />
+    <CategoryTable Id="income-origins" Title="Receitas por origem" NameHeader="Categoria > subcategoria" Lines="report.Income" Total="report.TotalIncome" />
+}
+
+@code {
+    private CategoryReport? _report;
+    private AccountingMonth _loaded;
+
+    [Parameter, EditorRequired] public AccountingMonth Month { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_report is not null && _loaded == Month) { return; }
+        _loaded = Month;
+        _report = await Reports.GetAsync(Month);
+    }
+}

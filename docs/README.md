@@ -31,6 +31,7 @@
 - [Valor a receber de uma pessoa no mês (#22)](reimbursements/monthly-statement.md)
 - [Reembolso recebido (#23)](reimbursements/received-reimbursements.md)
 - [Resumo do mês (#24)](reports/monthly-summary.md)
+- [Despesas e receitas por categoria (#25)](reports/category-report.md)
 
 Esta pasta registra comportamento implementado e decisões de arquitetura.
 Requisitos, critérios de aceite e dúvidas permanecem nas issues.

@@ -1,0 +1,65 @@
+@using System.Globalization
+@using Ags.Finance.Modules.Reports.Contracts
+@using Ags.Finance.SharedKernel
+
+<section class="panel" aria-labelledby="@Id-title">
+    <h2 id="@Id-title">@Title</h2>
+    @if (Lines.Count == 0)
+    {
+        <p>Nenhum lançamento neste mês.</p>
+    }
+    else
+    {
+        @if (Chart)
+        {
+            <ol class="bar-chart" aria-label="@Title: 10 maiores">
+                @foreach (var line in Lines.Take(10))
+                {
+                    <li><span class="bar-label">@line.Name</span>
+                        <span class="bar-track"><span class="bar-fill @(Expense ? "bar-expense" : "bar-income")" style="width: @Width(line)%"></span></span>
+                        <span class="numeric bar-value">@line.Amount</span></li>
+                }
+            </ol>
+        }
+        <div class="table-scroll">
+            <table>
+                <caption class="visually-hidden">@Title</caption>
+                <thead><tr><th scope="col">@NameHeader</th><th scope="col" class="numeric">Valor</th><th scope="col" class="numeric">% do mês</th><th scope="col" class="numeric">Mês anterior</th><th scope="col" class="numeric">Média no ano</th><th scope="col" class="numeric">Diferença para a média</th></tr></thead>
+                <tbody>
+                    @foreach (var line in Lines)
+                    {
+                        <tr><th scope="row">@line.Name</th>
+                            <td class="numeric">@line.Amount</td>
+                            <td class="numeric">@line.PercentOfMonth.ToString("0.#", CultureInfo.GetCultureInfo("pt-BR"))%</td>
+                            <td class="numeric">@line.PreviousMonth</td>
+                            <td class="numeric">@line.YearAverage</td>
+                            <td class="numeric @DifferenceClass(line)">@Signed(line.DifferenceToAverage)</td></tr>
+                    }
+                </tbody>
+                <tfoot><tr><th scope="row">Total</th><td class="numeric">@Total</td><td class="numeric">100%</td><td></td><td></td><td></td></tr></tfoot>
+            </table>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Id { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string NameHeader { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public IReadOnlyList<CategoryLine> Lines { get; set; } = [];
+    [Parameter, EditorRequired] public Money Total { get; set; }
+    [Parameter] public bool Expense { get; set; }
+    [Parameter] public bool Chart { get; set; }
+
+    private decimal Width(CategoryLine line)
+    {
+        var max = Lines.Max(x => x.Amount.Amount);
+        return max <= 0 ? 0 : decimal.Round(Math.Max(0, line.Amount.Amount) / max * 100m, 1);
+    }
+
+    // Despesa acima da média é ruim (cor de despesa); abaixo, boa (cor de receita). Em receitas é o inverso.
+    private string DifferenceClass(CategoryLine line)
+        => line.DifferenceToAverage.IsZero ? string.Empty : line.AboveAverage == Expense ? "entry-expense" : "entry-income";
+
+    private static string Signed(Money value) => value.IsNegative ? value.ToString() : "+" + value;
+}
