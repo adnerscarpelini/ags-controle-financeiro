@@ -505,3 +505,8 @@ a:hover {
 .stacked-segment { display: block; min-height: 1px; }
 .stacked-label { text-align: center; font-size: .75rem; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
 .stacked-selected .stacked-label { color: var(--color-text-primary); font-weight: 700; }
+
+.heat-map th, .heat-map td { white-space: nowrap; }
+.heat-map .heat-sub { padding-left: var(--space-6, 24px); font-weight: 400; color: var(--color-text-secondary); }
+.heat-map .heat-selected { font-weight: 700; }
+.heat-map .heat-separator th { text-align: left; color: var(--color-text-secondary); }

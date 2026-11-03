@@ -1,0 +1,60 @@
+@using System.Globalization
+@using Ags.Finance.Modules.Reports.Contracts
+@using Ags.Finance.SharedKernel
+@inject IHeatMapReports Reports
+
+@if (_map is { } map)
+{
+    <section class="panel" aria-labelledby="heat-map-title">
+        <h2 id="heat-map-title">Mapa de calor de @map.Year</h2>
+        <div class="table-scroll">
+            <table class="heat-map">
+                <caption class="visually-hidden">Receitas, despesas e saldo por mês e despesas por categoria e subcategoria</caption>
+                <thead><tr><th scope="col">Linha</th>@for (var i = 0; i < 12; i++) { <th scope="col" class="numeric @Selected(map, i)">@MonthName(i)</th> }<th scope="col" class="numeric">Total</th></tr></thead>
+                <tbody>
+                    <tr><th scope="row">Receitas</th>@for (var i = 0; i < 12; i++) { <td class="numeric entry-income @Selected(map, i)">@map.Income[i]</td> }<td class="numeric entry-income">@Sum(map.Income)</td></tr>
+                    <tr><th scope="row">Despesas</th>@for (var i = 0; i < 12; i++) { <td class="numeric entry-expense @Selected(map, i)">@Negative(map.Expenses[i])</td> }<td class="numeric entry-expense">@Negative(Sum(map.Expenses))</td></tr>
+                    <tr><th scope="row">Saldo</th>@for (var i = 0; i < 12; i++) { <td class="numeric @(map.Balance[i].IsNegative ? "entry-expense" : "entry-income") @Selected(map, i)">@map.Balance[i]</td> }<td class="numeric">@Sum(map.Balance)</td></tr>
+                    <tr class="heat-separator"><th scope="colgroup" colspan="14">Despesas por categoria</th></tr>
+                    @foreach (var row in map.Rows)
+                    {
+                        <tr><th scope="row" class="@(row.Level == 1 ? "heat-sub" : string.Empty)">@row.Name</th>
+                            @for (var i = 0; i < 12; i++)
+                            {
+                                var cell = row.Cells[i];
+                                <td class="numeric @Selected(map, i)" style="@Style(cell)">@(cell.Amount.IsZero ? "-" : cell.Amount.ToString())</td>
+                            }
+                            <td class="numeric">@row.Total</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (map.Rows.Count == 0) { <p>Nenhuma despesa em @map.Year.</p> }
+    </section>
+}
+
+@code {
+    private HeatMap? _map;
+    private AccountingMonth _loaded;
+
+    [Parameter, EditorRequired] public AccountingMonth Month { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_map is not null && _loaded == Month) { return; }
+        _loaded = Month;
+        _map = await Reports.GetAsync(Month);
+    }
+
+    private static string MonthName(int index) => CultureInfo.GetCultureInfo("pt-BR").DateTimeFormat.GetAbbreviatedMonthName(index + 1);
+
+    private static string Selected(HeatMap map, int index) => map.SelectedMonth.Month == index + 1 ? "heat-selected" : string.Empty;
+
+    private static Money Sum(IEnumerable<Money> values) => new(values.Sum(x => x.Amount));
+
+    private static Money Negative(Money expenses) => expenses.IsZero ? expenses : -expenses;
+
+    // A cor nunca é o único sinal: o valor sempre aparece em texto na célula.
+    private static string Style(HeatCell cell)
+        => cell.Intensity <= 0 ? string.Empty : $"background: color-mix(in srgb, var(--color-expense) {(cell.Intensity * 60).ToString("0", CultureInfo.InvariantCulture)}%, transparent)";
+}

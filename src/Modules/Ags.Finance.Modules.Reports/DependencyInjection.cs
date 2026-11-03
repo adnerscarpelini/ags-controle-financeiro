@@ -1,5 +1,6 @@
 using Ags.Finance.Modules.Reports.Application;
 using Ags.Finance.Modules.Reports.Application.CategoryReport;
+using Ags.Finance.Modules.Reports.Application.HeatMap;
 using Ags.Finance.Modules.Reports.Application.InvoiceReport;
 using Ags.Finance.Modules.Reports.Application.MonthlySummary;
 using Ags.Finance.Modules.Reports.Contracts;
@@ -15,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<IMonthlySummaries, MonthlySummaries>();
         services.AddScoped<ICategoryReports, CategoryReports>();
         services.AddScoped<IInvoiceReports, InvoiceReports>();
+        services.AddScoped<IHeatMapReports, HeatMapReports>();
         return services;
     }
 }
