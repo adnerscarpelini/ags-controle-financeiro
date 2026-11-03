@@ -13,10 +13,14 @@ Esta nota registra as fronteiras entre conceitos; os critérios de aceite perman
 
 ## Datas, orçamento e caixa
 
-O mês contábil calculado por Accounts é uma sugestão editável, conforme
-[o calendário implementado](../accounts/purchase-accounting-month.md).
-A escolha manual pertence a Transactions (#12/#14), preservando a data da compra.
-Mover uma compra exige faturas de origem e destino Abertas (#50).
+Fora do cartão, o mês contábil é sempre o mês da data, recalculado na edição (#89).
+No cartão, o formulário mostra a fatura calculada por Accounts e permite escolher
+outra Aberta. Se a calculada estiver protegida, Invoices sugere a próxima disponível,
+com aviso; a proteção pelo corte permanece mesmo sem estado gravado (decisão do
+usuário na #89). Edições de detalhes preservam a fatura; mudar data/cartão recalcula.
+Parcelas antecipadas mantêm o mês e não aceitam alteração de data/cartão. Alterações
+no calendário cadastrado não recalculam histórico. CSV preserva o mês do arquivo.
+Mover compras exige origem e destino Abertos (#50).
 
 Pendente/Pago ou Recebido é estado do lançamento ou da ocorrência, não da conta nem da série.
 Fora do cartão, a chave Pago/Recebido nasce ligada e determina o estado inicial (#88).

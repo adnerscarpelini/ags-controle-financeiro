@@ -226,7 +226,7 @@ public sealed class ReimbursementReceiptTests : ReimbursementFixture
         Assert.False((await Entries.EditAsync(entry, Change(details) with { Reimbursement = null }, EntryChangeScope.OnlyThis)).Succeeded);
         Assert.False((await Entries.DeleteAsync(entry, EntryChangeScope.OnlyThis)).Succeeded);
 
-        Assert.True((await Entries.EditAsync(entry, Change(details) with { Details = "Observação", Month = new AccountingMonth(2026, 11) }, EntryChangeScope.OnlyThis)).Succeeded);
+        Assert.True((await Entries.EditAsync(entry, Change(details) with { Details = "Observação", Date = new DateOnly(2026, 11, 5) }, EntryChangeScope.OnlyThis)).Succeeded);
         Assert.Empty((await Overviews.GetAsync(new(s_october))).Items);
         Assert.Equal(ReimbursementStatus.Received, Assert.Single((await Overviews.GetAsync(new(new AccountingMonth(2026, 11)))).Items).Status);
     }

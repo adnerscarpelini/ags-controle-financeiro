@@ -165,7 +165,6 @@ internal sealed partial class EntryCatalog : IEntryImport
             for (var index = 0; index < count; index++)
             {
                 if (parts[index].Amount != expected[index]) { pass.Issue(parts[index].ExternalId, "amount_cents", "Os valores não seguem a divisão oficial das parcelas (a diferença de centavos fica na primeira)."); }
-                if (parts[index].Month != parts[0].Month.AddMonths(index)) { pass.Issue(parts[index].ExternalId, "accounting_month", "As parcelas devem cair em meses contábeis consecutivos."); }
             }
             if (pass.Issues.Count > problems) { continue; }
             if (purchases.TryGetValue(group.Key, out var purchase))
@@ -223,7 +222,7 @@ internal sealed partial class EntryCatalog : IEntryImport
             pass.Issue(row.ExternalId, "reimbursement_person_external_id", personError);
             return null;
         }
-        var prepared = await PrepareAsync(request, cancellationToken);
+        var prepared = await PrepareAsync(request, cancellationToken, importing: true);
         if (prepared.Entry is not { } entry) { pass.Issue(row.ExternalId, "merchant_external_id", prepared.Error ?? "Lançamento inválido."); return null; }
         if ((Contracts.CategoryKind)entry.Kind != row.Kind) { pass.Issue(row.ExternalId, "kind", "O tipo não corresponde à classificação informada."); return null; }
         if (entry.AccountExternalId != row.AccountExternalId) { pass.Issue(row.ExternalId, "account_external_id", "Compras no cartão usam a conta do cartão."); return null; }

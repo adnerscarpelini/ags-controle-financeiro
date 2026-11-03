@@ -6,7 +6,7 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Invoices.Application.QueryInvoices;
 
-internal sealed partial class InvoiceCatalog(IEntryCatalog entries, IAccountCatalog accounts, IInvoiceStore store, IInvoicePaymentCatalog payments, IFinancialOperation operations, IPreferences preferences, TimeProvider clock) : IInvoiceCatalog
+internal sealed partial class InvoiceCatalog(IEntryCatalog entries, IAccountCatalog accounts, IInvoiceStore store, IInvoicePaymentCatalog payments, IFinancialOperation operations, IPreferences preferences, TimeProvider clock, IAccountingMonthCalculator calendar) : IInvoiceCatalog
 {
     public Task<IReadOnlyList<InvoiceDetails>> GetAsync(CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(GetCoreAsync, _ => true, cancellationToken);

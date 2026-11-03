@@ -13,7 +13,8 @@ os períodos necessários; sem um período futuro escolhido, a visão mostra o p
 atual e os registros já conhecidos. Para planejar o futuro, consulte um mês ou um
 intervalo com data final. Não se tenta gerar uma série infinita inteira.
 
-Accounts calcula o mês contábil de cada data. A escolha manual da primeira
+Accounts calcula o mês contábil de cada data (#89). Fora do cartão, ele é sempre
+o mês da data. No cartão, a fatura escolhida na primeira
 ocorrência fica nessa ocorrência; as seguintes seguem o calendário. A consulta
 de fatura por mês inclui suas ocorrências e compõe também as faturas futuras já
 registradas, como as que contêm parcelas.
@@ -56,14 +57,14 @@ Todas conserva ocorrências passadas já efetivadas e altera as demais. Excluir
 Todas desativa o plano e conserva esse histórico confirmado.
 
 O dia configurado é separado da data de uma ocorrência: fevereiro não transforma
-um plano de dia 31 em plano de dia 28. Alterações de mês contábil da série guardam
-um deslocamento em relação ao calendário, aplicado também aos meses ainda não
-materializados. Exceções que não foram alteradas conservam os seus campos.
+um plano de dia 31 em plano de dia 28. A edição de recorrências não oferece alteração de mês (#89). Novas séries e edições
+usam deslocamento contábil zero. A coluna e a leitura do deslocamento continuam para
+a importação; não se corrige histórico. Exceções de fatura preservam o mês se data e
+cartão não mudarem; nos demais casos o mês vem do calendário.
 Se a nova data atravessa o mês, o plano mantém também esse deslocamento de data,
 inclusive ao gerar períodos futuros ou consultar por intervalo. Início e término
 consultados refletem as datas deslocadas; a chave da agenda permanece estável.
-Uma exceção manual de faturamento não vira configuração de todos os meses: o
-deslocamento solicitado é aplicado ao plano, preservando as exceções individuais.
+Uma exceção manual de faturamento não vira configuração de todos os meses.
 
 Origem e destino de todas as ocorrências afetadas precisam permitir a alteração.
 Uma fatura protegida faz a operação inteira falhar, com rollback, sem reabertura

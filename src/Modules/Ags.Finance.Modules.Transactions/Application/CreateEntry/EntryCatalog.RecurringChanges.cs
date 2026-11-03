@@ -53,7 +53,7 @@ internal sealed partial class EntryCatalog
         var day = change.Day ?? (request.Date == baseline.Date ? series.Day : request.Date.Day);
         if (day is < 1 or > 31 || request.Month is { Year: 0 }) { return new(null, "Informe dia e mês válidos."); }
         if (scope != RecurringChangeScope.OnlyThis && change.Day is not null) { request = request with { Date = OccurrenceDate(request.Date, day) }; }
-        var monthShift = request.Month is { } month ? MonthIndex(month.FirstDay) - MonthIndex(selected.Month.FirstDay) : 0;
+        request = request with { Month = null };
         var dateShift = MonthIndex(request.Date) - MonthIndex(baseline.Date);
         var dateOffset = series.DateMonthOffset + dateShift;
         var dateChanged = request.Date != baseline.Date || day != series.Day;
@@ -75,15 +75,7 @@ internal sealed partial class EntryCatalog
             { Date = request.Date, Month = selectedTemplate.Month };
             var prepared = await PrepareAsync(templateRequest, cancellationToken, selected);
             if (prepared.Entry is not { } template) { return new(null, prepared.Error); }
-            var originalDate = OccurrenceDate(period.AddMonths(series.DateMonthOffset), series.Day);
-            var changedDate = OccurrenceDate(period.AddMonths(dateOffset), day);
-            var originalCalendar = await calendar.CalculateAsync(originalDate, series.CardExternalId, cancellationToken);
-            var changedCalendar = await calendar.CalculateAsync(changedDate, template.CardExternalId, cancellationToken);
-            if (originalCalendar.Month is not { } originalMonth || changedCalendar.Month is not { } changedMonth)
-            {
-                return new(null, originalCalendar.Error ?? changedCalendar.Error);
-            }
-            var offset = series.AccountingMonthOffset + monthShift - (MonthIndex(changedMonth.FirstDay) - MonthIndex(originalMonth.FirstDay));
+            const int Offset = 0;
             if (scope == RecurringChangeScope.ThisAndFollowing)
             {
                 var firstDate = OccurrenceDate(period, day);
@@ -94,21 +86,21 @@ internal sealed partial class EntryCatalog
                 if (template.CardExternalId is { } card) { prototype.SetCard(card, template.CardLastDigitsExternalId); }
                 following = RecurringEntry.Create(prototype, series.EndMonth);
                 if (following is null) { return new(null, "A ocorrência está após o término da série."); }
-                following.Configure(template, day, offset, dateOffset);
+                following.Configure(template, day, Offset, dateOffset);
                 foreach (var excluded in series.ExcludedMonths.Where(x => x >= period)) { following.Exclude(excluded); }
                 series.StopBefore(period);
             }
-            else { series.Configure(template, day, offset, dateOffset); }
+            else { series.Configure(template, day, Offset, dateOffset); }
         }
         foreach (var entry in affected)
         {
-            var index = MonthIndex(entry.Month.FirstDay) + monthShift;
+            var index = MonthIndex(entry.Month.FirstDay);
             var dateIndex = MonthIndex(entry.Date) + dateShift;
             if (index is < 0 or >= 119988 || dateIndex is < 0 or >= 119988) { return new(null, "A alteração ultrapassa o calendário suportado."); }
             var changed = scope == RecurringChangeScope.OnlyThis ? request : ChangedRecurringRequest(request, baseline, ToRequest(entry)) with
             {
                 Date = dateChanged ? entry.ExternalId == externalId ? request.Date : OccurrenceDate(new DateOnly(dateIndex / 12 + 1, dateIndex % 12 + 1, 1), day) : entry.Date,
-                Month = new AccountingMonth(index / 12 + 1, index % 12 + 1)
+                Month = null
             };
             var prepared = await PrepareAsync(changed, cancellationToken, entry);
             if (prepared.Entry is not { } updated) { return new(null, prepared.Error); }

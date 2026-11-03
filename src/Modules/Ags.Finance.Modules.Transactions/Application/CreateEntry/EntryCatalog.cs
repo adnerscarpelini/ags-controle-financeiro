@@ -50,7 +50,7 @@ internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementSt
         return await store.AddPurchaseAsync(purchase, generated, cancellationToken) ? new(purchase.ExternalId, null) : new(null, "Não foi possível gravar a compra parcelada.");
     }
 
-    private async Task<(TransactionEntry? Entry, string? Error)> PrepareAsync(CreateEntryRequest request, CancellationToken cancellationToken, TransactionEntry? original = null)
+    private async Task<(TransactionEntry? Entry, string? Error)> PrepareAsync(CreateEntryRequest request, CancellationToken cancellationToken, TransactionEntry? original = null, bool importing = false)
     {
         var merchant = (await merchants.FindAsync(activeOnly: false, cancellationToken: cancellationToken)).FirstOrDefault(x => x.ExternalId == request.MerchantExternalId && (x.IsActive || x.ExternalId == original?.MerchantExternalId));
         var subcategoryId = request.SubcategoryExternalId == Guid.Empty ? merchant?.DefaultSubcategoryExternalId : request.SubcategoryExternalId;
@@ -79,14 +79,16 @@ internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementSt
         {
             return (null, "Selecione descrição, subcategoria e conta ativas cadastradas.");
         }
-        var suggestion = request.Month is { } selectedMonth ? new AccountingMonthSuggestion(selectedMonth, null) : await calendar.CalculateAsync(request.Date, card?.ExternalId, cancellationToken);
+        var chosenMonth = card is not null || importing ? request.Month : null;
+        if (card is not null && chosenMonth is null && original is not null && request.Date == original.Date && card.ExternalId == original.CardExternalId) { chosenMonth = original.Month; }
+        var suggestion = chosenMonth is { } selectedMonth ? new AccountingMonthSuggestion(selectedMonth, null) : await calendar.CalculateAsync(request.Date, card?.ExternalId, cancellationToken);
         if (!suggestion.Succeeded)
         {
             return (null, suggestion.Error);
         }
         var entry = new TransactionEntry();
         var kind = original is not null && original.SubcategoryExternalId == subcategory.ExternalId ? original.Kind : (Domain.CategoryKind)subcategory.Kind;
-        var error = entry.Update(request.Date, request.Month ?? suggestion.Month!.Value, merchant.ExternalId, subcategory.ExternalId, account.ExternalId, kind, request.Amount, request.Details, allowZeroAmount: original?.InstallmentPurchaseExternalId is not null && request.Amount.IsZero);
+        var error = entry.Update(request.Date, chosenMonth ?? suggestion.Month!.Value, merchant.ExternalId, subcategory.ExternalId, account.ExternalId, kind, request.Amount, request.Details, allowZeroAmount: original?.InstallmentPurchaseExternalId is not null && request.Amount.IsZero);
         if (error is not null)
         {
             return (null, error);

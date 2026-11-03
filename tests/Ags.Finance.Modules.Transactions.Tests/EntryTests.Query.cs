@@ -26,7 +26,7 @@ public sealed partial class EntryTests
     public async Task MonthFilterTotalsOnlyMatchingEntriesAndPreservesSignedBalance()
     {
         await Entries.CreateAsync(Request());
-        await Entries.CreateAsync(Request() with { Amount = new Money(75), Month = new AccountingMonth(2026, 11) });
+        await Entries.CreateAsync(Request() with { Amount = new Money(75), Date = new DateOnly(2026, 11, 5) });
         await Entries.CreateAsync(Request() with { SubcategoryExternalId = await IncomeSubcategoryAsync(), Amount = new Money(500) });
         var result = await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 10)));
         Assert.Equal(2, result.TotalCount);

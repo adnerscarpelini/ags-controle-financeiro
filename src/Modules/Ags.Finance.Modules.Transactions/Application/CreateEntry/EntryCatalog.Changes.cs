@@ -19,7 +19,16 @@ internal sealed partial class EntryCatalog
         }
         if (selected.RecurringEntryExternalId is not null) { return new(null, "Escolha o alcance da recorrência para alterar esta ocorrência."); }
         var affected = Affected(all, selected, scope);
+        var dateOrCardChanged = request.Date != selected.Date || request.CardExternalId != selected.CardExternalId;
         var month = request.Month ?? selected.Month;
+        if (dateOrCardChanged && !request.UseSelectedInvoice)
+        {
+            var calculated = await calendar.CalculateAsync(request.Date, request.CardExternalId, cancellationToken);
+            if (calculated.Month is not { } calculatedMonth) { return new(null, calculated.Error); }
+            var offset = request.CardExternalId is not null ? (selected.InstallmentNumber ?? 1) - 1 : 0;
+            if (MonthIndex(calculatedMonth.FirstDay) + offset >= 119988) { return new(null, "A alteração ultrapassa o calendário suportado."); }
+            month = calculatedMonth.AddMonths(offset);
+        }
         if (month.Year == 0) { return new(null, "Informe um mês contábil válido."); }
         var shift = (month.Year - selected.Month.Year) * 12 + month.Month - selected.Month.Month;
         var selectedAmount = new Money(Math.Abs(selected.Amount.Amount));
@@ -28,6 +37,7 @@ internal sealed partial class EntryCatalog
         {
             var error = await RequireSourceOpenAsync(entry, cancellationToken);
             if (error is not null) { return new(null, error); }
+            if (dateOrCardChanged && await invoices.IsAnticipatedAsync(entry.ExternalId, cancellationToken)) { return new(null, "Uma parcela antecipada não permite alterar a data ou o cartão."); }
             var monthIndex = (entry.Month.Year - 1) * 12 + entry.Month.Month - 1 + shift;
             if (monthIndex is < 0 or >= 119988) { return new(null, "A mudança ultrapassa o calendário suportado."); }
             var changed = request with

@@ -64,7 +64,7 @@ public sealed partial class EntryTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task IncomeIsPositiveAndManualMonthIsPreserved()
+    public async Task IncomeIsPositiveAndCashMonthAlwaysFollowsDate()
     {
         var classifications = Provider.GetRequiredService<IClassificationCatalog>();
         var category = await classifications.SaveCategoryAsync(null, "Receitas", CategoryKind.Income);
@@ -73,7 +73,7 @@ public sealed partial class EntryTests : IAsyncLifetime
         Assert.True(result.Succeeded, result.Error);
         var entry = Assert.Single(await Entries.GetAsync());
         Assert.Equal(new Money(150), entry.Amount);
-        Assert.Equal(new AccountingMonth(2026, 11), entry.Month);
+        Assert.Equal(new AccountingMonth(2026, 10), entry.Month);
         Assert.Equal(new DateOnly(2026, 10, 5), entry.Date);
         Assert.Equal(new Money(1150), (await Entries.GetBalanceAsync(_accountId, entry.Date))?.EffectiveBalance);
     }
