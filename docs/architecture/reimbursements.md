@@ -12,7 +12,7 @@ O reembolso é explícito: pessoa e percentual são informados na própria despe
 regras de rateio, a apuração por filtro e o recebimento avulso foram removidos (#78),
 sem migração de dados, com autorização para descartar os dados de desenvolvimento.
 
-**Onde fica.** `TransactionEntry` guarda `ReimbursementPersonExternalId` e
+**Onde fica.** `TransactionEntry` e `RecurringEntry` guardam `ReimbursementPersonExternalId` e
 `ReimbursementPercent`, com referência à pessoa por `ExternalId` e sem FK entre schemas.
 Assim, parcelas, alcance e duplicação reaproveitam o fluxo dos demais campos, em vez de
 serem refeitos em Reimbursements.
@@ -21,9 +21,9 @@ serem refeitos em Reimbursements.
 a pessoa sem ciclo, Transactions define `IReimbursementWriteGuard` em `Contracts`, e
 Reimbursements o implementa, como em `IInvoiceWriteGuard`.
 
-**Estado:** cadastro de pessoas (#78) e pessoa e percentual em despesas (#79) entregues.
-Os demais passos estão nas issues
-[#80](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/80) a
+**Estado:** cadastro de pessoas (#78) e pessoa e percentual em despesas (#79) e
+recorrentes (#80) entregues. Os demais passos estão nas issues
+[#81](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/81) a
 [#84](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/84).
 
 ## Alternativas

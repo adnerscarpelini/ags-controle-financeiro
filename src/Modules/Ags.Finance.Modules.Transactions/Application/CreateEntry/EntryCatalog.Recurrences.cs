@@ -30,7 +30,7 @@ internal sealed partial class EntryCatalog
             return series is null ? null : new RecurringEntryDetails(series.ExternalId, start, series.Day,
                 series.EndMonth is { } end ? AccountingMonth.FromDate(end.AddMonths(series.DateMonthOffset)) : null, series.IsActive,
                 new(start, series.MerchantExternalId, series.SubcategoryExternalId, series.AccountExternalId, series.Amount,
-                    series.Details, CardExternalId: series.CardExternalId, CardLastDigitsExternalId: series.CardLastDigitsExternalId));
+                    series.Details, CardExternalId: series.CardExternalId, CardLastDigitsExternalId: series.CardLastDigitsExternalId, Reimbursement: ReimbursementOf(series)));
         }, _ => true, cancellationToken);
 
     public Task<OccurrenceGenerationResult> EnsureRecurringMonthAsync(AccountingMonth month, CancellationToken cancellationToken = default)
@@ -81,6 +81,7 @@ internal sealed partial class EntryCatalog
                 }
                 var entry = new TransactionEntry();
                 var error = entry.Update(date, accountingMonth, series.MerchantExternalId, series.SubcategoryExternalId, series.AccountExternalId, series.Kind, series.Amount, series.Details);
+                error ??= entry.SetReimbursement(series.ReimbursementPersonExternalId, series.ReimbursementPercent);
                 if (error is not null) { return new(0, 0, error); }
                 if (series.CardExternalId is { } cardId) { entry.SetCard(cardId, series.CardLastDigitsExternalId); entry.SetEffective(date, clock.GetUtcNow()); }
                 else { entry.SetPending(); }

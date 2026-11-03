@@ -241,6 +241,17 @@ public sealed class TransactionPageTests
 
         await page.Find("#entry-subcategory").ChangeAsync(income.ExternalId!.Value.ToString());
         Assert.Empty(page.FindAll("#entry-reimbursement-person"));
+
+        await page.Find("[data-new-entry]").ClickAsync(new());
+        await page.Find("#entry-merchant").InputAsync("Provedor Exemplo");
+        await page.Find("#entry-repeat").ChangeAsync(true);
+        await page.Find("#entry-reimbursement-person").ChangeAsync(person.ToString());
+        Assert.Equal("50", page.Find("#entry-reimbursement-percent").GetAttribute("value"));
+        page.Find("#entry-amount").Change("80");
+        await page.Find("form").SubmitAsync(EventArgs.Empty);
+        var occurrence = (await entries.GetAsync()).Single(x => x.RecurringEntryExternalId is not null);
+        Assert.Equal(new EntryReimbursement(person, 50m), occurrence.Reimbursement);
+        Assert.Equal(new EntryReimbursement(person, 50m), (await entries.GetRecurringAsync(occurrence.RecurringEntryExternalId!.Value))!.Template.Reimbursement);
     }
 
     private sealed class PreviewClock : TimeProvider

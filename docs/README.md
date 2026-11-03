@@ -28,7 +28,7 @@
 - [Descrições sem duplicidade (#10)](transactions/merchants.md)
 - [Filtros salvos de lançamentos (#33)](transactions/saved-filters.md)
 - [Pessoas de reembolso (#78)](reimbursements/people.md)
-- [Pessoa e percentual de reembolso em despesas (#79)](transactions/entry-reimbursement.md)
+- [Pessoa e percentual de reembolso em despesas e recorrentes (#79/#80)](transactions/entry-reimbursement.md)
 - [Resumo do mês (#24)](reports/monthly-summary.md)
 - [Despesas e receitas por categoria (#25)](reports/category-report.md)
 - [Faturas por cartão no dashboard (#26)](reports/invoices-dashboard.md)

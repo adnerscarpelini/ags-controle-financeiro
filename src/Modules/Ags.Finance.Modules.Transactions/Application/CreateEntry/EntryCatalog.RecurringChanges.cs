@@ -70,7 +70,7 @@ internal sealed partial class EntryCatalog
             // The selected occurrence may be an exception. Unchanged fields keep the series configuration.
             var templateRequest = ChangedRecurringRequest(request, baseline, new(series.StartDate, series.MerchantExternalId,
                 series.SubcategoryExternalId, series.AccountExternalId, series.Amount, series.Details,
-                selected.Month, series.CardExternalId, series.CardLastDigitsExternalId)) with
+                selected.Month, series.CardExternalId, series.CardLastDigitsExternalId, ReimbursementOf(series))) with
             { Date = request.Date, Month = selectedTemplate.Month };
             var prepared = await PrepareAsync(templateRequest, cancellationToken, selected);
             if (prepared.Entry is not { } template) { return new(null, prepared.Error); }
@@ -128,6 +128,7 @@ internal sealed partial class EntryCatalog
         CardExternalId = request.CardExternalId == baseline.CardExternalId ? original.CardExternalId : request.CardExternalId,
         CardLastDigitsExternalId = request.CardLastDigitsExternalId == baseline.CardLastDigitsExternalId ? original.CardLastDigitsExternalId : request.CardLastDigitsExternalId,
         Amount = request.Amount == baseline.Amount ? original.Amount : request.Amount,
-        Details = request.Details == baseline.Details ? original.Details : request.Details
+        Details = request.Details == baseline.Details ? original.Details : request.Details,
+        Reimbursement = request.Reimbursement == baseline.Reimbursement ? original.Reimbursement : request.Reimbursement
     };
 }
