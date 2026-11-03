@@ -21,6 +21,9 @@ não quita a fatura automaticamente, inclusive quando resulta zero/crédito.
 Paga bloqueia o comando pelo guard do módulo, também em chamadas diretas.
 Os comandos genéricos de edição/exclusão não alcançam ajustes.
 
+Em fatura Aberta, o total correto é comparado só com o **lançado até hoje**, sem as recorrentes previstas
+(ver [recorrentes previstas](recurring-forecast.md)); em Fechada, com o total completo.
+
 Composição, lançamentos e totais de despesas incluem a diferença uma única vez.
 A grade mantém filtros e paginação estável: consulta a janela de compras necessária
 e combina os ajustes correspondentes, sem carregar todas as compras para paginar.

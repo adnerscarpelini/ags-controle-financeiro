@@ -34,7 +34,9 @@
 - [Despesas e receitas por categoria (#25)](reports/category-report.md)
 - [Faturas por cartão no dashboard (#26)](reports/invoices-dashboard.md)
 - [Mapa de calor de despesas (#27)](reports/heat-map.md)
-- [Pendências dos próximos sete dias (#58)](reports/pending-agenda.md)
+- [Pendências do dashboard: hoje até 7, 15 ou 30 dias (#58/#69)](reports/pending-agenda.md)
+- [Preferências do aplicativo: tema, tela inicial, dashboard, paginação e sessão (#69)](preferences/settings.md)
+- [Recorrentes previstas na fatura (#69)](invoices/recurring-forecast.md)
 - [Layout CSV oficial, exportação e importação de cadastros e de lançamentos (#61, #62, #28, #29)](imports/csv-layout.md)
 
 Esta pasta registra comportamento implementado e decisões de arquitetura.

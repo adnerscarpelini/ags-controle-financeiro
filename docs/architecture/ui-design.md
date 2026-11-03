@@ -2,7 +2,7 @@
 
 ## Decisão
 
-Visual moderno e limpo, com **tema escuro como padrão** e um **verde "dinheiro"** como cor principal, em Blazor. Todas as cores vêm de tokens declarados como variáveis CSS num único arquivo (`--color-accent`, `--color-background`…). A interface é responsiva; instalação como PWA ainda depende da #38.
+Visual moderno e limpo, com **tema escuro como padrão** e um **verde "dinheiro"** como cor principal, em Blazor. Todas as cores vêm de tokens declarados como variáveis CSS num único arquivo (`--color-accent`, `--color-background`…). A interface é responsiva e instalável como PWA (#38). O tema pode ser escuro, claro ou automático ([preferências](../preferences/settings.md)).
 
 **Estado:** layout, tokens e navegação implementados (issue #5); ver [layout-and-navigation.md](../web/layout-and-navigation.md).
 
@@ -22,7 +22,10 @@ Visual moderno e limpo, com **tema escuro como padrão** e um **verde "dinheiro"
 | `Expense` | `#F87171` | despesas e valores negativos |
 | `Warning` | `#FBBF24` | alertas |
 
-Cores de banco, só no texto: Itaú `#FB923C`, Nubank `#A78BFA`, Bradesco `#F87171`.
+A tabela mostra o lado escuro. O lado claro de cada token está em `tokens.css`:
+`#F4F7F5`, `#FFFFFF`, `#E8EFEB`, `#CBD7D0`, `#13201A`, `#4B5C54`, `#047857`, `#065F46`, `#047857`, `#B91C1C` e `#92400E`, na mesma ordem.
+
+Cores de banco, só no texto: Itaú `#FB923C`, Nubank `#A78BFA`, Bradesco `#F87171` (no tema claro: `#9A3412`, `#6D28D9` e `#B91C1C`).
 
 ## Regras
 
@@ -32,7 +35,8 @@ Cores de banco, só no texto: Itaú `#FB923C`, Nubank `#A78BFA`, Bradesco `#F871
 - Cultura `pt-BR`: `R$ 1.234,56` e `dd/MM/yyyy`.
 - Cantos arredondados de 8, espaçamento em múltiplos de 4, sem sombras pesadas nem gradientes.
 - Cor nunca é o único sinal: valores negativos também levam o sinal de menos.
-- O tema claro pode ser adicionado depois, reaproveitando os mesmos tokens.
+- O tema claro reaproveita os mesmos tokens: cada um é `light-dark(claro, escuro)` e `data-theme` (`dark`, `light` ou `auto`) no `<html>` escolhe o lado (#69). O escuro continua o padrão.
+- Todo texto precisa de contraste mínimo 4,5:1 (WCAG AA) nos dois temas; `UiTokensTests` verifica.
 
 ## Logo
 

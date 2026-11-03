@@ -1,10 +1,11 @@
-# Pendências dos próximos sete dias e atrasadas
+# Pendências da janela do dashboard e atrasadas
 
 A [#58](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/58) acrescenta
 ao dashboard o que há a receber e a pagar no curto prazo (`IPendingAgenda`, em
 `Reports.Contracts`).
 
-**Janela.** Intervalo fechado de hoje até hoje + 6 dias, pela **data prevista** do
+**Janela.** Intervalo fechado de hoje até hoje + (N − 1) dias, com N = 7, 15 ou 30 conforme a
+[preferência](../preferences/settings.md) (padrão 7, os "próximos sete dias" originais da #58), pela **data prevista** do
 lançamento, não pelo mês contábil nem pela criação. Atravessa a virada do ano e inclui
 29/02 em ano bissexto. Atrasados são os de data prevista anterior a hoje, em lista e
 totais separados, fora dos totais da janela.

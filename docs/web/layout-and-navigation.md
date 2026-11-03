@@ -14,7 +14,7 @@ Origem: [#5](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/5
 
 | Arquivo | Papel |
 | --- | --- |
-| `wwwroot/css/tokens.css` | Único lugar com cores literais: paleta, cores de banco, película da gaveta, espaçamento, raio e fonte, como variáveis CSS. |
+| `wwwroot/css/tokens.css` | Único lugar com cores literais: paleta nos temas escuro e claro (`light-dark()`), cores de banco, película da gaveta, espaçamento, raio e fonte, como variáveis CSS. |
 | `wwwroot/css/app.css` | Estilos de estrutura e de componentes, só com `var(--...)`. Inclui `.numeric` (dígitos tabulares, alinhado à direita), `.income` e `.expense`. |
 | `wwwroot/fonts/inter-latin-variable.woff2` | Inter variável (subconjunto latino), licença OFL em `Inter-LICENSE.txt`. |
 | `wwwroot/img/favicon.png` | Favicon e marca do menu, gerado a partir do `logo.png` da raiz (64 × 64). |
@@ -38,5 +38,5 @@ Origem: [#5](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/5
 ## Limites conhecidos
 
 - A gaveta depende do circuito Blazor estar conectado; antes disso (primeiros instantes) o botão ainda não responde.
-- Login já foi entregue na #36. Tema claro continua fora do escopo atual; PWA está pendente na #38.
-- Carteira visual (#55), arquivamento reversível (#53), pendentes (#57) e dashboard dos próximos sete dias (#58) são evoluções aprovadas, ainda não implementadas.
+- Login (#36), PWA (#38) e tema claro/automático (#69) estão entregues.
+- Carteira visual (#55), arquivamento reversível (#53), pendentes (#57) e dashboard de pendências (#58) estão entregues.
