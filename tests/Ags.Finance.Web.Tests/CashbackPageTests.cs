@@ -41,6 +41,9 @@ public sealed class CashbackPageTests
         Assert.Single(page.FindAll("[aria-label='Histórico de abatimentos'] li"));
         var invoices = context.Render<Ags.Finance.Web.Components.Pages.Invoices>();
         invoices.WaitForElement(".invoice-credit");
+        var obligations = context.Render<InvoiceObligationsPage>();
+        obligations.WaitForElement(".invoice-credit");
+        Assert.Contains("Mês corrente", obligations.Markup, StringComparison.Ordinal);
         Assert.Contains("crédito", invoices.Find(".invoice-credit").TextContent, StringComparison.Ordinal);
         Assert.Equal(InvoiceStatus.Open, Assert.Single(await context.Services.GetRequiredService<IInvoiceCatalog>().GetAsync()).Status);
         await page.FindAll("[aria-label='Histórico de abatimentos'] button")[1].ClickAsync(new());
