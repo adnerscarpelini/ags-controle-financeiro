@@ -12,6 +12,7 @@ public interface IAccountMovementCatalog
 {
     Task<ClassificationResult> TransferAsync(TransferRequest request, CancellationToken cancellationToken = default);
     Task<ClassificationResult> AdjustBalanceAsync(BalanceAdjustmentRequest request, CancellationToken cancellationToken = default);
+    Task<ClassificationResult> RemoveInvoiceDebitAsync(Guid paymentExternalId, CancellationToken cancellationToken = default);
     Task<ClassificationResult> RecordInvoiceDebitAsync(InvoiceDebitRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<AccountMovementDetails>> GetAsync(Guid? accountExternalId = null, CancellationToken cancellationToken = default);
 }

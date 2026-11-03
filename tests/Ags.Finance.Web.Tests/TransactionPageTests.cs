@@ -245,7 +245,7 @@ public sealed class TransactionPageTests
         payable.Find("#payment-settle").Change(true);
         await payable.Find("#invoice-payment-form").SubmitAsync(EventArgs.Empty);
         Assert.Contains("definitivo", payable.Find("[aria-label='Registrar pagamento de fatura']").TextContent, StringComparison.Ordinal);
-        await payable.FindAll("[aria-label='Registrar pagamento de fatura'] button").Single(x => x.TextContent == "Confirmar pagamento irreversível").ClickAsync(new());
+        await payable.FindAll("[aria-label='Registrar pagamento de fatura'] button").Single(x => x.TextContent == "Confirmar pagamento").ClickAsync(new());
         Assert.Contains("Paga", payable.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("11/2026", StringComparison.Ordinal)).TextContent, StringComparison.Ordinal);
         Assert.Single(await context.Services.GetRequiredService<IInvoicePaymentCatalog>().GetHistoryAsync());
     }

@@ -14,6 +14,21 @@ public sealed class InvoiceReportTests : ReportFixture
     private IInvoiceReports Reports => Provider.GetRequiredService<IInvoiceReports>();
 
     [Fact]
+    public async Task UndonePaymentsAreExcludedFromPaidAndOpenTotals()
+    {
+        var card = await CardAsync("Cartão A");
+        await PurchaseAsync(card, new DateOnly(2026, 10, 1), 100m);
+        var payments = Provider.GetRequiredService<IInvoicePaymentCatalog>();
+        Assert.True((await payments.ConfirmPaymentAsync(new(Guid.CreateVersion7(), card, s_october, AccountId, new DateOnly(2026, 10, 2), new Money(50)))).Succeeded);
+        Assert.Equal(new Money(50), Assert.Single((await Reports.GetAsync(s_october)).Cards).Paid);
+        Assert.True((await payments.ReopenUndoingPaymentsAsync(card, s_october)).Succeeded);
+        var report = await Reports.GetAsync(s_october);
+        Assert.Equal(Money.Zero, report.Total.Paid);
+        Assert.Equal(new Money(100), report.Total.Open);
+        Assert.Equal(new Money(100), report.Total.Invoice);
+    }
+
+    [Fact]
     public async Task TotalRowSumsEveryCardInvoiceOfTheMonth()
     {
         foreach (var (name, amount) in new[] { ("Cartão A", 100m), ("Cartão B", 250m), ("Cartão C", 50.5m) })

@@ -6,6 +6,15 @@ namespace Ags.Finance.Modules.Transactions.Application.ManageAccountMovements;
 
 internal sealed partial class AccountMovementCatalog
 {
+    public Task<ClassificationResult> RemoveInvoiceDebitAsync(Guid paymentExternalId, CancellationToken cancellationToken = default)
+        => operations.ExecuteAsync(async token =>
+        {
+            if (paymentExternalId == Guid.Empty) { return new ClassificationResult(null, "Informe um pagamento válido."); }
+            var debits = (await store.GetAsync(token)).Where(x => x.OperationExternalId == paymentExternalId && x.Kind == Domain.AccountMovementKind.InvoicePayment).ToList();
+            await store.DeleteAsync(debits, token);
+            return new ClassificationResult(paymentExternalId, null);
+        }, x => x.Succeeded, cancellationToken);
+
     public Task<ClassificationResult> RecordInvoiceDebitAsync(InvoiceDebitRequest request, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(async token =>
         {

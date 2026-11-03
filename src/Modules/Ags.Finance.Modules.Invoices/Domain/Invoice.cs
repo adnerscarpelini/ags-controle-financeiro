@@ -37,6 +37,17 @@ internal sealed class Invoice : Entity
         return null;
     }
 
+    public string? ReopenUndoingPayments()
+    {
+        if (Status == InvoiceStatus.Open && !HasConfirmedPayment) { return "Selecione uma fatura Fechada, Paga ou com pagamento confirmado."; }
+        Status = InvoiceStatus.Open;
+        AutoCloseSuppressed = true;
+        ClosedAt = null;
+        PaidAt = null;
+        HasConfirmedPayment = false;
+        return null;
+    }
+
     public string? Reopen()
     {
         if (Status != InvoiceStatus.Closed || HasConfirmedPayment)

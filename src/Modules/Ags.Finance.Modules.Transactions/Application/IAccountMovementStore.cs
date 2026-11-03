@@ -5,5 +5,6 @@ namespace Ags.Finance.Modules.Transactions.Application;
 internal interface IAccountMovementStore
 {
     Task<IReadOnlyList<AccountMovement>> GetAsync(CancellationToken cancellationToken);
+    Task DeleteAsync(IReadOnlyList<AccountMovement> movements, CancellationToken cancellationToken);
     Task AddAsync(IReadOnlyList<AccountMovement> movements, CancellationToken cancellationToken);
 }

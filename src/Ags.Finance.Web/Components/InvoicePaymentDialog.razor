@@ -22,7 +22,7 @@
         <p>@confirmation.Date.ToString("dd/MM/yyyy") · @confirmation.Amount · Débito em @_accounts.First(x => x.ExternalId == confirmation.AccountExternalId).Name</p>
         <p>Este pagamento é definitivo: não poderá ser editado, excluído, cancelado ou estornado.</p>
         <p>@(confirmation.ConfirmSettlement ? "Confirmo também a quitação da fatura." : "Este pagamento não confirma a quitação nem fecha uma fatura Aberta.")</p>
-        <button class="button" @onclick="ConfirmAsync" disabled="@_busy">Confirmar pagamento irreversível</button>
+        <button class="button" @onclick="ConfirmAsync" disabled="@_busy">Confirmar pagamento</button>
         <button class="button" @onclick="() => _confirmation = null" disabled="@_busy">Voltar</button>
     }
     else
