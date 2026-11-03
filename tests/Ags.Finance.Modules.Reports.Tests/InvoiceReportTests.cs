@@ -70,9 +70,9 @@ public sealed class InvoiceReportTests : ReportFixture
     }
 
     [Theory]
-    [InlineData(RecurringInvoiceMode.SumOnDate, 0, 200)]
-    [InlineData(RecurringInvoiceMode.SumUpfront, 50, 125)]
-    public async Task AMonthWithOnlyForecastOccurrencesDoesNotLowerTheYearAverage(RecurringInvoiceMode mode, int invoice, int average)
+    [InlineData(RecurringInvoiceMode.SumOnDate, 0, 200, 50)]
+    [InlineData(RecurringInvoiceMode.SumUpfront, 50, 125, 0)]
+    public async Task AMonthWithOnlyForecastOccurrencesDoesNotLowerTheYearAverage(RecurringInvoiceMode mode, int invoice, int average, int forecast)
     {
         var november = new AccountingMonth(2026, 11);
         var card = await CardAsync("Cartão A");
@@ -81,9 +81,13 @@ public sealed class InvoiceReportTests : ReportFixture
         Assert.True(series.Succeeded, series.Error);
         Assert.True((await Provider.GetRequiredService<IPreferences>().SaveAsync(AppPreferences.Default with { RecurringInvoices = mode })).Succeeded);
 
-        var line = Assert.Single((await Reports.GetAsync(november)).Cards);
+        var report = await Reports.GetAsync(november);
+        var line = Assert.Single(report.Cards);
 
         Assert.Equal((new Money(invoice), new Money(average)), (line.Invoice, line.YearAverage));
+        // Previsto: só o que ficou fora do total; com "somar desde já" as recorrentes futuras já estão na fatura.
+        Assert.Equal(new Money(forecast), line.Forecast);
+        Assert.Equal(new Money(forecast), report.Total.Forecast);
     }
 
     [Fact]

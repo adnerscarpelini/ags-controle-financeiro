@@ -17,7 +17,7 @@
                 <table>
                     <caption class="visually-hidden">Faturas por cartão</caption>
                     <thead><tr><th scope="col">Cartão</th><th scope="col" class="numeric">Fatura</th><th scope="col" class="numeric">Cashback/desconto</th><th scope="col" class="numeric">Pago</th>
-                        <th scope="col" class="numeric">Em aberto</th><th scope="col" class="numeric">Mês anterior</th><th scope="col" class="numeric">Média no ano</th><th scope="col" class="numeric">Em aberto daqui pra frente</th></tr></thead>
+                        <th scope="col" class="numeric">Em aberto</th><th scope="col" class="numeric">Mês anterior</th><th scope="col" class="numeric">Média no ano</th><th scope="col" class="numeric">Em aberto daqui pra frente</th><th scope="col" class="numeric">Previsto</th></tr></thead>
                     <tbody>
                         @foreach (var card in report.Cards)
                         {
@@ -25,11 +25,11 @@
                                 @if (card.BankExternalId != Guid.Empty) { <BankLogo Bank="new BankDetails(card.BankExternalId, card.BankName, card.BankLogoVersion)" /> }
                                 <span class="catalog-color color-@card.Color">@card.CardName</span>@(card.IsArchived ? " (arquivado)" : string.Empty)</span></th>
                                 <td class="numeric">@card.Invoice</td><td class="numeric">@card.Allowances</td><td class="numeric">@card.Paid</td><td class="numeric">@card.Open</td>
-                                <td class="numeric">@card.PreviousMonth</td><td class="numeric">@card.YearAverage</td><td class="numeric">@card.OpenFromNowOn</td></tr>
+                                <td class="numeric">@card.PreviousMonth</td><td class="numeric">@card.YearAverage</td><td class="numeric">@card.OpenFromNowOn</td><td class="numeric invoice-forecast">@card.Forecast</td></tr>
                         }
                     </tbody>
                     <tfoot><tr><th scope="row">Total</th><td class="numeric">@report.Total.Invoice</td><td class="numeric">@report.Total.Allowances</td><td class="numeric">@report.Total.Paid</td><td class="numeric">@report.Total.Open</td>
-                        <td class="numeric">@report.Total.PreviousMonth</td><td class="numeric">@report.Total.YearAverage</td><td class="numeric">@report.Total.OpenFromNowOn</td></tr></tfoot>
+                        <td class="numeric">@report.Total.PreviousMonth</td><td class="numeric">@report.Total.YearAverage</td><td class="numeric">@report.Total.OpenFromNowOn</td><td class="numeric invoice-forecast">@report.Total.Forecast</td></tr></tfoot>
                 </table>
             </div>
         }
