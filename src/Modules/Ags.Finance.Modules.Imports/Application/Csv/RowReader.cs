@@ -59,6 +59,14 @@ internal sealed class RowReader(CsvRow row, IReadOnlyList<string> columns, List<
         return value;
     }
 
+    public decimal Percent(string column)
+    {
+        if (!CsvFormat.TryPercent(Raw(column), out var value)) { Problem(column, "Informe um percentual de 0 a 100, com ponto decimal e até duas casas."); }
+        return value;
+    }
+
+    public decimal? OptionalPercent(string column) => Raw(column).Length == 0 ? null : Percent(column);
+
     public DateOnly Date(string column)
     {
         if (!CsvFormat.TryDate(Raw(column), out var value)) { Problem(column, "Use a data no formato yyyy-MM-dd."); }

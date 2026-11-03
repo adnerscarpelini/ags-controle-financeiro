@@ -95,6 +95,28 @@ public sealed class RegistryImportTests : ImportsFixture
     }
 
     [Fact]
+    public async Task PeopleLayoutOneIsRejectedAsAnUnknownVersion()
+    {
+        var text = $"ags-finance-csv,people,1\r\nexternal_id,name,payer_description\r\n{Guid.CreateVersion7():D},Pessoa Exemplo,Pagadora Exemplo\r\n";
+        var report = await Get<IRegistryImport>().ImportAsync(RegistryKind.People, Encoding.UTF8.GetBytes(text));
+        Assert.False(report.Succeeded);
+        Assert.Empty(await Get<Ags.Finance.Modules.Reimbursements.Contracts.IPersonCatalog>().GetAsync());
+    }
+
+    [Theory]
+    [InlineData("100.01")]
+    [InlineData("-1")]
+    [InlineData("33.333")]
+    [InlineData("50,5")]
+    public async Task InvalidDefaultPercentIsReportedOnTheLine(string percent)
+    {
+        var text = $"ags-finance-csv,people,2\r\nexternal_id,name,default_percent\r\n{Guid.CreateVersion7():D},Pessoa Exemplo,\"{percent}\"\r\n";
+        var report = await Get<IRegistryImport>().ImportAsync(RegistryKind.People, Encoding.UTF8.GetBytes(text));
+        Assert.False(report.Succeeded);
+        Assert.Equal((3, "default_percent"), (report.Issues[0].Line, report.Issues[0].Field));
+    }
+
+    [Fact]
     public async Task DifferentDataForAnExistingIdentityIsAConflictAndNothingIsOverwritten()
     {
         var seed = await SeedAsync();

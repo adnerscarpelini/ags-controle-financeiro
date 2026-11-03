@@ -32,7 +32,7 @@ internal sealed record RegistryLayout(RegistryKind Kind, string Type, int Versio
             [[Subcategory, Category, "Feira", "true"]]),
         new(RegistryKind.Merchants, "merchants", 1, ["external_id", "name", "default_subcategory_external_id", "is_active"],
             [["0190a000-0000-7000-8000-000000000007", "Loja Exemplo", Subcategory, "true"]]),
-        new(RegistryKind.People, "people", 1, ["external_id", "name", "payer_description"],
-            [["0190a000-0000-7000-8000-000000000008", "Pessoa Exemplo", "Pessoa Exemplo (pagador)"]]),
+        new(RegistryKind.People, "people", 2, ["external_id", "name", "default_percent"],
+            [["0190a000-0000-7000-8000-000000000008", "Pessoa Exemplo", "50"]]),
     ];
 }

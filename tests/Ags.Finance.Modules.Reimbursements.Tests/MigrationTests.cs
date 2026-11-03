@@ -35,7 +35,7 @@ public sealed class MigrationTests : IAsyncLifetime
         await provider.MigrateReimbursementsModuleAsync();
 
         Assert.Equal([Schema], await Database.QueryAsync($"SELECT schema_name FROM information_schema.schemata WHERE schema_name = '{Schema}'"));
-        Assert.Equal(3, int.Parse(await Database.ScalarAsync($"SELECT COUNT(*) FROM {Schema}.{HistoryTable}"), System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(4, int.Parse(await Database.ScalarAsync($"SELECT COUNT(*) FROM {Schema}.{HistoryTable}"), System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed class MigrationTests : IAsyncLifetime
         await provider.MigrateReimbursementsModuleAsync();
         await provider.MigrateReimbursementsModuleAsync();
 
-        Assert.Equal(3, int.Parse(await Database.ScalarAsync($"SELECT COUNT(*) FROM {Schema}.{HistoryTable}"), System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(4, int.Parse(await Database.ScalarAsync($"SELECT COUNT(*) FROM {Schema}.{HistoryTable}"), System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Fact]
@@ -60,6 +60,20 @@ public sealed class MigrationTests : IAsyncLifetime
             "SELECT table_schema FROM information_schema.tables WHERE table_schema NOT IN ('pg_catalog', 'information_schema')");
         Assert.NotEmpty(tables);
         Assert.All(tables, schema => Assert.Equal(Schema, schema));
+    }
+
+    [Fact]
+    public async Task TheModelNoLongerHasSharingRulesOrOldReceipts()
+    {
+        await using var provider = new ServiceCollection().AddReimbursementsModule(Database.ConnectionString).BuildServiceProvider();
+
+        await provider.MigrateReimbursementsModuleAsync();
+
+        var tables = await Database.QueryAsync($"SELECT table_name FROM information_schema.tables WHERE table_schema = '{Schema}' AND table_name IN ('sharing_rules', 'receipts')");
+        Assert.Empty(tables);
+        var columns = await Database.QueryAsync($"SELECT column_name FROM information_schema.columns WHERE table_schema = '{Schema}' AND table_name = 'people'");
+        Assert.Contains("DefaultPercent", columns);
+        Assert.DoesNotContain("PayerDescription", columns);
     }
 
     /// <summary>O snapshot e a migration escritos à mão precisam descrever exatamente o modelo atual.</summary>

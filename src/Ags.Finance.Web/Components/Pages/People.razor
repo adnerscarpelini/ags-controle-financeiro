@@ -1,0 +1,72 @@
+@page "/cadastros/pessoas"
+@using System.Globalization
+@using Ags.Finance.Modules.Reimbursements.Contracts
+@inject IPersonCatalog Catalog
+
+<PageHeader Title="Pessoas" />
+<p><a href="/cadastros">Cadastros</a> / Pessoas</p>
+@if (_message is not null) { <p role="status">@_message</p> }
+<section class="panel">
+    <h2>@(_externalId is null ? "Nova pessoa" : "Editar pessoa")</h2>
+    <p>O percentual padrão só pré-preenche novas seleções em despesas. Alterá-lo não muda lançamentos nem recorrências já gravados.</p>
+    <form @onsubmit="SaveAsync" @onsubmit:preventDefault>
+        <div class="catalog-fields">
+            <div class="field"><label for="person-name">Nome</label><input id="person-name" @bind="_name" maxlength="100" required /></div>
+            <div class="field"><label for="person-percent">Percentual padrão de reembolso (0 a 100)</label><input id="person-percent" type="number" step="0.01" min="0" max="100" @bind="_defaultPercent" required /></div>
+        </div>
+        <button class="button" disabled="@_busy">Salvar pessoa</button>
+        <button class="button" type="button" @onclick="Reset">Limpar</button>
+    </form>
+</section>
+<section class="panel">
+    <h2>Pessoas cadastradas</h2>
+    @if (_people.Count == 0) { <p>Nenhuma pessoa cadastrada.</p> }
+    <ul class="catalog-list">
+        @foreach (var person in _people)
+        {
+            <li><span>@person.Name · @person.DefaultPercent.ToString("0.##", CultureInfo.GetCultureInfo("pt-BR"))%</span>
+                <button class="button" @onclick="() => Edit(person)">Editar</button>
+                <button class="button" @onclick="() => DeleteAsync(person.ExternalId)" disabled="@_busy">Excluir</button>
+            </li>
+        }
+    </ul>
+</section>
+
+@code {
+    private IReadOnlyList<PersonDetails> _people = [];
+    private Guid? _externalId;
+    private string _name = string.Empty;
+    private decimal _defaultPercent;
+    private string? _message;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync() => _people = await Catalog.GetAsync();
+
+    private void Edit(PersonDetails person) { _externalId = person.ExternalId; _name = person.Name; _defaultPercent = person.DefaultPercent; }
+    private void Reset() { _externalId = null; _name = string.Empty; _defaultPercent = 0; }
+
+    private async Task SaveAsync()
+    {
+        await RunAsync(async () =>
+        {
+            var result = await Catalog.SaveAsync(_externalId, _name, _defaultPercent);
+            if (result.Succeeded) { Reset(); }
+            return result;
+        }, "Pessoa salva.");
+    }
+
+    private async Task DeleteAsync(Guid externalId) => await RunAsync(() => Catalog.DeleteAsync(externalId), "Pessoa excluída.");
+
+    private async Task RunAsync(Func<Task<ReimbursementResult>> action, string success)
+    {
+        if (_busy) { return; }
+        _busy = true;
+        try
+        {
+            var result = await action();
+            _message = result.Succeeded ? success : result.Error;
+            _people = await Catalog.GetAsync();
+        }
+        finally { _busy = false; }
+    }
+}

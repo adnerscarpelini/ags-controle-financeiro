@@ -15,6 +15,12 @@ internal static class CsvFormat
 
     public static string Id(Guid? value) => value?.ToString("D") ?? string.Empty;
 
+    /// <summary>Percentual com ponto decimal e sem zeros supérfluos (<c>33.33</c>, <c>50</c>).</summary>
+    public static string Percent(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+
+    public static bool TryPercent(string text, out decimal value)
+        => decimal.TryParse(text, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value) && value <= 100 && decimal.Round(value, 2) == value;
+
     public static bool TryBool(string text, out bool value)
     {
         value = text == "true";
