@@ -12,6 +12,7 @@ using Ags.Finance.Web.Backup;
 using Ags.Finance.Web.BankLogos;
 using Ags.Finance.Web.Commands;
 using Ags.Finance.Web.Components;
+using Ags.Finance.Web.Csv;
 using Ags.Finance.Web.Hosting;
 using Ags.Finance.Web.Persistence;
 using Microsoft.AspNetCore.DataProtection;
@@ -117,6 +118,7 @@ app.UseAntiforgery();
 
 app.MapAccountEndpoints();
 app.MapBankLogoEndpoints();
+app.MapCsvEndpoints();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
