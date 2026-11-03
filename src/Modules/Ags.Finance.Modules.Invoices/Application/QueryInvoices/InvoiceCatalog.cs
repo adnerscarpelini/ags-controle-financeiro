@@ -40,7 +40,7 @@ internal sealed class InvoiceCatalog(IEntryCatalog entries, IAccountCatalog acco
                 var state = states.GetValueOrDefault(key);
                 return new InvoiceDetails(key.CardExternalId, cards[key.CardExternalId].Name, key.Month,
                     new Money(-items.Sum(x => x.Amount.Amount)), items, (InvoiceStatus)(state?.Status ?? Domain.InvoiceStatus.Open), state?.ExternalId,
-                    history.Where(x => x.CardExternalId == key.CardExternalId && x.Month == key.Month).ToList());
+                    history.Where(x => x.CardExternalId == key.CardExternalId && x.Month == key.Month).ToList(), state?.HasConfirmedPayment ?? false, state?.PaidAt);
             }).ToList();
     }
 }

@@ -71,7 +71,7 @@
     <p>Transferências e ajustes de saldo não são receitas nem despesas.</p>
     <ul class="catalog-list" aria-label="Movimentações de contas">@foreach (var movement in _movements)
     {
-        <li><span>@movement.Date.ToString("dd/MM/yyyy") · @Name(movement.AccountExternalId) · @(movement.Kind == AccountMovementKind.BalanceAdjustment ? "Ajuste de saldo" : "Transferência")</span>
+        <li><span>@movement.Date.ToString("dd/MM/yyyy") · @Name(movement.AccountExternalId) · @(movement.Kind switch { AccountMovementKind.BalanceAdjustment => "Ajuste de saldo", AccountMovementKind.InvoicePayment => "Pagamento de fatura", _ => "Transferência" })</span>
             <span class="numeric">@(movement.Amount.IsNegative ? string.Empty : "+")@movement.Amount</span>
             <span>Operação @movement.OperationExternalId</span>
             @if (movement.AdjustmentTarget is { } target) { <span>Saldo informado: @target</span> }</li>

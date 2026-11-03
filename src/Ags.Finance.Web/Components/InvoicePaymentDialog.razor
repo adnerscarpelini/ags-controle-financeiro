@@ -1,0 +1,78 @@
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Invoices.Contracts
+@using Ags.Finance.SharedKernel
+@inject IInvoicePaymentCatalog Payments
+@inject IAccountCatalog Accounts
+@inject TimeProvider Clock
+
+<section class="panel" role="alertdialog" aria-label="Registrar pagamento de fatura">
+    <h2>Pagar @Invoice.CardName · @Invoice.Month</h2>
+    <p>Saldo restante: @Invoice.RemainingBalance</p>
+    @if (_error is not null) { <p role="status">@_error</p> }
+    @if (_confirmation is { } confirmation)
+    {
+        <p>@confirmation.Date.ToString("dd/MM/yyyy") · @confirmation.Amount · Débito em @_accounts.First(x => x.ExternalId == confirmation.AccountExternalId).Name</p>
+        <p>Este pagamento é definitivo: não poderá ser editado, excluído, cancelado ou estornado.</p>
+        <p>@(confirmation.ConfirmSettlement ? "Confirmo também a quitação da fatura." : "Este pagamento não confirma a quitação nem fecha uma fatura Aberta.")</p>
+        <button class="button" @onclick="ConfirmAsync" disabled="@_busy">Confirmar pagamento irreversível</button>
+        <button class="button" @onclick="() => _confirmation = null" disabled="@_busy">Voltar</button>
+    }
+    else
+    {
+        <form id="invoice-payment-form" @onsubmit="Review" @onsubmit:preventDefault>
+            <div class="catalog-fields">
+                <div class="field"><label for="payment-account">Conta corrente de débito</label><select id="payment-account" @bind="_account" required><option value="@Guid.Empty">Selecione</option>@foreach (var account in _accounts) { <option value="@account.ExternalId">@account.Name</option> }</select></div>
+                <div class="field"><label for="payment-date">Data do pagamento</label><input id="payment-date" type="date" @bind="_date" required /></div>
+                <div class="field"><label for="payment-amount">Valor (R$)</label><input id="payment-amount" type="number" min="0.01" step="0.01" @bind="_amount" required /></div>
+                <div class="field"><label for="payment-details">Detalhes</label><input id="payment-details" @bind="_details" maxlength="1000" /></div>
+            </div>
+            @if (Invoice.Status == InvoiceStatus.Closed) { <label><input id="payment-settle" type="checkbox" @bind="_settle" />Confirmo também a quitação, se o saldo após este pagamento for zero ou crédito</label> }
+            @if (_amount > Invoice.RemainingBalance.Amount) { <p class="invoice-credit">O pagamento excede o saldo restante e gera crédito.</p> }
+            <button class="button" disabled="@(_busy || !_ready)">Revisar pagamento</button>
+        </form>
+    }
+    <button class="button" @onclick="() => Cancelled.InvokeAsync()" disabled="@_busy">Cancelar</button>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public InvoiceDetails Invoice { get; set; } = default!;
+    [Parameter] public EventCallback Confirmed { get; set; }
+    [Parameter] public EventCallback Cancelled { get; set; }
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private Guid _account;
+    private readonly Guid _confirmationId = Guid.CreateVersion7();
+    private DateOnly _date;
+    private decimal _amount;
+    private string _details = string.Empty;
+    private bool _settle;
+    private bool _busy;
+    private bool _ready;
+    private string? _error;
+    private ConfirmInvoicePaymentRequest? _confirmation;
+    protected override async Task OnInitializedAsync()
+    {
+        _date = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+        _amount = Math.Max(0, Invoice.RemainingBalance.Amount);
+        _accounts = (await Accounts.GetAccountsAsync()).Where(x => x.Kind == AccountKind.Checking).ToList();
+        var linked = (await Accounts.GetCreditCardsAsync(false)).FirstOrDefault(x => x.ExternalId == Invoice.CardExternalId)?.AccountExternalId;
+        _account = _accounts.FirstOrDefault(x => x.ExternalId == linked)?.ExternalId ?? Guid.Empty;
+        _ready = true;
+    }
+    private void Review()
+    {
+        if (!_ready || _busy) { return; }
+        if (!_accounts.Any(x => x.ExternalId == _account)) { _error = "Selecione uma conta corrente ativa."; return; }
+        _confirmation = new(_confirmationId, Invoice.CardExternalId, Invoice.Month, _account, _date, new Money(_amount), _settle, _details);
+    }
+    private async Task ConfirmAsync()
+    {
+        if (_busy || _confirmation is not { } request) { return; }
+        _busy = true;
+        try
+        {
+            var result = await Payments.ConfirmPaymentAsync(request); _error = result.Error;
+            if (result.Succeeded) { await Confirmed.InvokeAsync(); }
+        }
+        finally { _busy = false; }
+    }
+}

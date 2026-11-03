@@ -12,6 +12,18 @@ internal sealed class Invoice : Entity
     public bool AutoCloseSuppressed { get; private set; }
     public bool HasConfirmedPayment { get; private set; }
     public DateTimeOffset? ClosedAt { get; private set; }
+    public DateTimeOffset? PaidAt { get; private set; }
+
+    public void RecordConfirmedPayment() => HasConfirmedPayment = true;
+
+    public string? Settle(Money remainingBalance, DateTimeOffset now)
+    {
+        if (Status == InvoiceStatus.Paid) { return null; }
+        if (Status != InvoiceStatus.Closed || remainingBalance.Amount > 0) { return "A quitação exige fatura Fechada com saldo zero ou crédito."; }
+        Status = InvoiceStatus.Paid;
+        PaidAt = now;
+        return null;
+    }
 
     public static Invoice Create(Guid cardExternalId, AccountingMonth month) => new() { CardExternalId = cardExternalId, Month = month };
 

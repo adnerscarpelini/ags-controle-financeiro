@@ -7,7 +7,7 @@ O calendário de compras (#8), a abertura de contas (#47), lançamentos avulsos 
 e o ciclo de faturas (#18/#50) estão implementados. Séries mensais e ocorrências (#16)
 também estão entregues, com edição por alcance (#17), baixa manual (#56),
 transferências (#46), ajustes de saldo (#48) e consulta de pendências (#57).
-Pagamentos, ajustes de fatura, arquivamento reversível e outras visões financeiras
+Ajustes de fatura, arquivamento reversível e outras visões financeiras
 ainda têm entregas abertas.
 Esta nota registra as fronteiras entre conceitos; os critérios de aceite permanecem nas issues.
 
@@ -60,7 +60,8 @@ O seletor de mês contábil não desloca essa janela.
 A #19 implementa a política aprovada de abatimentos: criar, editar e excluir
 Cashback/Desconto é permitido em Aberta/Fechada e bloqueado em Paga, inclusive na
 origem e no destino de uma mudança. Pagamentos confirmados permanecem irreversíveis.
-O débito e a quitação da #51 ainda não foram liberados nesta etapa.
+O débito atômico e a quitação explícita da #51 estão implementados; pagamentos
+confirmados não podem ser editados ou excluídos pelos comandos de abatimento.
 
 ## Recorrência, histórico e arquivamento
 

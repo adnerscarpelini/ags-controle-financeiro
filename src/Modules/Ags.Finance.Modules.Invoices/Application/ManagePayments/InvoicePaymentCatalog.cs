@@ -1,10 +1,11 @@
 using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Invoices.Contracts;
 using Ags.Finance.Modules.Invoices.Domain;
+using Ags.Finance.Modules.Transactions.Contracts;
 
 namespace Ags.Finance.Modules.Invoices.Application.ManagePayments;
 
-internal sealed partial class InvoicePaymentCatalog(IInvoiceStore store, IAccountCatalog accounts, IFinancialOperation operations) : IInvoicePaymentCatalog
+internal sealed partial class InvoicePaymentCatalog(IInvoiceStore store, IAccountCatalog accounts, IEntryCatalog entries, IAccountMovementCatalog movements, TimeProvider clock, IFinancialOperation operations) : IInvoicePaymentCatalog
 {
     public Task<InvoicePaymentResult> SaveAllowanceAsync(Guid? externalId, AllowanceRequest request, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(token => SaveAllowanceCoreAsync(externalId, request, token), x => x.Succeeded, cancellationToken);

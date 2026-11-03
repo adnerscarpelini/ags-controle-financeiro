@@ -14,6 +14,22 @@ internal sealed class InvoicePayment : Entity
     public Guid? AccountExternalId { get; private set; }
     public string Details { get; private set; } = string.Empty;
 
+    public static InvoicePayment? Confirm(Guid confirmationId, Guid invoiceExternalId, Guid accountExternalId, DateOnly date, Money amount, string details)
+    {
+        if (confirmationId == Guid.Empty || invoiceExternalId == Guid.Empty || accountExternalId == Guid.Empty || date == DateOnly.MinValue
+            || amount.Amount <= 0 || amount.Amount > 92233720368547758.07m || details.Length > 1000) { return null; }
+        return new()
+        {
+            ConfirmationId = confirmationId,
+            InvoiceExternalId = invoiceExternalId,
+            AccountExternalId = accountExternalId,
+            Date = date,
+            Amount = amount,
+            Kind = InvoicePaymentKind.Payment,
+            Details = details.Trim()
+        };
+    }
+
     public string? SetAllowance(Guid confirmationId, Guid invoiceExternalId, DateOnly date, Money amount, InvoicePaymentKind kind, string details)
     {
         if (Kind == InvoicePaymentKind.Payment) { return "Pagamentos confirmados são irreversíveis."; }
