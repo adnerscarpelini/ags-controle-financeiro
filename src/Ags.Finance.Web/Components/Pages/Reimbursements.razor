@@ -1,5 +1,6 @@
 @page "/reembolsos"
 @using System.Globalization
+@using Ags.Finance.Modules.Accounts.Contracts
 @using Ags.Finance.Modules.Reimbursements.Contracts
 @using Ags.Finance.Modules.Transactions.Contracts
 @using Ags.Finance.SharedKernel
@@ -7,6 +8,8 @@
 @inject ISharingRuleCatalog Rules
 @inject ISavedFilterCatalog SavedFilters
 @inject IReimbursementStatements Statements
+@inject IReimbursementReceipts Receipts
+@inject IAccountCatalog Accounts
 
 <PageHeader Title="Reembolsos" />
 @if (_message is not null) { <p role="status">@_message</p> }
@@ -36,6 +39,17 @@
             <dt>Total recebido</dt><dd class="numeric">@statement.TotalReceived</dd>
             <dt>Saldo</dt><dd class="numeric">@statement.Balance@(statement.HasCredit ? " (crédito da pessoa)" : string.Empty)</dd>
         </dl>
+        <h3>Registrar recebimento</h3>
+        <form @onsubmit="RegisterReceiptAsync" @onsubmit:preventDefault>
+            <div class="catalog-fields">
+                <div class="field"><label for="receipt-date">Data</label><input id="receipt-date" type="date" @bind="_receiptDate" required /></div>
+                <div class="field"><label for="receipt-amount">Valor (R$)</label><input id="receipt-amount" type="number" step="0.01" min="0.01" @bind="_receiptAmount" required /></div>
+                <div class="field"><label for="receipt-account">Conta</label><select id="receipt-account" @bind="_receiptAccount" required>
+                    <option value="@Guid.Empty">Selecione</option>@foreach (var account in _accounts) { <option value="@account.ExternalId">@account.Name</option> }
+                </select></div>
+            </div>
+            <button class="button" disabled="@_busy">Registrar recebimento</button>
+        </form>
     }
 </section>
 <section class="panel">
@@ -101,6 +115,28 @@
     private decimal _rulePercent = 100;
     private string _ruleStart = string.Empty;
 
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private DateOnly? _receiptDate;
+    private decimal _receiptAmount;
+    private Guid _receiptAccount;
+
+    private async Task RegisterReceiptAsync()
+    {
+        if (_statement is null || _receiptDate is not { } date) { _message = "Calcule o mês e informe a data do recebimento."; return; }
+        _busy = true;
+        try
+        {
+            var result = await Receipts.RegisterAsync(_statement.PersonExternalId, date, new Money(_receiptAmount), _receiptAccount);
+            _message = result.Succeeded ? "Recebimento registrado." : result.Error;
+            if (result.Succeeded)
+            {
+                _receiptAmount = 0;
+                _statement = await Statements.GetAsync(_statement.PersonExternalId, _statement.Month);
+            }
+        }
+        finally { _busy = false; }
+    }
+
     private Guid _statementPerson;
     private string _statementMonth = string.Empty;
     private ReimbursementStatement? _statement;
@@ -127,6 +163,7 @@
         _people = await People.GetAsync();
         _rules = await Rules.GetAsync();
         _filters = await SavedFilters.GetAsync();
+        _accounts = await Accounts.GetAccountsAsync();
     }
 
     private string PersonName(Guid id) => _people.FirstOrDefault(x => x.ExternalId == id)?.Name ?? "Pessoa removida";
