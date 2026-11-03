@@ -1,0 +1,95 @@
+@using Ags.Finance.Modules.Imports.Contracts
+@inject ITransactionImport Importer
+
+<section class="panel" aria-labelledby="transaction-import-title">
+    <h2 id="transaction-import-title">Importar lançamentos</h2>
+    <p>Só aceita o CSV oficial de lançamentos (e, se houver ocorrências recorrentes, o CSV de séries). Os cadastros que os lançamentos referenciam precisam existir antes.
+        Parcelas devem vir completas e faturas Fechadas ou Pagas continuam protegidas. A prévia não grava nada; ao confirmar, tudo entra ou nada entra.
+        Os arquivos enviados não ficam guardados.</p>
+    @if (_message is not null) { <p role="status">@_message</p> }
+    <div class="catalog-fields">
+        <div class="field"><label for="import-transactions-file">Arquivo de lançamentos (até 10 MB)</label><InputFile id="import-transactions-file" accept=".csv,text/csv" OnChange="TransactionsSelectedAsync" disabled="@_busy" /></div>
+        <div class="field"><label for="import-series-file">Arquivo de séries recorrentes (opcional)</label><InputFile id="import-series-file" accept=".csv,text/csv" OnChange="SeriesSelectedAsync" disabled="@_busy" /></div>
+    </div>
+    <button class="button" @onclick="PreviewAsync" disabled="@(_busy || _transactions is null)">Validar arquivos</button>
+    @if (_report is { } report)
+    {
+        <h3>Prévia: @(report.Succeeded ? "arquivos válidos" : "arquivos com problemas")</h3>
+        <dl class="metric-grid">
+            <div class="metric"><dt>Novos</dt><dd class="numeric">@report.NewCount</dd></div>
+            <div class="metric"><dt>Idênticos (ignorados)</dt><dd class="numeric">@report.IdenticalCount</dd></div>
+            <div class="metric"><dt>Problemas</dt><dd class="numeric">@report.Issues.Count</dd></div>
+        </dl>
+        @if (report.Issues.Count > 0)
+        {
+            <table>
+                <caption class="visually-hidden">Problemas encontrados nos arquivos</caption>
+                <thead><tr><th scope="col">Linha</th><th scope="col">Coluna</th><th scope="col">Problema</th></tr></thead>
+                <tbody>@foreach (var issue in report.Issues.Take(200)) { <tr><td class="numeric">@(issue.Line == 0 ? "-" : issue.Line.ToString())</td><td>@issue.Field</td><td>@issue.Message</td></tr> }</tbody>
+            </table>
+            @if (report.Issues.Count > 200) { <p>Mostrando os 200 primeiros problemas.</p> }
+        }
+        @if (report.Succeeded)
+        {
+            <button class="button" @onclick="ConfirmAsync" disabled="@(_busy || report.NewCount == 0)">Confirmar importação</button>
+        }
+        <button class="button" @onclick="Cancel" disabled="@_busy">Cancelar</button>
+    }
+</section>
+
+@code {
+    private const long MaxBytes = 10 * 1024 * 1024;
+    private byte[]? _transactions;
+    private byte[]? _series;
+    private TransactionImportReport? _report;
+    private string? _message;
+    private bool _busy;
+
+    private async Task TransactionsSelectedAsync(InputFileChangeEventArgs args) { _transactions = await ReadAsync(args); _report = null; }
+
+    private async Task SeriesSelectedAsync(InputFileChangeEventArgs args) { _series = await ReadAsync(args); _report = null; }
+
+    private async Task<byte[]?> ReadAsync(InputFileChangeEventArgs args)
+    {
+        _message = null;
+        try
+        {
+            await using var stream = args.File.OpenReadStream(MaxBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            return buffer.ToArray();
+        }
+        catch (IOException)
+        {
+            _message = "O arquivo excede 10 MB.";
+            return null;
+        }
+    }
+
+    private async Task PreviewAsync()
+    {
+        if (_transactions is null) { return; }
+        _busy = true;
+        try { _report = await Importer.PreviewAsync(_transactions, _series); }
+        finally { _busy = false; }
+    }
+
+    private async Task ConfirmAsync()
+    {
+        if (_transactions is null) { return; }
+        _busy = true;
+        try
+        {
+            var report = await Importer.ImportAsync(_transactions, _series);
+            _message = report.Applied ? $"Importação concluída: {report.NewCount} novos, {report.IdenticalCount} já existentes." : "Nada foi gravado: os arquivos têm problemas.";
+            _report = report.Applied ? null : report;
+            if (report.Applied) { _transactions = null; _series = null; }
+        }
+        finally { _busy = false; }
+    }
+
+    private void Cancel()
+    {
+        _transactions = null; _series = null; _report = null; _message = "Importação cancelada. Nada foi gravado.";
+    }
+}

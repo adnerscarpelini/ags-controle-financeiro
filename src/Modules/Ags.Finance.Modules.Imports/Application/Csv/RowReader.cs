@@ -1,4 +1,5 @@
 using Ags.Finance.Modules.Imports.Contracts;
+using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Imports.Application.Csv;
 
@@ -65,6 +66,21 @@ internal sealed class RowReader(CsvRow row, IReadOnlyList<string> columns, List<
     }
 
     public DateOnly? OptionalDate(string column) => Raw(column).Length == 0 ? null : Date(column);
+
+    public long? OptionalInteger(string column, long min, long max) => Raw(column).Length == 0 ? null : Integer(column, min, max);
+
+    /// <summary>Mês contábil no formato yyyy-MM.</summary>
+    public AccountingMonth Month(string column)
+    {
+        if (!DateOnly.TryParseExact(Raw(column) + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var date) || Raw(column).Length != 7)
+        {
+            Problem(column, "Use o mês no formato yyyy-MM.");
+            return default;
+        }
+        return AccountingMonth.FromDate(date);
+    }
+
+    public AccountingMonth? OptionalMonth(string column) => Raw(column).Length == 0 ? null : Month(column);
 
     public T Enum<T>(string column)
         where T : struct, Enum
