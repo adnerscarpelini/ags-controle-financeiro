@@ -71,7 +71,7 @@ internal sealed class TransactionExporter(IEntryCatalog entries, ISavedFilterCat
         do
         {
             result = filter.SavedFilterExternalId is { } saved
-                ? await savedFilters.RunAsync(saved, filter.Month, filter.FromDate, filter.ToDate, page, PageSize, cancellationToken)
+                ? await savedFilters.RunAsync(saved, filter.Month, filter.FromDate, filter.ToDate, page, PageSize, cancellationToken: cancellationToken)
                 : await entries.QueryAsync(new(filter.Month, filter.FromDate, filter.ToDate, filter.AccountExternalId, filter.CardExternalId, filter.CardLastDigitsExternalId,
                     filter.CategoryExternalId, filter.SubcategoryExternalId, filter.Text, filter.IsEffective, filter.Kind, page, PageSize), cancellationToken);
             if (result.Error is not null) { return ([], result.Error); }

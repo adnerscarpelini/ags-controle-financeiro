@@ -169,7 +169,7 @@ public sealed class PreferencesIntegrationTests : IDisposable
         var html = await browser.GetHtmlAsync("/lancamentos");
 
         Assert.Contains($"60 lançamentos · Página 1 de {pages}", html, StringComparison.Ordinal);
-        Assert.Contains("Despesas: <span class=\"numeric entry-expense\">-R$ 60,00</span>", html, StringComparison.Ordinal);
+        Assert.Contains("-R$ 60,00", html, StringComparison.Ordinal);
     }
 
     [Theory]

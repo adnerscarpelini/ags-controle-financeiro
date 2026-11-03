@@ -1,3 +1,4 @@
+@* Antecipação em passos: quantidade e desconto, depois o resumo. Mantém a regra da #32: as últimas parcelas vão para a fatura atual. *@
 @using Ags.Finance.Modules.Accounts.Contracts
 @using Ags.Finance.Modules.Invoices.Contracts
 @using Ags.Finance.Modules.Transactions.Contracts
@@ -5,34 +6,54 @@
 @inject IInvoiceAnticipationCatalog Anticipations
 @inject IReferenceMonthCalculator Calendar
 @inject TimeProvider Clock
+@inject EntryChangeNotifier Notifier
+@inject ISnackbar Snackbar
 
-<section class="panel" role="alertdialog" aria-label="Antecipar parcelas">
-    <h2>Antecipar parcelas de @Entry.MerchantName</h2>
-    <p>As últimas parcelas futuras da compra serão movidas para a fatura atual: @_month.</p>
-    @if (_error is not null) { <p role="status">@_error</p> }
-    @if (_review)
-    {
-        <p>Confirmar antecipação de @_count parcelas para @_month, com desconto de @(new Money(_discount))?</p>
-        <p>Os valores das parcelas serão preservados. Desconto será um abatimento separado na fatura.</p>
-        <button class="button" @onclick="ConfirmAsync" disabled="@_busy">Confirmar antecipação</button>
-        <button class="button" @onclick="() => _review = false" disabled="@_busy">Voltar</button>
-    }
-    else
-    {
-        <form id="anticipation-form" @onsubmit="() => _review = true" @onsubmit:preventDefault>
-            <div class="catalog-fields">
-                <div class="field"><label for="anticipation-count">Quantidade das últimas parcelas futuras</label><input id="anticipation-count" type="number" min="1" max="48" @bind="_count" required /></div>
-                <div class="field"><label for="anticipation-discount">Desconto obtido (R$)</label><input id="anticipation-discount" type="number" min="0" step="0.01" @bind="_discount" required /></div>
-            </div><button class="button" disabled="@(_busy || _month is null)">Revisar antecipação</button>
-        </form>
-    }
-    <button class="button" @onclick="() => Cancelled.InvokeAsync()" disabled="@_busy">Cancelar</button>
-</section>
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <div class="entry-column" aria-label="Antecipar parcelas">
+            <p class="form-note">As últimas parcelas futuras de @Entry.MerchantName serão movidas para a fatura atual: @_month. <HelpTip Text="As últimas parcelas passam para a fatura atual. As datas e os valores não mudam." /></p>
+            @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+            @if (_review)
+            {
+                <dl class="review-list" data-anticipation-review>
+                    <div><dt>Parcelas</dt><dd>@_count</dd></div>
+                    <div><dt>Fatura de destino</dt><dd>@_month</dd></div>
+                    <div><dt>Desconto</dt><dd>@(new Money(_discount))</dd></div>
+                </dl>
+                <p class="form-note">Os valores das parcelas serão preservados. O desconto é um abatimento separado na fatura.</p>
+                <p class="form-warning" role="status">Depois de confirmar, não é possível desfazer.</p>
+            }
+            else
+            {
+                <form id="anticipation-form" class="entry-column" @onsubmit="() => _review = true" @onsubmit:preventDefault>
+                    <div class="field"><label for="anticipation-count">Quantidade das últimas parcelas futuras</label><input id="anticipation-count" class="input" type="number" inputmode="numeric" min="1" max="48" @bind="_count" required /></div>
+                    <MoneyField Id="anticipation-discount" Label="Desconto recebido (opcional)" @bind-Value="_discount" />
+                </form>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-confirm-cancel Disabled="@_busy" OnClick="() => Dialog?.Cancel()">Cancelar</MudButton>
+        @if (_review)
+        {
+            <MudButton data-review-back Disabled="@_busy" OnClick="() => _review = false">Voltar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" data-confirm-ok Disabled="@_busy" OnClick="ConfirmAsync">Confirmar antecipação</MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" form="anticipation-form" data-review Disabled="@(_busy || _month is null)">Revisar antecipação</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
 
 @code {
-    [Parameter, EditorRequired] public EntryDetails Entry { get; set; } = default!;
-    [Parameter] public EventCallback Confirmed { get; set; }
-    [Parameter] public EventCallback Cancelled { get; set; }
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public EntryDetails Entry { get; set; } = default!;
+
     private readonly Guid _confirmationId = Guid.CreateVersion7();
     private ReferenceMonth? _month;
     private int _count = 1;
@@ -40,11 +61,14 @@
     private bool _review;
     private bool _busy;
     private string? _error;
+
     protected override async Task OnInitializedAsync()
     {
         var suggestion = await Calendar.CalculateAsync(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime), Entry.CardExternalId);
-        _month = suggestion.Month; _error = suggestion.Error;
+        _month = suggestion.Month;
+        _error = suggestion.Error;
     }
+
     private async Task ConfirmAsync()
     {
         if (_busy || _month is null) { return; }
@@ -53,7 +77,12 @@
         {
             var result = await Anticipations.AnticipateAsync(new(_confirmationId, Entry.ExternalId, _count, new Money(_discount), _month));
             _error = result.Error;
-            if (result.Succeeded) { await Confirmed.InvokeAsync(); }
+            if (result.Succeeded)
+            {
+                Notifier.Notify();
+                Snackbar.Add("Parcelas antecipadas.", Severity.Success);
+                Dialog?.Close(DialogResult.Ok(true));
+            }
         }
         finally { _busy = false; }
     }

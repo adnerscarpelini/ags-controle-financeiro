@@ -13,6 +13,12 @@ public sealed record ConfirmEffectiveRequest(DateOnly Date, Money Amount, Guid A
 public sealed record EntryDetails(Guid ExternalId, DateOnly Date, ReferenceMonth Month, Guid MerchantExternalId, string MerchantName, Guid SubcategoryExternalId, Guid CategoryExternalId, string Classification, Guid AccountExternalId, CategoryKind Kind, Money Amount, string Details, bool IsEffective, DateOnly? EffectiveDate, DateTimeOffset? EffectiveAt, Guid? CardExternalId = null, Guid? CardLastDigitsExternalId = null, Guid? InstallmentPurchaseExternalId = null, int? InstallmentNumber = null, int? InstallmentCount = null, Guid? RecurringEntryExternalId = null, DateOnly? OccurrenceMonth = null, bool IsInvoiceAdjustment = false, EntryReimbursement? Reimbursement = null, Guid? RepetitionExternalId = null, int? RepetitionNumber = null, int? RepetitionCount = null);
 public sealed record AccountBalance(Guid AccountExternalId, DateOnly ReferenceDate, Money OpeningBalance, Money EffectiveBalance);
 
+/// <summary>Saldo previsto: saldo atual somado às pendências do mês, fora do cartão. Não é o saldo do orçamento mensal.</summary>
+public sealed record BalanceForecast(Money CurrentBalance, Money PendingBalance)
+{
+    public Money ForecastBalance => CurrentBalance + PendingBalance;
+}
+
 public interface IEntryCatalog
 {
     Task<ClassificationResult> AdjustInvoiceAsync(InvoiceAdjustmentRequest request, CancellationToken cancellationToken = default);
@@ -35,4 +41,7 @@ public interface IEntryCatalog
     Task<EntryQueryResult> QueryPendingAsync(EntryFilter filter, CancellationToken cancellationToken = default);
     Task<bool> IsReimbursementPersonUsedAsync(Guid personExternalId, CancellationToken cancellationToken = default);
     Task<AccountBalance?> GetBalanceAsync(Guid accountExternalId, DateOnly referenceDate, CancellationToken cancellationToken = default);
+
+    /// <summary>Previsão de uma conta ou, sem conta, a soma das contas ativas. Conta inexistente devolve null.</summary>
+    Task<BalanceForecast?> GetBalanceForecastAsync(Guid? accountExternalId, DateOnly referenceDate, ReferenceMonth month, CancellationToken cancellationToken = default);
 }

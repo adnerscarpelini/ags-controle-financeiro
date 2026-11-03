@@ -31,6 +31,30 @@ internal sealed class EntryDialogs(IDialogService dialogs, ViewportState viewpor
         return dialogs.ShowAsync<EntryDialog>(string.Empty, parameters, AppDialogs.Options(viewport));
     }
 
+    public Task<IDialogReference> ShowEffectiveAsync(EntryDetails entry)
+    {
+        var parameters = new DialogParameters<EffectiveEntryDialog> { { x => x.Entry, entry } };
+        return dialogs.ShowAsync<EffectiveEntryDialog>(entry.Kind == CategoryKind.Expense ? "Marcar como pago" : "Marcar como recebido", parameters, AppDialogs.Options(viewport, MaxWidth.ExtraSmall));
+    }
+
+    public Task<IDialogReference> ShowAnticipationAsync(EntryDetails entry)
+    {
+        var parameters = new DialogParameters<InstallmentAnticipationDialog> { { x => x.Entry, entry } };
+        return dialogs.ShowAsync<InstallmentAnticipationDialog>("Antecipar parcelas", parameters, AppDialogs.Options(viewport, MaxWidth.ExtraSmall));
+    }
+
+    public Task<IDialogReference> ShowDeleteAsync(EntryDetails entry)
+    {
+        var parameters = new DialogParameters<EntryDeleteDialog> { { x => x.Entry, entry } };
+        return dialogs.ShowAsync<EntryDeleteDialog>("Excluir lançamento", parameters, AppDialogs.Options(viewport, MaxWidth.ExtraSmall));
+    }
+
+    public Task<IDialogReference> ShowAttachmentsAsync(Guid entryExternalId)
+    {
+        var parameters = new DialogParameters<EntryAttachmentsDialog> { { x => x.EntryExternalId, entryExternalId } };
+        return dialogs.ShowAsync<EntryAttachmentsDialog>("Anexos do lançamento", parameters, AppDialogs.Options(viewport));
+    }
+
     public Task<IDialogReference> ShowTransferAsync(Guid? sourceExternalId = null)
     {
         var parameters = new DialogParameters<TransferDialog> { { x => x.SourceExternalId, sourceExternalId } };

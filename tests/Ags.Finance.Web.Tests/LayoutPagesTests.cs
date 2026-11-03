@@ -62,7 +62,6 @@ public sealed partial class LayoutPagesTests : IDisposable
     }
 
     [Theory]
-    [InlineData("/lancamentos", "/pendentes")]
     [InlineData("/faturas", "/compromissos")]
     [InlineData("/faturas", "/cashback")]
     [InlineData("/cadastros/contas-cartoes", "/transferencias")]
@@ -71,6 +70,17 @@ public sealed partial class LayoutPagesTests : IDisposable
         var html = await GetHtmlAsync(page);
 
         Assert.Contains($"href=\"{target}\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ThePendingRouteOpensTransactionsWithThePendingView()
+    {
+        using var browser = await _factory.CreateSignedInBrowserAsync();
+
+        using var response = await browser.GetAsync("/pendentes");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.EndsWith("/lancamentos?situacao=pendentes", response.Headers.Location?.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]

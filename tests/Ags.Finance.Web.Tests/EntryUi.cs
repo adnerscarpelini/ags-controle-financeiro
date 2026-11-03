@@ -1,5 +1,7 @@
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Accounts.Contracts;
+using Ags.Finance.Modules.Attachments;
+using Ags.Finance.Modules.Attachments.Contracts;
 using Ags.Finance.Modules.Invoices;
 using Ags.Finance.Modules.Preferences;
 using Ags.Finance.Modules.Reimbursements;
@@ -21,9 +23,12 @@ internal sealed class EntryUi : IAsyncDisposable
 {
     private readonly PostgresTestDatabase _database;
 
-    private EntryUi(PostgresTestDatabase database, BunitContext context)
+    private readonly string _attachments;
+
+    private EntryUi(PostgresTestDatabase database, BunitContext context, string attachments)
     {
         _database = database;
+        _attachments = attachments;
         Context = context;
     }
 
@@ -51,19 +56,23 @@ internal sealed class EntryUi : IAsyncDisposable
     {
         var database = await PostgresTestDatabase.CreateAsync();
         var context = new BunitContext().UseAppUi();
+        var attachments = Path.Combine(Path.GetTempPath(), "ags-entry-ui-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(attachments);
         context.Services.AddSingleton<TimeProvider>(new FixedClock())
             .AddAccountsModule(database.ConnectionString)
             .AddTransactionsModule(database.ConnectionString)
             .AddReimbursementsModule(database.ConnectionString)
             .AddInvoicesModule(database.ConnectionString)
-            .AddPreferencesModule(database.ConnectionString);
+            .AddPreferencesModule(database.ConnectionString)
+            .AddAttachmentsModule(database.ConnectionString, new AttachmentStorageOptions(attachments));
         await context.Services.MigrateAccountsModuleAsync();
+        await context.Services.MigrateAttachmentsModuleAsync();
         await context.Services.MigrateTransactionsModuleAsync();
         await context.Services.MigrateReimbursementsModuleAsync();
         await context.Services.MigrateInvoicesModuleAsync();
         await context.Services.MigratePreferencesModuleAsync();
 
-        var ui = new EntryUi(database, context);
+        var ui = new EntryUi(database, context, attachments);
         await ui.SeedAsync();
         ui.Popovers = context.Render<MudPopoverProvider>();
         ui.Dialogs = context.Render<MudDialogProvider>();
@@ -103,6 +112,7 @@ internal sealed class EntryUi : IAsyncDisposable
     {
         await Context.DisposeAsync();
         await _database.DisposeAsync();
+        if (Directory.Exists(_attachments)) { Directory.Delete(_attachments, true); }
     }
 
     private async Task OpenAsync(Func<EntryDialogs, Task<IDialogReference>> open)

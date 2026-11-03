@@ -1,0 +1,38 @@
+@* Situação do lançamento: ícone com tooltip. O texto também fica disponível ao leitor de tela, então a cor nunca é o único sinal. *@
+@using Ags.Finance.Modules.Transactions.Contracts
+
+<MudTooltip Text="@Text">
+    <span class="status-icon status-@Tone" tabindex="0" role="img" aria-label="@Text" data-status="@Tone">
+        <MudIcon Icon="@IconPath" Size="Size.Small" aria-hidden="true" />
+    </span>
+</MudTooltip>
+
+@code {
+    [Parameter, EditorRequired]
+    public EntryDetails Entry { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public DateOnly Today { get; set; }
+
+    private bool IsCard => Entry.CardExternalId is not null;
+
+    private string Tone => IsCard ? "card" : Entry.IsEffective ? "done" : "pending";
+
+    private string IconPath => IsCard ? Icons.Material.Outlined.CreditCard : Entry.IsEffective ? Icons.Material.Outlined.Check : Icons.Material.Outlined.Schedule;
+
+    private string Text
+    {
+        get
+        {
+            if (IsCard) { return $"Compra no cartão, na fatura {Entry.Month}"; }
+            if (Entry.IsEffective)
+            {
+                var paid = Entry.Kind == CategoryKind.Expense ? "Pago" : "Recebido";
+                return Entry.EffectiveDate is { } date ? $"{paid} em {date:dd/MM/yyyy}" : paid;
+            }
+
+            var timing = Entry.Date < Today ? "Atrasado" : Entry.Date == Today ? "Hoje" : "Futuro";
+            return $"Pendente desde {Entry.Date:dd/MM/yyyy} · {timing}";
+        }
+    }
+}

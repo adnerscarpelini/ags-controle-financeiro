@@ -52,7 +52,7 @@ public sealed record AppPreferences(
         PendingWindowDays: 7,
         TopCategories: 10,
         DashboardSections.All,
-        PageSize: 100,
+        PageSize: 50,
         SessionHours: 12);
 
     /// <summary>Duração do login sem "lembrar", a partir do momento do login.</summary>

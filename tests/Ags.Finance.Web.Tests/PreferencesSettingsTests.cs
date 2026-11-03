@@ -27,7 +27,7 @@ public sealed class PreferencesSettingsTests
         {
             context.JSInterop.SetupVoid("agsTheme.apply", "light").SetVoidResult();
             var page = context.Render<PreferencesSettings>();
-            page.WaitForAssertion(() => Assert.Equal("100", page.Find("#pref-page-size").GetAttribute("value")));
+            page.WaitForAssertion(() => Assert.Equal("50", page.Find("#pref-page-size").GetAttribute("value")));
             Assert.True(page.Find("input[name=pref-theme][value=dark]").HasAttribute("checked"));
             Assert.True(page.Find("input[name=pref-recurring][value=on-date]").HasAttribute("checked"));
 
@@ -58,7 +58,7 @@ public sealed class PreferencesSettingsTests
         {
             context.JSInterop.SetupVoid("agsTheme.apply", "auto").SetVoidResult();
             var page = context.Render<PreferencesSettings>();
-            page.WaitForAssertion(() => Assert.Equal("100", page.Find("#pref-page-size").GetAttribute("value")));
+            page.WaitForAssertion(() => Assert.Equal("50", page.Find("#pref-page-size").GetAttribute("value")));
 
             page.Find("input[name=pref-theme][value=auto]").Change("auto");
             await page.Find("#preferences-form").SubmitAsync(EventArgs.Empty);

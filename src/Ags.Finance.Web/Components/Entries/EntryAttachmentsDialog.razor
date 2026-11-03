@@ -1,0 +1,19 @@
+@* Anexos de um lançamento, abertos pela ação Anexar da linha. *@
+@inject EntryChangeNotifier Notifier
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <EntryAttachments EntryExternalId="EntryExternalId" Changed="Notifier.Notify" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-done OnClick="() => Dialog?.Close(DialogResult.Ok(true))">Fechar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid EntryExternalId { get; set; }
+}

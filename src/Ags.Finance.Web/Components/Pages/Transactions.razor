@@ -1,6 +1,4 @@
 @page "/lancamentos"
-@using System.Globalization
-@using Ags.Finance.Modules.Invoices.Contracts
 @using Ags.Finance.Modules.Accounts.Contracts
 @using Ags.Finance.Modules.Preferences.Contracts
 @using Ags.Finance.Modules.Reimbursements.Contracts
@@ -18,149 +16,214 @@
 @inject IPersonCatalog People
 @inject EntryDialogs EntryWindows
 @inject EntryChangeNotifier EntryChanges
+@inject ISnackbar Snackbar
 
-<PageHeader Title="Lançamentos" />
-<p><a href="/pendentes">Ver pendências</a></p>
-@if (_message is not null) { <p role="status">@_message</p> }
-@if (_anticipating is { } anticipating) { <InstallmentAnticipationDialog @key="anticipating.ExternalId" Entry="anticipating" Confirmed="AnticipatedAsync" Cancelled="() => _anticipating = null" /> }
-@if (_effectiveEntry is { } pending)
-{
-    <EffectiveEntryDialog @key="pending.ExternalId" Entry="pending" Confirmed="EffectiveConfirmedAsync" Cancelled="() => _effectiveEntry = null" />
-}
-@if (_deleteEntry is { } deleting)
-{
-    <section class="panel" role="alertdialog" aria-label="Confirmar exclusão">
-        <h2>Excluir lançamento</h2>
-        <p>@deleting.MerchantName · @deleting.Date.ToString("dd/MM/yyyy") · @deleting.Amount</p>
-        @if (deleting.RecurringEntryExternalId is not null)
-        {
-            <div class="field"><label for="delete-recurring-scope">Alcance da exclusão</label><select id="delete-recurring-scope" @bind="_deleteRecurringScope">
-                <option value="">Escolha o alcance</option><option value="@RecurringChangeScope.OnlyThis">Somente esta</option><option value="@RecurringChangeScope.ThisAndFollowing">Esta e as seguintes</option><option value="@RecurringChangeScope.All">Todas</option>
-            </select></div>
-        }
-        else if (deleting.InstallmentPurchaseExternalId is not null || deleting.RepetitionExternalId is not null)
-        {
-            <div class="field"><label for="delete-scope">Alcance da exclusão</label><select id="delete-scope" @bind="_deleteScope">
-                <option value="">Escolha o alcance</option><option value="@EntryChangeScope.OnlyThis">@(deleting.RepetitionExternalId is not null ? "Somente esta" : "Somente esta parcela")</option><option value="@EntryChangeScope.ThisAndFollowing">Esta e as futuras</option>
-                @if (deleting.RepetitionExternalId is not null) { <option value="@EntryChangeScope.All">Todas</option> }
-            </select></div>
-        }
-        <button class="button" @onclick="ConfirmDeleteAsync" disabled="@_busy">Confirmar exclusão</button>
-        <button class="button" @onclick="() => _deleteEntry = null" disabled="@_busy">Cancelar</button>
-    </section>
-}
-@if (_attachmentEntry is { } attachmentEntry) { <EntryAttachments @key="attachmentEntry" EntryExternalId="attachmentEntry" Changed="ReloadAttachmentCountsAsync" /> }
-<section class="panel">
-    <h2>Histórico</h2>
-    <div class="catalog-fields" aria-label="Filtros salvos">
-        <div class="field"><label for="saved-filter">Filtro salvo</label><select id="saved-filter" @bind="_savedFilterId" @bind:after="ApplySavedFilterAsync" disabled="@(_busy || _queryBusy)">
-            <option value="@Guid.Empty">Nenhum</option>@foreach (var item in _savedFilters) { <option value="@item.ExternalId">@item.Name</option> }
-        </select></div>
-        <div class="field"><label for="saved-filter-name">Nome do filtro</label><input id="saved-filter-name" @bind="_savedFilterName" maxlength="100" /></div>
-        <div>
-            <button class="button" type="button" @onclick="() => SaveCurrentFilterAsync(null)" disabled="@(_busy || _queryBusy)">Salvar filtro atual</button>
-            @if (_savedFilterId != Guid.Empty)
+<div class="page-head">
+    <PageHeader Title="Lançamentos" />
+    <div class="page-head-actions">
+        <div class="chips" role="group" aria-label="Tipo">
+            @foreach (var option in s_typeFilters)
             {
-                <button class="button" type="button" @onclick="() => SaveCurrentFilterAsync(_savedFilterId)" disabled="@(_busy || _queryBusy || _savedFilterName.Length == 0)">Renomear e atualizar</button>
-                <button class="button" type="button" @onclick="DeleteSavedFilterAsync" disabled="@(_busy || _queryBusy)">Excluir filtro</button>
+                <button type="button" class="chip @(TypeFilter == option.Value ? "on" : null)" aria-pressed="@(TypeFilter == option.Value ? "true" : "false")" data-type-filter="@option.Value" @onclick="() => SetTypeFilterAsync(option.Value)">@option.Label</button>
             }
         </div>
+        <MudTooltip Text="Buscar por descrição ou observação (Ctrl+F)">
+            <MudIconButton Icon="@Icons.Material.Outlined.Search" Variant="Variant.Outlined" aria-label="Buscar" aria-expanded="@(_searchOpen ? "true" : "false")" data-entry-search-toggle OnClick="() => _searchOpen = !_searchOpen" />
+        </MudTooltip>
+        <MudTooltip Text="Filtrar por conta, cartão, categoria, situação e período, ou usar um filtro salvo">
+            <MudIconButton Icon="@Icons.Material.Outlined.FilterList" Variant="Variant.Outlined" aria-label="Filtros" aria-expanded="@(_filtersOpen ? "true" : "false")" data-toggle-filters OnClick="() => _filtersOpen = !_filtersOpen" />
+        </MudTooltip>
+        <MudMenu Icon="@Icons.Material.Outlined.MoreVert" AriaLabel="Mais ações" Variant="Variant.Outlined" data-more-actions>
+            <MudMenuItem Icon="@Icons.Material.Outlined.ContentCopy" Disabled="@(_selectedId is null || _busy)" OnClick="DuplicateSelectedAsync">Duplicar selecionado (Ctrl+D)</MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Outlined.UploadFile" Href="arquivos-csv">Importar ou exportar CSV</MudMenuItem>
+        </MudMenu>
     </div>
-    <form id="entry-filters" @onsubmit="ApplyFiltersAsync" @onsubmit:preventDefault>
-        <div class="catalog-fields">
-            <div class="field"><label for="filter-month">Mês de referência</label><input id="filter-month" type="month" value="@_filterMonth" @onchange="args => _filterMonth = args.Value?.ToString() ?? string.Empty" /></div>
-            <div class="field"><label for="filter-from">De</label><input id="filter-from" type="date" @bind="_filterFrom" /></div>
-            <div class="field"><label for="filter-to">Até</label><input id="filter-to" type="date" @bind="_filterTo" /></div>
-            <div class="field"><label for="filter-account">Conta</label><select id="filter-account" @bind="_filterAccount">
-                <option value="@Guid.Empty">Todas</option>@foreach (var item in _filterAccounts) { <option value="@item.ExternalId">@item.Name</option> }
-            </select></div>
-            <div class="field"><label for="filter-card">Cartão</label><select id="filter-card" @bind="_filterCard" @bind:after="FilterCardChangedAsync">
-                <option value="@Guid.Empty">Todos</option>@foreach (var item in _filterCards) { <option value="@item.ExternalId">@item.Name</option> }
-            </select></div>
-            <div class="field"><label for="filter-final">Final</label><select id="filter-final" @bind="_filterFinal">
-                <option value="@Guid.Empty">Todos</option>@foreach (var item in _filterFinals) { <option value="@item.ExternalId">@item.Digits · @item.Label</option> }
-            </select></div>
-            <div class="field"><label for="filter-category">Categoria</label><select id="filter-category" @bind="_filterCategory">
-                <option value="@Guid.Empty">Todas</option>@foreach (var item in _filterCategories) { <option value="@item.ExternalId">@item.Name</option> }
-            </select></div>
-            <div class="field"><label for="filter-subcategory">Subcategoria</label><select id="filter-subcategory" @bind="_filterSubcategory">
-                <option value="@Guid.Empty">Todas</option>@foreach (var item in _filterSubcategories) { <option value="@item.ExternalId">@item.DisplayName</option> }
-            </select></div>
-            <div class="field"><label for="filter-effective">Situação</label><select id="filter-effective" value="@(_filterEffective?.ToString().ToLowerInvariant() ?? string.Empty)" @onchange="args => _filterEffective = bool.TryParse(args.Value?.ToString(), out var effective) ? effective : null">
-                <option value="">Todas</option><option value="true">Pago ou Recebido</option><option value="false">Pendente</option>
-            </select></div>
-            <div class="field"><label for="entry-search">Buscar descrição ou detalhes (Ctrl+F)</label><input id="entry-search" data-entry-search @bind="_filterText" maxlength="200" /></div>
-        </div>
-        <button class="button" disabled="@(_busy || _queryBusy)">Filtrar</button>
-        <button class="button" type="button" @onclick="ClearFiltersAsync" disabled="@(_busy || _queryBusy)">Limpar filtros</button>
+</div>
+
+@if (_message is not null) { <p class="form-error" role="alert">@_message</p> }
+
+@if (_searchOpen || _filterText.Length > 0)
+{
+    <form id="entry-search-form" class="search-row" @onsubmit="ApplyFiltersAsync" @onsubmit:preventDefault>
+        <input id="entry-search" class="input" data-entry-search placeholder="Buscar por descrição ou observação" aria-label="Buscar por descrição ou observação" maxlength="200" @bind="_filterText" />
+        <button type="submit" class="visually-hidden">Buscar</button>
     </form>
-    @if (_queryBusy) { <p aria-live="polite">Consultando lançamentos…</p> }
-    <button class="button" data-duplicate-selected disabled="@(_selectedId is null || _busy)" @onclick="DuplicateSelectedAsync">Duplicar selecionado (Ctrl+D)</button>
-    <ul class="catalog-list">
-        @foreach (var entry in _entries)
+}
+
+@if (_filtersOpen)
+{
+    <section class="panel filters-panel" aria-label="Filtros">
+        <form id="entry-filters" @onsubmit="ApplyFiltersAsync" @onsubmit:preventDefault>
+            <div class="catalog-fields">
+                <div class="field"><label for="filter-all-months">Todos os meses <HelpTip Text="Consulta o histórico inteiro, em vez de só o mês escolhido no seletor." /></label><input id="filter-all-months" class="switch" type="checkbox" role="switch" @bind="_allMonths" @bind:after="ApplyFiltersAsync" /></div>
+                <div class="field"><label for="filter-from">De <HelpTip Text="Com uma data, a consulta usa o período em vez do mês escolhido." /></label><input id="filter-from" class="input" type="date" @bind="_filterFrom" @bind:after="ApplyFiltersAsync" /></div>
+                <div class="field"><label for="filter-to">Até</label><input id="filter-to" class="input" type="date" @bind="_filterTo" @bind:after="ApplyFiltersAsync" /></div>
+                <div class="field"><label for="filter-account">Conta</label><select id="filter-account" class="input" @bind="_filterAccount" @bind:after="ApplyFiltersAsync">
+                    <option value="@Guid.Empty">Todas</option>@foreach (var item in _filterAccounts) { <option value="@item.ExternalId">@item.Name @(!item.IsActive ? "(arquivada)" : string.Empty)</option> }
+                </select></div>
+                <div class="field"><label for="filter-card">Cartão</label><select id="filter-card" class="input" @bind="_filterCard" @bind:after="FilterCardChangedAsync">
+                    <option value="@Guid.Empty">Todos</option>@foreach (var item in _filterCards) { <option value="@item.ExternalId">@item.Name</option> }
+                </select></div>
+                <div class="field"><label for="filter-final">Final</label><select id="filter-final" class="input" @bind="_filterFinal" @bind:after="ApplyFiltersAsync">
+                    <option value="@Guid.Empty">Todos</option>@foreach (var item in _filterFinals) { <option value="@item.ExternalId">@item.Digits · @item.Label</option> }
+                </select></div>
+                <div class="field"><label for="filter-category">Categoria</label><select id="filter-category" class="input" @bind="_filterCategory" @bind:after="FilterCategoryChangedAsync">
+                    <option value="@Guid.Empty">Todas</option>@foreach (var item in _filterCategories) { <option value="@item.ExternalId">@item.Name</option> }
+                </select></div>
+                <div class="field"><label for="filter-subcategory">Subcategoria</label><select id="filter-subcategory" class="input" @bind="_filterSubcategory" @bind:after="ApplyFiltersAsync">
+                    <option value="@Guid.Empty">Todas</option>@foreach (var item in _filterSubcategories.Where(x => _filterCategory == Guid.Empty || x.CategoryExternalId == _filterCategory)) { <option value="@item.ExternalId">@item.Name</option> }
+                </select></div>
+                <div class="field"><label for="filter-kind">Tipo</label><select id="filter-kind" class="input" @bind="_filterKind" @bind:after="ApplyFiltersAsync">
+                    <option value="">Receitas e despesas</option><option value="@CategoryKind.Income">Receita</option><option value="@CategoryKind.Expense">Despesa</option>
+                </select></div>
+                <div class="field"><label for="filter-effective">Situação</label><select id="filter-effective" class="input" value="@(_filterEffective?.ToString().ToLowerInvariant() ?? string.Empty)" @onchange="EffectiveFilterChangedAsync">
+                    <option value="">Todas</option><option value="true">Pago ou Recebido</option><option value="false">Pendente</option>
+                </select></div>
+            </div>
+            <div class="filters-actions">
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Outlined" Disabled="@(_busy || _queryBusy)">Filtrar</MudButton>
+                <MudButton Variant="Variant.Text" data-clear-filters Disabled="@(_busy || _queryBusy)" OnClick="ClearFiltersAsync">Limpar filtros</MudButton>
+            </div>
+        </form>
+        <div class="catalog-fields saved-filters" aria-label="Filtros salvos">
+            <div class="field"><label for="saved-filter">Filtro salvo <HelpTip Text="Guarda as escolhas de conta, cartão, categoria, texto e situação. O período é escolhido a cada uso." /></label><select id="saved-filter" class="input" @bind="_savedFilterId" @bind:after="ApplySavedFilterAsync" disabled="@(_busy || _queryBusy)">
+                <option value="@Guid.Empty">Nenhum</option>@foreach (var item in _savedFilters) { <option value="@item.ExternalId">@item.Name</option> }
+            </select></div>
+            <div class="field"><label for="saved-filter-name">Nome do filtro</label><input id="saved-filter-name" class="input" @bind="_savedFilterName" maxlength="100" /></div>
+            <div class="filters-actions">
+                <MudButton Variant="Variant.Outlined" data-save-filter Disabled="@(_busy || _queryBusy)" OnClick="() => SaveCurrentFilterAsync(null)">Salvar filtro atual</MudButton>
+                @if (_savedFilterId != Guid.Empty)
+                {
+                    <MudButton Variant="Variant.Text" data-rename-filter Disabled="@(_busy || _queryBusy || _savedFilterName.Length == 0)" OnClick="() => SaveCurrentFilterAsync(_savedFilterId)">Renomear e atualizar</MudButton>
+                    <MudButton Variant="Variant.Text" data-delete-filter Disabled="@(_busy || _queryBusy)" OnClick="DeleteSavedFilterAsync">Excluir filtro</MudButton>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+@if (ActiveFilters.Count > 0)
+{
+    <div class="tags" aria-label="Filtros ativos">
+        @foreach (var tag in ActiveFilters)
         {
-            <li><span>@entry.Date.ToString("dd/MM/yyyy") · @entry.MerchantName @(entry.RepetitionNumber is not null ? $"({entry.RepetitionNumber}/{entry.RepetitionCount})" : string.Empty) · @entry.Classification</span>
-                <span class="numeric @(entry.Amount.IsNegative ? "entry-expense" : "entry-income")">@(entry.Amount.IsNegative ? string.Empty : "+")@entry.Amount</span>
-                <span>@(entry.CardExternalId is not null ? "Compra no cartão" : entry.IsEffective ? entry.Kind == CategoryKind.Expense ? "Pago" : "Recebido" : "Pendente") · @entry.Details</span>
-                @if (entry.InstallmentNumber is not null) { <span>Parcela @entry.InstallmentNumber/@entry.InstallmentCount</span> }
-                @if (entry.Reimbursement is { } reimbursement) { <span>Reembolso: @PersonName(reimbursement.PersonExternalId) · @reimbursement.Percent.ToString("0.##", CultureInfo.GetCultureInfo("pt-BR"))%</span> }
-                @if (entry.RecurringEntryExternalId is not null) { <span>Recorrente @(entry.Date > DateOnly.FromDateTime(Clock.GetLocalNow().DateTime) ? "· prevista" : string.Empty)</span> }
-                <div>
-                    @if (entry.IsInvoiceAdjustment)
-                    {
-                        <span>Ajuste de fatura · corrija por um novo ajuste no detalhe da fatura.</span>
-                    }
-                    else
-                    {
-                    <button class="button" @onclick="() => _selectedId = entry.ExternalId">@(_selectedId == entry.ExternalId ? "Selecionado" : "Selecionar")</button>
-                        <button class="button" @onclick="() => _attachmentEntry = entry.ExternalId">📎 Anexos (@AttachmentCount(entry))</button>
-                        <button class="button" @onclick="() => EditEntryAsync(entry)" disabled="@_busy">Editar</button>
-                        <button class="button" @onclick="() => AskDelete(entry)" disabled="@_busy">Excluir</button>
-                    @if (entry.InstallmentPurchaseExternalId is not null) { <button class="button" @onclick="() => _anticipating = entry" disabled="@_busy">Antecipar parcelas</button> }
-                    @if (!entry.IsEffective && entry.CardExternalId is null)
-                    {
-                        <button class="button" @onclick="() => _effectiveEntry = entry" disabled="@_busy">@(entry.Kind == CategoryKind.Expense ? "Pagar" : "Receber")</button>
-                    }
-                    @if (entry.IsEffective && entry.CardExternalId is null) { <span>Baixa em @entry.EffectiveDate?.ToString("dd/MM/yyyy") · Confirmada em @entry.EffectiveAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span> }
-                    }
-                </div>
-            </li>
+            <span class="tag" data-filter-tag="@tag.Key">@tag.Label<button type="button" aria-label="@($"Remover filtro {tag.Label}")" @onclick="() => RemoveFilterAsync(tag)"><MudIcon Icon="@Icons.Material.Outlined.Close" Size="Size.Small" aria-hidden="true" /></button></span>
         }
-    </ul>
-    @if (_query.TotalCount == 0) { <p>Nenhum lançamento neste filtro.</p> }
-    <footer aria-label="Totais do filtro">
-        <p>Receitas: <span class="numeric entry-income">@Signed(_query.Income)</span></p>
-        <p>Despesas: <span class="numeric entry-expense">@Signed(_query.Expenses)</span></p>
-        <p>Saldo: <span class="numeric @(_query.Balance.IsNegative ? "entry-expense" : "entry-income")">@Signed(_query.Balance)</span></p>
-        <p>@_query.TotalCount lançamentos · Página @_query.Page de @_query.TotalPages</p>
-        <button class="button" disabled="@(_query.Page <= 1 || _queryBusy || _busy)" @onclick="() => ChangePageAsync(_query.Page - 1)">Anterior</button>
-        <button class="button" disabled="@(_query.Page >= _query.TotalPages || _queryBusy || _busy)" @onclick="() => ChangePageAsync(_query.Page + 1)">Próxima</button>
+    </div>
+}
+
+<section class="stat-cards" aria-label="Totais">
+    <StatCard Icon="@Icons.Material.Outlined.AccountBalance" Tone="accent" Label="Saldo atual" Help="Soma das contas ativas considerando só o que já foi pago ou recebido." Value="@(_forecast?.CurrentBalance.ToString() ?? Money.Zero.ToString())" Testid="current" />
+    <StatCard Icon="@Icons.Material.Outlined.ArrowUpward" Tone="income" Label="Receitas" Help="Receitas do período e dos filtros escolhidos, recebidas e pendentes." Value="@Signed(_query.Income)" Testid="income" />
+    <StatCard Icon="@Icons.Material.Outlined.ArrowDownward" Tone="expense" Label="Despesas" Help="Despesas do período e dos filtros escolhidos, pagas e pendentes. No cartão, contam no mês da fatura." Value="@Signed(_query.Expenses)" Testid="expenses" />
+    <StatCard Icon="@Icons.Material.Outlined.Balance" Tone="accent" Label="Balanço mensal" Help="Receitas menos despesas do período e dos filtros escolhidos. Não é o saldo das contas." Value="@Signed(_query.Balance)" Testid="balance" />
+</section>
+
+<section class="panel data-panel">
+    <MonthPicker Value="_month" ValueChanged="MonthChangedAsync" Disabled="@(_allMonths || _filterFrom is not null || _filterTo is not null)" />
+    @if (_selectedId is not null)
+    {
+        <div class="selection-bar">
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.ContentCopy" data-duplicate-selected Disabled="@_busy" OnClick="DuplicateSelectedAsync">Duplicar selecionado (Ctrl+D)</MudButton>
+        </div>
+    }
+    <MudTable T="EntryDetails" Items="_entries" Elevation="0" Hover="true" Class="data-table" Breakpoint="Breakpoint.None" Loading="_queryBusy" LoadingProgressColor="Color.Primary" aria-label="Lançamentos">
+        <HeaderContent>
+            <MudTh Class="col-select"><span class="visually-hidden">Seleção</span></MudTh>
+            <MudTh>Situação</MudTh>
+            <MudTh aria-sort="@AriaSort(EntrySortColumn.Date)">@SortHeader("Data", EntrySortColumn.Date)</MudTh>
+            <MudTh aria-sort="@AriaSort(EntrySortColumn.Description)">@SortHeader("Descrição", EntrySortColumn.Description)</MudTh>
+            <MudTh aria-sort="@AriaSort(EntrySortColumn.Category)">@SortHeader("Categoria", EntrySortColumn.Category)</MudTh>
+            <MudTh>Conta ou cartão</MudTh>
+            <MudTh Class="numeric" aria-sort="@AriaSort(EntrySortColumn.Amount)">@SortHeader("Valor", EntrySortColumn.Amount)</MudTh>
+            <MudTh>Ações</MudTh>
+        </HeaderContent>
+        <RowTemplate Context="entry">
+            <MudTd Class="col-select">
+                @if (!entry.IsInvoiceAdjustment)
+                {
+                    <input type="checkbox" class="row-select" aria-label="@($"Selecionar {entry.MerchantName}")" checked="@(_selectedId == entry.ExternalId)" @onchange="() => ToggleSelection(entry)" />
+                }
+            </MudTd>
+            <MudTd DataLabel="Situação"><EntryStatusIcon Entry="entry" Today="Today" /></MudTd>
+            <MudTd DataLabel="Data">@entry.Date.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd DataLabel="Descrição" Class="col-description">
+                <span class="row-title">@entry.MerchantName@(SeriesSuffix(entry))</span>
+                @if (RowNote(entry) is { Length: > 0 } note) { <span class="row-note">@note</span> }
+            </MudTd>
+            <MudTd DataLabel="Categoria">@ClassificationLabel(entry.Classification)</MudTd>
+            <MudTd DataLabel="Conta ou cartão">@SourceName(entry)</MudTd>
+            <MudTd DataLabel="Valor" Class="@(entry.Amount.IsNegative ? "numeric entry-expense" : "numeric entry-income")">@Signed(entry.Amount)</MudTd>
+            <MudTd DataLabel="Ações" Class="col-actions">
+                @if (entry.IsInvoiceAdjustment)
+                {
+                    <HelpTip Text="Ajuste de fatura: corrija por um novo ajuste no detalhe da fatura." />
+                }
+                else
+                {
+                    <RowActions Actions="ActionsFor(entry)" />
+                }
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <EmptyState Icon="@Icons.Material.Outlined.List" Message="Nenhum lançamento neste mês ou filtro." ActionText="Novo lançamento" OnAction="() => EntryWindows.ShowNewAsync(EntryDialogType.Expense)" />
+        </NoRecordsContent>
+    </MudTable>
+    <footer class="table-footer" aria-label="Paginação e saldo previsto">
+        <div class="field page-size">
+            <label for="page-size">Linhas por página</label>
+            <select id="page-size" class="input" @bind="_pageSize" @bind:after="ApplyFiltersAsync">
+                @foreach (var size in PreferenceOptions.PageSizes) { <option value="@size">@size</option> }
+            </select>
+        </div>
+        <span data-page-summary>@_query.TotalCount lançamentos · Página @_query.Page de @_query.TotalPages</span>
+        <MudIconButton Icon="@Icons.Material.Outlined.ChevronLeft" aria-label="Página anterior" data-page-previous Disabled="@(_query.Page <= 1 || _queryBusy || _busy)" OnClick="() => ChangePageAsync(_query.Page - 1)" />
+        <MudIconButton Icon="@Icons.Material.Outlined.ChevronRight" aria-label="Próxima página" data-page-next Disabled="@(_query.Page >= _query.TotalPages || _queryBusy || _busy)" OnClick="() => ChangePageAsync(_query.Page + 1)" />
+        <span class="spacer"></span>
+        <span class="field-label">Saldo previsto do mês <HelpTip Text="Saldo atual somado às pendências do mês, fora do cartão." /></span>
+        <strong class="numeric" data-forecast>@(_forecast?.ForecastBalance.ToString() ?? Money.Zero.ToString())</strong>
     </footer>
 </section>
 
 @code {
-    private Guid? _attachmentEntry;
+    private sealed record TypeOption(string Value, string Label);
+
+    private static readonly TypeOption[] s_typeFilters = [new("all", "Todas"), new("income", "Receitas"), new("expense", "Despesas"), new("pending", "Pendentes")];
+
+    [SupplyParameterFromQuery(Name = "situacao")]
+    public string? Situation { get; set; }
+
     private IReadOnlyList<Ags.Finance.Modules.Attachments.Contracts.AttachmentDetails> _attachmentRows = [];
-    private int AttachmentCount(EntryDetails entry) => _attachmentRows.Count(x => x.DeletedAt is null && x.Owner.ExternalId == (entry.InstallmentPurchaseExternalId ?? entry.ExternalId));
-    private async Task ReloadAttachmentCountsAsync() => _attachmentRows = await EntryDocuments.ListAsync();
     private IReadOnlyList<EntryDetails> _entries = [];
     private IReadOnlyList<PersonDetails> _people = [];
-    private string PersonName(Guid externalId) => _people.FirstOrDefault(x => x.ExternalId == externalId)?.Name ?? "Pessoa";
+    private BalanceForecast? _forecast;
     private string? _message;
     private bool _busy;
+    private bool _searchOpen;
+    private bool _filtersOpen;
     private Guid? _selectedId;
-    private RecurringChangeScope? _deleteRecurringScope;
-    private EntryDetails? _deleteEntry;
-    private EntryDetails? _anticipating;
-    private async Task AnticipatedAsync() { _anticipating = null; _message = "Parcelas antecipadas."; await ReloadQueryAsync(); }
-    private EntryDetails? _effectiveEntry;
-    private async Task EffectiveConfirmedAsync() { _effectiveEntry = null; _message = "Baixa registrada."; await ReloadQueryAsync(); }
-    private EntryChangeScope? _deleteScope;
+
+    private DateOnly Today => DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+
+    private string TypeFilter => (_pendingOnly, _filterKind) switch
+    {
+        (true, null) => "pending",
+        (false, CategoryKind.Income) => "income",
+        (false, CategoryKind.Expense) => "expense",
+        (false, null) => "all",
+        _ => string.Empty,
+    };
 
     protected override async Task OnInitializedAsync()
     {
         EntryChanges.Changed += EntriesChangedAsync;
-        _currentMonth = ReferenceMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime));
+        _month = ReferenceMonth.FromDate(Today);
+        if (string.Equals(Situation, "pendentes", StringComparison.OrdinalIgnoreCase))
+        {
+            _pendingOnly = true;
+            _allMonths = true;
+        }
+
         _people = await People.GetAsync();
         _pageSize = (await Preferences.GetAsync()).PageSize;
         await InitializeFiltersAsync();
@@ -173,39 +236,100 @@
         StateHasChanged();
     });
 
-    private async Task EditEntryAsync(EntryDetails entry)
+    private async Task SetTypeFilterAsync(string value)
     {
-        _selectedId = entry.ExternalId;
-        await EntryWindows.ShowEditAsync(entry);
+        _savedFilterId = Guid.Empty;
+        _pendingOnly = value == "pending";
+        _filterKind = value switch { "income" => CategoryKind.Income, "expense" => CategoryKind.Expense, _ => null };
+        await ApplyFiltersAsync();
     }
 
-    private void AskDelete(EntryDetails entry) { _deleteEntry = entry; _deleteRecurringScope = null; _deleteScope = entry.InstallmentPurchaseExternalId is null && entry.RepetitionExternalId is null ? EntryChangeScope.OnlyThis : null; }
-    private async Task ConfirmDeleteAsync()
+    private async Task MonthChangedAsync(ReferenceMonth month)
     {
-        if (_deleteEntry is not { } entry || _busy) { return; }
-        if (entry.RecurringEntryExternalId is not null && _deleteRecurringScope is null) { _message = "Escolha o alcance da exclusão."; return; }
-        if (_deleteScope is not { } scope) { _message = "Escolha o alcance da exclusão."; return; }
-        _busy = true;
-        try
-        {
-            var result = entry.RecurringEntryExternalId is not null ? await Entries.DeleteRecurringAsync(entry.ExternalId, _deleteRecurringScope!.Value) : await Entries.DeleteAsync(entry.ExternalId, scope);
-            _message = result.Error ?? "Lançamento excluído.";
-            _deleteEntry = null;
-            if (result.Succeeded) { await ReloadQueryAsync(); }
-        }
-        finally { _busy = false; }
+        _month = month;
+        await ApplyFiltersAsync();
     }
-    private async Task DuplicateSelectedAsync()
+
+    private void ToggleSelection(EntryDetails entry) => _selectedId = _selectedId == entry.ExternalId ? null : entry.ExternalId;
+
+    private IReadOnlyList<RowAction> ActionsFor(EntryDetails entry)
     {
-        if (_selectedId is not { } id || _busy) { return; }
+        var actions = new List<RowAction>();
+        if (!entry.IsEffective && entry.CardExternalId is null)
+        {
+            var label = entry.Kind == CategoryKind.Expense ? "Pagar" : "Receber";
+            actions.Add(new(label, Icons.Material.Outlined.Check, "pay", Run(() => EntryWindows.ShowEffectiveAsync(entry)), $"{label} este lançamento"));
+        }
+
+        actions.Add(new("Editar", Icons.Material.Outlined.Edit, "edit", Run(() => EntryWindows.ShowEditAsync(entry))));
+        actions.Add(new(AttachmentLabel(entry), Icons.Material.Outlined.AttachFile, "attach", Run(() => EntryWindows.ShowAttachmentsAsync(entry.ExternalId))));
+        actions.Add(new("Duplicar", Icons.Material.Outlined.ContentCopy, "duplicate", EventCallback.Factory.Create(this, () => DuplicateAsync(entry.ExternalId)), "Duplicar com a data de hoje"));
+        if (entry.InstallmentPurchaseExternalId is not null)
+        {
+            actions.Add(new("Antecipar parcelas", Icons.Material.Outlined.Bolt, "anticipate", Run(() => EntryWindows.ShowAnticipationAsync(entry)), "Antecipar parcelas para a fatura atual"));
+        }
+
+        actions.Add(new("Excluir", Icons.Material.Outlined.Delete, "delete", Run(() => EntryWindows.ShowDeleteAsync(entry))));
+        return actions;
+    }
+
+    private string AttachmentLabel(EntryDetails entry)
+    {
+        var count = _attachmentRows.Count(x => x.DeletedAt is null && x.Owner.ExternalId == (entry.InstallmentPurchaseExternalId ?? entry.ExternalId));
+        return count == 0 ? "Anexar" : $"Anexos ({count})";
+    }
+
+    private EventCallback Run(Func<Task<IDialogReference>> open) => EventCallback.Factory.Create(this, async () => await open());
+
+    private async Task DuplicateAsync(Guid id)
+    {
+        if (_busy) { return; }
         _busy = true;
         try
         {
             var result = await Entries.DuplicateAsync(id);
-            _message = result.Error ?? "Lançamento duplicado com a data de hoje.";
-            if (result.Succeeded) { await ReloadQueryAsync(); _selectedId = result.ExternalId; }
+            _message = result.Error;
+            if (result.Succeeded)
+            {
+                Snackbar.Add("Lançamento duplicado com a data de hoje.", Severity.Success);
+                await ReloadQueryAsync();
+                _selectedId = result.ExternalId;
+            }
         }
         finally { _busy = false; }
+    }
+
+    private async Task DuplicateSelectedAsync()
+    {
+        if (_selectedId is { } id) { await DuplicateAsync(id); }
+    }
+
+    private static string SeriesSuffix(EntryDetails entry) => entry switch
+    {
+        { InstallmentNumber: { } number } => $" ({number}/{entry.InstallmentCount})",
+        { RepetitionNumber: { } number } => $" ({number}/{entry.RepetitionCount})",
+        _ => string.Empty,
+    };
+
+    private string RowNote(EntryDetails entry)
+    {
+        var notes = new List<string>();
+        if (!entry.IsEffective && entry.CardExternalId is null) { notes.Add(entry.Date < Today ? "Atrasado" : entry.Date == Today ? "Hoje" : "Futuro"); }
+        if (entry.RecurringEntryExternalId is not null) { notes.Add(entry.Date > Today ? "Recorrente · prevista" : "Recorrente"); }
+        if (entry.Reimbursement is { } reimbursement) { notes.Add($"Reembolso: {PersonName(reimbursement.PersonExternalId)} · {reimbursement.Percent.ToString("0.##", System.Globalization.CultureInfo.GetCultureInfo("pt-BR"))}%"); }
+        if (entry.Details.Length > 0) { notes.Add(entry.Details); }
+        return string.Join(" · ", notes);
+    }
+
+    private string PersonName(Guid externalId) => _people.FirstOrDefault(x => x.ExternalId == externalId)?.Name ?? "Pessoa";
+
+    private static string ClassificationLabel(string classification) => classification.Replace(" > ", " › ", StringComparison.Ordinal);
+
+    private string SourceName(EntryDetails entry)
+    {
+        if (entry.CardExternalId is { } card) { return _filterCards.FirstOrDefault(x => x.ExternalId == card)?.Name ?? "Cartão registrado"; }
+        var account = _filterAccounts.FirstOrDefault(x => x.ExternalId == entry.AccountExternalId);
+        return account is null ? "Conta registrada" : account.Name + (!account.IsActive ? " (arquivada)" : string.Empty);
     }
 
     public void Dispose() => EntryChanges.Changed -= EntriesChangedAsync;
