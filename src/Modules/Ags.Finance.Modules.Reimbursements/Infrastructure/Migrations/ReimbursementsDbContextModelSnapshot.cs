@@ -44,5 +44,24 @@ internal sealed class ReimbursementsDbContextModelSnapshot : ModelSnapshot
             b.ToTable("sharing_rules", "reimbursements");
             b.HasOne("Ags.Finance.Modules.Reimbursements.Domain.Person", null).WithMany().HasForeignKey("PersonExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict);
         });
+        modelBuilder.Entity("Ags.Finance.Modules.Reimbursements.Domain.ReimbursementReceipt", b =>
+        {
+            b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint").HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+            b.Property<Guid>("ExternalId").HasColumnType("uuid");
+            b.Property<DateTimeOffset>("CreatedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("timestamp with time zone");
+            b.Property<Guid>("PersonExternalId").HasColumnType("uuid");
+            b.Property<Guid>("EntryExternalId").HasColumnType("uuid");
+            b.Property<Guid>("AccountExternalId").HasColumnType("uuid");
+            b.Property<DateOnly>("Date").HasColumnType("date");
+            b.Property<int>("Month").HasColumnType("integer");
+            b.Property<long>("Amount").HasColumnType("bigint");
+            b.HasKey("Id");
+            b.HasIndex("ExternalId").IsUnique();
+            b.HasIndex("EntryExternalId").IsUnique();
+            b.HasIndex("PersonExternalId", "Month");
+            b.ToTable("receipts", "reimbursements");
+            b.HasOne("Ags.Finance.Modules.Reimbursements.Domain.Person", null).WithMany().HasForeignKey("PersonExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }

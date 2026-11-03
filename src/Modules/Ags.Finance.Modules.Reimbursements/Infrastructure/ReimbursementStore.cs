@@ -27,6 +27,19 @@ internal sealed class ReimbursementStore(IDbContextFactory<ReimbursementsDbConte
 
     public Task DeleteRuleAsync(SharingRule rule, CancellationToken cancellationToken) => DeleteAsync(rule, cancellationToken);
 
+    public async Task<IReadOnlyList<ReimbursementReceipt>> GetReceiptsAsync(Guid personExternalId, CancellationToken cancellationToken)
+    {
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
+        return await context.Set<ReimbursementReceipt>().AsNoTracking().Where(x => x.PersonExternalId == personExternalId).OrderBy(x => x.Date).ThenBy(x => x.Id).ToListAsync(cancellationToken);
+    }
+
+    public async Task AddReceiptAsync(ReimbursementReceipt receipt, CancellationToken cancellationToken)
+    {
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
+        context.Add(receipt);
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task<bool> SaveAsync<T>(T entity, CancellationToken cancellationToken)
         where T : Entity
     {
