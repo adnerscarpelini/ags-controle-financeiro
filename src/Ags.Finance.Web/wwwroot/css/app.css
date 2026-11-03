@@ -445,6 +445,10 @@ a:hover {
 
 .invoice-credit { color: var(--color-warning); }
 .invoice-forecast { color: var(--color-text-secondary); }
+.privacy-icon-hide { display: none; }
+[data-privacy-toggle][aria-pressed="true"] .privacy-icon-show { display: none; }
+[data-privacy-toggle][aria-pressed="true"] .privacy-icon-hide { display: inline; }
+.topbar .privacy-toggle { margin-left: auto; }
 .choices { border: 0; padding: 0; margin: 0 0 var(--space-4); }
 .choices legend { padding: 0; margin-bottom: var(--space-2); color: var(--color-text-secondary); }
 .choice { display: flex; align-items: flex-start; gap: var(--space-2); min-height: var(--touch-target); padding: var(--space-2) 0; }

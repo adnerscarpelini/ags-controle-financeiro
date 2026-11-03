@@ -142,7 +142,8 @@ public sealed partial class UiTokensTests
             .Where(Directory.Exists)
             .SelectMany(directory => Directory.EnumerateFiles(directory, "*.*", SearchOption.AllDirectories))
             .Where(file => file.EndsWith(".razor", StringComparison.OrdinalIgnoreCase)
-                || file.EndsWith(".css", StringComparison.OrdinalIgnoreCase));
+                || file.EndsWith(".css", StringComparison.OrdinalIgnoreCase)
+                || file.EndsWith(".js", StringComparison.OrdinalIgnoreCase));
     }
 
     [GeneratedRegex(@"(?<![\w&/])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b|\b(?:rgb|rgba|hsl|hsla|oklch|oklab|hwb)\(", RegexOptions.IgnoreCase)]

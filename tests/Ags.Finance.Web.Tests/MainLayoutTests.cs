@@ -71,7 +71,7 @@ public sealed class MainLayoutTests : IDisposable
 
         Assert.Equal("post", form.GetAttribute("method"));
         Assert.Equal("/account/sign-out", form.GetAttribute("action"));
-        Assert.Equal("Sair", form.QuerySelector("button")?.TextContent.Trim());
+        Assert.Equal("Sair", form.QuerySelector("button[type=submit]")?.TextContent.Trim());
     }
 
     [Fact]
