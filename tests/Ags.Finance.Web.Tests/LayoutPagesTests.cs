@@ -17,6 +17,7 @@ public sealed partial class LayoutPagesTests : IDisposable
         { "cashback", "Cashback" },
         { "reembolsos", "Reembolsos" },
         { "dashboard", "Dashboard" },
+        { "planejamento", "Planejamento" },
         { "cadastros", "Cadastros" },
         { "configuracoes", "Configurações" },
     };

@@ -82,7 +82,7 @@ public sealed class MainLayoutTests : IDisposable
         var labels = layout.FindAll(".nav-link span").Select(span => span.TextContent).ToList();
 
         Assert.Equal(
-            ["Lançamentos", "Pendentes", "Transferências e saldos", "Faturas", "Anexos", "Cashback", "Reembolsos", "Dashboard", "Cadastros", "Configurações"],
+            ["Lançamentos", "Pendentes", "Transferências e saldos", "Faturas", "Anexos", "Cashback", "Reembolsos", "Dashboard", "Planejamento", "Cadastros", "Configurações"],
             labels);
     }
 
