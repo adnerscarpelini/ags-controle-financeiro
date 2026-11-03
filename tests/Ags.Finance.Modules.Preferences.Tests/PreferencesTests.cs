@@ -38,7 +38,7 @@ public sealed class PreferencesTests : IAsyncLifetime
         Assert.Equal(7, preferences.PendingWindowDays);
         Assert.Equal(10, preferences.TopCategories);
         Assert.Equal(DashboardSections.All, preferences.Sections);
-        Assert.Equal(100, preferences.PageSize);
+        Assert.Equal(50, preferences.PageSize);
         Assert.Equal(TimeSpan.FromHours(12), preferences.SessionLifetime);
         Assert.Equal("0", await Database.ScalarAsync("SELECT COUNT(*) FROM preferences.user_preferences"));
     }

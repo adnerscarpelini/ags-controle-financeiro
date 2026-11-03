@@ -150,6 +150,25 @@ internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementSt
     public Task<AccountBalance?> GetBalanceAsync(Guid accountExternalId, DateOnly referenceDate, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(token => GetBalanceCoreAsync(accountExternalId, referenceDate, token), _ => true, cancellationToken);
 
+    public Task<BalanceForecast?> GetBalanceForecastAsync(Guid? accountExternalId, DateOnly referenceDate, ReferenceMonth month, CancellationToken cancellationToken = default)
+        => operations.ExecuteAsync(token => GetBalanceForecastCoreAsync(accountExternalId, referenceDate, month, token), _ => true, cancellationToken);
+
+    private async Task<BalanceForecast?> GetBalanceForecastCoreAsync(Guid? accountExternalId, DateOnly referenceDate, ReferenceMonth month, CancellationToken cancellationToken)
+    {
+        if (accountExternalId is { } single && (await accounts.GetAccountsAsync(false, cancellationToken)).All(x => x.ExternalId != single)) { return null; }
+        var ids = accountExternalId is { } id ? [id] : (await accounts.GetAccountsAsync(true, cancellationToken)).Select(x => x.ExternalId).ToList();
+        var current = Money.Zero;
+        var pending = Money.Zero;
+        foreach (var account in ids)
+        {
+            current += (await GetBalanceCoreAsync(account, referenceDate, cancellationToken))?.EffectiveBalance ?? Money.Zero;
+            var query = await QueryCoreAsync(new(Month: month, AccountExternalId: account, PendingRecurringOnly: true, Page: 1, PageSize: 1), cancellationToken);
+            pending += query.Balance;
+        }
+
+        return new(current, pending);
+    }
+
     private async Task<AccountBalance?> GetBalanceCoreAsync(Guid accountExternalId, DateOnly referenceDate, CancellationToken cancellationToken)
     {
         var account = (await accounts.GetAccountsAsync(false, cancellationToken)).FirstOrDefault(x => x.ExternalId == accountExternalId);

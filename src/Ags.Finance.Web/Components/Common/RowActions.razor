@@ -1,0 +1,34 @@
+@* Ações de uma linha: ícones com tooltip e nome acessível no computador, menu no celular. Só recebe as que valem para a linha. *@
+@using Ags.Finance.Web.Components.Layout
+@implements IDisposable
+@inject ViewportState Viewport
+
+@if (Viewport.IsMobile)
+{
+    <MudMenu Icon="@Icons.Material.Outlined.MoreVert" AriaLabel="Ações" Class="row-actions-menu" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+        @foreach (var action in Actions)
+        {
+            <MudMenuItem Icon="@action.Icon" data-action="@action.Key" OnClick="() => action.Run.InvokeAsync()">@action.Label</MudMenuItem>
+        }
+    </MudMenu>
+}
+else
+{
+    <div class="row-actions">
+        @foreach (var action in Actions)
+        {
+            <MudTooltip Text="@(action.Tooltip ?? action.Label)">
+                <MudIconButton Icon="@action.Icon" Size="Size.Small" aria-label="@action.Label" data-action="@action.Key" OnClick="() => action.Run.InvokeAsync()" />
+            </MudTooltip>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<RowAction> Actions { get; set; } = [];
+
+    protected override void OnInitialized() => Viewport.Changed += StateHasChanged;
+
+    public void Dispose() => Viewport.Changed -= StateHasChanged;
+}

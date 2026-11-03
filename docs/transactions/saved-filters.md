@@ -27,3 +27,5 @@ Os dados ficam em `transactions.saved_filters`, com listas `uuid[]`.
 Na tela de Lançamentos, o painel Filtro salvo salva o filtro atual, aplica um filtro
 sobre o mês/intervalo escolhido, renomeia/atualiza e exclui. Fora do escopo:
 compartilhar filtros e agendar execução.
+
+Desde a [#98](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/98), os filtros salvos ficam no painel de Filtros de Lançamentos. O filtro aplicado aparece como etiqueta removível, usa o mês do seletor ou o período escolhido e respeita a coluna ordenada.

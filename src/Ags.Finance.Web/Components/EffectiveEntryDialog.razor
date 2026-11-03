@@ -1,3 +1,4 @@
+@* Pagar ou receber uma pendência. Valor, data e conta valem só para esta ocorrência. *@
 @using Ags.Finance.SharedKernel
 @using Ags.Finance.Modules.Transactions.Contracts
 @using Ags.Finance.Modules.Accounts.Contracts
@@ -5,29 +6,39 @@
 @inject IEntryCatalog Entries
 @inject IAccountCatalog Accounts
 @inject TimeProvider Clock
+@inject EntryChangeNotifier Notifier
+@inject ISnackbar Snackbar
 
-<section class="panel" role="alertdialog" aria-label="Registrar baixa manual">
-    <h2>Registrar baixa manual</h2>
-    <p>@Entry.MerchantName · @Entry.Amount · Conta: @_accountName · Mês de referência: @Entry.Month</p>
-    <p>As alterações valem somente para este lançamento.</p>
-    @if (_archived) { <p>A conta está arquivada. A baixa será registrada na mesma conta e continuará no histórico.</p> }
-    @if (_ready)
-    {
-        <div class="field"><label for="effective-date">Data da baixa</label><input id="effective-date" type="date" @bind="_date" required /></div>
-    }
-    else { <p>Carregando conta…</p> }
-    <div class="field"><label for="effective-amount">Valor (R$)</label><input id="effective-amount" type="number" min="0.01" step="0.01" @bind="_amount" /></div>
-    <div class="field"><label for="effective-account">Conta</label><select id="effective-account" @bind="_accountId">@foreach (var account in _accounts) { <option value="@account.ExternalId">@account.Name @(!account.IsActive ? "(arquivada)" : "")</option> }</select></div>
-    @if (_error is not null) { <p role="status">@_error</p> }
-    <AttachmentPicker @ref="_picker" />
-    <button class="button" @onclick="ConfirmAsync" disabled="@(_busy || !_ready)">@(_confirmed ? "Reenviar anexos (baixa já registrada)" : Entry.Kind == CategoryKind.Expense ? "Pagar" : "Receber")</button>
-    <button class="button" @onclick="() => Cancelled.InvokeAsync()" disabled="@_busy">Cancelar</button>
-</section>
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <div class="entry-column">
+            <p class="form-note">@Entry.MerchantName · @Entry.Amount · Conta: @_accountName · Mês de referência: @Entry.Month</p>
+            <p class="form-note">As alterações valem somente para este lançamento.</p>
+            @if (_archived) { <p class="form-warning" role="status">A conta está arquivada. A baixa será registrada na mesma conta e continuará no histórico.</p> }
+            @if (_ready)
+            {
+                <div class="field"><label for="effective-date">Data da baixa</label><input id="effective-date" class="input" type="date" @bind="_date" required /></div>
+            }
+            else { <p aria-live="polite">Carregando conta…</p> }
+            <MoneyField Id="effective-amount" Label="Valor" @bind-Value="_amount" />
+            <div class="field"><label for="effective-account">Conta</label><select id="effective-account" class="input" @bind="_accountId">@foreach (var account in _accounts) { <option value="@account.ExternalId">@account.Name @(!account.IsActive ? "(arquivada)" : "")</option> }</select></div>
+            @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+            <AttachmentPicker @ref="_picker" />
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-confirm-cancel Disabled="@_busy" OnClick="() => Dialog?.Cancel()">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" data-confirm-ok Disabled="@(_busy || !_ready)" OnClick="ConfirmAsync">@(_confirmed ? "Reenviar anexos (baixa já registrada)" : ActionText)</MudButton>
+    </DialogActions>
+</MudDialog>
 
 @code {
-    [Parameter, EditorRequired] public EntryDetails Entry { get; set; } = default!;
-    [Parameter] public EventCallback Confirmed { get; set; }
-    [Parameter] public EventCallback Cancelled { get; set; }
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public EntryDetails Entry { get; set; } = default!;
+
     private AttachmentPicker? _picker;
     private bool _confirmed;
     private DateOnly _date;
@@ -39,6 +50,9 @@
     private bool _busy;
     private bool _ready;
     private string? _error;
+
+    private string ActionText => Entry.Kind == CategoryKind.Expense ? "Pagar" : "Receber";
+
     protected override async Task OnInitializedAsync()
     {
         _date = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
@@ -50,6 +64,7 @@
         _archived = account?.IsActive == false;
         _ready = true;
     }
+
     private async Task ConfirmAsync()
     {
         if (_busy || !_ready) { return; }
@@ -61,9 +76,15 @@
             if (result.Succeeded)
             {
                 _confirmed = true;
+                Notifier.Notify();
                 if (_picker is not null && !await _picker.SendAsync((kind, name, content) => Documents.UploadAsync(Entry.ExternalId, kind, name, content)))
-                { _error = "Baixa registrada. O documento falhou; tente enviar novamente."; return; }
-                await Confirmed.InvokeAsync();
+                {
+                    _error = "Baixa registrada. O documento falhou; tente enviar novamente.";
+                    return;
+                }
+
+                Snackbar.Add("Baixa registrada.", Severity.Success);
+                Dialog?.Close(DialogResult.Ok(true));
             }
         }
         finally { _busy = false; }

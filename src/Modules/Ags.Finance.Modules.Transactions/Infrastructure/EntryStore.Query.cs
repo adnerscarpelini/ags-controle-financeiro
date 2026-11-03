@@ -28,6 +28,31 @@ internal sealed partial class EntryStore
         return rows.Select(x => new EntryPlanningAmount(x.Month, x.Kind, x.SubcategoryExternalId, x.Amount, x.IsEffective, x.Date, x.CardExternalId, x.RecurringEntryExternalId)).ToList();
     }
 
+    private static IOrderedQueryable<TransactionEntry> Sort(TransactionsDbContext context, IQueryable<TransactionEntry> query, EntryFilter filter)
+    {
+        var descending = filter.SortDescending;
+        var merchants = context.Set<Merchant>();
+        var subcategories = context.Set<Subcategory>();
+        var categories = context.Set<Category>();
+        IOrderedQueryable<TransactionEntry> sorted = filter.SortColumn switch
+        {
+            EntrySortColumn.Description => descending
+                ? query.OrderByDescending(x => merchants.Where(m => m.ExternalId == x.MerchantExternalId).Select(m => m.Name).FirstOrDefault())
+                : query.OrderBy(x => merchants.Where(m => m.ExternalId == x.MerchantExternalId).Select(m => m.Name).FirstOrDefault()),
+            EntrySortColumn.Category => descending
+                ? query.OrderByDescending(x => subcategories.Where(s => s.ExternalId == x.SubcategoryExternalId).SelectMany(s => categories.Where(c => c.ExternalId == s.CategoryExternalId).Select(c => c.Name)).FirstOrDefault())
+                    .ThenByDescending(x => subcategories.Where(s => s.ExternalId == x.SubcategoryExternalId).Select(s => s.Name).FirstOrDefault())
+                : query.OrderBy(x => subcategories.Where(s => s.ExternalId == x.SubcategoryExternalId).SelectMany(s => categories.Where(c => c.ExternalId == s.CategoryExternalId).Select(c => c.Name)).FirstOrDefault())
+                    .ThenBy(x => subcategories.Where(s => s.ExternalId == x.SubcategoryExternalId).Select(s => s.Name).FirstOrDefault()),
+            EntrySortColumn.Amount => descending ? query.OrderByDescending(x => x.Amount) : query.OrderBy(x => x.Amount),
+            EntrySortColumn.Date => descending ? query.OrderByDescending(x => x.Date) : query.OrderBy(x => x.Date),
+            _ => filter.PendingRecurringOnly ? query.OrderBy(x => x.Date) : query.OrderByDescending(x => x.Date),
+        };
+
+        return filter.SortColumn is null && filter.PendingRecurringOnly ? sorted.ThenBy(x => x.Id)
+            : filter.SortColumn is null || descending ? sorted.ThenByDescending(x => x.Id) : sorted.ThenBy(x => x.Id);
+    }
+
     public async Task<EntryPage> QueryAsync(EntryFilter filter, CancellationToken cancellationToken, int? offset = null, int? limit = null)
     {
         await using var context = await factory.CreateDbContextAsync(cancellationToken);
@@ -72,7 +97,7 @@ internal sealed partial class EntryStore
         var income = new Money(amounts.Where(x => x.Kind == Domain.CategoryKind.Income).Sum(x => x.Amount.Amount));
         var expenses = new Money(amounts.Where(x => x.Kind == Domain.CategoryKind.Expense).Sum(x => x.Amount.Amount));
         var page = Math.Min(filter.Page, Math.Max(1, (int)Math.Ceiling(amounts.Count / (decimal)filter.PageSize)));
-        var ordered = filter.PendingRecurringOnly ? query.OrderBy(x => x.Date).ThenBy(x => x.Id) : query.OrderByDescending(x => x.Date).ThenByDescending(x => x.Id);
+        var ordered = Sort(context, query, filter);
         var rows = await ordered.Skip(offset ?? (page - 1) * filter.PageSize).Take(limit ?? filter.PageSize).ToListAsync(cancellationToken);
         return new(rows, income, expenses, amounts.Count, page);
     }

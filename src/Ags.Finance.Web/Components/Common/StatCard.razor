@@ -1,0 +1,33 @@
+@* Card de total: ícone, rótulo com ajuda opcional e valor. O valor aparece como veio do caso de uso. *@
+<div class="stat-card" data-stat="@Testid">
+    <span class="stat-icon stat-@Tone"><MudIcon Icon="@Icon" aria-hidden="true" /></span>
+    <div class="stat-text">
+        <span class="stat-label">@Label @if (Help is not null) { <HelpTip Text="@Help" /> }</span>
+        <span class="stat-value">@Value</span>
+        @if (Note is not null) { <small class="stat-note">@Note</small> }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Icon { get; set; } = string.Empty;
+
+    /// <summary>accent, income, expense ou warning.</summary>
+    [Parameter]
+    public string Tone { get; set; } = "accent";
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Help { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Value { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Note { get; set; }
+
+    [Parameter]
+    public string? Testid { get; set; }
+}

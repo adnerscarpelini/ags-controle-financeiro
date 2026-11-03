@@ -1,0 +1,70 @@
+@* Excluir um lançamento. Em séries e parcelas, o alcance precisa ser escolhido antes de confirmar. *@
+@using Ags.Finance.Modules.Transactions.Contracts
+@inject IEntryCatalog Entries
+@inject EntryChangeNotifier Notifier
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog" aria-label="Confirmar exclusão">
+    <DialogContent>
+        <p class="confirm-message">@Entry.MerchantName · @Entry.Date.ToString("dd/MM/yyyy") · @Entry.Amount</p>
+        @if (Entry.RecurringEntryExternalId is not null)
+        {
+            <div class="field"><label for="delete-recurring-scope">Alcance da exclusão</label><select id="delete-recurring-scope" class="input" @bind="_recurringScope">
+                <option value="">Escolha o alcance</option><option value="@RecurringChangeScope.OnlyThis">Somente esta</option><option value="@RecurringChangeScope.ThisAndFollowing">Esta e as seguintes</option><option value="@RecurringChangeScope.All">Todas</option>
+            </select></div>
+        }
+        else if (HasScope)
+        {
+            <div class="field"><label for="delete-scope">Alcance da exclusão</label><select id="delete-scope" class="input" @bind="_scope">
+                <option value="">Escolha o alcance</option><option value="@EntryChangeScope.OnlyThis">@(Entry.RepetitionExternalId is not null ? "Somente esta" : "Somente esta parcela")</option><option value="@EntryChangeScope.ThisAndFollowing">Esta e as futuras</option>
+                @if (Entry.RepetitionExternalId is not null) { <option value="@EntryChangeScope.All">Todas</option> }
+            </select></div>
+        }
+        @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-confirm-cancel Disabled="@_busy" OnClick="() => Dialog?.Cancel()">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" data-confirm-ok Disabled="@_busy" OnClick="ConfirmAsync">Confirmar exclusão</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public EntryDetails Entry { get; set; } = default!;
+
+    private RecurringChangeScope? _recurringScope;
+    private EntryChangeScope? _scope;
+    private bool _busy;
+    private string? _error;
+
+    private bool HasScope => Entry.InstallmentPurchaseExternalId is not null || Entry.RepetitionExternalId is not null;
+
+    private async Task ConfirmAsync()
+    {
+        if (_busy) { return; }
+        if ((Entry.RecurringEntryExternalId is not null && _recurringScope is null) || (Entry.RecurringEntryExternalId is null && HasScope && _scope is null))
+        {
+            _error = "Escolha o alcance da exclusão.";
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var result = Entry.RecurringEntryExternalId is not null
+                ? await Entries.DeleteRecurringAsync(Entry.ExternalId, _recurringScope!.Value)
+                : await Entries.DeleteAsync(Entry.ExternalId, _scope ?? EntryChangeScope.OnlyThis);
+            _error = result.Error;
+            if (result.Succeeded)
+            {
+                Notifier.Notify();
+                Snackbar.Add("Lançamento excluído.", Severity.Success);
+                Dialog?.Close(DialogResult.Ok(true));
+            }
+        }
+        finally { _busy = false; }
+    }
+}

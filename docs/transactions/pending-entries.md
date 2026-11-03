@@ -1,14 +1,15 @@
 # Lançamentos pendentes
 
 A [#57](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/57)
-acrescenta Pendentes ao menu e QueryPendingAsync aos Contracts de Transactions.
+acrescenta a consulta de pendentes e QueryPendingAsync aos Contracts de Transactions.
+Desde a [#98](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/98), `/pendentes` abre Lançamentos com o filtro Pendentes e Todos os meses.
 A consulta usa o mesmo EntryFilter, a paginação e os totais da #15, restringindo
 os dados a lançamentos pendentes fora do cartão, avulsos ou recorrentes (#88). Totais representam todo o filtro,
 não somente a página, e a ordenação é pela data prevista crescente, com desempate estável.
 
 A tela mostra data prevista, descrição, receita/despesa, valor, conta e série.
-Atrasado, Hoje e Futuro são textos explícitos. É possível combinar conta, tipo,
-intervalo de datas, mês de referência e busca textual. O contrato também aceita os
+Atrasado, Hoje e Futuro são textos explícitos, na linha e no tooltip da situação. É possível combinar conta, tipo,
+intervalo de datas, mês de referência e busca textual no painel de filtros. O contrato também aceita os
 demais filtros compartilhados. O resumo é previsão, não saldo efetivo da conta.
 
 Sem intervalo futuro, a geração segue os meses até o atual e inclui ocorrências
