@@ -1,0 +1,41 @@
+@using Ags.Finance.Modules.Accounts.Contracts
+
+<article class="wallet-card" aria-label="Cartão @Card.Name">
+    <div class="wallet-card-face">
+        <div class="wallet-card-heading">
+            @if (Bank is not null) { <BankLogo Bank="Bank" /> }
+            <div class="wallet-card-bank"><span>@(Bank?.Name ?? "Banco não localizado")</span><span>@(Account?.Name ?? "Conta não localizada")</span></div>
+            <span class="wallet-card-brand">@Card.Brand</span>
+        </div>
+        <h3 class="catalog-color color-@Card.Color">@Card.Name</h3>
+        <div class="wallet-card-identification">
+            @if (Finals.Count == 0) { <span>Sem final cadastrado</span> }
+            @foreach (var final in Finals) { <span>Final <strong class="numeric">@final.Digits</strong>@(string.IsNullOrWhiteSpace(final.Label) ? string.Empty : $" · {final.Label}")</span> }
+        </div>
+    </div>
+    <div class="wallet-card-details">
+        <p class="wallet-card-status">@Status</p>
+        <dl>
+            <div><dt>Limite cadastrado</dt><dd class="numeric">@Card.CreditLimit</dd></div>
+            <div><dt>Fechamento</dt><dd>Dia @Card.ClosingDay</dd></div>
+            <div><dt>Vencimento</dt><dd>Dia @Card.DueDay</dd></div>
+        </dl>
+        <p class="wallet-card-closing">@(Card.IncludesClosingDay ? "Inclui" : "Não inclui") compras no dia do fechamento</p>
+        <div class="wallet-card-actions">
+            <button type="button" class="button" @onclick="Edit">Editar</button>
+            <button type="button" class="button" @onclick="ShowFinals">Finais do cartão</button>
+            <button type="button" class="button" @onclick="ToggleArchive">@(Card.IsActive ? "Arquivar" : "Desarquivar")</button>
+        </div>
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired] public CreditCardDetails Card { get; set; } = default!;
+    [Parameter] public BankDetails? Bank { get; set; }
+    [Parameter] public AccountDetails? Account { get; set; }
+    [Parameter] public IReadOnlyList<CardLastDigitsDetails> Finals { get; set; } = [];
+    [Parameter] public EventCallback Edit { get; set; }
+    [Parameter] public EventCallback ShowFinals { get; set; }
+    [Parameter] public EventCallback ToggleArchive { get; set; }
+    private string Status => !Card.IsActive ? "Arquivado individualmente" : !Card.IsAccountActive ? "Indisponível: conta arquivada" : "Disponível";
+}

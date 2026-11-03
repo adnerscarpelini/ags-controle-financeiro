@@ -57,6 +57,7 @@
 @code {
     [Parameter, EditorRequired] public Guid CardExternalId { get; set; }
     [Parameter, EditorRequired] public string CardName { get; set; } = string.Empty;
+    [Parameter] public EventCallback Changed { get; set; }
     private IReadOnlyList<CardLastDigitsDetails> _items = [];
     private Guid? _id;
     private string _digits = string.Empty;
@@ -93,6 +94,7 @@
             {
                 Reset();
                 await RefreshAsync();
+                await Changed.InvokeAsync();
             }
         }
         finally
@@ -128,6 +130,7 @@
         _message = result.Error ?? "Final desativado.";
         _pendingId = null;
         await RefreshAsync();
+        if (result.Succeeded) { await Changed.InvokeAsync(); }
     }
 
     private static string UsageLabel(CardUsage usage) => usage switch

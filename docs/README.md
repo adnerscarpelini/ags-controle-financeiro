@@ -57,8 +57,8 @@ incluindo o CSV oficial (#28/#29/#61/#62).
 - Accounts: [Finais de cartão](accounts/card-last-digits.md)
 - Accounts: [Mês contábil de uma compra](accounts/purchase-accounting-month.md)
 
-Arquivamento reversível (#53), logos (#54), carteira visual (#55), faturas/pagamentos/ajustes
-(#18/#19/#50–#52) e efetivação/pendentes (#56–#58) ainda não são apresentados como recursos entregues.
+O Lote 07 entrega o núcleo financeiro e os cadastros visuais descritos neste índice.
+A previsão consolidada de caixa da #58 continua pendente; efetivação e consulta de pendências (#56/#57) estão implementadas.
 
 - [Saldos e parcelas futuras (#20)](invoices/future-obligations.md)
 
@@ -70,3 +70,5 @@ Arquivamento reversível (#53), logos (#54), carteira visual (#55), faturas/paga
 
 - [Logos de bancos (#54)](accounts/bank-logos.md)
 - [Armazenamento e processamento de logos (#54)](architecture/bank-logo-storage.md)
+
+- [Carteira visual de cartões (#55)](accounts/card-wallet.md)
