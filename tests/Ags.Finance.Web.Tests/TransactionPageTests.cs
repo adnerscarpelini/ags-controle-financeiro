@@ -1,6 +1,7 @@
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Invoices;
+using Ags.Finance.Modules.Invoices.Contracts;
 using Ags.Finance.Modules.Transactions;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
@@ -145,6 +146,23 @@ public sealed class TransactionPageTests
         Assert.Empty(page.FindAll(".catalog-list li"));
         var confirmed = (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.RecurringEntryExternalId is not null && x.IsEffective);
         Assert.Equal(new DateOnly(2026, 11, 12), confirmed.EffectiveDate);
+        var payable = context.Render<Ags.Finance.Web.Components.Pages.Invoices>();
+        payable.WaitForAssertion(() => Assert.Contains("Pagar", payable.Markup, StringComparison.Ordinal));
+        var closedRow = payable.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Fechada", StringComparison.Ordinal));
+        await closedRow.QuerySelectorAll("button").Single(x => x.TextContent == "Pagar").ClickAsync(new());
+        payable.WaitForAssertion(() => Assert.False(payable.Find("#invoice-payment-form button").HasAttribute("disabled")));
+        Assert.Equal(account.ExternalId.Value.ToString(), payable.Find("#payment-account").GetAttribute("value"));
+        await payable.FindAll("[aria-label='Registrar pagamento de fatura'] button").Single(x => x.TextContent == "Cancelar").ClickAsync(new());
+        Assert.Empty(await context.Services.GetRequiredService<IInvoicePaymentCatalog>().GetHistoryAsync());
+        closedRow = payable.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Fechada", StringComparison.Ordinal));
+        await closedRow.QuerySelectorAll("button").Single(x => x.TextContent == "Pagar").ClickAsync(new());
+        payable.WaitForAssertion(() => Assert.False(payable.Find("#invoice-payment-form button").HasAttribute("disabled")));
+        payable.Find("#payment-settle").Change(true);
+        await payable.Find("#invoice-payment-form").SubmitAsync(EventArgs.Empty);
+        Assert.Contains("definitivo", payable.Find("[aria-label='Registrar pagamento de fatura']").TextContent, StringComparison.Ordinal);
+        await payable.FindAll("[aria-label='Registrar pagamento de fatura'] button").Single(x => x.TextContent == "Confirmar pagamento irreversível").ClickAsync(new());
+        Assert.Contains("Paga", payable.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("11/2026", StringComparison.Ordinal)).TextContent, StringComparison.Ordinal);
+        Assert.Single(await context.Services.GetRequiredService<IInvoicePaymentCatalog>().GetHistoryAsync());
     }
 
     private sealed class PreviewClock : TimeProvider

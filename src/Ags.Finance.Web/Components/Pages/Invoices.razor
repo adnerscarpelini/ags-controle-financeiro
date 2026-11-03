@@ -7,6 +7,7 @@
 @inject IInvoiceLifecycle Lifecycle
 @inject IAccountCatalog Accounts
 @inject TimeProvider Clock
+@inject IInvoicePaymentCatalog Payments
 
 <PageHeader Title="Faturas" />
 <section class="panel">
@@ -17,6 +18,15 @@
     </form>
 </section>
 @if (_message is not null) { <p role="status">@_message</p> }
+@if (_paying is { } paying) { <InvoicePaymentDialog @key="paying" Invoice="paying" Confirmed="PaymentConfirmedAsync" Cancelled="() => _paying = null" /> }
+@if (_settling is { } settling)
+{
+    <section class="panel" role="alertdialog" aria-label="Confirmar quitação">
+        <h2>Confirmar quitação sem novo débito</h2><p>@settling.CardName · @settling.Month · Saldo restante @settling.RemainingBalance</p>
+        <p>A fatura passará a Paga. Nenhum pagamento ou débito zero será criado.</p>
+        <button class="button" @onclick="SettleAsync" disabled="@_busy">Confirmar quitação</button><button class="button" @onclick="() => _settling = null" disabled="@_busy">Cancelar</button>
+    </section>
+}
 @if (_pending is { } pending)
 {
     <section class="panel" role="alertdialog" aria-label="Confirmar situação da fatura">
@@ -51,7 +61,9 @@
                 <span class="@(invoice.RemainingBalance.IsNegative ? "invoice-credit" : string.Empty)">Em aberto: @invoice.RemainingBalance @(invoice.RemainingBalance.IsNegative ? "(crédito)" : string.Empty)</span>
                 <button class="button" @onclick="() => Select(invoice)">Ver composição</button>
                 @if (invoice.Status == InvoiceStatus.Open) { <button class="button" @onclick="() => Ask(invoice, false)">Fechar</button> }
-                @if (invoice.Status == InvoiceStatus.Closed) { <button class="button" @onclick="() => Ask(invoice, true)">Reabrir</button> }
+                @if (invoice.Status == InvoiceStatus.Closed && !invoice.HasConfirmedPayment) { <button class="button" @onclick="() => Ask(invoice, true)">Reabrir</button> }
+                @if (invoice.Status != InvoiceStatus.Paid) { <button class="button" @onclick="() => StartPayment(invoice)">Pagar</button> }
+                @if (invoice.Status == InvoiceStatus.Closed && invoice.RemainingBalance.Amount <= 0) { <button class="button" @onclick="() => _settling = invoice">Confirmar quitação</button> }
             </li>
         }
     </ul>
@@ -83,6 +95,21 @@
     private IReadOnlyList<CreditCardDetails> _cards = [];
     private IReadOnlyList<AccountDetails> _accounts = [];
     private InvoiceDetails? _pending;
+    private InvoiceDetails? _paying;
+    private InvoiceDetails? _settling;
+    private void StartPayment(InvoiceDetails invoice) { _pending = null; _settling = null; _paying = invoice; }
+    private async Task PaymentConfirmedAsync() { _paying = null; await ReloadInvoicesAsync(); _message = "Pagamento confirmado."; }
+    private async Task SettleAsync()
+    {
+        if (_busy || _settling is not { } invoice) { return; }
+        _busy = true;
+        try
+        {
+            var result = await Payments.ConfirmSettlementAsync(invoice.CardExternalId, invoice.Month);
+            _message = result.Error ?? "Quitação confirmada."; _settling = null; await ReloadInvoicesAsync();
+        }
+        finally { _busy = false; }
+    }
     private bool _reopen;
     private bool _busy;
     private string? _message;
@@ -99,7 +126,7 @@
         await ReloadInvoicesAsync();
     }
     private void Select(InvoiceDetails invoice) { _selectedCard = invoice.CardExternalId; _selectedMonth = invoice.Month; }
-    private void Ask(InvoiceDetails invoice, bool reopen) { _pending = invoice; _reopen = reopen; }
+    private void Ask(InvoiceDetails invoice, bool reopen) { _paying = null; _settling = null; _pending = invoice; _reopen = reopen; }
     private void AskManualClose()
     {
         var card = _cards.FirstOrDefault(x => x.ExternalId == _cardId);

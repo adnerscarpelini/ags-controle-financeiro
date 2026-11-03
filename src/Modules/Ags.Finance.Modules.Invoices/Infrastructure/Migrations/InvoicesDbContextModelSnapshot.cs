@@ -25,6 +25,7 @@ internal sealed class InvoicesDbContextModelSnapshot : ModelSnapshot
             b.Property<bool>("AutoCloseSuppressed").HasColumnType("boolean");
             b.Property<bool>("HasConfirmedPayment").HasColumnType("boolean");
             b.Property<DateTimeOffset?>("ClosedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateTimeOffset?>("PaidAt").HasColumnType("timestamp with time zone");
             b.HasKey("Id");
             b.HasAlternateKey("ExternalId");
             b.HasIndex("ExternalId").IsUnique();

@@ -23,7 +23,24 @@ situação da fatura automaticamente. Saldo zero/crédito continua exigindo quit
 explícita. A confirmação usa transação financeira e identidade estável para não
 duplicar o cadastro por clique repetido; falhas revertem também uma nova fatura.
 
-A estrutura e a consulta de pagamentos estão preparadas nesta etapa. A confirmação
-de Pagamento será disponibilizada pela #51, junto da escolha de conta, débito
-atômico e quitação explícita. Não existe uma confirmação monetária intermediária
-que possa registrar pagamento sem o débito correspondente.
+## Pagamento com débito e quitação (#51)
+
+A [#51](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/51)
+permite pagar em Aberta/Fechada, inclusive parcial, antecipado ou excedente.
+A tela sugere a corrente vinculada ao cartão e permite outra corrente ativa.
+Data, valor e conta são apresentados antes da confirmação irreversível.
+Conta inexistente, arquivada ou que não seja corrente é rejeitada; saldo
+insuficiente não bloqueia o débito. A conta escolhida fica gravada no pagamento.
+
+Invoices coordena o histórico, o estado da fatura e o movimento de caixa de
+Transactions na mesma operação financeira. Falhar em qualquer gravação reverte
+todas. A identidade da confirmação impede um segundo pagamento/débito em chamadas
+repetidas ou concorrentes. Pagamentos não criam uma segunda despesa e não oferecem
+edição, exclusão, cancelamento ou estorno.
+
+Qualquer pagamento confirmado impede reabrir após o fechamento. Pagamento
+antecipado mantém a fatura Aberta; saldo zero/crédito não altera a situação sozinho.
+Em Fechada, a confirmação de pagamento pode incluir uma escolha explícita de
+quitação, aceita somente se o saldo final for zero/crédito. Há também Confirmar
+quitação para Fechada com saldo zero/crédito, sem criar pagamento ou débito zerado.
+PaidAt registra o instante da quitação. Repetir a confirmação não cria movimento.

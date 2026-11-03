@@ -39,3 +39,12 @@ com um usuário. Não se introduz Repository genérico ou mensageria.
 
 Fundação da #50; pagamento e antecipação serão integrados nas #51 e #32. Testes
 relacionais devem demonstrar rollback conjunto e ausência de promoção distribuída.
+
+## Pagamentos de fatura (#51)
+
+Invoices consome IAccountMovementCatalog de Transactions, sem referência inversa.
+A confirmação grava a fatura, o débito de tipo InvoicePayment e o histórico na
+mesma transação; os movimentos de caixa ficam fora das despesas do orçamento.
+Testes forçam falha tanto no débito quanto na gravação final do pagamento e
+comprovam rollback do estado, do movimento e do histórico. Identidade estável da
+confirmação e lock transacional protegem cliques/chamadas concorrentes.
