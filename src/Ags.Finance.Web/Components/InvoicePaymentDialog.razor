@@ -8,6 +8,7 @@
 <section class="panel" role="alertdialog" aria-label="Registrar pagamento de fatura">
     <h2>Pagar @Invoice.CardName · @Invoice.Month</h2>
     <p>Saldo restante: @Invoice.RemainingBalance</p>
+    @if (Invoice.ForecastEntries.Count > 0 && !Invoice.ForecastIncluded) { <p class="invoice-forecast">As recorrentes previstas (@Invoice.ForecastTotal) ainda não entram no saldo.</p> }
     @if (_error is not null) { <p role="status">@_error</p> }
     @if (_confirmation is { } confirmation)
     {

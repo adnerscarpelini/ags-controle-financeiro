@@ -4,12 +4,13 @@
 
 <section class="panel" role="alertdialog" aria-label="Ajustar total da fatura">
     <h2>Ajustar valor de @Invoice.CardName · @Invoice.Month</h2>
-    <p>Total bruto atual: @Invoice.Total · Saldo restante após abatimentos: @Invoice.RemainingBalance</p>
+    <p>Total bruto lançado até hoje: @Invoice.LaunchedTotal · Saldo restante após abatimentos: @Invoice.RemainingBalance</p>
+    @if (Invoice.ForecastEntries.Count > 0) { <p class="invoice-forecast">As recorrentes previstas (@Invoice.ForecastTotal) ainda não foram cobradas pelo banco e ficam fora desta comparação.</p> }
     <p>Informe o total bruto correto. A diferença será um ajuste de despesa no mês da fatura, sem alterar compras, pagamentos ou débitos em conta.</p>
     @if (_error is not null) { <p role="status">@_error</p> }
     @if (_confirmation is { } confirmation)
     {
-        <p>Total atual: @Invoice.Total · Total informado: @confirmation.CorrectTotal · Diferença: @(confirmation.CorrectTotal - Invoice.Total)</p>
+        <p>Total lançado até hoje: @Invoice.LaunchedTotal · Total informado: @confirmation.CorrectTotal · Diferença: @(confirmation.CorrectTotal - Invoice.LaunchedTotal)</p>
         <p>O ajuste será registrado na data da confirmação e preservará o mês contábil da fatura. Correções são novos ajustes.</p>
         <button class="button" @onclick="ConfirmAsync" disabled="@_busy">Confirmar ajuste de fatura</button><button class="button" @onclick="() => _confirmation = null" disabled="@_busy">Voltar</button>
     }
@@ -32,8 +33,8 @@
     private bool _busy;
     private string? _error;
     private AdjustInvoiceTotalRequest? _confirmation;
-    protected override void OnInitialized() => _correctTotal = Invoice.Total.Amount;
-    private void Review() => _confirmation = new(_confirmationId, Invoice.CardExternalId, Invoice.Month, new Money(_correctTotal), Invoice.Total);
+    protected override void OnInitialized() => _correctTotal = Invoice.LaunchedTotal.Amount;
+    private void Review() => _confirmation = new(_confirmationId, Invoice.CardExternalId, Invoice.Month, new Money(_correctTotal), Invoice.LaunchedTotal);
     private async Task ConfirmAsync()
     {
         if (_busy || _confirmation is not { } request) { return; }

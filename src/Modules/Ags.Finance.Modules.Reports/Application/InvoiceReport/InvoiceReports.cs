@@ -26,7 +26,8 @@ internal sealed class InvoiceReports(IInvoiceCatalog invoices, IAccountCatalog a
                 var card = cards[id];
                 var own = all.Where(x => x.CardExternalId == id).ToList();
                 var current = own.FirstOrDefault(x => x.Month == month);
-                var year = own.Where(x => x.Month >= yearStart && x.Month <= month).ToList();
+                // Mês só com ocorrências previstas fora do total não é fatura real ainda: não entra na média.
+                var year = own.Where(x => x.Month >= yearStart && x.Month <= month && !x.OnlyForecast).ToList();
                 bankByAccount.TryGetValue(card.AccountExternalId, out var bankId);
                 banks.TryGetValue(bankId, out var bank);
                 return new CardInvoiceLine(id, card.Name, card.Color, bankId, bank?.Name ?? string.Empty, bank?.LogoVersion, !card.IsAvailable,

@@ -1,6 +1,7 @@
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Invoices;
+using Ags.Finance.Modules.Preferences;
 using Ags.Finance.Modules.Transactions;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
@@ -31,6 +32,7 @@ public abstract class ReportFixture : IAsyncLifetime
         await Provider.MigrateAccountsModuleAsync();
         await Provider.MigrateTransactionsModuleAsync();
         await Provider.MigrateInvoicesModuleAsync();
+        await Provider.MigratePreferencesModuleAsync();
         var accounts = Provider.GetRequiredService<IAccountCatalog>();
         var bank = await accounts.CreateBankAsync("Banco Exemplo");
         AccountId = (await accounts.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta Exemplo", AccountKind.Checking, "green", new Money(1000), new DateOnly(2026, 1, 1)))).ExternalId!.Value;
@@ -49,7 +51,7 @@ public abstract class ReportFixture : IAsyncLifetime
     }
 
     protected virtual IServiceCollection ConfigureServices(IServiceCollection services)
-        => services.AddSingleton<TimeProvider>(Clock).AddAccountsModule(Database.ConnectionString).AddTransactionsModule(Database.ConnectionString).AddInvoicesModule(Database.ConnectionString).AddReportsModule();
+        => services.AddSingleton<TimeProvider>(Clock).AddAccountsModule(Database.ConnectionString).AddTransactionsModule(Database.ConnectionString).AddInvoicesModule(Database.ConnectionString).AddPreferencesModule(Database.ConnectionString).AddReportsModule();
 
     protected async Task<Guid> CardAsync(string name, string color = "green")
     {

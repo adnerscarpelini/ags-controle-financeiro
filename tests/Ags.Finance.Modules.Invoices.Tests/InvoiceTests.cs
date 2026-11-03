@@ -1,6 +1,8 @@
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Invoices.Contracts;
+using Ags.Finance.Modules.Preferences;
+using Ags.Finance.Modules.Preferences.Contracts;
 using Ags.Finance.Modules.Transactions;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
@@ -24,10 +26,14 @@ public sealed partial class InvoiceTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         _database = await PostgresTestDatabase.CreateAsync();
-        _provider = new ServiceCollection().AddSingleton<TimeProvider>(_clock).AddAccountsModule(_database.ConnectionString).AddTransactionsModule(_database.ConnectionString).AddInvoicesModule(_database.ConnectionString).BuildServiceProvider();
+        _provider = new ServiceCollection().AddSingleton<TimeProvider>(_clock).AddAccountsModule(_database.ConnectionString).AddTransactionsModule(_database.ConnectionString).AddInvoicesModule(_database.ConnectionString).AddPreferencesModule(_database.ConnectionString).BuildServiceProvider();
         await Provider.MigrateAccountsModuleAsync();
         await Provider.MigrateTransactionsModuleAsync();
         await Provider.MigrateInvoicesModuleAsync();
+        await Provider.MigratePreferencesModuleAsync();
+        // Os testes herdados verificam séries, edição e proteção de fatura somando as ocorrências futuras desde já;
+        // o modo "somar só na data" tem testes próprios em InvoiceTests.RecurringForecast.cs.
+        await Provider.GetRequiredService<IPreferences>().SaveAsync(AppPreferences.Default with { RecurringInvoices = RecurringInvoiceMode.SumUpfront });
         var accounts = Provider.GetRequiredService<IAccountCatalog>();
         var bank = await accounts.CreateBankAsync("Banco Exemplo");
         var account = await accounts.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta Exemplo", AccountKind.Checking, "green"));

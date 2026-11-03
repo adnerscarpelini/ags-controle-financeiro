@@ -1,3 +1,4 @@
+using Ags.Finance.Modules.Preferences.Contracts;
 using Ags.Finance.Modules.Reports.Contracts;
 using Ags.Finance.SharedKernel;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,26 @@ public sealed class PendingAgendaTests : ReportFixture
         var result = await Entries.CreateRecurringAsync(new(request));
         Assert.True(result.Succeeded, result.Error);
         return (await Entries.QueryPendingAsync(new(FromDate: date, ToDate: date, PageSize: 200))).Entries.Single(x => x.RecurringEntryExternalId == result.ExternalId).ExternalId;
+    }
+
+    [Theory]
+    [InlineData(7, 8)]
+    [InlineData(15, 16)]
+    [InlineData(30, 1)]
+    public async Task WindowFollowsThePreferenceAsAClosedIntervalOfNDaysFromToday(int days, int lastDay)
+    {
+        Today(2026, 11, 2);
+        var saved = await Provider.GetRequiredService<IPreferences>().SaveAsync(AppPreferences.Default with { PendingWindowDays = days });
+        Assert.True(saved.Succeeded, saved.Error);
+        var end = days == 30 ? new DateOnly(2026, 12, lastDay) : new DateOnly(2026, 11, lastDay);
+        await PendingAsync(end, 40m);
+        await PendingAsync(end.AddDays(1), 999m);
+
+        var agenda = await Agenda.GetAsync();
+
+        Assert.Equal((new DateOnly(2026, 11, 2), end, days), (agenda.Today, agenda.WindowEnd, agenda.WindowDays));
+        Assert.Equal([end], agenda.Upcoming.Items.Select(x => x.Date));
+        Assert.Equal(new Money(40m), agenda.Upcoming.ToPay);
     }
 
     [Fact]

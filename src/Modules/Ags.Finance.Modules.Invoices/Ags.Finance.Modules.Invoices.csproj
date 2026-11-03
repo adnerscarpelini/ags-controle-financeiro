@@ -8,6 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Ags.Finance.SharedKernel\Ags.Finance.SharedKernel.csproj" />
     <ProjectReference Include="..\Ags.Finance.Modules.Accounts\Ags.Finance.Modules.Accounts.csproj" />
+    <ProjectReference Include="..\Ags.Finance.Modules.Preferences\Ags.Finance.Modules.Preferences.csproj" />
     <ProjectReference Include="..\Ags.Finance.Modules.Transactions\Ags.Finance.Modules.Transactions.csproj" />
   </ItemGroup>
 

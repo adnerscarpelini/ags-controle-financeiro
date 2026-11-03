@@ -1,6 +1,8 @@
 using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Invoices.Contracts;
+using Ags.Finance.Modules.Preferences.Contracts;
 using Ags.Finance.Modules.Reports.Contracts;
+using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -65,6 +67,23 @@ public sealed class InvoiceReportTests : ReportFixture
         var line = Assert.Single((await Reports.GetAsync(november)).Cards);
         Assert.Equal((new Money(400m), new Money(10m), new Money(100m), new Money(290m), new Money(200m), new Money(300m)),
             (line.Invoice, line.Allowances, line.Paid, line.Open, line.PreviousMonth, line.YearAverage));
+    }
+
+    [Theory]
+    [InlineData(RecurringInvoiceMode.SumOnDate, 0, 200)]
+    [InlineData(RecurringInvoiceMode.SumUpfront, 50, 125)]
+    public async Task AMonthWithOnlyForecastOccurrencesDoesNotLowerTheYearAverage(RecurringInvoiceMode mode, int invoice, int average)
+    {
+        var november = new AccountingMonth(2026, 11);
+        var card = await CardAsync("Cartão A");
+        await PurchaseAsync(card, new DateOnly(2026, 10, 1), 200m);
+        var series = await Entries.CreateRecurringAsync(new(new CreateEntryRequest(new DateOnly(2026, 10, 20), MerchantId, ExpenseSubcategoryId, AccountId, new Money(50m), CardExternalId: card)));
+        Assert.True(series.Succeeded, series.Error);
+        Assert.True((await Provider.GetRequiredService<IPreferences>().SaveAsync(AppPreferences.Default with { RecurringInvoices = mode })).Succeeded);
+
+        var line = Assert.Single((await Reports.GetAsync(november)).Cards);
+
+        Assert.Equal((new Money(invoice), new Money(average)), (line.Invoice, line.YearAverage));
     }
 
     [Fact]
