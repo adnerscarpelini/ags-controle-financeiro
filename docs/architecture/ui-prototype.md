@@ -15,6 +15,20 @@
 - A implementação usa MudBlazor (#95) e os tokens de `wwwroot/css/tokens.css`. Não copie o CSS do protótipo para a aplicação.
 - Todos os dados são fictícios. Nenhum valor ou cálculo do protótipo é regra do produto.
 
+## Tema escuro aprovado
+
+O fundo verde musgo dá lugar a um cinza neutro quase preto. O verde continua como cor de destaque, e o tema claro não muda.
+Os valores abaixo substituem os atuais a partir da [#95](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/95).
+
+| Token | Antes | Aprovado |
+| --- | --- | --- |
+| `Background` | `#0E1311` | `#121212` |
+| `Surface` | `#151C19` | `#1A1A1A` |
+| `SurfaceRaised` | `#1C2521` | `#242424` |
+| `Border` | `#27332E` | `#2E2E2E` |
+| `TextPrimary` | `#E6EDE9` | `#EDEDED` |
+| `TextSecondary` | `#93A39B` | `#A3A3A3` |
+
 ## Fontes
 
 `ui-prototype/Main.dc.html` e `ui-prototype/Celular.dc.html` trazem a marcação, os textos, os tooltips e os fluxos de cada tela.
