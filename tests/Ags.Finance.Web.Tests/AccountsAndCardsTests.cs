@@ -39,31 +39,31 @@ public sealed class AccountsAndCardsTests : IAsyncLifetime, IDisposable
     public async Task FormsCreateBankAccountAndCardAndOfferDeactivation()
     {
         var page = _context.Render<AccountsAndCards>();
-        page.Find("#bank-name").Change("Banco Exemplo");
+        await page.InvokeAsync(() => page.Find("#bank-name").Change("Banco Exemplo"));
         await page.FindAll("form")[0].SubmitAsync(EventArgs.Empty);
         page.WaitForAssertion(() => Assert.Contains("Banco Exemplo", page.Find("ul").TextContent, StringComparison.Ordinal));
         var catalog = _context.Services.GetRequiredService<IAccountCatalog>();
         var bank = Assert.Single(await catalog.GetBanksAsync());
-        page.Find("#account-bank").Change(bank.ExternalId.ToString());
-        page.Find("#account-name").Change("Conta Exemplo");
-        page.Find("#account-color").Change("green");
-        page.Find("#opening-balance").Change("1250.50");
-        page.Find("#opening-date").Change("2026-11-01");
+        await page.InvokeAsync(() => page.Find("#account-bank").Change(bank.ExternalId.ToString()));
+        await page.InvokeAsync(() => page.Find("#account-name").Change("Conta Exemplo"));
+        await page.InvokeAsync(() => page.Find("#account-color").Change("green"));
+        await page.InvokeAsync(() => page.Find("#opening-balance").Change("1250.50"));
+        await page.InvokeAsync(() => page.Find("#opening-date").Change("2026-11-01"));
         await page.FindAll("form")[1].SubmitAsync(EventArgs.Empty);
         page.WaitForAssertion(() => Assert.Contains("Conta Exemplo", page.Find(".catalog-list").TextContent, StringComparison.Ordinal));
         var account = Assert.Single(await catalog.GetAccountsAsync());
         Assert.Equal(new Money(1250.50m), account.OpeningBalance);
         Assert.Equal(new DateOnly(2026, 11, 1), account.OpeningDate);
-        page.Find("#card-name").Change("Cartão Exemplo");
-        page.Find("#card-account").Change(account.ExternalId.ToString());
-        page.Find("#card-brand").Change(CardBrand.Mastercard.ToString());
-        page.Find("#card-limit").Change("10000");
-        page.Find("#card-color").Change("violet");
+        await page.InvokeAsync(() => page.Find("#card-name").Change("Cartão Exemplo"));
+        await page.InvokeAsync(() => page.Find("#card-account").Change(account.ExternalId.ToString()));
+        await page.InvokeAsync(() => page.Find("#card-brand").Change(CardBrand.Mastercard.ToString()));
+        await page.InvokeAsync(() => page.Find("#card-limit").Change("10000"));
+        await page.InvokeAsync(() => page.Find("#card-color").Change("violet"));
         await page.FindAll("form")[2].SubmitAsync(EventArgs.Empty);
         page.WaitForAssertion(() => Assert.Contains("Mastercard", page.FindAll(".catalog-list")[1].TextContent, StringComparison.Ordinal));
-        page.FindAll(".catalog-list")[1].QuerySelectorAll("button")[2].Click();
+        await page.InvokeAsync(() => page.FindAll(".catalog-list")[1].QuerySelectorAll("button")[2].ClickAsync(new()));
         page.WaitForAssertion(() => Assert.Contains("Desativar em vez de excluir", page.Find("[role=alertdialog]").TextContent, StringComparison.Ordinal));
-        page.Find("[role=alertdialog] button").Click();
+        await page.InvokeAsync(() => page.Find("[role=alertdialog] button").ClickAsync(new()));
         page.WaitForAssertion(() => Assert.Contains("Desativado", page.FindAll(".catalog-list")[1].TextContent, StringComparison.Ordinal));
         Assert.Empty(await catalog.GetCreditCardsAsync());
         Assert.Single(await catalog.GetCreditCardsAsync(false));
@@ -98,11 +98,11 @@ public sealed class AccountsAndCardsTests : IAsyncLifetime, IDisposable
     }
 
     [Fact]
-    public void InvalidInputShowsBusinessValidationMessage()
+    public async Task InvalidInputShowsBusinessValidationMessage()
     {
         var page = _context.Render<AccountsAndCards>();
-        page.Find("#account-name").Change("Conta sem banco");
-        page.FindAll("form")[1].Submit();
+        await page.InvokeAsync(() => page.Find("#account-name").Change("Conta sem banco"));
+        await page.FindAll("form")[1].SubmitAsync(EventArgs.Empty);
         page.WaitForAssertion(() => Assert.Contains("banco cadastrado", page.Find("[role=status]").TextContent, StringComparison.Ordinal));
     }
 }
