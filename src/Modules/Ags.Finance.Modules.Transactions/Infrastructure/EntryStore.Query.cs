@@ -8,7 +8,7 @@ namespace Ags.Finance.Modules.Transactions.Infrastructure;
 
 internal sealed partial class EntryStore
 {
-    public async Task<EntryPage> QueryAsync(EntryFilter filter, CancellationToken cancellationToken)
+    public async Task<EntryPage> QueryAsync(EntryFilter filter, CancellationToken cancellationToken, int? offset = null, int? limit = null)
     {
         await using var context = await factory.CreateDbContextAsync(cancellationToken);
         var query = context.Set<TransactionEntry>().AsNoTracking();
@@ -41,7 +41,7 @@ internal sealed partial class EntryStore
         var expenses = new Money(amounts.Where(x => x.Kind == Domain.CategoryKind.Expense).Sum(x => x.Amount.Amount));
         var page = Math.Min(filter.Page, Math.Max(1, (int)Math.Ceiling(amounts.Count / (decimal)filter.PageSize)));
         var ordered = filter.PendingRecurringOnly ? query.OrderBy(x => x.Date).ThenBy(x => x.Id) : query.OrderByDescending(x => x.Date).ThenByDescending(x => x.Id);
-        var rows = await ordered.Skip((page - 1) * filter.PageSize).Take(filter.PageSize).ToListAsync(cancellationToken);
+        var rows = await ordered.Skip(offset ?? (page - 1) * filter.PageSize).Take(limit ?? filter.PageSize).ToListAsync(cancellationToken);
         return new(rows, income, expenses, amounts.Count, page);
     }
 }

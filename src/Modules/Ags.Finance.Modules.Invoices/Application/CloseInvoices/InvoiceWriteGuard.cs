@@ -7,6 +7,8 @@ namespace Ags.Finance.Modules.Invoices.Application.CloseInvoices;
 
 internal sealed class InvoiceWriteGuard(IInvoiceStore store, IAccountCatalog accounts, TimeProvider clock) : IInvoiceWriteGuard
 {
+    public async Task<string?> RequireAdjustmentAsync(Guid cardExternalId, AccountingMonth month, CancellationToken cancellationToken = default)
+        => (await store.FindAsync(cardExternalId, month, cancellationToken))?.Status == InvoiceStatus.Paid ? "Fatura Paga não permite ajuste de total." : null;
     public Task<string?> RequireOpenAsync(Guid cardExternalId, AccountingMonth month, CancellationToken cancellationToken = default)
         => RequireCoreAsync(cardExternalId, month, null, cancellationToken);
 

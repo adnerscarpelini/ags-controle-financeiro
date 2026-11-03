@@ -5,6 +5,7 @@ namespace Ags.Finance.Modules.Transactions.Application.CreateEntry;
 
 internal sealed class OpenInvoiceWriteGuard : IInvoiceWriteGuard
 {
+    public Task<string?> RequireAdjustmentAsync(Guid cardExternalId, AccountingMonth month, CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
     public Task<string?> RequireOpenAsync(Guid cardExternalId, AccountingMonth month, CancellationToken cancellationToken = default)
         => Task.FromResult<string?>(null);
     public Task<string?> RequireRecurringAsync(Guid cardExternalId, AccountingMonth month, DateTimeOffset plannedAt, CancellationToken cancellationToken = default)

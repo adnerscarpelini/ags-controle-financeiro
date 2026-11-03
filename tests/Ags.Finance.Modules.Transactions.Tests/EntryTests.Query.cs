@@ -107,5 +107,15 @@ public sealed partial class EntryTests
         Assert.Equal(100, result.Entries.Count);
         Assert.Equal(new Money(-5000), result.Expenses);
         Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1), $"A consulta levou {watch.Elapsed.TotalMilliseconds:F1} ms.");
+        var card = await CreateCardAsync();
+        Assert.True((await Entries.AdjustInvoiceAsync(new(Guid.CreateVersion7(), card, new AccountingMonth(2026, 10), new Money(1)))).Succeeded);
+        watch.Restart();
+        var combined = await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 10)));
+        watch.Stop();
+        _output.WriteLine($"Consulta de 10.000 lançamentos com ajuste: {watch.Elapsed.TotalMilliseconds:F1} ms.");
+        Assert.Equal(5001, combined.TotalCount);
+        Assert.Equal(100, combined.Entries.Count);
+        Assert.Equal(new Money(-5001), combined.Expenses);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1), $"A consulta com ajuste levou {watch.Elapsed.TotalMilliseconds:F1} ms.");
     }
 }
