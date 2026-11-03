@@ -56,7 +56,7 @@ internal sealed partial class InvoicePaymentCatalog
     private async Task<Money> RemainingAsync(Invoice invoice, CancellationToken cancellationToken)
     {
         var total = -(await entries.GetAsync(cancellationToken)).Where(x => x.CardExternalId == invoice.CardExternalId && x.Month == invoice.Month).Sum(x => x.Amount.Amount);
-        var allowances = (await store.GetPaymentsAsync(cancellationToken)).Where(x => x.InvoiceExternalId == invoice.ExternalId).Sum(x => x.Amount.Amount);
+        var allowances = (await store.GetPaymentsAsync(cancellationToken)).Where(x => x.InvoiceExternalId == invoice.ExternalId && x.UndoneAt == null).Sum(x => x.Amount.Amount);
         return new Money(total - allowances);
     }
 }

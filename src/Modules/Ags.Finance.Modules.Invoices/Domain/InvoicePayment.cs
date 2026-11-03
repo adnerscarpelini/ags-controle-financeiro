@@ -12,6 +12,8 @@ internal sealed class InvoicePayment : Entity
     public Money Amount { get; private set; }
     public InvoicePaymentKind Kind { get; private set; } = InvoicePaymentKind.Cashback;
     public Guid? AccountExternalId { get; private set; }
+    public DateTimeOffset? UndoneAt { get; private set; }
+    public void Undo(DateTimeOffset now) { if (Kind == InvoicePaymentKind.Payment) { UndoneAt ??= now; } }
     public string Details { get; private set; } = string.Empty;
 
     public static InvoicePayment? Confirm(Guid confirmationId, Guid invoiceExternalId, Guid accountExternalId, DateOnly date, Money amount, string details)
@@ -32,7 +34,7 @@ internal sealed class InvoicePayment : Entity
 
     public string? SetAllowance(Guid confirmationId, Guid invoiceExternalId, DateOnly date, Money amount, InvoicePaymentKind kind, string details)
     {
-        if (Kind == InvoicePaymentKind.Payment) { return "Pagamentos confirmados são irreversíveis."; }
+        if (Kind == InvoicePaymentKind.Payment) { return "Pagamentos são desfeitos pela reabertura da fatura."; }
         if (confirmationId == Guid.Empty || invoiceExternalId == Guid.Empty || date == DateOnly.MinValue || amount.Amount <= 0
             || amount.Amount > 92233720368547758.07m || kind is not (InvoicePaymentKind.Cashback or InvoicePaymentKind.Discount) || details.Length > 1000)
         {

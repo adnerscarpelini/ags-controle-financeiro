@@ -32,10 +32,11 @@ parcial. Recorrências também usam essa proteção (#16); CSV a consumirá nas 
 O limite de [operação financeira](../architecture/financial-operations.md)
 serializa validação e gravação, sem dependência inversa entre módulos.
 
-Reabrir exige Fechada sem pagamento confirmado. Paga não reabre. A reabertura
-manual permanece Aberta até novo fechamento manual, mesmo se o corte já passou;
-não recalcula nem move compras. O histórico de pagamentos será integrado nas
-#19/#51 à condição de irreversibilidade já preparada no domínio.
+Reabrir sem pagamentos usa o ciclo normal da Fechada. A #93 permite reabrir Paga
+ou qualquer fatura com pagamento confirmado, inclusive Aberta, desfazendo todos
+os pagamentos e restaurando os débitos nas contas originais. Descontos/cashbacks
+permanecem. A reabertura suprime o fechamento automático até fechamento manual,
+mesmo depois do corte; não recalcula nem move compras. Histórico e anexos são preservados.
 
 O fechamento automático pausa durante a manutenção de restauração. Logs de falha
 não incluem dados financeiros. Cancelar um diálogo não chama o caso de uso.

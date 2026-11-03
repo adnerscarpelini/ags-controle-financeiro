@@ -48,13 +48,14 @@ O seletor de mês de referência não desloca essa janela.
   fechamento automático até o usuário fechar manualmente.
 - Compras em Fechada/Paga não podem ser editadas, excluídas ou movidas; novas compras também
   não entram nessas faturas por caminhos alternativos, como parcelas, recorrências ou CSV.
-- Reabrir é manual e só é permitido enquanto não existir pagamento confirmado.
-  Qualquer pagamento confirmado, inclusive parcial ou antecipado, impede reabrir depois do fechamento.
+- Reabrir é manual. Com pagamentos confirmados, a #93 desfaz todos na mesma
+  operação, inclusive parciais/antecipados em Aberta, e restaura os débitos nas contas
+  originais; mantém descontos, cashback, histórico e anexos.
 - Antecipar pagamento não fecha uma fatura Aberta por si só; ela ainda pode receber compras.
 - Saldo restante zero ou negativo não muda a situação automaticamente para Paga,
   inclusive ao fechar ou ajustar o total. Exigir confirmação explícita de quitação,
   sem criar pagamento de valor zero/negativo para representar apenas a mudança de situação.
-- Pagamentos confirmados são irreversíveis (#19/#51). A conta vinculada ao cartão vem
+- Pagamentos confirmados são desfeitos pela reabertura da #93. A conta vinculada ao cartão vem
   pré-selecionada, podendo ser trocada por outra corrente ativa. Registro e débito precisam ser
   atômicos e idempotentes; nenhum deles gera uma segunda despesa.
 - Transferências e pagamentos podem deixar a conta corrente negativa, conforme decisão
@@ -65,7 +66,7 @@ O seletor de mês de referência não desloca essa janela.
 
 A #19 implementa a política aprovada de abatimentos: criar, editar e excluir
 Cashback/Desconto é permitido em Aberta/Fechada e bloqueado em Paga, inclusive na
-origem e no destino de uma mudança. Pagamentos confirmados permanecem irreversíveis.
+origem e no destino de uma mudança. Pagamentos são desfeitos somente pela reabertura conjunta da #93.
 O débito atômico e a quitação explícita da #51 estão implementados; pagamentos
 confirmados não podem ser editados ou excluídos pelos comandos de abatimento.
 

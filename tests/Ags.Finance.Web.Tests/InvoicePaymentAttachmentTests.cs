@@ -47,11 +47,11 @@ public sealed class InvoicePaymentAttachmentTests
             dialog.WaitForAssertion(() => Assert.False(dialog.Find("#invoice-payment-form button").HasAttribute("disabled")));
             dialog.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText("%PDF-1.7\n1 0 obj<</Type /Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n", "fictitious.pdf"));
             await dialog.Find("#invoice-payment-form").SubmitAsync(EventArgs.Empty);
-            await dialog.FindAll("button").Single(x => x.TextContent == "Confirmar pagamento irreversível").ClickAsync(new());
+            await dialog.FindAll("button").Single(x => x.TextContent == "Confirmar pagamento").ClickAsync(new());
             Assert.False(completed);
             Assert.Equal(1, recorded);
             Assert.Contains("Pagamento confirmado. O anexo falhou", dialog.Markup, StringComparison.Ordinal);
-            Assert.DoesNotContain(dialog.FindAll("button"), x => x.TextContent == "Confirmar pagamento irreversível");
+            Assert.DoesNotContain(dialog.FindAll("button"), x => x.TextContent == "Confirmar pagamento");
             var payments = context.Services.GetRequiredService<IInvoicePaymentCatalog>();
             Assert.Single(await payments.GetHistoryAsync());
             Assert.Single(await context.Services.GetRequiredService<IAccountMovementCatalog>().GetAsync());

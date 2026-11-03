@@ -38,6 +38,7 @@ internal sealed class InvoicesDbContextModelSnapshot : ModelSnapshot
             b.Property<Guid>("ExternalId").HasColumnType("uuid");
             b.Property<DateTimeOffset>("CreatedAt").HasColumnType("timestamp with time zone");
             b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateTimeOffset?>("UndoneAt").HasColumnType("timestamp with time zone");
             b.Property<Guid>("ConfirmationId").HasColumnType("uuid");
             b.Property<Guid>("InvoiceExternalId").HasColumnType("uuid");
             b.Property<DateOnly>("Date").HasColumnType("date");

@@ -60,7 +60,7 @@ Dois arquivos, `lancamentos-transactions-v3.csv` e `lancamentos-recurring-series
 **Cobertura.** Receitas e despesas: avulsas, de cartão, parcelas e ocorrências recorrentes, com o estado
 Pendente/Pago ou Recebido. **Ficam de fora**, por decisão desta versão: ajustes de fatura (#52), transferências
 entre contas e pagamentos/cashbacks/descontos de fatura. Eles nunca são tratados como despesa, os pagamentos
-continuam imutáveis, e a importação (#29) rejeita esses tipos em vez de interpretá-los.
+não são alterados pelo CSV, e a importação (#29) rejeita esses tipos em vez de interpretá-los.
 
 | Tipo (linha 1) | Colunas |
 | --- | --- |

@@ -35,7 +35,14 @@
     <section class="panel" role="alertdialog" aria-label="Confirmar situação da fatura">
         <h2>@(_reopen ? "Reabrir fatura" : "Fechar fatura")</h2>
         <p>@pending.CardName · @pending.Month · Total @pending.ProjectedTotal@(pending.ForecastEntries.Count > 0 ? " (inclui " + pending.ForecastTotal + " em recorrentes previstas)" : string.Empty)</p>
-        <p>@(_reopen ? "A fatura ficará Aberta até novo fechamento manual. Pagamentos confirmados impedem a reabertura." : "Fechar protege todas as compras, inclusive as recorrentes previstas, sem registrar pagamento. Saldo zero ou crédito não marca a fatura como Paga.")</p>
+        <p>@(_reopen ? "A fatura ficará Aberta até novo fechamento manual. Todos os pagamentos abaixo serão desfeitos e cada valor voltará à conta debitada; cashback e descontos serão mantidos." : "Fechar protege todas as compras, inclusive as recorrentes previstas, sem registrar pagamento. Saldo zero ou crédito não marca a fatura como Paga.")</p>
+        @if (_reopen)
+        {
+            <ul aria-label="Pagamentos a desfazer">@foreach (var payment in pending.PaymentHistory.Where(x => x.Kind == InvoicePaymentKind.Payment && x.UndoneAt is null))
+            {
+                <li>@payment.Date.ToString("dd/MM/yyyy") · @payment.Amount · @(_accounts.FirstOrDefault(x => x.ExternalId == payment.AccountExternalId)?.Name ?? "Conta registrada")</li>
+            }</ul>
+        }
         <button class="button" @onclick="ConfirmAsync" disabled="@_busy">Confirmar</button>
         <button class="button" @onclick="() => _pending = null" disabled="@_busy">Cancelar</button>
     </section>
@@ -67,6 +74,7 @@
                 <button class="button" @onclick="() => _attachmentInvoice = invoice">Anexos</button>
                 @if (invoice.Status == InvoiceStatus.Open) { <button class="button" @onclick="() => Ask(invoice, false)">Fechar</button> }
                 @if (invoice.Status == InvoiceStatus.Closed && !invoice.HasConfirmedPayment) { <button class="button" @onclick="() => Ask(invoice, true)">Reabrir</button> }
+                @if (invoice.Status == InvoiceStatus.Paid || invoice.HasConfirmedPayment) { <button class="button" @onclick="() => Ask(invoice, true)">Reabrir fatura</button> }
                 @if (invoice.Status != InvoiceStatus.Paid) { <button class="button" @onclick="() => StartPayment(invoice)" disabled="@(_paying is not null)">Pagar</button> }
                 @if (invoice.Status != InvoiceStatus.Paid) { <button class="button" @onclick="() => StartAdjustment(invoice)">Ajustar valor</button> }
                 @if (invoice.Status == InvoiceStatus.Closed && invoice.RemainingBalance.Amount <= 0) { <button class="button" @onclick="() => _settling = invoice">Confirmar quitação</button> }
@@ -167,7 +175,10 @@
         _busy = true;
         try
         {
-            var result = _reopen ? await Lifecycle.ReopenAsync(pending.CardExternalId, pending.Month) : await Lifecycle.CloseAsync(pending.CardExternalId, pending.Month);
+            var result = _reopen ? pending.HasConfirmedPayment || pending.Status == InvoiceStatus.Paid
+                ? await Payments.ReopenUndoingPaymentsAsync(pending.CardExternalId, pending.Month)
+                : await Lifecycle.ReopenAsync(pending.CardExternalId, pending.Month)
+                : await Lifecycle.CloseAsync(pending.CardExternalId, pending.Month);
             _message = result.Error ?? "Situação atualizada.";
             _pending = null;
             await ReloadInvoicesAsync();

@@ -16,7 +16,7 @@ internal sealed partial class InvoicePaymentCatalog(IInvoiceStore store, IAccoun
         var history = await store.GetPaymentsAsync(cancellationToken);
         var original = externalId is { } id ? history.FirstOrDefault(x => x.ExternalId == id) : null;
         if (externalId is not null && original is null) { return new(null, "Abatimento não encontrado."); }
-        if (original?.Kind == Domain.InvoicePaymentKind.Payment) { return new(null, "Pagamentos confirmados são irreversíveis."); }
+        if (original?.Kind == Domain.InvoicePaymentKind.Payment) { return new(null, "Pagamentos são desfeitos pela reabertura da fatura."); }
         var invoices = await store.GetAsync(cancellationToken);
         var source = original is null ? null : invoices.Single(x => x.ExternalId == original.InvoiceExternalId);
         if (source?.Status == Domain.InvoiceStatus.Paid) { return new(null, "Fatura Paga não permite alterar abatimentos."); }
@@ -45,7 +45,7 @@ internal sealed partial class InvoicePaymentCatalog(IInvoiceStore store, IAccoun
         {
             var payment = (await store.GetPaymentsAsync(token)).FirstOrDefault(x => x.ExternalId == externalId);
             if (payment is null) { return new InvoiceResult("Abatimento não encontrado."); }
-            if (payment.Kind == Domain.InvoicePaymentKind.Payment) { return new InvoiceResult("Pagamentos confirmados são irreversíveis."); }
+            if (payment.Kind == Domain.InvoicePaymentKind.Payment) { return new InvoiceResult("Pagamentos são desfeitos pela reabertura da fatura."); }
             var invoice = (await store.GetAsync(token)).Single(x => x.ExternalId == payment.InvoiceExternalId);
             if (invoice.Status == Domain.InvoiceStatus.Paid) { return new InvoiceResult("Fatura Paga não permite excluir abatimentos."); }
             await store.DeletePaymentAsync(payment, token);
@@ -60,6 +60,6 @@ internal sealed partial class InvoicePaymentCatalog(IInvoiceStore store, IAccoun
                 && (year is null || x.Date.Year == year) && (kind is null || (Contracts.InvoicePaymentKind)x.Kind == kind))
                 .OrderByDescending(x => x.Date).ThenByDescending(x => x.Id).Select(x => new InvoicePaymentDetails(x.ExternalId, x.ConfirmationId,
                     invoices[x.InvoiceExternalId].CardExternalId, invoices[x.InvoiceExternalId].Month, x.Date, x.Amount, (Contracts.InvoicePaymentKind)x.Kind,
-                    x.AccountExternalId, x.Details, x.CreatedAt)).ToList();
+                    x.AccountExternalId, x.Details, x.CreatedAt, x.UndoneAt)).ToList();
         }, _ => true, cancellationToken);
 }
