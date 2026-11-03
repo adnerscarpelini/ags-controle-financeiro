@@ -53,9 +53,9 @@ Cadastros arquivados/desativados saem com `is_active=false` ([#53](../accounts/a
 mantêm o estado. Logos de banco (binários), filtros salvos, senhas, hashes e
 credenciais não fazem parte do CSV.
 
-## Lançamentos e séries recorrentes (versão 1, [#62](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/62))
+## Lançamentos e séries recorrentes (versão 2, [#62](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/62), [#84](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/84))
 
-Dois arquivos, `lancamentos-transactions-v1.csv` e `lancamentos-recurring-series-v1.csv`, com as regras do formato acima.
+Dois arquivos, `lancamentos-transactions-v2.csv` e `lancamentos-recurring-series-v2.csv`, com as regras do formato acima. A versão 1 deixou de ser aceita.
 
 **Cobertura.** Receitas e despesas: avulsas, de cartão, parcelas e ocorrências recorrentes, com o estado
 Pendente/Efetivado. **Ficam de fora**, por decisão desta versão: ajustes de fatura (#52), transferências
@@ -64,8 +64,8 @@ continuam imutáveis, e a importação (#29) rejeita esses tipos em vez de inter
 
 | Tipo (linha 1) | Colunas |
 | --- | --- |
-| `transactions` | `external_id`, `date`, `accounting_month` (`yyyy-MM`, o mês gravado, inclusive o escolhido manualmente), `kind` (`Income`, `Expense`), `amount_cents` (positivo; o sinal vem de `kind`), `merchant_external_id`, `subcategory_external_id`, `account_external_id`, `card_external_id` (opcional), `card_digits_external_id` (opcional), `details`, `is_effective`, `effective_date` (opcional), `installment_purchase_external_id`, `installment_number`, `installment_count` (os três opcionais, juntos), `recurring_entry_external_id` (opcional), `occurrence_month` (`yyyy-MM-dd`, opcional) |
-| `recurring_series` | `external_id`, `start_date`, `day`, `end_month` (`yyyy-MM`, opcional), `merchant_external_id`, `subcategory_external_id`, `account_external_id`, `card_external_id` (opcional), `card_digits_external_id` (opcional), `amount_cents`, `details`, `accounting_month` (opcional), `is_active` |
+| `transactions` | `external_id`, `date`, `accounting_month` (`yyyy-MM`, o mês gravado, inclusive o escolhido manualmente), `kind` (`Income`, `Expense`), `amount_cents` (positivo; o sinal vem de `kind`), `merchant_external_id`, `subcategory_external_id`, `account_external_id`, `card_external_id` (opcional), `card_digits_external_id` (opcional), `details`, `is_effective`, `effective_date` (opcional), `installment_purchase_external_id`, `installment_number`, `installment_count` (os três opcionais, juntos), `recurring_entry_external_id` (opcional), `occurrence_month` (`yyyy-MM-dd`, opcional), `reimbursement_person_external_id`, `reimbursement_percent` (os dois opcionais, juntos) |
+| `recurring_series` | `external_id`, `start_date`, `day`, `end_month` (`yyyy-MM`, opcional), `merchant_external_id`, `subcategory_external_id`, `account_external_id`, `card_external_id` (opcional), `card_digits_external_id` (opcional), `amount_cents`, `details`, `accounting_month` (opcional), `is_active`, `reimbursement_person_external_id`, `reimbursement_percent` (os dois opcionais, juntos) |
 
 **Vínculos explícitos.** Parcelas são agrupadas pelo `installment_purchase_external_id` e numeradas por
 `installment_number`/`installment_count`; ocorrências recorrentes apontam para a série por
@@ -147,6 +147,12 @@ identificadores do arquivo. Grupo incompleto ou inconsistente é rejeitado; nada
 `recurring_series`; para criar uma série nova, o arquivo de lançamentos precisa conter a primeira ocorrência (mês de `start_date`), que
 deve coincidir com o modelo da série. Uma série já existente aceita apenas ocorrências novas e só se a definição for idêntica. Ocorrência
 de série ausente é rejeitada.
+
+**Reembolso.** Pessoa e percentual seguem as regras do formulário: juntos ou ambos vazios, percentual de
+0 a 100 com até duas casas, só em despesa, e a pessoa precisa existir pelo `external_id`, sem inferência pelo nome;
+por isso `people` é importado antes. O percentual do arquivo é o gravado, mesmo que o padrão da pessoa seja outro.
+**Recebimentos não entram no CSV:** importar cria reembolsos Pendentes, e recuperá-los é papel do backup. Um lançamento
+existente nunca é sobrescrito, portanto o que tem recebimento continua protegido.
 
 **Idempotência e conflito.** Mesmo `ExternalId` e mesmos dados: idêntico, ignorado (nenhum lançamento ou efeito financeiro duplicado).
 Mesmo `ExternalId` com dados diferentes, ou outra ocorrência no mesmo mês da série: conflito, arquivo rejeitado e nada é sobrescrito.

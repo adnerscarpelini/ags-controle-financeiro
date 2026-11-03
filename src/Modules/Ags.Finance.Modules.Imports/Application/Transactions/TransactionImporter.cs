@@ -55,6 +55,16 @@ internal sealed class TransactionImporter(IFinancialOperation operations, IEntry
 
     private static TransactionImportReport Failed(string message) => new(0, 0, [new(0, "arquivo", message)], false);
 
+    private static EntryReimbursement? ReadReimbursement(RowReader row)
+    {
+        var person = row.OptionalId("reimbursement_person_external_id");
+        var percent = row.OptionalPercent("reimbursement_percent");
+        if (person is null && percent is null) { return null; }
+        if (person is not { } personId) { row.Problem("reimbursement_person_external_id", "Informe a pessoa junto com o percentual do reembolso."); return null; }
+        if (percent is not { } value) { row.Problem("reimbursement_percent", "Informe o percentual junto com a pessoa do reembolso."); return null; }
+        return new(personId, value);
+    }
+
     private static List<ImportedEntry> ReadEntries(CsvTable table, List<ImportIssue> issues, Dictionary<Guid, int> lines)
     {
         var batch = new List<ImportedEntry>();
@@ -80,10 +90,11 @@ internal sealed class TransactionImporter(IFinancialOperation operations, IEntry
             var count = row.OptionalInteger("installment_count", 2, 48);
             var series = row.OptionalId("recurring_entry_external_id");
             var occurrence = row.OptionalDate("occurrence_month");
+            var reimbursement = ReadReimbursement(row);
             if (!row.Valid) { continue; }
             if (!lines.TryAdd(id, line.Line)) { row.Problem("external_id", "Identificador repetido no arquivo."); continue; }
             batch.Add(new(id, date, month, kind, Money.FromCents(cents), merchant, subcategory, account, card, digits, details, effective, effectiveDate, purchase,
-                (int?)number, (int?)count, series, occurrence));
+                (int?)number, (int?)count, series, occurrence, reimbursement));
         }
         return batch;
     }
@@ -107,9 +118,10 @@ internal sealed class TransactionImporter(IFinancialOperation operations, IEntry
             var details = row.OptionalText("details");
             var month = row.OptionalMonth("accounting_month");
             var active = row.Bool("is_active");
+            var reimbursement = ReadReimbursement(row);
             if (!row.Valid) { continue; }
             if (!lines.TryAdd(id, line.Line)) { row.Problem("external_id", "Identificador repetido no arquivo."); continue; }
-            batch.Add(new(id, start, day, end, merchant, subcategory, account, card, digits, Money.FromCents(cents), details, month, active));
+            batch.Add(new(id, start, day, end, merchant, subcategory, account, card, digits, Money.FromCents(cents), details, month, active, reimbursement));
         }
         return batch;
     }

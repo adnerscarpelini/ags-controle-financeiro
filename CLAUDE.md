@@ -70,6 +70,7 @@ Leia as issues antes de implementar. As regras mais sensíveis são:
 - **Recorrência:** editar valor, dia/data ou excluir exige escolher alcance; a baixa manual é por ocorrência e não muda a série (#16/#17/#56).
 - **Efetivação fora do cartão:** recorrentes nascem Pendentes; avulsos, Efetivados. Pendências só entram no saldo efetivo pela baixa manual da ocorrência; passar a data apenas torna a pendência atrasada. Separar saldo efetivo, previsão e orçamento mensal (#56–#58).
 - **Saldo negativo:** transferências e pagamentos de fatura podem deixar a conta corrente negativa (#46/#51); não bloquear essas operações apenas por insuficiência de saldo.
+- **Reembolsos:** pessoa e percentual são informados na despesa e na série; o percentual fica gravado. Pendente é derivado na leitura; só o recebimento é gravado. Situações: Pendente e Recebido; receber menos que o esperado encerra o item. Cada efetivação cria uma receita por pessoa, e recebimento pode ser desfeito. Despesa recebida não muda valor, tipo, pessoa ou percentual nem é excluída (#78–#84).
 - **Arquivamento:** contas/cartões podem ser arquivados e desarquivados, saindo dos cadastros padrão e novas seleções. Histórico, relatórios e faturas pendentes continuam visíveis (#53). Não estender essa regra a outros cadastros sem issue.
 
 As regras aprovadas ainda sem implementação permanecem nas issues. Consulte [as decisões de consistência financeira](docs/architecture/financial-consistency.md) para distinguir conceitos; não criar estados/regras adicionais para cobrir dúvidas ainda abertas.
