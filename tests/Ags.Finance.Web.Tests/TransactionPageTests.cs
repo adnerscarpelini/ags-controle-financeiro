@@ -18,7 +18,7 @@ namespace Ags.Finance.Web.Tests;
 public sealed class TransactionPageTests
 {
     [Fact]
-    public async Task QuickEntryUsesMerchantDefaultPersistsManualMonthAndKeepsDateForNextEntry()
+    public async Task QuickEntryUsesDateAndSelectableInvoicesAndKeepsDateForNextEntry()
     {
         await using var database = await PostgresTestDatabase.CreateAsync();
         await using var context = new BunitContext();
@@ -44,21 +44,22 @@ public sealed class TransactionPageTests
         Assert.Equal(subcategory.ExternalId!.Value.ToString(), page.Find("#entry-subcategory").GetAttribute("value"));
         page.Find("#entry-account").Change(account.ExternalId!.Value.ToString());
         page.Find("#entry-amount").Change("150");
-        page.Find("#entry-month").Change("2026-11");
+        Assert.Empty(page.FindAll("#entry-month"));
+        Assert.Empty(page.FindAll("#entry-invoice"));
         await page.Find("form").SubmitAsync(EventArgs.Empty);
         var entry = Assert.Single(await context.Services.GetRequiredService<IEntryCatalog>().GetAsync());
         Assert.Equal(new Money(-150), entry.Amount);
-        Assert.Equal(new AccountingMonth(2026, 11), entry.Month);
+        Assert.Equal(new AccountingMonth(2026, 10), entry.Month);
         Assert.Equal("2026-10-05", page.Find("#entry-date").GetAttribute("value"));
         Assert.Equal(string.Empty, page.Find("#entry-merchant").GetAttribute("value"));
         Assert.True(page.Find("#entry-paid").HasAttribute("checked"));
         await page.Find("#entry-card").ChangeAsync(card.ExternalId!.Value.ToString());
-        Assert.Equal("2026-11", page.Find("#entry-month").GetAttribute("value"));
+        Assert.Equal("2026-11", page.Find("#entry-invoice").GetAttribute("value"));
         await page.Find("#entry-date").ChangeAsync("2026-10-02");
-        Assert.Equal("2026-10", page.Find("#entry-month").GetAttribute("value"));
+        Assert.Equal("2026-10", page.Find("#entry-invoice").GetAttribute("value"));
         await page.Find("#entry-merchant").InputAsync("Loja Exemplo");
         page.Find("#entry-amount").Change("100");
-        page.Find("#entry-month").Change("2026-11");
+        page.Find("#entry-invoice").Change("2026-11");
         await page.Find("form").SubmitAsync(EventArgs.Empty);
         var purchase = (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.CardExternalId is not null);
         Assert.Equal(card.ExternalId, purchase.CardExternalId);
@@ -75,8 +76,13 @@ public sealed class TransactionPageTests
         await invoices.FindAll(".catalog-list button").Single(x => x.TextContent == "Fechar").ClickAsync(new());
         await invoices.Find("[role=alertdialog] button").ClickAsync(new());
         Assert.Contains("Fechada", invoices.Find("[aria-label='Composição da fatura']").TextContent, StringComparison.Ordinal);
+        await page.Find("#entry-date").ChangeAsync("2026-10-05");
+        Assert.Equal("2026-12", page.Find("#entry-invoice").GetAttribute("value"));
+        Assert.Contains("Selecionada a próxima Aberta", page.Markup, StringComparison.Ordinal);
+        Assert.True(page.Find("#entry-invoice option[value='2026-11']").HasAttribute("disabled"));
+        await page.Find("#entry-date").ChangeAsync("2026-10-02");
         await page.Find("#entry-merchant").InputAsync("Loja Exemplo");
-        page.Find("#entry-month").Change("2026-12");
+        page.Find("#entry-invoice").Change("2026-12");
         page.Find("#entry-amount").Change("1000");
         page.Find("#entry-installments").Change("3");
         await page.Find("form").SubmitAsync(EventArgs.Empty);
@@ -96,7 +102,7 @@ public sealed class TransactionPageTests
         Assert.Equal(new AccountingMonth(2026, 9), (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.InstallmentNumber == 3).Month);
         var firstRow = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 1/3", StringComparison.Ordinal));
         await firstRow.QuerySelectorAll("button").Single(x => x.TextContent == "Editar").ClickAsync(new());
-        Assert.Equal("2026-12", page.Find("#entry-month").GetAttribute("value"));
+        Assert.Equal("2026-12", page.Find("#entry-invoice").GetAttribute("value"));
         page.Find("#entry-amount").Change("400");
         await page.Find("form").SubmitAsync(EventArgs.Empty);
         Assert.Contains("Escolha o alcance", page.Find("[role=status]").TextContent, StringComparison.Ordinal);
@@ -116,7 +122,7 @@ public sealed class TransactionPageTests
         await page.Find("#entry-filters").SubmitAsync(EventArgs.Empty);
         Assert.Single(page.FindAll(".catalog-list li"));
         Assert.Contains("-R$ 400,00", page.Find("[aria-label='Totais do filtro']").TextContent, StringComparison.Ordinal);
-        Assert.Single(page.FindAll(".entry-month-future"));
+        Assert.Empty(page.FindAll(".entry-month-future"));
         page.Find("#entry-search").Change("sem correspondencia");
         await page.Find("#entry-filters").SubmitAsync(EventArgs.Empty);
         Assert.Empty(page.FindAll(".catalog-list li"));

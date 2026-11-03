@@ -46,6 +46,7 @@ internal sealed class InvoiceAnticipationCatalog(IEntryCatalog entries, IInvoice
                 $"Antecipação de {request.Count} parcelas de {selected.MerchantName} ({selected.Date:dd/MM/yyyy})"), cancellationToken);
             if (!allowance.Succeeded) { return new(allowance.Error); }
         }
+        operation.SetEntries(moving.Select(x => x.ExternalId));
         await store.AddAnticipationAsync(operation, cancellationToken);
         return new(null);
     }

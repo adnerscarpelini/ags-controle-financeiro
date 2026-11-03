@@ -66,6 +66,7 @@ internal sealed class InvoicesDbContextModelSnapshot : ModelSnapshot
             b.Property<Guid>("PurchaseExternalId").HasColumnType("uuid");
             b.Property<Guid>("CardExternalId").HasColumnType("uuid");
             b.Property<int>("Month").HasColumnType("integer");
+            b.Property<Guid[]>("EntryExternalIds").IsRequired().HasColumnType("uuid[]");
             b.Property<int>("Count").HasColumnType("integer");
             b.Property<long>("Total").HasColumnType("bigint");
             b.Property<long>("Discount").HasColumnType("bigint");

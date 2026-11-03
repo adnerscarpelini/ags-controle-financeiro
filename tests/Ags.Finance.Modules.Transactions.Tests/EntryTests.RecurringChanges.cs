@@ -12,11 +12,11 @@ public sealed partial class EntryTests
         var november = await OccurrenceAsync(2026, 11);
         var edited = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Date = new DateOnly(2026, 12, 15), Amount = new Money(60) }, RecurringChangeScope.OnlyThis));
         Assert.True(edited.Succeeded, edited.Error);
-        var same = await OccurrenceAsync(2026, 11);
+        var same = (await Entries.GetAsync()).Single(x => x.ExternalId == november.ExternalId);
         Assert.Equal(november.ExternalId, same.ExternalId);
         Assert.Equal(new DateOnly(2026, 12, 15), same.Date);
         Assert.Equal(new Money(-60), same.Amount);
-        Assert.Equal(new Money(-50), (await OccurrenceAsync(2026, 12)).Amount);
+        Assert.Equal(new Money(-50), (await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 12)))).Entries.Single(x => x.OccurrenceMonth == new DateOnly(2026, 12, 1)).Amount);
         Assert.True((await Entries.DeleteRecurringAsync(same.ExternalId, RecurringChangeScope.OnlyThis)).Succeeded);
         Assert.Empty((await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 11)))).Entries);
         Assert.Empty((await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 11)))).Entries);

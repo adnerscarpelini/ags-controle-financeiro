@@ -61,7 +61,7 @@ Módulos: `Attachments`, `Identity`, `Accounts`, `Transactions`, `Invoices`, `Re
 
 Leia as issues antes de implementar. As regras mais sensíveis são:
 
-- **AccountingMonth:** no débito, PIX ou dinheiro, é o mês da data. No cartão, é o mês do vencimento da fatura em que a compra cai, conforme o dia de fechamento do cartão. O valor calculado é uma sugestão editável e é gravado.
+- **AccountingMonth:** no débito, PIX ou dinheiro, é o mês da data. No cartão, é o mês do vencimento da fatura em que a compra cai, conforme o dia de fechamento do cartão. Fora do cartão não é editável e acompanha a data; no cartão a tela permite escolher outra fatura Aberta. Se a calculada estiver protegida (inclusive pelo corte, mesmo sem registro), sugerir a próxima disponível e avisar. Edições de detalhes preservam a fatura; alterar data/cartão recalcula e é bloqueado em parcelas antecipadas. Alterar o calendário do cartão não recalcula histórico. CSV conserva exatamente o mês do arquivo (#89).
 - **Parcelas:** uma compra em N vezes gera N lançamentos em meses contábeis consecutivos. A diferença de centavos vai para a primeira parcela.
 - **Pagamento de fatura não é despesa:** é um `InvoicePayment`. Despesas já estão lançadas item a item.
 - **Faturas:** somente **Aberta, Fechada e Paga** (#50). Fechamento automático pelo dia, com opção manual. Compras em Fechada/Paga não podem ser editadas, excluídas ou movidas; destino de compra também precisa estar Aberto. Reabertura manual só enquanto não existir pagamento confirmado. Saldo zero/crédito não marca Paga automaticamente: exigir confirmação explícita de quitação.

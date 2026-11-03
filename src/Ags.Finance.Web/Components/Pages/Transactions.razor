@@ -1,5 +1,6 @@
 @page "/lancamentos"
 @using System.Globalization
+@using Ags.Finance.Modules.Invoices.Contracts
 @using Ags.Finance.Modules.Accounts.Contracts
 @using Ags.Finance.Modules.Preferences.Contracts
 @using Ags.Finance.Modules.Reimbursements.Contracts
@@ -11,7 +12,7 @@
 @inject IAccountCatalog Accounts
 @inject IMerchantCatalog Merchants
 @inject IClassificationCatalog Classifications
-@inject IAccountingMonthCalculator Calendar
+@inject IInvoiceCatalog Invoices
 @inject ICardLastDigitsCatalog CardDigits
 @inject TimeProvider Clock
 @inject IPreferences Preferences
@@ -77,7 +78,17 @@
                 <option value="@Guid.Empty">Selecione</option>
                 @foreach (var account in _accounts) { <option value="@account.ExternalId">@account.Name</option> }
             </select></div>
-            <div class="field"><label for="entry-month">Mês contábil</label><input id="entry-month" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" required /></div>
+            @if (_cardId != Guid.Empty)
+            {
+                <div class="field"><label for="entry-invoice">Fatura</label><select id="entry-invoice" @bind="_month" required>
+                    @foreach (var invoice in _selectableInvoices)
+                    {
+                        <option value="@invoice.Month.FirstDay.ToString("yyyy-MM", CultureInfo.InvariantCulture)" disabled="@(invoice.Status != InvoiceStatus.Open)">@invoice.Month · @InvoiceStatusText(invoice.Status)</option>
+                    }
+                </select></div>
+                <button class="button" type="button" @onclick="MoreInvoicesAsync" disabled="@_busy">Carregar próximas faturas</button>
+                @if (_invoiceNotice is not null) { <p role="status">@_invoiceNotice</p> }
+            }
             @if (_cardId == Guid.Empty)
             {
                 <label class="checkbox"><input id="entry-paid" type="checkbox" @bind="_isPaid" />@(_isPaid ? IsExpense ? "Pago" : "Recebido" : IsExpense ? "Não foi paga" : "Não foi recebida")</label>
@@ -176,7 +187,6 @@
         {
             <li><span>@entry.Date.ToString("dd/MM/yyyy") · @entry.MerchantName · @entry.Classification</span>
                 <span class="numeric @(entry.Amount.IsNegative ? "entry-expense" : "entry-income")">@(entry.Amount.IsNegative ? string.Empty : "+")@entry.Amount</span>
-                <span class="@(entry.Month > _currentMonth ? "entry-month-future" : string.Empty)">Mês @entry.Month @(entry.Month > _currentMonth ? "(mês futuro)" : string.Empty)</span>
                 <span>@(entry.CardExternalId is not null ? "Compra no cartão" : entry.IsEffective ? entry.Kind == CategoryKind.Expense ? "Pago" : "Recebido" : "Pendente") · @entry.Details</span>
                 @if (entry.InstallmentNumber is not null) { <span>Parcela @entry.InstallmentNumber/@entry.InstallmentCount</span> }
                 @if (entry.Reimbursement is { } reimbursement) { <span>Reembolso: @PersonName(reimbursement.PersonExternalId) · @reimbursement.Percent.ToString("0.##", CultureInfo.GetCultureInfo("pt-BR"))%</span> }
@@ -259,6 +269,8 @@
     private string _details = string.Empty;
     private bool _isPaid = true;
     private string _month = string.Empty;
+    private IReadOnlyList<SelectableInvoice> _selectableInvoices = [];
+    private string? _invoiceNotice;
     private string _suggestedMonth = string.Empty;
     private string? _message;
     private bool _busy;
@@ -297,9 +309,26 @@
     private async Task DateChangedAsync() { _recurringDay = _date.Day; await SuggestMonthAsync(); }
     private async Task SuggestMonthAsync()
     {
-        var suggestion = await Calendar.CalculateAsync(_date, _cardId == Guid.Empty ? null : _cardId);
-        if (suggestion.Month is { } month) { _month = month.FirstDay.ToString("yyyy-MM", CultureInfo.InvariantCulture); _suggestedMonth = _month; }
-        else { _message = suggestion.Error; }
+        _invoiceNotice = null;
+        if (_cardId == Guid.Empty) { _month = string.Empty; _suggestedMonth = string.Empty; return; }
+        var selection = await Invoices.GetSelectableInvoicesAsync(_cardId, _date);
+        _selectableInvoices = selection.Invoices;
+        if (selection.SuggestedMonth is { } month)
+        {
+            _month = month.FirstDay.ToString("yyyy-MM", CultureInfo.InvariantCulture); _suggestedMonth = _month;
+            if (month != selection.CalculatedMonth) { _invoiceNotice = $"A fatura calculada {selection.CalculatedMonth} está protegida. Selecionada a próxima Aberta: {month}."; }
+        }
+        else { _message = selection.Error; }
+    }
+    private static string InvoiceStatusText(InvoiceStatus status) => status switch { InvoiceStatus.Open => "Aberta", InvoiceStatus.Closed => "Fechada", _ => "Paga" };
+    private async Task MoreInvoicesAsync()
+    {
+        if (_cardId == Guid.Empty || _selectableInvoices.Count == 0) { return; }
+        var last = _selectableInvoices.Max(x => x.Month);
+        var remaining = (9999 - last.Year) * 12 + 12 - last.Month;
+        var selection = await Invoices.GetSelectableInvoicesAsync(_cardId, _date, last.AddMonths(Math.Min(12, remaining)));
+        _selectableInvoices = selection.Invoices;
+        _message = selection.Error;
     }
     private async Task CardChangedAsync()
     {
@@ -336,16 +365,17 @@
         if (_busy || _savedAttachmentEntry is not null) { return; }
         if (_editingRecurring && _recurringScope is null) { _message = "Escolha o alcance da alteração."; return; }
         if (_editingInstallment && _scope is null) { _message = "Escolha o alcance da alteração."; return; }
-        if (!DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var monthDate))
+        var monthDate = _date;
+        if (_cardId != Guid.Empty && !DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out monthDate))
         {
             _message = "Informe um mês contábil válido."; return;
         }
         _busy = true;
         try
         {
-            var request = new CreateEntryRequest(_date, _merchantId, _subcategoryId, _accountId, new Money(_amount), _details, AccountingMonth.FromDate(monthDate),
+            var request = new CreateEntryRequest(_date, _merchantId, _subcategoryId, _accountId, new Money(_amount), _details, _cardId == Guid.Empty ? null : AccountingMonth.FromDate(monthDate),
                 _cardId == Guid.Empty ? null : _cardId, _finalId == Guid.Empty ? null : _finalId,
-                IsExpense && _reimbursementPersonId != Guid.Empty ? new(_reimbursementPersonId, _reimbursementPercent) : null, IsPaid: _isPaid);
+                IsExpense && _reimbursementPersonId != Guid.Empty ? new(_reimbursementPersonId, _reimbursementPercent) : null, IsPaid: _isPaid, UseSelectedInvoice: _cardId != Guid.Empty);
             AccountingMonth? until = null;
             if (_repeat && _repeatUntil.Length > 0)
             {
@@ -420,6 +450,7 @@
             _subcategoryId = entry.SubcategoryExternalId; _accountId = entry.AccountExternalId;
             _reimbursementPersonId = entry.Reimbursement?.PersonExternalId ?? Guid.Empty; _reimbursementPercent = PlainPercent(entry.Reimbursement?.Percent ?? 0);
             _finalId = entry.CardLastDigitsExternalId ?? Guid.Empty; _amount = Math.Abs(entry.Amount.Amount); _details = entry.Details;
+            await SuggestMonthAsync();
             _month = entry.Month.FirstDay.ToString("yyyy-MM", CultureInfo.InvariantCulture); _suggestedMonth = _month; _installments = 1;
         }
         finally { _busy = false; }

@@ -6,18 +6,15 @@ namespace Ags.Finance.Modules.Transactions.Tests;
 public sealed partial class EntryTests
 {
     [Fact]
-    public async Task BillingMonthChangePreservesTheFirstManualExceptionWithoutApplyingItToEveryFutureOccurrence()
+    public async Task CashRecurringEditsIgnoreManualMonthForEveryScope()
     {
-        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 10, 10), Month = new AccountingMonth(2026, 12) }, new AccountingMonth(2026, 12)));
-        var first = (await Entries.GetAsync()).Single(x => x.OccurrenceMonth == new DateOnly(2026, 10, 1));
-        var result = await Entries.EditRecurringAsync(first.ExternalId, new(Change(first) with { Month = new AccountingMonth(2027, 1) }, RecurringChangeScope.ThisAndFollowing));
-        Assert.True(result.Succeeded, result.Error);
-        var november = Assert.Single((await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 12)))).Entries);
-        Assert.Equal(new DateOnly(2026, 11, 10), november.Date);
-        var january = await Entries.QueryAsync(new(Month: new AccountingMonth(2027, 1)));
-        Assert.Equal(2, january.TotalCount);
-        Assert.Contains(january.Entries, x => x.ExternalId == first.ExternalId);
-        Assert.Contains(january.Entries, x => x.Date == new DateOnly(2026, 12, 10));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Month = new AccountingMonth(2027, 1) }));
+        foreach (var scope in Enum.GetValues<RecurringChangeScope>())
+        {
+            var first = (await Entries.GetAsync()).Single(x => x.OccurrenceMonth == new DateOnly(2026, 10, 1));
+            Assert.True((await Entries.EditRecurringAsync(first.ExternalId, new(Change(first) with { Month = new AccountingMonth(2027, 1) }, scope))).Succeeded);
+            Assert.All(await Entries.GetAsync(), entry => Assert.Equal(AccountingMonth.FromDate(entry.Date), entry.Month));
+        }
     }
     [Theory]
     [InlineData(RecurringChangeScope.ThisAndFollowing, false)]

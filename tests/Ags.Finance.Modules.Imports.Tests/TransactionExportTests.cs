@@ -46,14 +46,14 @@ public sealed class TransactionExportTests : ImportsFixture
     }
 
     [Fact]
-    public async Task ManuallyChosenAccountingMonthAndExactCentsArePreserved()
+    public async Task AutomaticCashMonthAndExactCentsArePreserved()
     {
         var seed = await SeedAsync();
         await AddAsync(seed, new DateOnly(2026, 10, 5), 0.01m, month: new AccountingMonth(2027, 2));
         await AddAsync(seed, new DateOnly(2026, 10, 6), 1234.56m);
         await AddAsync(seed, new DateOnly(2026, 10, 7), 92233720368547m);
         var rows = (await ExportRowsAsync(new(FromDate: new DateOnly(2026, 10, 1), ToDate: new DateOnly(2026, 10, 31)))).Rows;
-        Assert.Equal(["2027-02", "2026-10", "2026-10"], rows.OrderBy(x => x.Fields[1], StringComparer.Ordinal).Select(x => Field(x, "accounting_month")));
+        Assert.Equal(["2026-10", "2026-10", "2026-10"], rows.OrderBy(x => x.Fields[1], StringComparer.Ordinal).Select(x => Field(x, "accounting_month")));
         Assert.Equal(["1", "123456", "9223372036854700"], rows.OrderBy(x => x.Fields[1], StringComparer.Ordinal).Select(x => Field(x, "amount_cents")));
     }
 

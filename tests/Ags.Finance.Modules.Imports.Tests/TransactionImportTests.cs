@@ -90,6 +90,30 @@ public sealed class TransactionImportTests : ImportsFixture
         return string.Join("\r\n", lines);
     }
 
+    [Fact]
+    public async Task ImportKeepsFileMonthsIncludingAnticipatedInstallmentsAndCashExceptions()
+    {
+        var seed = await SeedAsync();
+        Assert.True((await Entries.CreateInstallmentsAsync(new(new DateOnly(2026, 10, 5), seed.Merchant, seed.Subcategory, seed.Account, new Money(300), Month: new AccountingMonth(2026, 10), CardExternalId: seed.Card), 3)).Succeeded);
+        var last = (await Entries.GetAsync()).Single(x => x.InstallmentNumber == 3);
+        Assert.True((await Entries.EditAsync(last.ExternalId, new(last.Date, last.MerchantExternalId, last.SubcategoryExternalId, last.AccountExternalId, new Money(100), Month: new AccountingMonth(2026, 10), CardExternalId: last.CardExternalId), EntryChangeScope.OnlyThis)).Succeeded);
+        var (file, _) = await ExportPairAsync(Provider);
+        var (database, target) = await EmptyEnvironmentAsync(await ExportRegistriesAsync());
+        await using (target)
+        await using (database)
+        {
+            var import = target.GetRequiredService<ITransactionImport>();
+            var result = await import.ImportAsync(file.Content, null);
+            Assert.True(result.Succeeded, string.Join("; ", result.Issues.Select(x => x.Message)));
+            var restored = await target.GetRequiredService<IEntryCatalog>().GetAsync();
+            Assert.Equal([new AccountingMonth(2026, 10), new AccountingMonth(2026, 11), new AccountingMonth(2026, 10)], restored.OrderBy(x => x.InstallmentNumber).Select(x => x.Month));
+            var cash = Row(seed);
+            var cashFile = File(cash.Replace(",2026-10,Expense,", ",2027-01,Expense,", StringComparison.Ordinal));
+            Assert.True((await import.ImportAsync(cashFile, null)).Succeeded);
+            Assert.Equal(new AccountingMonth(2027, 1), (await target.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.CardExternalId is null).Month);
+        }
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

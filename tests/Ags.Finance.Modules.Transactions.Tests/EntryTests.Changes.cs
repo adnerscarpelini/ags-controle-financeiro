@@ -85,7 +85,7 @@ public sealed partial class EntryTests
         var copied = (await Entries.GetAsync()).Single(x => x.ExternalId == duplicate.ExternalId);
         Assert.NotEqual(source.ExternalId, copied.ExternalId);
         Assert.Equal(DateOnly.FromDateTime(_clock.GetLocalNow().DateTime), copied.Date);
-        Assert.Equal(source.Month, copied.Month);
+        Assert.Equal(AccountingMonth.FromDate(copied.Date), copied.Month);
         Assert.Equal(source.Amount, copied.Amount);
         Assert.Equal(source.MerchantExternalId, copied.MerchantExternalId);
         Assert.Equal(source.Details, copied.Details);

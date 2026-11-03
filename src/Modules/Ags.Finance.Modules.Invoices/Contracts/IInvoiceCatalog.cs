@@ -30,8 +30,12 @@ public sealed record InvoiceDetails(Guid CardExternalId, string CardName, Accoun
     public bool OnlyForecast => !ForecastIncluded && ForecastEntries.Count > 0 && ForecastEntries.Count == Entries.Count;
 }
 
+public sealed record SelectableInvoice(AccountingMonth Month, InvoiceStatus Status);
+public sealed record InvoiceSelection(AccountingMonth? CalculatedMonth, AccountingMonth? SuggestedMonth, IReadOnlyList<SelectableInvoice> Invoices, string? Error = null);
+
 public interface IInvoiceCatalog
 {
+    Task<InvoiceSelection> GetSelectableInvoicesAsync(Guid cardExternalId, DateOnly date, AccountingMonth? through = null, CancellationToken cancellationToken = default);
     Task<InvoiceObligations> GetObligationsAsync(AccountingMonth selectedMonth, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<InvoiceDetails>> GetAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<InvoiceDetails>> GetMonthAsync(AccountingMonth month, CancellationToken cancellationToken = default);

@@ -132,7 +132,7 @@ nada é criado para corrigir o arquivo. Cadastros inativos, cartão sem final co
 são rejeitados pelas regras de Transactions. O `kind` do arquivo precisa coincidir com a classificação.
 
 **Mês contábil e valores.** O mês de `accounting_month` e os centavos de `amount_cents` entram exatamente como informados; o cálculo
-automático só sugere em outras telas. Faturas Fechadas ou Pagas continuam protegidas (a validação do cartão usa o guard de faturas) e a
+automático fora do cartão e a seleção de fatura da #89 não alteram o mês do arquivo. Faturas Fechadas ou Pagas continuam protegidas (a validação do cartão usa o guard de faturas) e a
 importação não reabre nem altera pagamentos.
 
 **Estado ([#88](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/88)).**
@@ -142,7 +142,7 @@ Compras no cartão continuam sempre pagas na data da compra, sem baixa manual.
 Os nomes internos e as colunas não mudam. Importar não cria pagamento de fatura.
 
 **Parcelas.** O grupo precisa estar completo: as N parcelas, numeradas de 1 a N, mesmo cartão, data, descrição e classificação de despesa,
-meses contábeis consecutivos e valores iguais à divisão oficial (a diferença de centavos fica na primeira). A compra e as parcelas mantêm os
+meses gravados preservados (inclusive antecipações da #89) e valores iguais à divisão oficial (a diferença de centavos fica na primeira). A compra e as parcelas mantêm os
 identificadores do arquivo. Grupo incompleto ou inconsistente é rejeitado; nada é reconstruído por texto ou `(x/y)`.
 
 **Recorrência.** Cada ocorrência aponta para a série (`recurring_entry_external_id`) e traz `occurrence_month`. A série vem do arquivo

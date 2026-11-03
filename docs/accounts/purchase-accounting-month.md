@@ -30,10 +30,19 @@ dias se ajustam a 28/02. Em dezembro, o cálculo avança corretamente o ano.
 - Usa DateOnly: nenhuma dependência de fuso horário ou horário de processamento.
 - Cartões desativados continuam permitindo cálculo para dados históricos, embora
   não apareçam nas seleções de novos lançamentos.
-- O serviço não grava nem move lançamentos. A escolha manual e sua persistência
-  ainda serão implementadas no cadastro (#12) e na edição (#14), preservando a
-  data da compra e a fatura escolhida. Essas operações respeitarão a proteção
-  de faturas Fechadas/Pagas (#50); não são recursos já entregues pelo calculador.
+- A [#89](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/89) torna o
+  mês fora do cartão sempre derivado da data, sem campo editável. No cartão, a tela
+  mostra a fatura e permite escolher outra Aberta do mesmo cartão. Invoices consulta
+  o calendário e os estados; a próxima disponível substitui a calculada protegida,
+  com aviso antes de salvar. A proteção pelo corte permanece mesmo sem registro de
+  fatura, conforme decisão do usuário na #89. Sem registro futuro, a fatura é Aberta.
+- Alterar data/cartão recalcula; editar os demais campos preserva a fatura gravada.
+  A seleção explícita enviada pela tela (`UseSelectedInvoice`) permite confirmar a
+  fatura escolhida após o recálculo. As parcelas seguintes continuam consecutivas.
+  Alterar o calendário do cartão não modifica lançamentos existentes.
+- A importação é uma operação distinta: grava o mês do arquivo exatamente como
+  informado, inclusive em caixa e parcelas antecipadas. A proteção de fatura vale
+  também nesse caminho.
 - Testes cobrem cada exemplo dos critérios, inclusão/exclusão do dia de fechamento,
   fevereiro comum/bissexto, meses de 30 dias, vencimento ajustado, virada de ano,
   coincidência dos dias e limite máximo de DateOnly. Integração testa o calendário

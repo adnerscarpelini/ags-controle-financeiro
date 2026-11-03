@@ -10,6 +10,8 @@ internal sealed class InstallmentAnticipation : Entity
     public Guid PurchaseExternalId { get; private set; }
     public Guid CardExternalId { get; private set; }
     public AccountingMonth Month { get; private set; }
+    public Guid[] EntryExternalIds { get; private set; } = [];
+    public void SetEntries(IEnumerable<Guid> entryExternalIds) => EntryExternalIds = entryExternalIds.ToArray();
     public int Count { get; private set; }
     public Money Total { get; private set; }
     public Money Discount { get; private set; }
