@@ -19,6 +19,7 @@
 @inject IPersonCatalog People
 
 <PageHeader Title="Lançamentos" />
+<p><a href="/pendentes">Ver pendências</a></p>
 @if (_message is not null) { <p role="status">@_message</p> }
 @if (_anticipating is { } anticipating) { <InstallmentAnticipationDialog @key="anticipating.ExternalId" Entry="anticipating" Confirmed="AnticipatedAsync" Cancelled="() => _anticipating = null" /> }
 @if (_effectiveEntry is { } pending)

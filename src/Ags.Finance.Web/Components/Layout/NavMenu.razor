@@ -1,55 +1,170 @@
-<a class="brand" href="" @onclick="OnNavigate">
+@* Os links não usam o OnClick do MudNavLink: com ele a biblioteca troca o <a href> por uma div, e o item deixa de ser um link. *@
+@implements IDisposable
+@inject NavigationManager Navigation
+
+<a class="brand" href="" @onclick="OnNavigate" aria-label="AGS Finanças">
     <img src="img/favicon.png" alt="" width="32" height="32" />
-    <span>AGS Finanças</span>
+    @if (!Collapsed)
+    {
+        <span>AGS Finanças</span>
+    }
 </a>
 
-<nav aria-label="Principal">
-    <ul class="nav-list">
+<NewEntryMenu Collapsed="Collapsed" OnChosen="OnNavigate" />
+
+<nav aria-label="Principal" class="nav-tree">
+    <MudNavMenu>
         @foreach (var item in s_items)
         {
-            <li>
-                <NavLink class="nav-link" href="@item.Href" @onclick="OnNavigate">
-                    <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="@item.IconPath" />
-                    </svg>
-                    <span>@item.Label</span>
-                </NavLink>
-            </li>
+            if (item.Children is { } children)
+            {
+                var inGroup = IsInGroup(item);
+                if (Collapsed)
+                {
+                    <MudTooltip Text="@item.Label" Placement="Placement.Right" RootClass="nav-tooltip">
+                        <MudMenu Icon="@item.Icon" AriaLabel="@item.Label" Class="@(inGroup ? "nav-group-collapsed active" : "nav-group-collapsed")"
+                                 AnchorOrigin="Origin.TopRight" TransformOrigin="Origin.TopLeft">
+                            @foreach (var child in children)
+                            {
+                                <MudMenuItem Href="@child.Href">@child.Label</MudMenuItem>
+                            }
+                        </MudMenu>
+                    </MudTooltip>
+                }
+                else
+                {
+                    <MudNavGroup Title="@item.Label" Icon="@item.Icon" Expanded="@IsExpanded(item)" ExpandedChanged="expanded => SetExpanded(item, expanded)" Class="nav-group">
+                        @foreach (var child in children)
+                        {
+                            <div class="nav-item" @onclick="OnNavigate"><MudNavLink Href="@child.Href" Match="NavLinkMatch.All" Class="nav-link"><span>@child.Label</span></MudNavLink></div>
+                        }
+                    </MudNavGroup>
+                }
+            }
+            else if (Collapsed)
+            {
+                <MudTooltip Text="@item.Label" Placement="Placement.Right" RootClass="nav-tooltip">
+                    <MudNavLink Href="@item.Href" Icon="@item.Icon" Match="NavLinkMatch.All" Class="nav-link"><span class="visually-hidden">@item.Label</span></MudNavLink>
+                </MudTooltip>
+            }
+            else
+            {
+                <div class="nav-item" @onclick="OnNavigate"><MudNavLink Href="@item.Href" Icon="@item.Icon" Match="NavLinkMatch.All" Class="nav-link"><span>@item.Label</span></MudNavLink></div>
+            }
         }
-    </ul>
+    </MudNavMenu>
 </nav>
 
 <form class="nav-footer" method="post" action="/account/sign-out">
     <AntiforgeryToken />
-    <PrivacyToggle Class="nav-button" ShowLabel="true" />
-    <button type="submit" class="nav-button">
-        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-        </svg>
-        <span>Sair</span>
-    </button>
+    <MudTooltip Text="@HideValuesTooltip" Placement="Placement.Right" Disabled="@(!Collapsed)" RootClass="nav-tooltip">
+        <PrivacyToggle Class="nav-button" ShowLabel="@(!Collapsed)" />
+    </MudTooltip>
+    @if (CanCollapse)
+    {
+        <MudTooltip Text="@ToggleText" Placement="Placement.Right" Disabled="@(!Collapsed)" RootClass="nav-tooltip">
+            <button type="button" class="nav-button" data-toggle-menu aria-label="@ToggleText" aria-expanded="@(Collapsed ? "false" : "true")" @onclick="OnToggleCollapsed">
+                <MudIcon Icon="@(Collapsed ? Icons.Material.Outlined.ChevronRight : Icons.Material.Outlined.ChevronLeft)" Size="Size.Small" aria-hidden="true" />
+                @if (!Collapsed)
+                {
+                    <span>@ToggleText</span>
+                }
+            </button>
+        </MudTooltip>
+    }
+    <MudTooltip Text="Sair" Placement="Placement.Right" Disabled="@(!Collapsed)" RootClass="nav-tooltip">
+        <button type="submit" class="nav-button" aria-label="Sair">
+            <MudIcon Icon="@Icons.Material.Outlined.Logout" Size="Size.Small" aria-hidden="true" />
+            @if (!Collapsed)
+            {
+                <span>Sair</span>
+            }
+        </button>
+    </MudTooltip>
 </form>
 
 @code {
-    private sealed record MenuItem(string Href, string Label, string IconPath);
+    private const string HideValuesTooltip = "Ocultar ou mostrar os valores nesta tela";
+
+    private sealed record MenuItem(string Label, string Icon, string Href = "", IReadOnlyList<MenuItem>? Children = null);
 
     private static readonly MenuItem[] s_items =
     [
-        new("lancamentos", "Lançamentos", "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"),
-        new("pendentes", "Pendentes", "M12 8v4l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"),
-        new("transferencias", "Transferências e saldos", "M4 7h16M16 3l4 4-4 4M20 17H4M8 13l-4 4 4 4"),
-        new("faturas", "Faturas", "M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM2 10h20"),
-        new("anexos", "Anexos", "M8 12l5-5a3 3 0 0 1 4 4l-7 7a5 5 0 0 1-7-7l8-8"),
-        new("cashback", "Cashback", "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v10M15 9.5c0-1-1.3-1.5-3-1.5s-3 .7-3 2 1.3 1.7 3 2 3 .9 3 2-1.3 2-3 2-3-.5-3-1.5"),
-        new("reembolsos", "Reembolsos", "M3 7v6h6M3 13a9 9 0 1 0 3-7.7L3 8"),
-        new("dashboard", "Dashboard", "M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z"),
-        new("planejamento", "Planejamento", "M3 3v18h18M7 15l4-4 3 3 6-7"),
-        new("relatorios/visao-19-meses", "Relatórios", "M3 3v18h18M7 15V9M12 15V5M17 15v-4"),
-        new("cadastros", "Cadastros", "M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM7.5 6.5h.01"),
-        new("configuracoes", "Configurações", "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"),
+        new("Dashboard", Icons.Material.Outlined.Home, "dashboard"),
+        new("Lançamentos", Icons.Material.Outlined.List, "lancamentos"),
+        new("Contas", Icons.Material.Outlined.AccountBalance, "cadastros/contas-cartoes"),
+        new("Cartões", Icons.Material.Outlined.CreditCard, "faturas"),
+        new("Planejamento", Icons.Material.Outlined.Flag, "planejamento"),
+        new("Relatórios", Icons.Material.Outlined.BarChart, "relatorios/visao-19-meses"),
+        new("Reembolsos", Icons.Material.Outlined.Replay, "reembolsos"),
+        new("Cadastros", Icons.Material.Outlined.Folder, Children:
+        [
+            new("Bancos", string.Empty, "cadastros/contas-cartoes"),
+            new("Categorias", string.Empty, "cadastros/categorias"),
+            new("Descrições", string.Empty, "cadastros/descricoes"),
+            new("Pessoas", string.Empty, "cadastros/pessoas"),
+        ]),
+        new("Mais opções", Icons.Material.Outlined.MoreHoriz, Children:
+        [
+            new("Anexos", string.Empty, "anexos"),
+            new("Arquivos CSV", string.Empty, "arquivos-csv"),
+            new("Backups", string.Empty, "backups"),
+        ]),
+        new("Configurações", Icons.Material.Outlined.Settings, "configuracoes"),
     ];
+
+    private readonly Dictionary<string, bool> _expanded = [];
 
     /// <summary>Chamado ao navegar, para o layout fechar a gaveta no celular.</summary>
     [Parameter]
     public EventCallback OnNavigate { get; set; }
+
+    /// <summary>Menu recolhido: só ícones, com tooltip, e os grupos abrem em menu flutuante.</summary>
+    [Parameter]
+    public bool Collapsed { get; set; }
+
+    /// <summary>No celular o menu é uma gaveta e não oferece recolher.</summary>
+    [Parameter]
+    public bool CanCollapse { get; set; } = true;
+
+    [Parameter]
+    public EventCallback OnToggleCollapsed { get; set; }
+
+    private string ToggleText => Collapsed ? "Expandir menu" : "Recolher menu";
+
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += LocationChanged;
+        OpenCurrentGroup();
+    }
+
+    private void LocationChanged(object? sender, LocationChangedEventArgs args)
+    {
+        OpenCurrentGroup();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    // O grupo da tela atual aparece aberto; os demais ficam como o usuário deixou.
+    private void OpenCurrentGroup()
+    {
+        foreach (var group in s_items.Where(item => item.Children is not null))
+        {
+            if (IsInGroup(group))
+            {
+                _expanded[group.Label] = true;
+            }
+        }
+    }
+
+    private bool IsInGroup(MenuItem group)
+    {
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0].TrimEnd('/');
+        return group.Children!.Any(child => string.Equals(child.Href, path, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private bool IsExpanded(MenuItem group) => _expanded.GetValueOrDefault(group.Label);
+
+    private void SetExpanded(MenuItem group, bool expanded) => _expanded[group.Label] = expanded;
+
+    public void Dispose() => Navigation.LocationChanged -= LocationChanged;
 }

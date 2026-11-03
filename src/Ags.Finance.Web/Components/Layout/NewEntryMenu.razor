@@ -1,0 +1,34 @@
+@* Botão "+ Novo", sempre visível. Enquanto as janelas de lançamento (#97) não existem, as opções levam às telas atuais. *@
+<div class="new-entry" data-new-entry-menu>
+    @if (Collapsed)
+    {
+        <MudTooltip Text="Novo" Placement="Placement.Right" RootClass="nav-tooltip">
+            <MudMenu Icon="@Icons.Material.Outlined.Add" AriaLabel="Novo" Color="Color.Primary" Variant="Variant.Filled"
+                     AnchorOrigin="Origin.TopRight" TransformOrigin="Origin.TopLeft">
+                @Options
+            </MudMenu>
+        </MudTooltip>
+    }
+    else
+    {
+        <MudMenu Label="Novo" StartIcon="@Icons.Material.Outlined.Add" Color="Color.Primary" Variant="Variant.Filled" FullWidth="true" RelativeWidth="DropdownWidth.Relative"
+                 AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft">
+            @Options
+        </MudMenu>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public bool Collapsed { get; set; }
+
+    [Parameter]
+    public EventCallback OnChosen { get; set; }
+
+    private RenderFragment Options => @<text>
+        <MudMenuItem Icon="@Icons.Material.Outlined.ArrowDownward" IconColor="Color.Error" Href="lancamentos" OnClick="OnChosen">Despesa</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Outlined.ArrowUpward" IconColor="Color.Success" Href="lancamentos" OnClick="OnChosen">Receita</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Outlined.CreditCard" IconColor="Color.Primary" Href="lancamentos" OnClick="OnChosen">Despesa cartão</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Outlined.SwapHoriz" Href="transferencias" OnClick="OnChosen">Transferência</MudMenuItem>
+    </text>;
+}

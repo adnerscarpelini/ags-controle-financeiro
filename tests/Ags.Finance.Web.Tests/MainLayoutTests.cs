@@ -50,7 +50,7 @@ public sealed class MainLayoutTests : IAsyncDisposable
         var layout = RenderLayout(isMobile: true);
         MenuButton(layout).Click();
 
-        layout.Find(".mud-overlay-drawer, .mud-drawer-overlay, .mud-overlay").Click();
+        layout.Find(".mud-overlay").Click();
 
         layout.WaitForAssertion(() => Assert.Contains("mud-drawer--closed", layout.Find(".sidebar").ClassList));
     }
@@ -87,15 +87,140 @@ public sealed class MainLayoutTests : IAsyncDisposable
     }
 
     [Fact]
-    public void MenuHasTheSectionsInOrder()
+    public void MenuHasTheSectionsInOrderWithTheGroupsInATree()
     {
         var layout = RenderLayout();
 
-        var labels = layout.FindAll(".nav-link span").Select(span => span.TextContent).ToList();
+        var labels = layout.FindAll(".nav-tree .mud-nav-link-text, .nav-tree .mud-nav-link-text span").Select(x => x.TextContent.Trim()).Where(x => x.Length > 0).Distinct().ToList();
 
         Assert.Equal(
-            ["Lançamentos", "Pendentes", "Transferências e saldos", "Faturas", "Anexos", "Cashback", "Reembolsos", "Dashboard", "Planejamento", "Relatórios", "Cadastros", "Configurações"],
+            ["Dashboard", "Lançamentos", "Contas", "Cartões", "Planejamento", "Relatórios", "Reembolsos", "Cadastros", "Bancos", "Categorias", "Descrições", "Pessoas", "Mais opções", "Anexos", "Arquivos CSV", "Backups", "Configurações"],
             labels);
+    }
+
+    [Fact]
+    public void ClickingAGroupOpensItsTreeAndClickingAgainClosesIt()
+    {
+        var layout = RenderLayout();
+        Assert.Empty(layout.FindAll(".nav-group .mud-collapse-entered"));
+
+        GroupButton(layout, "Cadastros").Click();
+        layout.WaitForAssertion(() => Assert.Equal("true", GroupButton(layout, "Cadastros").GetAttribute("aria-expanded")));
+
+        GroupButton(layout, "Cadastros").Click();
+        layout.WaitForAssertion(() => Assert.Equal("false", GroupButton(layout, "Cadastros").GetAttribute("aria-expanded")));
+    }
+
+    [Fact]
+    public void TheCurrentScreenOpensItsGroupAndIsHighlighted()
+    {
+        _context.Services.GetRequiredService<NavigationManager>().NavigateTo("/cadastros/pessoas");
+
+        var layout = RenderLayout();
+
+        Assert.Equal("true", GroupButton(layout, "Cadastros").GetAttribute("aria-expanded"));
+        Assert.Equal("false", GroupButton(layout, "Mais opções").GetAttribute("aria-expanded"));
+        var active = Assert.Single(layout.FindAll("a.mud-nav-link.active"));
+        Assert.Equal("cadastros/pessoas", active.GetAttribute("href"));
+    }
+
+    [Fact]
+    public void NavigatingToAScreenOfAGroupOpensThatGroup()
+    {
+        var layout = RenderLayout();
+        Assert.Equal("false", GroupButton(layout, "Mais opções").GetAttribute("aria-expanded"));
+
+        layout.InvokeAsync(() => _context.Services.GetRequiredService<NavigationManager>().NavigateTo("/backups"));
+
+        layout.WaitForAssertion(() => Assert.Equal("true", GroupButton(layout, "Mais opções").GetAttribute("aria-expanded")));
+    }
+
+    [Fact]
+    public void NewShowsTheFourOptionsWithIconAndText()
+    {
+        var layout = RenderLayout();
+
+        layout.Find("[data-new-entry-menu] button").Click();
+
+        layout.WaitForAssertion(() =>
+        {
+            var options = layout.FindAll(".mud-popover-open .mud-menu-item").ToList();
+            Assert.Equal(["Despesa", "Receita", "Despesa cartão", "Transferência"], options.Select(x => x.TextContent.Trim()));
+            Assert.All(options, option => Assert.NotNull(option.QuerySelector("svg")));
+        });
+    }
+
+    [Fact]
+    public void CollapsingTheMenuShowsOnlyIconsAndRemembersTheChoiceInThisBrowser()
+    {
+        var store = _context.JSInterop.SetupVoid("agsMenu.setCollapsed", true);
+        var layout = RenderLayout();
+
+        layout.Find("[data-toggle-menu]").Click();
+
+        layout.WaitForAssertion(() => Assert.Contains("sidebar-collapsed", layout.Find(".sidebar").ClassList));
+        Assert.Contains("mud-drawer--closed", layout.Find(".sidebar").ClassList);
+        store.VerifyInvoke("agsMenu.setCollapsed");
+        Assert.Equal("Expandir menu", layout.Find("[data-toggle-menu]").GetAttribute("aria-label"));
+        Assert.Empty(layout.FindAll(".nav-tree .mud-nav-link span:not(.visually-hidden)"));
+    }
+
+    [Fact]
+    public void TheMenuStartsCollapsedWhenThatWasTheChoiceInThisBrowser()
+    {
+        _context.JSInterop.Setup<bool>("agsMenu.isCollapsed").SetResult(true);
+
+        var layout = RenderLayout();
+
+        layout.WaitForAssertion(() => Assert.Contains("sidebar-collapsed", layout.Find(".sidebar").ClassList));
+    }
+
+    [Fact]
+    public void WithTheMenuCollapsedEveryIconHasAnAccessibleNameAndAGroupOpensAFloatingMenu()
+    {
+        _context.JSInterop.Setup<bool>("agsMenu.isCollapsed").SetResult(true);
+        var layout = RenderLayout();
+        layout.WaitForAssertion(() => Assert.Contains("sidebar-collapsed", layout.Find(".sidebar").ClassList));
+
+        var names = layout.FindAll(".nav-tree .visually-hidden").Select(x => x.TextContent).ToList();
+        Assert.Contains("Dashboard", names);
+        Assert.Contains("Configurações", names);
+
+        layout.Find(".nav-group-collapsed button[aria-label='Cadastros']").Click();
+
+        layout.WaitForAssertion(() =>
+            Assert.Equal(["Bancos", "Categorias", "Descrições", "Pessoas"], layout.FindAll(".mud-popover-open .mud-menu-item").Select(x => x.TextContent.Trim())));
+    }
+
+    [Fact]
+    public void WithTheMenuCollapsedHoveringAnIconShowsItsName()
+    {
+        _context.JSInterop.Setup<bool>("agsMenu.isCollapsed").SetResult(true);
+        var layout = RenderLayout();
+        layout.WaitForAssertion(() => Assert.Contains("sidebar-collapsed", layout.Find(".sidebar").ClassList));
+
+        layout.FindAll(".nav-tooltip").First(x => x.TextContent.Contains("Dashboard", StringComparison.Ordinal)).PointerEnter();
+
+        layout.WaitForAssertion(() => Assert.Contains("Dashboard", layout.Find(".mud-tooltip.mud-popover-open").TextContent, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ThePhoneDrawerDoesNotOfferCollapsing()
+    {
+        var layout = RenderLayout(isMobile: true);
+
+        Assert.Empty(layout.FindAll("[data-toggle-menu]"));
+    }
+
+    [Fact]
+    public void TheFooterHasExplicitHideValuesAndSignOut()
+    {
+        var layout = RenderLayout();
+
+        var footer = layout.Find("form.nav-footer");
+
+        Assert.Contains("Ocultar valores", footer.TextContent, StringComparison.Ordinal);
+        Assert.Contains("Sair", footer.TextContent, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -143,6 +268,9 @@ public sealed class MainLayoutTests : IAsyncDisposable
         Assert.True(surface.Success, layout.Markup[..Math.Min(400, layout.Markup.Length)]);
         return surface.Groups["color"].Value.StartsWith("#1a1a1a", StringComparison.OrdinalIgnoreCase) || surface.Groups["color"].Value.Contains("26,26,26", StringComparison.Ordinal);
     }
+
+    private static AngleSharp.Dom.IElement GroupButton(IRenderedComponent<MainLayout> layout, string label) =>
+        layout.FindAll(".nav-group > button, .nav-group button.mud-nav-link").First(x => x.TextContent.Contains(label, StringComparison.Ordinal));
 
     private static AngleSharp.Dom.IElement MenuButton(IRenderedComponent<MainLayout> layout) => layout.Find("button[aria-controls='sidebar']");
 

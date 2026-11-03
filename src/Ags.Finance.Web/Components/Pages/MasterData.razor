@@ -1,11 +1,7 @@
 @page "/cadastros"
+@inject NavigationManager Navigation
 
-<PageHeader Title="Cadastros" />
-
-<section class="panel">
-    <a href="/cadastros/contas-cartoes">Contas e cartões</a>
-    <a href="/cadastros/categorias">Categorias e subcategorias</a>
-    <a href="/cadastros/descricoes">Descrições</a>
-    <a href="/cadastros/pessoas">Pessoas</a>
-    <a href="/arquivos-csv">Arquivos CSV</a>
-</section>
+@code {
+    // Os cadastros ficam no menu em árvore; o endereço antigo, só com links, leva ao primeiro em uso.
+    protected override void OnInitialized() => Navigation.NavigateTo("/cadastros/categorias", replace: true);
+}
