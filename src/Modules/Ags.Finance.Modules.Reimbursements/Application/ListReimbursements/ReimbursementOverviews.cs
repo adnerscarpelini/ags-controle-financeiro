@@ -19,12 +19,14 @@ internal sealed class ReimbursementOverviews(IReimbursementStore store, IEntryCa
             if (!generated.Succeeded) { return Failed(generated.Error ?? "Não foi possível gerar as recorrências do mês."); }
         }
         var names = (await store.GetPeopleAsync(cancellationToken)).ToDictionary(x => x.ExternalId, x => x.Name);
+        var receipts = (await store.GetReceiptsAsync(cancellationToken)).ToDictionary(x => x.ExternalId);
+        var received = (await store.GetReceiptItemsAsync(cancellationToken)).ToDictionary(x => x.ExpenseEntryExternalId, x => (Item: x, Receipt: receipts[x.ReceiptExternalId]));
         var all = new List<ReimbursementItem>();
         for (var page = 1; ; page++)
         {
             var result = await entries.QueryAsync(new(HasReimbursement: true, Page: page, PageSize: PageSize), cancellationToken);
             if (result.Error is not null) { return Failed(result.Error); }
-            all.AddRange(result.Entries.Select(x => Describe(x, names)).OfType<ReimbursementItem>());
+            all.AddRange(result.Entries.Select(x => Describe(x, names, received)).OfType<ReimbursementItem>());
             if (page >= result.TotalPages) { break; }
         }
         var ofPerson = all.Where(x => filter.PersonExternalId is not { } person || x.PersonExternalId == person).ToList();
@@ -36,9 +38,14 @@ internal sealed class ReimbursementOverviews(IReimbursementStore store, IEntryCa
         return new(items, people, Sum(items.Select(x => x.Expected)), Received(items), Pending(items), pendingBefore);
     }
 
-    private static ReimbursementItem? Describe(EntryDetails entry, Dictionary<Guid, string> names)
+    private static ReimbursementItem? Describe(EntryDetails entry, Dictionary<Guid, string> names, Dictionary<Guid, (ReimbursementReceiptItem Item, ReimbursementReceipt Receipt)> received)
     {
         if (entry.Reimbursement is not { } reimbursement) { return null; }
+        if (received.TryGetValue(entry.ExternalId, out var receipt))
+        {
+            return new(entry.ExternalId, reimbursement.PersonExternalId, names.GetValueOrDefault(reimbursement.PersonExternalId, "Pessoa"), entry.Date, entry.MerchantName, entry.Classification, entry.Month,
+                receipt.Item.ExpenseAmount, receipt.Item.Percent, receipt.Item.Expected, receipt.Item.Received, ReimbursementStatus.Received, entry.IsEffective, receipt.Receipt.ExternalId, receipt.Receipt.Date, receipt.Receipt.AccountExternalId);
+        }
         var expected = ReimbursementCalculation.Expected(entry.Amount, reimbursement.Percent);
         return expected.IsZero ? null : new(entry.ExternalId, reimbursement.PersonExternalId, names.GetValueOrDefault(reimbursement.PersonExternalId, "Pessoa"), entry.Date, entry.MerchantName,
             entry.Classification, entry.Month, new Money(Math.Abs(entry.Amount.Amount)), reimbursement.Percent, expected, null, ReimbursementStatus.Pending, entry.IsEffective);

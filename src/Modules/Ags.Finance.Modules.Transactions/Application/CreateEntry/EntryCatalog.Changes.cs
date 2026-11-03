@@ -45,7 +45,10 @@ internal sealed partial class EntryCatalog
             };
             var prepared = await PrepareAsync(changed, cancellationToken, entry);
             if (prepared.Entry is not { } updated) { return new(null, prepared.Error); }
-            entry.ApplyChange(updated, request.Amount == selectedAmount && request.SubcategoryExternalId == baseline.SubcategoryExternalId);
+            var keepAmount = request.Amount == selectedAmount && request.SubcategoryExternalId == baseline.SubcategoryExternalId;
+            error = await RequireReimbursementChangeAsync(entry, ChangesProtectedData(entry, updated, keepAmount), cancellationToken);
+            if (error is not null) { return new(null, error); }
+            entry.ApplyChange(updated, keepAmount);
         }
         return await store.SaveEntriesAsync(affected, cancellationToken) ? new(externalId, null) : new(null, "Não foi possível salvar todos os lançamentos.");
     }
@@ -66,6 +69,7 @@ internal sealed partial class EntryCatalog
         foreach (var entry in affected)
         {
             var error = await RequireSourceOpenAsync(entry, cancellationToken);
+            error ??= await RequireReimbursementChangeAsync(entry, true, cancellationToken);
             if (error is not null) { return new(null, error); }
         }
         await store.DeleteEntriesAsync(affected, cancellationToken);
@@ -88,6 +92,13 @@ internal sealed partial class EntryCatalog
 
     private Task<string?> RequireSourceOpenAsync(TransactionEntry entry, CancellationToken cancellationToken)
         => entry.CardExternalId is { } card ? invoices.RequireOpenAsync(card, entry.Month, cancellationToken) : Task.FromResult<string?>(null);
+
+    private async Task<string?> RequireReimbursementChangeAsync(TransactionEntry entry, bool changesProtectedData, CancellationToken cancellationToken)
+        => await reimbursements.RequireEntryChangeAsync(entry.ExternalId, changesProtectedData, cancellationToken) is { } error ? $"Lançamento de {entry.Date:dd/MM/yyyy}: {error}" : null;
+
+    private static bool ChangesProtectedData(TransactionEntry entry, TransactionEntry updated, bool keepAmount)
+        => (!keepAmount && updated.Amount != entry.Amount) || updated.Kind != entry.Kind
+            || updated.ReimbursementPersonExternalId != entry.ReimbursementPersonExternalId || updated.ReimbursementPercent != entry.ReimbursementPercent;
 
     private static List<TransactionEntry> Affected(IReadOnlyList<TransactionEntry> entries, TransactionEntry selected, EntryChangeScope scope)
         => scope == EntryChangeScope.OnlyThis ? [selected] : entries.Where(x => x.InstallmentPurchaseExternalId == selected.InstallmentPurchaseExternalId && x.InstallmentNumber >= selected.InstallmentNumber)

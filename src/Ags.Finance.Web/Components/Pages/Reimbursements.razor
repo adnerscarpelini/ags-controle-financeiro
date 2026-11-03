@@ -1,9 +1,12 @@
 @page "/reembolsos"
 @using System.Globalization
+@using Ags.Finance.Modules.Accounts.Contracts
 @using Ags.Finance.Modules.Reimbursements.Contracts
 @using Ags.Finance.SharedKernel
 @inject IReimbursementOverviews Overviews
 @inject IPersonCatalog People
+@inject IReimbursementReceipts Receipts
+@inject IAccountCatalog Accounts
 @inject TimeProvider Clock
 
 <PageHeader Title="Reembolsos" />
@@ -28,18 +31,55 @@
         <p class="reimbursement-warning" role="note">Há <span class="numeric">@_overview.PendingBeforeMonth</span> pendentes em meses anteriores. Marque "Todos os meses" para vê-los.</p>
     }
 </section>
+@if (_receiving)
+{
+    <section class="panel" role="dialog" aria-label="Efetivar recebimento">
+        <h2>Efetivar recebimento</h2>
+        <div class="catalog-fields">
+            <div class="field"><label for="receipt-date">Data</label><input id="receipt-date" type="date" @bind="_receiptDate" required /></div>
+            <div class="field"><label for="receipt-account">Conta corrente</label><select id="receipt-account" @bind="_receiptAccount">
+                <option value="@Guid.Empty">Selecione</option>@foreach (var account in _accounts) { <option value="@account.ExternalId">@account.Name</option> }
+            </select></div>
+        </div>
+        <ul class="catalog-list" aria-label="Valores recebidos">
+            @foreach (var item in SelectedItems)
+            {
+                <li><span>@item.PersonName · @item.Description · Esperado: <span class="numeric">@item.Expected</span></span>
+                    <div class="field"><label for="received-@item.EntryExternalId">Valor recebido (R$)</label><input id="received-@item.EntryExternalId" type="number" step="0.01" min="0" @bind="_received[item.EntryExternalId]" required /></div></li>
+            }
+        </ul>
+        <ul class="catalog-list" aria-label="Receitas que serão criadas">
+            @foreach (var person in SelectedItems.GroupBy(x => x.PersonName).OrderBy(x => x.Key, StringComparer.CurrentCultureIgnoreCase))
+            {
+                var total = new Money(person.Sum(x => _received[x.EntryExternalId]));
+                <li><span>@person.Key: <span class="numeric">@total</span> · @(total.IsZero ? "sem lançamento" : "uma receita na conta escolhida")</span></li>
+            }
+        </ul>
+        <button class="button" @onclick="ConfirmReceiveAsync" disabled="@_busy">Confirmar recebimento</button>
+        <button class="button" @onclick="() => _receiving = false" disabled="@_busy">Cancelar</button>
+    </section>
+}
 <section class="panel">
     <h2>Reembolsos</h2>
+    @if (_overview.Items.Any(x => x.Status == ReimbursementStatus.Pending))
+    {
+        <label class="checkbox"><input id="reimbursement-select-all" type="checkbox" checked="@AllPendingSelected" @onchange="ToggleAll" />Selecionar todos os pendentes</label>
+        <button class="button" id="reimbursement-receive" @onclick="StartReceive" disabled="@(_selected.Count == 0 || _busy)">Efetivar selecionados (@_selected.Count)</button>
+    }
     <ul class="catalog-list" aria-label="Reembolsos">
         @foreach (var item in _overview.Items)
         {
             <li>
+                @if (item.Status == ReimbursementStatus.Pending)
+                {
+                    <label class="checkbox"><input type="checkbox" aria-label="Selecionar @item.Description de @item.PersonName" checked="@_selected.Contains(item.EntryExternalId)" @onchange="args => Toggle(item.EntryExternalId, args)" />Selecionar</label>
+                }
                 <span>@item.Date.ToString("dd/MM/yyyy") · @item.Description · @item.Classification · Mês @item.Month</span>
                 <span>@item.PersonName · @item.ExpenseAmount × @Percent(item.Percent)</span>
                 @if (!item.IsExpenseEffective) { <span>Despesa ainda pendente</span> }
                 <span>Esperado: <span class="numeric">@item.Expected</span></span>
                 <span>Recebido: <span class="numeric">@(item.Received is { } received ? received.ToString() : "—")</span></span>
-                <span>@(item.Status == ReimbursementStatus.Received ? "Recebido" : "Pendente")</span>
+                <span>@(item.ReceivedDate is { } receivedDate ? $"Recebido em {receivedDate:dd/MM/yyyy}" : "Pendente")</span>
             </li>
         }
     </ul>
@@ -72,11 +112,21 @@
     private bool _allMonths;
     private bool _busy;
     private string? _message;
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private readonly HashSet<Guid> _selected = [];
+    private readonly Dictionary<Guid, decimal> _received = [];
+    private bool _receiving;
+    private DateOnly _receiptDate;
+    private Guid _receiptAccount;
+
+    private IEnumerable<ReimbursementItem> SelectedItems => _overview.Items.Where(x => _selected.Contains(x.EntryExternalId));
+    private bool AllPendingSelected => _overview.Items.Where(x => x.Status == ReimbursementStatus.Pending).All(x => _selected.Contains(x.EntryExternalId));
 
     protected override async Task OnInitializedAsync()
     {
         _month = Clock.GetLocalNow().ToString("yyyy-MM", CultureInfo.InvariantCulture);
         _people = await People.GetAsync();
+        _accounts = (await Accounts.GetAccountsAsync()).Where(x => x.Kind == AccountKind.Checking).ToList();
         await LoadAsync();
     }
 
@@ -93,8 +143,46 @@
         {
             _overview = await Overviews.GetAsync(new(month, _personId == Guid.Empty ? null : _personId, _status));
             _message = _overview.Error;
+            _selected.IntersectWith(_overview.Items.Where(x => x.Status == ReimbursementStatus.Pending).Select(x => x.EntryExternalId));
+            _receiving = false;
         }
         finally { _busy = false; }
+    }
+
+    private void Toggle(Guid entry, ChangeEventArgs args)
+    {
+        if (args.Value is true) { _selected.Add(entry); }
+        else { _selected.Remove(entry); }
+    }
+
+    private void ToggleAll(ChangeEventArgs args)
+    {
+        _selected.Clear();
+        if (args.Value is true) { _selected.UnionWith(_overview.Items.Where(x => x.Status == ReimbursementStatus.Pending).Select(x => x.EntryExternalId)); }
+    }
+
+    private void StartReceive()
+    {
+        _receiptDate = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+        _received.Clear();
+        foreach (var item in SelectedItems) { _received[item.EntryExternalId] = decimal.Parse(item.Expected.Amount.ToString("0.##", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture); }
+        _receiving = true;
+    }
+
+    private async Task ConfirmReceiveAsync()
+    {
+        if (_busy) { return; }
+        _busy = true;
+        try
+        {
+            var items = SelectedItems.Select(x => new ReceiveReimbursementItem(x.EntryExternalId, x.Expected, new Money(_received[x.EntryExternalId]))).ToList();
+            var result = await Receipts.ReceiveAsync(new(_receiptDate, _receiptAccount == Guid.Empty ? null : _receiptAccount, items));
+            _message = result.Error ?? "Recebimento efetivado.";
+            if (!result.Succeeded) { return; }
+            _selected.Clear();
+        }
+        finally { _busy = false; }
+        await LoadAsync();
     }
 
     private static string Percent(decimal value) => value.ToString("0.##", CultureInfo.GetCultureInfo("pt-BR")) + "%";

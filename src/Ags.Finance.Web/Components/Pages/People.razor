@@ -20,7 +20,7 @@
 </section>
 <section class="panel">
     <h2>Pessoas cadastradas</h2>
-    @if (_people.Count == 0) { <p>Nenhuma pessoa cadastrada.</p> }
+    @if (_loaded && _people.Count == 0) { <p>Nenhuma pessoa cadastrada.</p> }
     <ul class="catalog-list">
         @foreach (var person in _people)
         {
@@ -39,8 +39,13 @@
     private decimal _defaultPercent;
     private string? _message;
     private bool _busy;
+    private bool _loaded;
 
-    protected override async Task OnInitializedAsync() => _people = await Catalog.GetAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        _people = await Catalog.GetAsync();
+        _loaded = true;
+    }
 
     private void Edit(PersonDetails person) { _externalId = person.ExternalId; _name = person.Name; _defaultPercent = decimal.Parse(person.DefaultPercent.ToString("0.##", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture); }
     private void Reset() { _externalId = null; _name = string.Empty; _defaultPercent = 0; }

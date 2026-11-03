@@ -25,9 +25,19 @@ Reimbursements o implementa, como em `IInvoiceWriteGuard`.
 com pessoa, e não é uma linha gravada. Nenhuma edição, série, parcela ou importação precisa
 sincronizar outra tabela, então não há como divergir.
 
+**Só o recebimento é gravado.** `reimbursement_receipts` tem uma linha por pessoa em cada
+efetivação, com a receita gerada em Transactions. `reimbursement_receipt_items` guarda a foto
+dos valores por despesa, com índice único que impede receber a mesma despesa duas vezes.
+
+**Proteção.** `IReimbursementWriteGuard.RequireEntryChangeAsync` é consultado nos casos de uso
+de Transactions, na mesma operação financeira da gravação. Uma despesa recebida não pode ter
+valor, tipo, pessoa ou percentual alterados nem ser excluída; a receita gerada não pode ser
+alterada nem excluída. Se um alcance atingir um lançamento protegido, a operação inteira é
+rejeitada.
+
 **Estado:** cadastro de pessoas (#78), pessoa e percentual em despesas (#79) e recorrentes
-(#80) e análise do mês (#81) entregues. Os demais passos estão nas issues
-[#82](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/82) a
+(#80), análise do mês (#81) e recebimento (#82) entregues. Os demais passos estão nas issues
+[#83](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/83) e
 [#84](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/84).
 
 ## Alternativas

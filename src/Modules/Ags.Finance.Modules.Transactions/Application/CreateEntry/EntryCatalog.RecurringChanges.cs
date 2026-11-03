@@ -36,6 +36,7 @@ internal sealed partial class EntryCatalog
         foreach (var entry in affected)
         {
             var error = await RequireSourceOpenAsync(entry, cancellationToken);
+            if (change is null) { error ??= await RequireReimbursementChangeAsync(entry, true, cancellationToken); }
             if (error is not null) { return new(null, error); }
         }
         if (change is null)
@@ -111,6 +112,8 @@ internal sealed partial class EntryCatalog
             };
             var prepared = await PrepareAsync(changed, cancellationToken, entry);
             if (prepared.Entry is not { } updated) { return new(null, prepared.Error); }
+            var reimbursementError = await RequireReimbursementChangeAsync(entry, ChangesProtectedData(entry, updated, false), cancellationToken);
+            if (reimbursementError is not null) { return new(null, reimbursementError); }
             entry.ApplyChange(updated, false);
             if (following is not null) { entry.SetRecurring(following.ExternalId, entry.OccurrenceMonth!.Value); }
         }

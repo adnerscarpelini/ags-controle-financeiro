@@ -88,6 +88,60 @@ public sealed class ReimbursementPageTests : IAsyncLifetime
         Assert.Empty(page.FindAll("[role=note]"));
     }
 
+    [Fact]
+    public async Task SelectingAdjustingAndConfirmingReceivesTheItems()
+    {
+        await using var context = await ContextAsync();
+        await ExpenseAsync(context, 100m, _anaId, 50m);
+        await ExpenseAsync(context, 100m, _biaId, 100m);
+        var page = context.Render<Reimbursements>();
+        page.WaitForAssertion(() => Assert.Equal(2, page.FindAll("[aria-label=Reembolsos] > li").Count));
+        Assert.True(page.Find("#reimbursement-receive").HasAttribute("disabled"));
+
+        await page.Find("#reimbursement-select-all").ChangeAsync(true);
+        await page.Find("#reimbursement-receive").ClickAsync(new());
+        var dialog = page.Find("[role=dialog]");
+        Assert.Contains("Ana Exemplo: R$ 50,00", dialog.TextContent, StringComparison.Ordinal);
+        Assert.Contains("Bia Exemplo: R$ 100,00", dialog.TextContent, StringComparison.Ordinal);
+        Assert.Equal("2026-10-15", page.Find("#receipt-date").GetAttribute("value"));
+
+        await page.FindAll("[aria-label='Valores recebidos'] input")[0].ChangeAsync("40");
+        Assert.Contains("Ana Exemplo: R$ 40,00", page.Find("[aria-label='Receitas que serão criadas']").TextContent, StringComparison.Ordinal);
+
+        await page.FindAll("[role=dialog] button").Single(x => x.TextContent == "Confirmar recebimento").ClickAsync(new());
+        Assert.Contains("conta corrente", page.Find("[role=status]").TextContent, StringComparison.Ordinal);
+        Assert.NotEmpty(page.FindAll("[role=dialog]"));
+
+        await page.Find("#receipt-account").ChangeAsync(_accountId.ToString());
+        await page.FindAll("[role=dialog] button").Single(x => x.TextContent == "Confirmar recebimento").ClickAsync(new());
+
+        page.WaitForAssertion(() => Assert.Contains("Recebido em 15/10/2026", page.Find("[aria-label=Reembolsos]").TextContent, StringComparison.Ordinal));
+        Assert.Empty(page.FindAll("[role=dialog]"));
+        Assert.Empty(page.FindAll("#reimbursement-select-all"));
+        var incomes = (await context.Services.GetRequiredService<IEntryCatalog>().QueryAsync(new(Kind: CategoryKind.Income))).Entries;
+        Assert.Equal([new Money(40m), new Money(100m)], incomes.OrderBy(x => x.Amount.Amount).Select(x => x.Amount));
+    }
+
+    [Fact]
+    public async Task OnlyCheckingAccountsAreOfferedAndCancellingChangesNothing()
+    {
+        await using var context = await ContextAsync();
+        await ExpenseAsync(context, 100m, _anaId, 50m);
+        var accounts = context.Services.GetRequiredService<IAccountCatalog>();
+        var bank = (await accounts.GetBanksAsync())[0].ExternalId;
+        await accounts.SaveAccountAsync(new(null, bank, "Poupança Exemplo", AccountKind.Savings, "green"));
+        var page = context.Render<Reimbursements>();
+        page.WaitForAssertion(() => Assert.Single(page.FindAll("[aria-label=Reembolsos] > li")));
+
+        await page.Find("[aria-label=Reembolsos] input[type=checkbox]").ChangeAsync(true);
+        await page.Find("#reimbursement-receive").ClickAsync(new());
+        Assert.DoesNotContain("Poupança", page.Find("#receipt-account").TextContent, StringComparison.Ordinal);
+
+        await page.FindAll("[role=dialog] button").Single(x => x.TextContent == "Cancelar").ClickAsync(new());
+        Assert.Empty(page.FindAll("[role=dialog]"));
+        Assert.Empty((await context.Services.GetRequiredService<IEntryCatalog>().QueryAsync(new(Kind: CategoryKind.Income))).Entries);
+    }
+
     private sealed class FixedClock : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => new(2026, 10, 15, 12, 0, 0, TimeSpan.Zero);
