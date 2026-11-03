@@ -11,6 +11,7 @@
         <input id="dashboard-month" type="month" value="@FormatMonth(_month)" @onchange="MonthChanged" /></div>
 </section>
 <SummaryCards Month="_month" />
+<CategorySection Month="_month" />
 
 @code {
     private AccountingMonth _month;

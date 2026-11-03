@@ -1,4 +1,5 @@
 using Ags.Finance.Modules.Reports.Application;
+using Ags.Finance.Modules.Reports.Application.CategoryReport;
 using Ags.Finance.Modules.Reports.Application.MonthlySummary;
 using Ags.Finance.Modules.Reports.Contracts;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,6 +12,7 @@ public static class DependencyInjection
     {
         services.AddScoped<LedgerSource>();
         services.AddScoped<IMonthlySummaries, MonthlySummaries>();
+        services.AddScoped<ICategoryReports, CategoryReports>();
         return services;
     }
 }
