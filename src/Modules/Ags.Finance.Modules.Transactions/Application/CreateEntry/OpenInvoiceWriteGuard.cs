@@ -10,4 +10,6 @@ internal sealed class OpenInvoiceWriteGuard : IInvoiceWriteGuard
         => Task.FromResult<string?>(null);
     public Task<string?> RequireRecurringAsync(Guid cardExternalId, AccountingMonth month, DateTimeOffset plannedAt, CancellationToken cancellationToken = default)
         => Task.FromResult<string?>(null);
+    public Task<string?> CheckRecurringAsync(Guid cardExternalId, AccountingMonth month, DateTimeOffset plannedAt, CancellationToken cancellationToken = default)
+        => Task.FromResult<string?>(null);
 }

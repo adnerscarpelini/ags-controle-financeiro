@@ -10,12 +10,15 @@ internal sealed class InvoiceWriteGuard(IInvoiceStore store, IAccountCatalog acc
     public async Task<string?> RequireAdjustmentAsync(Guid cardExternalId, AccountingMonth month, CancellationToken cancellationToken = default)
         => (await store.FindAsync(cardExternalId, month, cancellationToken))?.Status == InvoiceStatus.Paid ? "Fatura Paga não permite ajuste de total." : null;
     public Task<string?> RequireOpenAsync(Guid cardExternalId, AccountingMonth month, CancellationToken cancellationToken = default)
-        => RequireCoreAsync(cardExternalId, month, null, cancellationToken);
+        => RequireCoreAsync(cardExternalId, month, null, true, cancellationToken);
 
     public Task<string?> RequireRecurringAsync(Guid cardExternalId, AccountingMonth month, DateTimeOffset plannedAt, CancellationToken cancellationToken = default)
-        => RequireCoreAsync(cardExternalId, month, plannedAt, cancellationToken);
+        => RequireCoreAsync(cardExternalId, month, plannedAt, true, cancellationToken);
 
-    private async Task<string?> RequireCoreAsync(Guid cardExternalId, AccountingMonth month, DateTimeOffset? plannedAt, CancellationToken cancellationToken)
+    public Task<string?> CheckRecurringAsync(Guid cardExternalId, AccountingMonth month, DateTimeOffset plannedAt, CancellationToken cancellationToken = default)
+        => RequireCoreAsync(cardExternalId, month, plannedAt, false, cancellationToken);
+
+    private async Task<string?> RequireCoreAsync(Guid cardExternalId, AccountingMonth month, DateTimeOffset? plannedAt, bool registerInvoice, CancellationToken cancellationToken)
     {
         var card = (await accounts.GetCreditCardsAsync(false, cancellationToken)).FirstOrDefault(x => x.ExternalId == cardExternalId);
         if (card is null) { return "Cartão não encontrado."; }
@@ -25,7 +28,7 @@ internal sealed class InvoiceWriteGuard(IInvoiceStore store, IAccountCatalog acc
         {
             return $"A fatura {month} está protegida. Escolha uma fatura Aberta ou reabra manualmente uma Fechada sem pagamentos.";
         }
-        if (invoice is null) { await store.SaveAsync(Invoice.Create(cardExternalId, month), cancellationToken); }
+        if (registerInvoice && invoice is null) { await store.SaveAsync(Invoice.Create(cardExternalId, month), cancellationToken); }
         return null;
     }
 }

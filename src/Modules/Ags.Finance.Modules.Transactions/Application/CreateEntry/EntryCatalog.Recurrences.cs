@@ -41,59 +41,13 @@ internal sealed partial class EntryCatalog
     {
         var definitions = (await store.GetRecurringAsync(cancellationToken)).Where(x => x.IsActive && (!filter.PendingRecurringOnly || x.CardExternalId is null)).ToList();
         if (definitions.Count == 0) { return new(0, 0); }
-        var existing = (await store.GetAsync(cancellationToken)).Where(x => x.RecurringEntryExternalId is not null && x.OccurrenceMonth is not null)
-            .Select(x => (Series: x.RecurringEntryExternalId!.Value, Month: x.OccurrenceMonth!.Value)).ToHashSet();
-        var current = FirstDay(DateOnly.FromDateTime(clock.GetLocalNow().DateTime));
-        var generated = new List<TransactionEntry>();
-        var protectedCount = 0;
-        foreach (var series in definitions)
-        {
-            var first = MonthIndex(series.StartDate);
-            var from = filter.Month is { } month ? MonthIndex(month.FirstDay) - series.AccountingMonthOffset - series.DateMonthOffset - 2 : filter.FromDate is { } fromDate ? MonthIndex(fromDate) - series.DateMonthOffset : first;
-            var to = filter.Month is { } target ? MonthIndex(target.FirstDay) - series.AccountingMonthOffset - series.DateMonthOffset : filter.ToDate is { } toDate ? MonthIndex(toDate) - series.DateMonthOffset : Math.Max(MonthIndex(current) - series.DateMonthOffset, from);
-            if (filter.FromDate is { } lower) { from = Math.Max(from, MonthIndex(lower) - series.DateMonthOffset); }
-            if (filter.ToDate is { } upper) { to = Math.Min(to, MonthIndex(upper) - series.DateMonthOffset); }
-            from = Math.Max(0, from);
-            to = Math.Min(119987, to);
-            from = Math.Max(from, first);
-            if (series.EndMonth is { } end) { to = Math.Min(to, MonthIndex(end)); }
-            for (var index = from; index <= to; index++)
-            {
-                var period = new DateOnly(index / 12 + 1, index % 12 + 1, 1);
-                if (existing.Contains((series.ExternalId, period)) || series.ExcludedMonths.Contains(period)) { continue; }
-                var dateIndex = index + series.DateMonthOffset;
-                if (dateIndex is < 0 or >= 119988) { continue; }
-                var date = OccurrenceDate(new DateOnly(dateIndex / 12 + 1, dateIndex % 12 + 1, 1), series.Day);
-                var suggestion = await calendar.CalculateAsync(date, series.CardExternalId, cancellationToken);
-                if (suggestion.Month is not { } accountingMonth)
-                {
-                    if (series.CardExternalId is not null && period.Year == 9999 && period.Month == 12) { continue; }
-                    return new(0, 0, suggestion.Error);
-                }
-                var shifted = MonthIndex(accountingMonth.FirstDay) + series.AccountingMonthOffset;
-                if (shifted is < 0 or >= 119988) { continue; }
-                accountingMonth = new AccountingMonth(shifted / 12 + 1, shifted % 12 + 1);
-                if (filter.Month is { } requested && accountingMonth != requested) { continue; }
-                if (series.CardExternalId is { } card)
-                {
-                    var conflict = await invoices.RequireRecurringAsync(card, accountingMonth, series.CreatedAt, cancellationToken);
-                    if (conflict is not null) { protectedCount++; continue; }
-                }
-                var entry = new TransactionEntry();
-                var error = entry.Update(date, accountingMonth, series.MerchantExternalId, series.SubcategoryExternalId, series.AccountExternalId, series.Kind, series.Amount, series.Details);
-                error ??= entry.SetReimbursement(series.ReimbursementPersonExternalId, series.ReimbursementPercent);
-                if (error is not null) { return new(0, 0, error); }
-                if (series.CardExternalId is { } cardId) { entry.SetCard(cardId, series.CardLastDigitsExternalId); entry.SetEffective(date, clock.GetUtcNow()); }
-                else { entry.SetPending(); }
-                entry.SetRecurring(series.ExternalId, period);
-                generated.Add(entry);
-                existing.Add((series.ExternalId, period));
-            }
-        }
-        await store.AddOccurrencesAsync(generated, cancellationToken);
-        return new(generated.Count, protectedCount);
+        var existing = RecurringOccurrencePlanner.ExistingOccurrences(await store.GetAsync(cancellationToken));
+        var plan = await new RecurringOccurrencePlanner(calendar, clock).PlanAsync(definitions, existing, filter, invoices.RequireRecurringAsync, cancellationToken);
+        if (plan.Error is not null) { return new(0, 0, plan.Error); }
+        await store.AddOccurrencesAsync(plan.Entries, cancellationToken);
+        return new(plan.Entries.Count, plan.ProtectedCount);
     }
 
-    private static DateOnly FirstDay(DateOnly date) => new(date.Year, date.Month, 1);
-    private static int MonthIndex(DateOnly date) => (date.Year - 1) * 12 + date.Month - 1;
+    internal static DateOnly FirstDay(DateOnly date) => new(date.Year, date.Month, 1);
+    internal static int MonthIndex(DateOnly date) => (date.Year - 1) * 12 + date.Month - 1;
 }

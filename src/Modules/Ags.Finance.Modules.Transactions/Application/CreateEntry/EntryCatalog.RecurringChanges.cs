@@ -121,7 +121,7 @@ internal sealed partial class EntryCatalog
         return new(externalId, null);
     }
 
-    private static DateOnly OccurrenceDate(DateOnly period, int day) => new(period.Year, period.Month, Math.Min(day, DateTime.DaysInMonth(period.Year, period.Month)));
+    internal static DateOnly OccurrenceDate(DateOnly period, int day) => new(period.Year, period.Month, Math.Min(day, DateTime.DaysInMonth(period.Year, period.Month)));
 
     private static CreateEntryRequest ChangedRecurringRequest(CreateEntryRequest request, CreateEntryRequest baseline, CreateEntryRequest original) => original with
     {
