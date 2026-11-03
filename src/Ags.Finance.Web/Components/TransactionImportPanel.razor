@@ -24,8 +24,8 @@
         {
             <table>
                 <caption class="visually-hidden">Problemas encontrados nos arquivos</caption>
-                <thead><tr><th scope="col">Linha</th><th scope="col">Coluna</th><th scope="col">Problema</th></tr></thead>
-                <tbody>@foreach (var issue in report.Issues.Take(200)) { <tr><td class="numeric">@(issue.Line == 0 ? "-" : issue.Line.ToString())</td><td>@issue.Field</td><td>@issue.Message</td></tr> }</tbody>
+                <thead><tr><th scope="col">Arquivo</th><th scope="col">Linha</th><th scope="col">Coluna</th><th scope="col">Problema</th></tr></thead>
+                <tbody>@foreach (var issue in report.Issues.Take(200)) { <tr><td>@FileOf(issue)</td><td class="numeric">@(issue.Line == 0 ? "-" : issue.Line.ToString())</td><td>@issue.Field</td><td>@issue.Message</td></tr> }</tbody>
             </table>
             @if (report.Issues.Count > 200) { <p>Mostrando os 200 primeiros problemas.</p> }
         }
@@ -40,14 +40,19 @@
 @code {
     private const long MaxBytes = 10 * 1024 * 1024;
     private byte[]? _transactions;
+    private string _transactionsName = string.Empty;
+    private string _seriesName = string.Empty;
     private byte[]? _series;
     private TransactionImportReport? _report;
     private string? _message;
     private bool _busy;
 
-    private async Task TransactionsSelectedAsync(InputFileChangeEventArgs args) { _transactions = await ReadAsync(args); _report = null; }
+    private async Task TransactionsSelectedAsync(InputFileChangeEventArgs args) { _transactionsName = args.File.Name; _transactions = await ReadAsync(args); _report = null; }
 
-    private async Task SeriesSelectedAsync(InputFileChangeEventArgs args) { _series = await ReadAsync(args); _report = null; }
+    private async Task SeriesSelectedAsync(InputFileChangeEventArgs args) { _seriesName = args.File.Name; _series = await ReadAsync(args); _report = null; }
+
+    // O relatório não diz de qual arquivo veio cada problema: com os dois enviados, a linha cita ambos.
+    private string FileOf(ImportIssue issue) => _series is null ? _transactionsName : $"{_transactionsName} ou {_seriesName}";
 
     private async Task<byte[]?> ReadAsync(InputFileChangeEventArgs args)
     {

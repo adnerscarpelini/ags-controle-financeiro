@@ -21,6 +21,8 @@ public sealed partial class LayoutPagesTests : IDisposable
         { "relatorios/visao-19-meses", "Relatórios: visão de 19 meses" },
         { "cadastros/categorias", "Categorias" },
         { "cadastros/bancos", "Bancos" },
+        { "backups", "Backup e restauração" },
+        { "arquivos-csv", "Arquivos CSV" },
         { "configuracoes", "Configurações" },
     };
 

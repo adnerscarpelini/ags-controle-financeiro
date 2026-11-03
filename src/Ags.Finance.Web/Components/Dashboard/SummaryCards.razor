@@ -3,21 +3,18 @@
 @using Ags.Finance.SharedKernel
 @inject IMonthlySummaries Summaries
 
-<section class="panel" aria-labelledby="summary-title">
-    <h2 id="summary-title">Resumo de @Month</h2>
+<section class="dashboard-section" aria-labelledby="summary-title">
+    <h2 id="summary-title" class="section-title">Resumo de @MonthPicker.Label(Month)</h2>
     @if (_summary is { } summary)
     {
-        <dl class="metric-grid">
-            <div class="metric"><dt>Receitas do mês</dt><dd class="numeric entry-income">@summary.Income</dd></div>
-            <div class="metric"><dt>Despesas do mês</dt><dd class="numeric entry-expense">@Negative(summary.Expenses)</dd></div>
-            <div class="metric"><dt>Saldo do orçamento mensal</dt><dd class="numeric @(summary.Balance.IsNegative ? "entry-expense" : "entry-income")">@summary.Balance</dd>
-                <small>Receitas menos despesas lançadas no mês de referência. Não é o saldo efetivo das contas.</small></div>
-            <div class="metric"><dt>% guardado</dt><dd class="numeric">@(summary.SavedPercent is { } percent ? percent.ToString("0.##", CultureInfo.GetCultureInfo("pt-BR")) + "%" : "-")</dd>
-                <small>Saldo ÷ receitas</small></div>
-            <div class="metric"><dt>Despesas do mês anterior</dt><dd class="numeric entry-expense">@Negative(summary.PreviousMonthExpenses)</dd></div>
-            <div class="metric"><dt>Média mensal de despesas no ano</dt><dd class="numeric entry-expense">@Negative(summary.YearAverageExpenses)</dd>
-                <small>@summary.MonthsWithExpenses @(summary.MonthsWithExpenses == 1 ? "mês" : "meses") com lançamentos até @Month</small></div>
-        </dl>
+        <div class="stat-cards">
+            <StatCard Icon="@Icons.Material.Outlined.ArrowUpward" Tone="income" Label="Receitas do mês" Help="Receitas com mês de referência no mês escolhido." Value="@summary.Income.ToString()" Testid="income" />
+            <StatCard Icon="@Icons.Material.Outlined.ArrowDownward" Tone="expense" Label="Despesas do mês" Help="Despesas com mês de referência no mês escolhido. No cartão, contam no mês da fatura." Value="@Negative(summary.Expenses).ToString()" Testid="expenses" />
+            <StatCard Icon="@Icons.Material.Outlined.Balance" Label="Saldo do orçamento mensal" Help="Receitas menos despesas lançadas no mês de referência. Não é o saldo efetivo das contas." Value="@summary.Balance.ToString()" Testid="balance" />
+            <StatCard Icon="@Icons.Material.Outlined.Savings" Label="% guardado" Help="Saldo dividido pelas receitas." Value="@(summary.SavedPercent is { } percent ? percent.ToString("0.##", CultureInfo.GetCultureInfo("pt-BR")) + "%" : "-")" Testid="saved" />
+            <StatCard Icon="@Icons.Material.Outlined.History" Tone="expense" Label="Despesas do mês anterior" Value="@Negative(summary.PreviousMonthExpenses).ToString()" Testid="previous" />
+            <StatCard Icon="@Icons.Material.Outlined.Timeline" Tone="expense" Label="Média mensal de despesas no ano" Help="@($"Considera {summary.MonthsWithExpenses} {(summary.MonthsWithExpenses == 1 ? "mês" : "meses")} com lançamentos até {Month}.")" Value="@Negative(summary.YearAverageExpenses).ToString()" Testid="average" />
+        </div>
     }
 </section>
 

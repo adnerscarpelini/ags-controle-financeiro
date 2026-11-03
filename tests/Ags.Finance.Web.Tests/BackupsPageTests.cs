@@ -9,9 +9,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Ags.Finance.Web.Tests;
 
-public sealed class BackupsPageTests : IAsyncLifetime, IDisposable
+public sealed class BackupsPageTests : IAsyncLifetime
 {
-    private readonly BunitContext _context = new();
+    private readonly BunitContext _context = new BunitContext().UseAppUi();
     private readonly string _root = Path.Combine(Path.GetTempPath(), "ags-finance-backup-page-" + Guid.NewGuid().ToString("N"));
     private readonly FakeBackupTools _tools = new();
     private PostgresTestDatabase? _database;
@@ -23,14 +23,10 @@ public sealed class BackupsPageTests : IAsyncLifetime, IDisposable
         _tools.ClientVersion = await _database.ScalarAsync("SHOW server_version");
     }
 
-    public void Dispose()
-    {
-        _context.Dispose();
-    }
 
     public async Task DisposeAsync()
     {
-        _context.Dispose();
+        await _context.DisposeAsync();
         if (_database is not null)
         {
             await _database.DisposeAsync();
@@ -50,7 +46,7 @@ public sealed class BackupsPageTests : IAsyncLifetime, IDisposable
         var page = _context.Render<Backups>();
 
         Assert.Contains("Backup:Directory", page.Markup, StringComparison.Ordinal);
-        Assert.True(page.Find("button").HasAttribute("disabled"));
+        Assert.True(page.Find("[data-create-backup]").HasAttribute("disabled"));
     }
 
     [Fact]
@@ -60,11 +56,11 @@ public sealed class BackupsPageTests : IAsyncLifetime, IDisposable
         var page = _context.Render<Backups>();
         Assert.Contains("Nenhum backup encontrado", page.Markup, StringComparison.Ordinal);
 
-        await page.InvokeAsync(() => page.Find("button").Click());
+        await page.Find("[data-create-backup]").ClickAsync(new());
 
         page.WaitForAssertion(() => Assert.Contains("Backup concluído", page.Find("[data-testid=backup-message]").TextContent, StringComparison.Ordinal));
         Assert.Single(service.List());
-        Assert.Contains("manual", page.Find(".catalog-list").TextContent, StringComparison.Ordinal);
+        Assert.Contains("manual", page.Find(".data-table").TextContent, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -74,7 +70,7 @@ public sealed class BackupsPageTests : IAsyncLifetime, IDisposable
         _tools.DumpFails = true;
         var page = _context.Render<Backups>();
 
-        await page.InvokeAsync(() => page.Find("button").Click());
+        await page.Find("[data-create-backup]").ClickAsync(new());
 
         page.WaitForAssertion(() => Assert.Contains("O backup falhou", page.Find("[data-testid=backup-message]").TextContent, StringComparison.Ordinal));
         Assert.Contains("Nenhum backup encontrado", page.Markup, StringComparison.Ordinal);
@@ -87,12 +83,13 @@ public sealed class BackupsPageTests : IAsyncLifetime, IDisposable
         var package = (await service.CreateAsync(BackupService.KindManual, CancellationToken.None)).Package!;
         var page = _context.Render<Backups>();
 
-        await page.InvokeAsync(() => page.Find(".catalog-list button").Click());
+        await page.Find("[data-restore]").ClickAsync(new());
 
-        var confirm = page.FindAll("[role=alertdialog] button")[0];
-        Assert.True(confirm.HasAttribute("disabled"));
+        Assert.Contains("em manutenção", page.Find("[role=alertdialog]").TextContent, StringComparison.Ordinal);
+        Assert.Contains("substitui todos os dados atuais", page.Find("[role=alertdialog]").TextContent, StringComparison.Ordinal);
+        Assert.True(page.Find("[data-confirm-restore]").HasAttribute("disabled"));
         page.Find("#restore-confirmation").Input(package.Name);
-        Assert.False(page.FindAll("[role=alertdialog] button")[0].HasAttribute("disabled"));
+        Assert.False(page.Find("[data-confirm-restore]").HasAttribute("disabled"));
     }
 
     private BackupService Register(string? directory)

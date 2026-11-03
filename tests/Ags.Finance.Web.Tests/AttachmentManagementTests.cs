@@ -96,16 +96,18 @@ public sealed class AttachmentManagementTests
             command.Parameters.AddWithValue("id", row.Owner.ExternalId);
             await command.ExecuteNonQueryAsync();
         }
-        await using var context = new BunitContext();
+        await using var context = new BunitContext().UseAppUi();
         context.Services.AddSingleton(catalog).AddSingleton(scope.ServiceProvider.GetRequiredService<IEntryAttachmentCatalog>())
             .AddSingleton(scope.ServiceProvider.GetRequiredService<IInvoiceAttachmentCatalog>()).AddSingleton(scope.ServiceProvider.GetRequiredService<AttachmentInventory>())
             .AddSingleton(TimeProvider.System);
         var page = context.Render<AttachmentPage>();
-        await page.InvokeAsync(() => page.Find("input[type=checkbox]").Change(true));
-        page.WaitForAssertion(() => Assert.Contains(page.FindAll("button"), x => x.TextContent == "Restaurar"));
-        await page.FindAll("button").Single(x => x.TextContent == "Restaurar").ClickAsync(new());
+        await page.Find("[data-attachments-tab='trash']").ClickAsync(new());
+        page.WaitForAssertion(() => Assert.NotEmpty(page.FindAll("[data-action=restore]")));
+        var deleted = Assert.Single(await catalog.ListAsync()).DeletedAt!.Value;
+        Assert.Equal(deleted.ToLocalTime().AddDays(30).ToString("dd/MM/yyyy", System.Globalization.CultureInfo.CurrentCulture), page.Find("[data-trash-removal]").TextContent);
+        await page.Find("[data-action=restore]").ClickAsync(new());
         Assert.Equal(deleteOwner, Assert.Single(await catalog.ListAsync()).DeletedAt is not null);
-        if (deleteOwner) { Assert.Contains("dono", page.Find("[role=status]").TextContent, StringComparison.Ordinal); }
+        if (deleteOwner) { Assert.Contains("dono", page.Find("[data-attachments-error]").TextContent, StringComparison.Ordinal); }
     }
     [Fact]
     public async Task ZipUsesFinancialDatesExcludesTrashAndEveryChecksumIncludingTheIndexMatches()
