@@ -89,3 +89,5 @@ A previsão consolidada de caixa da #58 continua pendente; efetivação e consul
 
 - [Armazenamento de anexos](architecture/attachments-storage.md)
 - [Documentos anexados](attachments/document-storage.md)
+
+- [Documentos de lançamentos](attachments/entry-documents.md)

@@ -56,3 +56,7 @@ abatimentos e o registro de antecipação em uma única operação financeira.
 Não cria referência inversa nem FK para as entidades de Transactions. A trilha de
 confirmação pertence a Invoices e guarda identificadores públicos históricos.
 Falhas posteriores ao movimento e ao desconto revertem ambos os módulos.
+
+## Documentos de lançamentos (#74)
+
+Transactions valida o dono e grava a remoção lógica dos anexos na mesma operação da exclusão financeira. Na compra parcelada, só a última exclusão move os documentos da compra para a lixeira. Anexar não chama o guard de edição de fatura: não muda valores. O upload é posterior à gravação do lançamento ou baixa, com compensação local de arquivo em caso de falha dos metadados. Uma falha de envio nunca desfaz o lançamento salvo.

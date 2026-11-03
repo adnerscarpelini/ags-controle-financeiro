@@ -1,0 +1,18 @@
+@using Ags.Finance.Modules.Attachments.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@inject IEntryAttachmentCatalog Catalog
+
+@if (_owner is { } owner)
+{
+    <AttachmentEditor Owner="owner" Upload="UploadAsync" Trash="TrashAsync" Changed="Changed" />
+}
+else { <p role="status">Lançamento não encontrado.</p> }
+
+@code {
+    [Parameter, EditorRequired] public Guid EntryExternalId { get; set; }
+    [Parameter] public EventCallback Changed { get; set; }
+    private AttachmentOwner? _owner;
+    protected override async Task OnParametersSetAsync() => _owner = await Catalog.FindOwnerAsync(EntryExternalId);
+    private Task<AttachmentResult> UploadAsync(AttachmentKind kind, string fileName, Stream content) => Catalog.UploadAsync(EntryExternalId, kind, fileName, content);
+    private Task<AttachmentResult> TrashAsync(Guid id) => Catalog.TrashAsync(EntryExternalId, id);
+}

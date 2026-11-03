@@ -44,6 +44,7 @@ internal sealed partial class EntryCatalog
             else if (scope == RecurringChangeScope.ThisAndFollowing) { series.StopBefore(period); }
             else { series.Deactivate(); }
             await store.SaveRecurringChangesAsync(series, null, [], affected, cancellationToken);
+            await TrashDeletedOwnersAsync(affected, all, cancellationToken);
             return new(externalId, null);
         }
         var request = change.Entry;

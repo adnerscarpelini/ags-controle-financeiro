@@ -4,6 +4,7 @@
 @using Ags.Finance.Modules.Preferences.Contracts
 @using Ags.Finance.Modules.Transactions.Contracts
 @using Ags.Finance.SharedKernel
+@inject IEntryAttachmentCatalog EntryDocuments
 @inject IEntryCatalog Entries
 @inject ISavedFilterCatalog SavedFilterCatalog
 @inject IAccountCatalog Accounts
@@ -42,6 +43,7 @@
         <button class="button" @onclick="() => _deleteEntry = null" disabled="@_busy">Cancelar</button>
     </section>
 }
+@if (_attachmentEntry is { } attachmentEntry) { <EntryAttachments @key="attachmentEntry" EntryExternalId="attachmentEntry" Changed="ReloadAttachmentCountsAsync" /> }
 <section class="panel">
     <h2>@(_editingId is null ? "Novo lançamento" : "Editar lançamento")</h2>
     <p>Ctrl+N inicia um lançamento. Enter confirma. Informe o valor sem sinal.</p>
@@ -100,8 +102,10 @@
                 <div class="field"><label for="entry-repeat-until">Até o mês da ocorrência (vazio para sem fim)</label><input id="entry-repeat-until" type="month" value="@_repeatUntil" @onchange="args => _repeatUntil = args.Value?.ToString() ?? string.Empty" /></div>
             }
         }
-        <button class="button" disabled="@_busy">Salvar lançamento</button>
-        <button class="button" type="button" data-new-entry @onclick="Reset" disabled="@_busy">Novo / limpar</button>
+        <AttachmentPicker @ref="_attachmentPicker" />
+        @if (_savedAttachmentEntry is not null) { <button class="button" type="button" @onclick="RetryAttachmentsAsync" disabled="@_busy">Reenviar anexos do lançamento salvo</button> }
+        <button class="button" disabled="@(_busy || _savedAttachmentEntry is not null)">Salvar lançamento</button>
+        <button class="button" type="button" data-new-entry @onclick="StartNew" disabled="@_busy">Novo / limpar</button>
     </form>
 </section>
 <section class="panel">
@@ -167,6 +171,7 @@
                     else
                     {
                     <button class="button" @onclick="() => _selectedId = entry.ExternalId">@(_selectedId == entry.ExternalId ? "Selecionado" : "Selecionar")</button>
+                        <button class="button" @onclick="() => _attachmentEntry = entry.ExternalId">📎 Anexos (@AttachmentCount(entry))</button>
                         <button class="button" @onclick="() => EditEntryAsync(entry)" disabled="@_busy">Editar</button>
                         <button class="button" @onclick="() => AskDelete(entry)" disabled="@_busy">Excluir</button>
                     @if (entry.InstallmentPurchaseExternalId is not null) { <button class="button" @onclick="() => _anticipating = entry" disabled="@_busy">Antecipar parcelas</button> }
@@ -192,6 +197,22 @@
 </section>
 
 @code {
+    private Guid? _attachmentEntry;
+    private Guid? _savedAttachmentEntry;
+    private AttachmentPicker? _attachmentPicker;
+    private IReadOnlyList<Ags.Finance.Modules.Attachments.Contracts.AttachmentDetails> _attachmentRows = [];
+    private int AttachmentCount(EntryDetails entry) => _attachmentRows.Count(x => x.DeletedAt is null && x.Owner.ExternalId == (entry.InstallmentPurchaseExternalId ?? entry.ExternalId));
+    private async Task ReloadAttachmentCountsAsync() => _attachmentRows = await EntryDocuments.ListAsync();
+    private void StartNew() { _savedAttachmentEntry = null; _attachmentPicker?.Clear(); Reset(); }
+    private async Task RetryAttachmentsAsync()
+    {
+        if (_savedAttachmentEntry is { } id && _attachmentPicker is not null)
+        {
+            var uploaded = await _attachmentPicker.SendAsync((kind, name, content) => EntryDocuments.UploadAsync(id, kind, name, content));
+            _message = uploaded ? "Documentos enviados ao lançamento salvo." : "O lançamento está salvo. Tente enviar os documentos novamente, sem salvar outro lançamento.";
+            if (uploaded) { _savedAttachmentEntry = null; }
+        }
+    }
     private IReadOnlyList<AccountDetails> _accounts = [];
     private IReadOnlyList<CreditCardDetails> _cards = [];
     private IReadOnlyList<CardLastDigitsDetails> _finals = [];
@@ -283,7 +304,7 @@
     }
     private async Task SaveAsync()
     {
-        if (_busy) { return; }
+        if (_busy || _savedAttachmentEntry is not null) { return; }
         if (_editingRecurring && _recurringScope is null) { _message = "Escolha o alcance da alteração."; return; }
         if (_editingInstallment && _scope is null) { _message = "Escolha o alcance da alteração."; return; }
         if (!DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var monthDate))
@@ -310,7 +331,14 @@
                 : _repeat ? await Entries.CreateRecurringAsync(new(request, until))
                 : _installments == 1 ? await Entries.CreateAsync(request) : await Entries.CreateInstallmentsAsync(request, _installments);
             _message = result.Error ?? "Lançamento salvo.";
-            if (result.Succeeded) { Reset(); await ReloadQueryAsync(); }
+            if (result.Succeeded)
+            {
+                var savedId = result.ExternalId!.Value;
+                if (_editingId is null && _repeat)
+                { savedId = (await Entries.GetAsync()).Where(x => x.RecurringEntryExternalId == savedId).OrderBy(x => x.OccurrenceMonth).First().ExternalId; }
+                if (_attachmentPicker?.HasFiles == true) { _savedAttachmentEntry = savedId; await RetryAttachmentsAsync(); }
+                Reset(); await ReloadQueryAsync();
+            }
         }
         finally { _busy = false; }
     }

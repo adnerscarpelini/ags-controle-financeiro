@@ -1,5 +1,6 @@
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Accounts.Contracts;
+using Ags.Finance.Modules.Attachments;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
 using Ags.Finance.Tests.Support;
@@ -9,6 +10,7 @@ namespace Ags.Finance.Modules.Transactions.Tests;
 
 public sealed partial class EntryTests : IAsyncLifetime
 {
+    private readonly string _attachmentsDirectory = Path.Combine(Path.GetTempPath(), "ags-entry-attachments-" + Guid.NewGuid().ToString("N"));
     private PostgresTestDatabase? _database;
     private ServiceProvider? _provider;
     private ServiceProvider Provider => _provider ?? throw new InvalidOperationException();
@@ -21,7 +23,9 @@ public sealed partial class EntryTests : IAsyncLifetime
     public async Task InitializeAsync()
     {
         _database = await PostgresTestDatabase.CreateAsync();
-        _provider = new ServiceCollection().AddSingleton<TimeProvider>(_clock).AddAccountsModule(_database.ConnectionString).AddTransactionsModule(_database.ConnectionString).BuildServiceProvider();
+        Directory.CreateDirectory(_attachmentsDirectory);
+        _provider = new ServiceCollection().AddSingleton<TimeProvider>(_clock).AddAttachmentsModule(_database.ConnectionString, new(_attachmentsDirectory)).AddAccountsModule(_database.ConnectionString).AddTransactionsModule(_database.ConnectionString).BuildServiceProvider();
+        await Provider.MigrateAttachmentsModuleAsync();
         await Provider.MigrateAccountsModuleAsync();
         await Provider.MigrateTransactionsModuleAsync();
         var accounts = Provider.GetRequiredService<IAccountCatalog>();
@@ -40,6 +44,7 @@ public sealed partial class EntryTests : IAsyncLifetime
     {
         if (_provider is not null) { await _provider.DisposeAsync(); }
         if (_database is not null) { await _database.DisposeAsync(); }
+        if (Directory.Exists(_attachmentsDirectory)) { Directory.Delete(_attachmentsDirectory, true); }
     }
 
     private CreateEntryRequest Request() => new(new DateOnly(2026, 10, 5), _merchantId, _subcategoryId, _accountId, new Money(150));

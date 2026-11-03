@@ -1,0 +1,47 @@
+@using Ags.Finance.Modules.Attachments.Contracts
+@inject IAttachmentCatalog Catalog
+
+<section class="panel attachment-controls" aria-label="Documentos anexados">
+    <h2>Anexos · 📎 @_rows.Count</h2>
+    @if (_error is not null) { <p role="status">@_error</p> }
+    @if (Kinds is { } kinds) { <AttachmentPicker @ref="_picker" Kinds="kinds" /> }
+    else { <AttachmentPicker @ref="_picker" /> }
+    <button class="button" type="button" @onclick="UploadAsync" disabled="@_busy">Enviar documentos / tentar novamente</button>
+    <ul class="catalog-list">
+        @foreach (var row in _rows)
+        {
+            <li><span>@AttachmentPicker.Label(row.Kind) · @row.OriginalFileName · @((row.SizeBytes + 1023) / 1024) KiB</span>
+                <a class="button" href="@($"/attachments/{row.ExternalId}")" target="_blank" rel="noopener">Abrir</a>
+                <a class="button" href="@($"/attachments/{row.ExternalId}?download=true")">Baixar</a>
+                <button class="button" type="button" @onclick="() => TrashAsync(row.ExternalId)" disabled="@_busy">Mover para lixeira</button></li>
+        }
+    </ul>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public AttachmentOwner Owner { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<AttachmentKind, string, Stream, Task<AttachmentResult>> Upload { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<Guid, Task<AttachmentResult>> Trash { get; set; } = default!;
+    [Parameter] public EventCallback Changed { get; set; }
+    [Parameter] public IReadOnlyList<AttachmentKind>? Kinds { get; set; }
+    private AttachmentPicker? _picker;
+    private IReadOnlyList<AttachmentDetails> _rows = [];
+    private bool _busy;
+    private string? _error;
+    protected override Task OnParametersSetAsync() => ReloadAsync();
+    private async Task ReloadAsync() => _rows = (await Catalog.ListAsync()).Where(x => x.Owner == Owner && x.DeletedAt is null).ToList();
+    private async Task UploadAsync()
+    {
+        if (_busy || _picker is null) { return; }
+        _busy = true;
+        try { await _picker.SendAsync(Upload); await ReloadAsync(); await Changed.InvokeAsync(); }
+        finally { _busy = false; }
+    }
+    private async Task TrashAsync(Guid id)
+    {
+        if (_busy) { return; }
+        _busy = true;
+        try { _error = (await Trash(id)).Error; await ReloadAsync(); await Changed.InvokeAsync(); }
+        finally { _busy = false; }
+    }
+}

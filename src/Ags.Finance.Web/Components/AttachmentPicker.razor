@@ -1,0 +1,54 @@
+@using Ags.Finance.Modules.Attachments.Contracts
+
+<div class="attachment-controls">
+    <div class="field"><label for="@(_id + "-kind")">Tipo do documento</label><select id="@(_id + "-kind")" @bind="_kind" disabled="@_busy">
+        @foreach (var kind in Kinds) { <option value="@kind">@Label(kind)</option> }
+    </select></div>
+    <div class="field"><label for="@_id">Anexar documentos (opcional)</label><InputFile id="@_id" OnChange="Selected" multiple accept="application/pdf,image/jpeg,image/png,image/webp" disabled="@_busy" /></div>
+    <p>PDF, JPEG, PNG ou WebP, até 20 MB por arquivo. O seletor do aparelho pode oferecer a câmera.</p>
+    @if (_files.Count > 0) { <p>@_files.Count documento(s) aguardando envio.</p> }
+    @if (_error is not null) { <p role="status">@_error</p> }
+</div>
+
+@code {
+    private static readonly AttachmentKind[] s_entryKinds = [AttachmentKind.Bill, AttachmentKind.Receipt, AttachmentKind.Other];
+    [Parameter] public IReadOnlyList<AttachmentKind> Kinds { get; set; } = s_entryKinds;
+    private readonly string _id = "attachment-" + Guid.NewGuid().ToString("N");
+    private IReadOnlyList<IBrowserFile> _files = [];
+    private AttachmentKind _kind;
+    private bool _busy;
+    private string? _error;
+    public void Clear() { _files = []; _error = null; }
+    public bool HasFiles => _files.Count > 0;
+    protected override void OnInitialized() => _kind = Kinds[0];
+    private void Selected(InputFileChangeEventArgs args)
+    {
+        _error = null;
+        try { _files = args.GetMultipleFiles(int.MaxValue); }
+        catch (InvalidOperationException) { _error = "Não foi possível selecionar os arquivos."; }
+    }
+    public async Task<bool> SendAsync(Func<AttachmentKind, string, Stream, Task<AttachmentResult>> upload)
+    {
+        if (_busy) { return false; }
+        _busy = true; _error = null;
+        var failed = new List<IBrowserFile>();
+        try
+        {
+            foreach (var file in _files)
+            {
+                try
+                {
+                    await using var stream = file.OpenReadStream(20 * 1024 * 1024);
+                    var result = await upload(_kind, file.Name, stream);
+                    if (!result.Succeeded) { failed.Add(file); _error = result.Error; }
+                }
+                catch (Exception exception) when (exception is IOException or InvalidOperationException)
+                { failed.Add(file); _error = "Não foi possível enviar o documento. Selecione-o novamente ou tente de novo."; }
+            }
+            _files = failed;
+            return failed.Count == 0;
+        }
+        finally { _busy = false; await InvokeAsync(StateHasChanged); }
+    }
+    public static string Label(AttachmentKind kind) => kind switch { AttachmentKind.Bill => "Conta/Boleto", AttachmentKind.Receipt => "Comprovante", AttachmentKind.Invoice => "Fatura", _ => "Outro" };
+}

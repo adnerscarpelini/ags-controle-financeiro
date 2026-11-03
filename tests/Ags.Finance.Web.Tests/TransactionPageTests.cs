@@ -90,7 +90,7 @@ public sealed class TransactionPageTests
         await page.FindAll("[aria-label='Antecipar parcelas'] button").Single(x => x.TextContent == "Confirmar antecipação").ClickAsync(new());
         Assert.Equal(new AccountingMonth(2026, 9), (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.InstallmentNumber == 3).Month);
         var firstRow = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 1/3", StringComparison.Ordinal));
-        await firstRow.QuerySelectorAll("button")[1].ClickAsync(new());
+        await firstRow.QuerySelectorAll("button").Single(x => x.TextContent == "Editar").ClickAsync(new());
         Assert.Equal("2026-12", page.Find("#entry-month").GetAttribute("value"));
         page.Find("#entry-amount").Change("400");
         await page.Find("form").SubmitAsync(EventArgs.Empty);
@@ -99,11 +99,11 @@ public sealed class TransactionPageTests
         await page.Find("form").SubmitAsync(EventArgs.Empty);
         Assert.Equal(new Money(-400), (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.InstallmentNumber == 1).Amount);
         var secondRow = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 2/3", StringComparison.Ordinal));
-        await secondRow.QuerySelectorAll("button")[2].ClickAsync(new());
+        await secondRow.QuerySelectorAll("button").Single(x => x.TextContent == "Excluir").ClickAsync(new());
         await page.FindAll("[role=alertdialog] button")[1].ClickAsync(new());
         Assert.Equal(3, (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Count(x => x.InstallmentNumber is not null));
         secondRow = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 2/3", StringComparison.Ordinal));
-        await secondRow.QuerySelectorAll("button")[2].ClickAsync(new());
+        await secondRow.QuerySelectorAll("button").Single(x => x.TextContent == "Excluir").ClickAsync(new());
         page.Find("#delete-scope").Change(EntryChangeScope.ThisAndFollowing.ToString());
         await page.Find("[role=alertdialog] button").ClickAsync(new());
         Assert.Single((await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()), x => x.InstallmentNumber is not null);
