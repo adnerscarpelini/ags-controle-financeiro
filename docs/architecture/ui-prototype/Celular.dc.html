@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>AGS Finanças no celular</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.ph,.ph *{box-sizing:border-box}
+.ph{--bg:#0E1311;--surface:#151C19;--raised:#1C2521;--border:#27332E;--text:#E6EDE9;--muted:#93A39B;--accent:#10B981;--on-accent:#04221A;--income:#34D399;--expense:#F87171;--warning:#FBBF24;width:390px;height:844px;position:relative;overflow:hidden;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.45;display:flex;flex-direction:column}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+.ic{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.ic-s{width:16px;height:16px}
+.bar{height:60px;display:flex;align-items:center;gap:8px;padding:0 8px;border-bottom:1px solid var(--border);flex:none}
+.iconbtn{width:44px;height:44px;border:0;border-radius:10px;background:transparent;display:inline-flex;align-items:center;justify-content:center;flex:none;position:relative}
+.scrollarea{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
+.lb{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:2px}
+.vl{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+.month{display:flex;align-items:center;justify-content:space-between}
+.item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;align-items:center;gap:12px;min-height:72px}
+.grow{flex:1;min-width:0}
+.title{font-weight:500}
+.sub{font-size:12px;color:var(--muted)}
+.val{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.c-in{color:var(--income)}.c-ex{color:var(--expense)}.c-wa{color:var(--warning)}.c-ac{color:var(--accent)}
+.fab{position:absolute;right:16px;bottom:20px;height:56px;padding:0 20px;border:0;border-radius:28px;background:var(--accent);color:var(--on-accent);font-weight:700;display:flex;align-items:center;gap:8px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.55);border:0;z-index:5}
+.drawer{position:absolute;top:0;bottom:0;left:0;width:290px;background:var(--surface);border-right:1px solid var(--border);padding:16px 12px;z-index:6;display:flex;flex-direction:column;gap:2px;overflow:auto}
+.nav-btn{width:100%;min-height:44px;display:flex;align-items:center;gap:12px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-weight:500;text-align:left;text-decoration:none}
+.nav-btn.on{background:var(--raised);color:var(--income);font-weight:600}
+.sub-btn{margin-left:22px;width:calc(100% - 22px);border-left:1px solid var(--border);border-radius:0 8px 8px 0}
+.sheet{position:absolute;inset:0;background:var(--surface);z-index:8;display:flex;flex-direction:column}
+.form{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+.amount{border:0;border-bottom:2px solid var(--border);background:transparent;font-size:30px;font-weight:600;width:100%;padding:4px 0}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label,.flabel{font-size:13px;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:4px}
+.input{min-height:44px;width:100%;padding:0 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg)}
+.row{display:flex;align-items:center;gap:10px;min-height:44px}
+.switch{width:44px;height:26px;border-radius:13px;border:0;background:var(--border);position:relative;padding:0;flex:none}
+.switch span{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff}
+.switch.on{background:var(--accent)}
+.switch.on span{left:21px}
+.quick{display:flex;gap:8px}
+.pill{min-height:40px;padding:0 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-weight:500}
+.pill.on{background:var(--raised);color:var(--text);border-color:var(--accent);font-weight:600}
+.actions{padding:12px 16px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex:none}
+.btn{flex:1;min-height:48px;border-radius:10px;border:1px solid var(--border);background:transparent;font-weight:600}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.pri:disabled{background:var(--raised);border-color:var(--border);color:var(--muted)}
+.tipbox{padding:10px 12px;border-radius:8px;background:var(--text);color:var(--bg);font-size:12px;font-weight:500}
+.tipbtn{width:28px;height:28px;border:0;padding:0;background:transparent;color:var(--muted);display:inline-flex;align-items:center;justify-content:center}
+.toast{position:absolute;left:16px;right:16px;top:12px;padding:12px;border-radius:10px;background:var(--text);color:var(--bg);font-weight:500;z-index:9}
+</style>
+</helmet>
+<div class="ph">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="p-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></symbol>
+<symbol id="p-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></symbol>
+<symbol id="p-left" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"></path></symbol>
+<symbol id="p-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></symbol>
+<symbol id="p-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"></path></symbol>
+<symbol id="p-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></symbol>
+<symbol id="p-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></symbol>
+<symbol id="p-card" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20"></path></symbol>
+<symbol id="p-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"></path></symbol>
+<symbol id="p-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.5-4.5"></path></symbol>
+</svg>
+
+<header class="bar">
+  <button type="button" class="iconbtn" aria-label="Abrir menu" onClick="{{openDrawer}}"><svg class="ic" aria-hidden="true"><use href="#p-menu"></use></svg></button>
+  <strong style="flex:1;font-size:18px">Lançamentos</strong>
+  <button type="button" class="iconbtn" aria-label="Buscar e filtrar"><svg class="ic" aria-hidden="true"><use href="#p-search"></use></svg></button>
+</header>
+
+<div class="scrollarea">
+  <div class="month">
+    <button type="button" class="iconbtn" aria-label="Mês anterior"><svg class="ic" aria-hidden="true"><use href="#p-left"></use></svg></button>
+    <strong>Novembro de 2026</strong>
+    <button type="button" class="iconbtn" aria-label="Próximo mês"><svg class="ic" aria-hidden="true"><use href="#p-right"></use></svg></button>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="lb">Saldo atual<button type="button" class="tipbtn" aria-label="Ajuda sobre saldo atual" onClick="{{toggleTip}}"><svg class="ic ic-s" aria-hidden="true"><use href="#p-help"></use></svg></button></div><div class="vl">{{current}}</div></div>
+    <div class="stat"><div class="lb">Balanço mensal</div><div class="vl">{{balance}}</div></div>
+  </div>
+  <sc-if value="{{tip}}" hint-placeholder-val="{{false}}"><div class="tipbox" role="tooltip">Soma das contas considerando só o que já foi pago ou recebido. Toque fora ou no ícone para fechar.</div></sc-if>
+  <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+    <div class="item">
+      <svg class="ic {{r.stCls}}" role="img" aria-label="{{r.stText}}"><use href="#{{r.stIcon}}"></use></svg>
+      <div class="grow"><div class="title">{{r.desc}}</div><div class="sub">{{r.dateF}} · {{r.stText}}</div></div>
+      <div><div class="val {{r.valCls}}">{{r.valF}}</div>
+      <sc-if value="{{r.canPay}}" hint-placeholder-val="{{false}}"><button type="button" class="pill" style="min-height:36px;margin-top:4px" onClick="{{r.pay}}">{{r.payLabel}}</button></sc-if></div>
+    </div>
+  </sc-for>
+  <div style="height:72px;flex:none"></div>
+</div>
+
+<button type="button" class="fab" onClick="{{openForm}}"><svg class="ic" aria-hidden="true"><use href="#p-plus"></use></svg>Novo</button>
+
+<sc-if value="{{drawer}}" hint-placeholder-val="{{false}}">
+  <button type="button" class="scrim" aria-label="Fechar menu" onClick="{{closeDrawer}}"></button>
+  <nav class="drawer" aria-label="Principal">
+    <strong style="font-size:16px;padding:8px 12px 12px">AGS Finanças</strong>
+    <button type="button" class="nav-btn" onClick="{{closeDrawer}}">Dashboard</button>
+    <button type="button" class="nav-btn on" onClick="{{closeDrawer}}">Lançamentos</button>
+    <button type="button" class="nav-btn" onClick="{{closeDrawer}}">Contas</button>
+    <button type="button" class="nav-btn" onClick="{{closeDrawer}}">Cartões</button>
+    <button type="button" class="nav-btn" onClick="{{closeDrawer}}">Planejamento</button>
+    <button type="button" class="nav-btn" onClick="{{closeDrawer}}">Relatórios</button>
+    <button type="button" class="nav-btn" onClick="{{closeDrawer}}">Reembolsos</button>
+    <button type="button" class="nav-btn" onClick="{{toggleCad}}" aria-expanded="{{cad}}">Cadastros</button>
+    <sc-if value="{{cad}}" hint-placeholder-val="{{false}}"><button type="button" class="nav-btn sub-btn" onClick="{{closeDrawer}}">Bancos</button><button type="button" class="nav-btn sub-btn" onClick="{{closeDrawer}}">Categorias</button><button type="button" class="nav-btn sub-btn" onClick="{{closeDrawer}}">Descrições</button><button type="button" class="nav-btn sub-btn" onClick="{{closeDrawer}}">Pessoas</button></sc-if>
+    <button type="button" class="nav-btn" onClick="{{closeDrawer}}">Mais opções</button>
+    <button type="button" class="nav-btn" onClick="{{closeDrawer}}">Configurações</button>
+    <div style="flex:1"></div>
+    <a class="nav-btn" href="Main.dc.html">Voltar para o computador</a>
+  </nav>
+</sc-if>
+
+<sc-if value="{{form}}" hint-placeholder-val="{{false}}">
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Nova despesa">
+    <header class="bar"><strong style="flex:1;font-size:18px;padding-left:8px">Nova despesa</strong><button type="button" class="iconbtn" aria-label="Fechar" onClick="{{closeForm}}"><svg class="ic" aria-hidden="true"><use href="#p-x"></use></svg></button></header>
+    <div class="form">
+      <div><label class="flabel" for="pa">Valor</label><input id="pa" class="amount c-ex" inputmode="decimal" value="{{amountF}}" onChange="{{setAmount}}"></div>
+      <div class="row"><span class="flabel" style="flex:1;font-size:14px">{{paidLabel}}</span><button type="button" class="switch {{paidCls}}" role="switch" aria-checked="{{paid}}" aria-label="{{paidLabel}}" onClick="{{togglePaid}}"><span></span></button></div>
+      <div class="field"><span class="flabel">Data</span><div class="quick"><button type="button" class="pill on">Hoje</button><button type="button" class="pill">Ontem</button><button type="button" class="pill">Outros</button></div></div>
+      <div class="field"><label for="pd">Descrição</label><input id="pd" class="input" placeholder="Ex.: Conta de água" value="{{desc}}" onChange="{{setDesc}}"></div>
+      <div class="field"><label for="pc">Categoria e subcategoria</label><select id="pc" class="input"><option>Alimentação › Mercado</option><option>Alimentação › Restaurante</option><option>Casa › Aluguel</option><option>Casa › Contas</option><option>Impostos › IPTU</option></select></div>
+      <div class="field"><label for="pe">Conta</label><select id="pe" class="input"><option>Bradesco</option><option>Nubank</option><option>Itaú</option></select></div>
+    </div>
+    <div class="actions"><button type="button" class="btn pri" disabled="{{invalid}}" onClick="{{save}}">Salvar</button></div>
+  </div>
+</sc-if>
+
+<sc-if value="{{toast}}" hint-placeholder-val="{{false}}"><div class="toast" role="status">{{toast}}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+function brl(c) { return 'R$ ' + (Math.abs(c) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { drawer: false, cad: false, form: false, tip: false, amount: 0, paid: true, desc: '', toast: '', items: [
+      { id: 1, desc: 'Salário', date: '03/11/2026', kind: 'inc', amt: 850000, st: 'paid' },
+      { id: 2, desc: 'Aluguel', date: '05/11/2026', kind: 'exp', amt: 220000, st: 'pending' },
+      { id: 3, desc: 'Conta de água', date: '12/11/2026', kind: 'exp', amt: 9540, st: 'pending' },
+      { id: 4, desc: 'Supermercado Exemplo', date: '02/11/2026', kind: 'exp', amt: 41235, st: 'paid' },
+      { id: 5, desc: 'IPTU (3/8)', date: '15/11/2026', kind: 'exp', amt: 21000, st: 'pending' },
+      { id: 6, desc: 'Academia Exemplo', date: '28/10/2026', kind: 'exp', amt: 12990, st: 'card' }
+    ] };
+  }
+  renderVals() {
+    var self = this, s = this.state;
+    var cur = s.items.reduce(function (a, i) { return i.st === 'paid' ? a + (i.kind === 'inc' ? i.amt : -i.amt) : a; }, 0);
+    var bal = s.items.reduce(function (a, i) { return a + (i.kind === 'inc' ? i.amt : -i.amt); }, 0);
+    var rows = s.items.map(function (i) {
+      return { desc: i.desc, dateF: i.date, valF: (i.kind === 'exp' ? '−' : '+') + brl(i.amt), valCls: i.kind === 'exp' ? 'c-ex' : 'c-in', stIcon: i.st === 'card' ? 'p-card' : i.st === 'paid' ? 'p-check' : 'p-clock', stCls: i.st === 'card' ? 'c-ac' : i.st === 'paid' ? 'c-in' : 'c-wa', stText: i.st === 'card' ? 'Cartão' : i.st === 'paid' ? (i.kind === 'inc' ? 'Recebido' : 'Pago') : 'Pendente', canPay: i.st === 'pending', payLabel: i.kind === 'inc' ? 'Receber' : 'Pagar',
+        pay: function () { self.setState({ items: s.items.map(function (x) { return x.id === i.id ? Object.assign({}, x, { st: 'paid' }) : x; }) }); self.flash('Marcado como pago.'); } };
+    });
+    return { current: (cur < 0 ? '−' : '') + brl(cur), balance: (bal < 0 ? '−' : '') + brl(bal), rows: rows, tip: s.tip, toggleTip: function () { self.setState({ tip: !s.tip }); }, drawer: s.drawer, openDrawer: function () { self.setState({ drawer: true }); }, closeDrawer: function () { self.setState({ drawer: false }); }, cad: s.cad, toggleCad: function () { self.setState({ cad: !s.cad }); }, form: s.form, openForm: function () { self.setState({ form: true, amount: 0, desc: '', paid: true }); }, closeForm: function () { self.setState({ form: false }); }, amountF: brl(s.amount), setAmount: function (e) { var d = String(e.target.value).replace(/\D/g, ''); self.setState({ amount: d ? parseInt(d, 10) : 0 }); }, paid: s.paid, paidCls: s.paid ? 'on' : '', paidLabel: s.paid ? 'Pago' : 'Não foi pago', togglePaid: function () { self.setState({ paid: !s.paid }); }, desc: s.desc, setDesc: function (e) { self.setState({ desc: e.target.value }); }, invalid: !s.amount || !s.desc.trim(), toast: s.toast,
+      save: function () { self.setState({ form: false, items: [{ id: Date.now(), desc: s.desc, date: '03/11/2026', kind: 'exp', amt: s.amount, st: s.paid ? 'paid' : 'pending' }].concat(s.items) }); self.flash('Despesa salva.'); } };
+  }
+  flash(msg) { var self = this; this.setState({ toast: msg }); clearTimeout(this._t); this._t = setTimeout(function () { self.setState({ toast: '' }); }, 2200); }
+}
+</script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 # Documentação
 
+- [Protótipo da nova interface (#95–#103)](architecture/ui-prototype.md)
 - [Consulta de pendências e baixa (#57)](transactions/pending-entries.md)
 - [Ajustes de saldo (#48)](transactions/balance-adjustments.md)
 - [Transferências e movimentos de caixa (#46)](transactions/account-transfers.md)
