@@ -33,7 +33,7 @@ tests/
   Ags.Finance.ArchitectureTests/
 ```
 
-Módulos: `Identity`, `Accounts`, `Transactions`, `Invoices`, `Reimbursements`, `Reports` e `Imports`. Responsabilidades e dependências permitidas estão em `docs/architecture/module-structure.md`.
+Módulos: `Identity`, `Accounts`, `Transactions`, `Invoices`, `Reimbursements`, `Preferences`, `Reports` e `Imports`. Responsabilidades e dependências permitidas estão em `docs/architecture/module-structure.md`.
 
 ### Regras de fronteira
 
@@ -47,7 +47,7 @@ Módulos: `Identity`, `Accounts`, `Transactions`, `Invoices`, `Reimbursements`, 
 
 ### Persistência e recuperação (decisão PostgreSQL)
 
-- Um banco PostgreSQL, com **schema, DbContext e histórico de migrations próprios por módulo** (`identity`, `accounts`, `transactions`, `invoices`, `reimbursements`), conforme [a decisão de persistência](docs/architecture/persistence-postgresql.md). A conexão vem de `ConnectionStrings__Finance` e nunca é versionada nem registrada em log.
+- Um banco PostgreSQL, com **schema, DbContext e histórico de migrations próprios por módulo** (`identity`, `accounts`, `transactions`, `invoices`, `reimbursements`, `preferences`), conforme [a decisão de persistência](docs/architecture/persistence-postgresql.md). A conexão vem de `ConnectionStrings__Finance` e nunca é versionada nem registrada em log.
 - Sem FK, JOIN ou SQL que cruze tabelas de módulos diferentes. Uma referência a outro módulo guarda o `ExternalId` dele.
 - Toda entidade com tabela própria tem `Id` (`long`, chave primária), `ExternalId` (`Guid`, gerado no domínio com `Guid.CreateVersion7()`, índice único), `CreatedAt` e `UpdatedAt` (`DateTimeOffset` UTC, vindos de `TimeProvider`, preenchidos por um interceptor do módulo).
 - Mapeamentos com `IEntityTypeConfiguration<T>` na `Infrastructure`; o domínio não tem atributos de persistência.

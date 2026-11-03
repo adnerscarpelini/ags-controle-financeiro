@@ -18,9 +18,10 @@ internal static class ArchitectureModel
         ["Identity"] = [],
         ["Accounts"] = [],
         ["Transactions"] = ["Accounts"],
-        ["Invoices"] = ["Accounts", "Transactions"],
+        ["Invoices"] = ["Accounts", "Transactions", "Preferences"],
+        ["Preferences"] = [],
         ["Reimbursements"] = ["Accounts", "Transactions"],
-        ["Reports"] = ["Identity", "Accounts", "Transactions", "Invoices", "Reimbursements"],
+        ["Reports"] = ["Identity", "Accounts", "Transactions", "Invoices", "Reimbursements", "Preferences"],
         ["Imports"] = ["Identity", "Accounts", "Transactions", "Invoices", "Reimbursements"],
     };
 
@@ -30,6 +31,7 @@ internal static class ArchitectureModel
         ["Accounts"] = typeof(Modules.Accounts.DependencyInjection).Assembly,
         ["Transactions"] = typeof(Modules.Transactions.DependencyInjection).Assembly,
         ["Invoices"] = typeof(Modules.Invoices.DependencyInjection).Assembly,
+        ["Preferences"] = typeof(Modules.Preferences.DependencyInjection).Assembly,
         ["Reimbursements"] = typeof(Modules.Reimbursements.DependencyInjection).Assembly,
         ["Reports"] = typeof(Modules.Reports.DependencyInjection).Assembly,
         ["Imports"] = typeof(Modules.Imports.DependencyInjection).Assembly,

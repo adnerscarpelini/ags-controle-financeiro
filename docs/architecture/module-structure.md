@@ -4,7 +4,7 @@
 
 A aplicação é um **monólito modular**. Um único host web (`Ags.Finance.Web`, ASP.NET Core + Blazor) compõe módulos independentes, e cada módulo é uma class library organizada em Clean Architecture.
 
-**Estado:** esqueleto e testes de arquitetura entregues (#1/#2). Identity tem usuário, login e senha; Accounts tem bancos/logos, contas com abertura, cartões/finais, calendário e arquivamento (#6–#8/#47/#53–#55). Transactions tem classificações, descrições e lançamentos, parcelas, séries com alcance, baixa, pendências, transferências e ajustes de saldo/fatura (#9–#17/#46/#48/#52/#56/#57); Invoices tem consulta, ciclo, pagamentos, abatimentos, quitação, saldos futuros e antecipação (#18–#20/#32/#50/#51). Transactions também tem filtros salvos (#33) e totais por mês (`IEntryTotals`); Reimbursements tem pessoas, regras de rateio, apuração e recebimentos (#21–#23); Reports tem resumo, categorias, faturas, mapa de calor e pendências (#24–#27/#58); Imports exporta e importa cadastros e lançamentos em CSV (#28/#29/#61/#62). As demais operações continuam nas issues. PostgreSQL por schema (#60), distribuição Docker (#59) e backup (#31) estão implementados. A tabela abaixo inclui responsabilidades futuras.
+**Estado:** esqueleto e testes de arquitetura entregues (#1/#2). Identity tem usuário, login e senha; Accounts tem bancos/logos, contas com abertura, cartões/finais, calendário e arquivamento (#6–#8/#47/#53–#55). Transactions tem classificações, descrições e lançamentos, parcelas, séries com alcance, baixa, pendências, transferências e ajustes de saldo/fatura (#9–#17/#46/#48/#52/#56/#57); Invoices tem consulta, ciclo, pagamentos, abatimentos, quitação, saldos futuros e antecipação (#18–#20/#32/#50/#51). Transactions também tem filtros salvos (#33) e totais por mês (`IEntryTotals`); Reimbursements tem pessoas, regras de rateio, apuração e recebimentos (#21–#23); Reports tem resumo, categorias, faturas, mapa de calor e pendências (#24–#27/#58); Imports exporta e importa cadastros e lançamentos em CSV (#28/#29/#61/#62); Preferences guarda as parametrizações do aplicativo (#69). As demais operações continuam nas issues. PostgreSQL por schema (#60), distribuição Docker (#59) e backup (#31) estão implementados. A tabela abaixo inclui responsabilidades futuras.
 
 ## Módulos
 
@@ -13,12 +13,13 @@ A aplicação é um **monólito modular**. Um único host web (`Ags.Finance.Web`
 | Identity | `Ags.Finance.Modules.Identity` | Usuário único, hash de senha, comandos `user create` e `user reset-password` | — |
 | Accounts | `Ags.Finance.Modules.Accounts` | Bancos/logos, contas, cartões/finais, calendário e arquivamento cadastral | — |
 | Transactions | `Ags.Finance.Modules.Transactions` | Categorias, descrições, lançamentos, parcelas, recorrência, efetivação e filtros salvos | Accounts |
-| Invoices | `Ags.Finance.Modules.Invoices` | Faturas e suas situações, pagamentos, cashback, descontos, ajustes e antecipação de parcelas | Accounts, Transactions |
+| Invoices | `Ags.Finance.Modules.Invoices` | Faturas e suas situações, pagamentos, cashback, descontos, ajustes e antecipação de parcelas | Accounts, Transactions, Preferences |
+| Preferences | `Ags.Finance.Modules.Preferences` | Parametrizações do aplicativo: tema, tela inicial, recorrentes na fatura, dashboard, paginação e duração da sessão (#69) | — |
 | Reimbursements | `Ags.Finance.Modules.Reimbursements` | Pessoas, regras de rateio (filtro salvo + percentual), valores a receber e recebidos | Accounts, Transactions |
-| Reports | `Ags.Finance.Modules.Reports` | Dashboard e análises, somente leitura | todos |
+| Reports | `Ags.Finance.Modules.Reports` | Dashboard e análises, somente leitura | Identity, Accounts, Transactions, Invoices, Reimbursements, Preferences |
 | Imports | `Ags.Finance.Modules.Imports` | Importação/exportação CSV no layout oficial e versionado do sistema (#28/#29/#61/#62) | todos |
 
-As dependências apontam sempre na direção da tabela, sem ciclos. `Reports` e `Imports` consomem os cinco módulos de negócio (`Identity`, `Accounts`, `Transactions`, `Invoices`, `Reimbursements`), mas não um ao outro, para evitar ciclo. Uma dependência nova precisa ser registrada aqui.
+As dependências apontam sempre na direção da tabela, sem ciclos. `Reports` e `Imports` consomem os módulos de negócio (`Identity`, `Accounts`, `Transactions`, `Invoices`, `Reimbursements`), mas não um ao outro, para evitar ciclo. `Preferences` não depende de nenhum módulo; quem precisa de uma preferência (Invoices e Reports) a lê pelos `Contracts` dela, e Transactions continua sem consumi-la: o chamador informa o que for preciso. Uma dependência nova precisa ser registrada aqui.
 
 ## Camadas dentro de cada módulo
 

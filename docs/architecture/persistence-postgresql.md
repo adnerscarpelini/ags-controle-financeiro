@@ -17,7 +17,7 @@ conversão do SQLite e sem manter dois providers.
 
 - PostgreSQL é o único banco, em serviço separado da aplicação no Compose.
 - Um banco, com **um schema por módulo persistente** (`identity`, `accounts`, `transactions`,
-  `invoices`, `reimbursements`), **um `DbContext` e um histórico de migrations próprios** por módulo
+  `invoices`, `reimbursements`, `preferences`), **um `DbContext` e um histórico de migrations próprios** por módulo
   (`<schema>.__ef_migrations`). Reports e Imports não têm tabelas.
 - Money continua decimal no domínio e centavos em `BIGINT`; AccountingMonth continua inteiro `yyyyMM`
   (`INTEGER`). `ExternalId` é Guid v7 gerado no domínio (`UUID`, índice único); `Id` é `BIGINT` identity;

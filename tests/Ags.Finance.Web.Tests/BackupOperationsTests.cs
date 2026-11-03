@@ -1,6 +1,7 @@
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Identity;
 using Ags.Finance.Modules.Invoices;
+using Ags.Finance.Modules.Preferences;
 using Ags.Finance.Modules.Reimbursements;
 using Ags.Finance.Modules.Transactions;
 using Ags.Finance.Tests.Support;
@@ -275,6 +276,7 @@ public sealed class BackupOperationsTests : IAsyncLifetime
             .AddTransactionsModule(connection)
             .AddInvoicesModule(connection)
             .AddReimbursementsModule(connection)
+            .AddPreferencesModule(connection)
             .BuildServiceProvider();
         return new RestoreCoordinator(
             service,

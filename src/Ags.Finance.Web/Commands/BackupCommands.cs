@@ -2,6 +2,7 @@ using System.Globalization;
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Identity;
 using Ags.Finance.Modules.Invoices;
+using Ags.Finance.Modules.Preferences;
 using Ags.Finance.Modules.Reimbursements;
 using Ags.Finance.Modules.Transactions;
 using Ags.Finance.Web.Backup;
@@ -123,6 +124,7 @@ internal sealed class BackupCommands(BackupService service, BackupSettings setti
             .AddTransactionsModule(connectionString)
             .AddInvoicesModule(connectionString)
             .AddReimbursementsModule(connectionString)
+            .AddPreferencesModule(connectionString)
             .BuildServiceProvider();
         await DatabaseStartup.InitializeAsync(provider, connectionString, TimeSpan.FromSeconds(30), NullLogger.Instance, cancellationToken);
 
