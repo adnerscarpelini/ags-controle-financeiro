@@ -30,7 +30,7 @@
     }
     else
     {
-        <MudTable T="TItem" Items="Items" Elevation="0" Hover="true" Class="data-table" Breakpoint="Breakpoint.Sm" RowsPerPage="50" aria-label="@Title">
+        <MudTable T="TItem" Items="Items" Elevation="0" Hover="true" Class="data-table" Breakpoint="AppTables.Breakpoint(IsMobile)" SortLabel="@AppTables.SortLabel" RowsPerPage="50" aria-label="@Title">
             <HeaderContent>@Columns</HeaderContent>
             <RowTemplate Context="item">@Row(item)</RowTemplate>
             <ChildRowContent Context="item">@if (ChildRow is not null) { @ChildRow(item) }</ChildRowContent>
@@ -44,6 +44,9 @@
 
 @code {
     private static readonly int[] s_pageSizes = [25, 50, 100];
+
+    [CascadingParameter(Name = "IsMobile")]
+    public bool IsMobile { get; set; }
 
     [Parameter, EditorRequired]
     public string Title { get; set; } = string.Empty;

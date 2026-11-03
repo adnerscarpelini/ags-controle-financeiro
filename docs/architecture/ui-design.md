@@ -4,7 +4,7 @@
 
 Visual moderno e limpo, com **tema escuro como padrão**, fundo cinza neutro quase preto e um **verde "dinheiro"** como cor de destaque, em Blazor com [MudBlazor](ui-library.md). Todas as cores vêm de tokens declarados como variáveis CSS num único arquivo (`--color-accent`, `--color-background`…). A interface é responsiva e instalável como PWA (#38). O tema pode ser escuro, claro ou automático ([preferências](../preferences/settings.md)).
 
-**Estado:** layout, tokens e navegação implementados (issue #5); ver [layout-and-navigation.md](../web/layout-and-navigation.md).
+**Estado:** layout, tokens e navegação implementados (#5), com a nova interface do lote #95 a #103; ver [layout-and-navigation.md](../web/layout-and-navigation.md).
 
 ## Princípios de todas as telas
 
@@ -42,7 +42,8 @@ Cores de banco, só no texto: Itaú `#FB923C`, Nubank `#A78BFA`, Bradesco `#F871
 ## Regras
 
 - Fonte Inter servida pela própria aplicação; nada é carregado de CDN.
-- Abaixo de 768 px de largura, o menu lateral vira uma gaveta e o conteúdo ocupa a tela inteira. Alvos de toque com pelo menos 44 px.
+- Abaixo de 768 px de largura, o menu lateral vira uma gaveta com a mesma árvore e o conteúdo ocupa a tela inteira, sem rolagem horizontal da página. O **+ Novo** fica sempre acessível, em botão flutuante. Alvos de toque com pelo menos 44 px.
+- No celular, janelas de formulário ocupam a tela inteira, com as ações fixas no rodapé (`AppDialogs`). Tabelas viram cards com rótulos (`AppTables`); em Lançamentos, cada card mostra descrição, data, situação e valor, com as ações em menu e a ordenação em um seletor. Planejamento e a visão de 19 meses mantêm a primeira coluna fixa, com os meses rolando na horizontal.
 - Gráficos com uma biblioteca web escolhida na issue que os introduz, usando as mesmas cores. Valores com dígitos tabulares e alinhados à direita.
 - Cultura `pt-BR`: `R$ 1.234,56` e `dd/MM/yyyy`.
 - Cantos mais arredondados (12 em cards e painéis, 16 em janelas, 8 em itens menores), espaçamento em múltiplos de 4, sombras leves só em menus e janelas, sem gradientes.

@@ -2,7 +2,7 @@
 
 ## Estado
 
-**Aprovado pelo usuário em 03/11/2026 e ainda não implementado.** A entrega é feita pelas issues
+**Aprovado pelo usuário em 03/11/2026 e implementado no lote 12, com a comparação visual em navegador ainda pendente.** A entrega foi feita pelas issues
 [#95](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/95) a
 [#103](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/103), com as regras de negócio nas issues
 [#88](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/88) a
@@ -74,5 +74,5 @@ Observação e anexo ficam na coluna direita, abaixo do reembolso. O campo de cl
 
 ## Consequências
 
-- O protótipo é uma referência temporária. Depois da entrega da #103, esta nota e a pasta `ui-prototype/` podem ser removidas.
+- O protótipo é uma referência temporária. Depois de conferir as telas com ele em navegador, esta nota e a pasta `ui-prototype/` podem ser removidas.
 - Mudanças aprovadas na interface antes da entrega devem atualizar esta pasta e as issues afetadas.

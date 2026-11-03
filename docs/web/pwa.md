@@ -44,3 +44,7 @@ não foi feito nesta entrega:
 4. Parar o servidor (`docker compose stop`) e abrir o app instalado: deve aparecer "Não encontrei o servidor".
 5. Em Lançamentos, lançar uma despesa só com toque, sem zoom nem rolagem horizontal.
 6. Conferir Dashboard e Faturas no celular.
+
+## Interface no celular (#103)
+
+O PWA usa a mesma interface responsiva: abaixo de 768 px, gaveta, **+ Novo** flutuante, janelas em tela cheia e tabelas em cards. Veja [layout e navegação](layout-and-navigation.md). As folgas de área segura do aparelho (`safe-area-inset-*`) valem também para o botão flutuante e para o rodapé das janelas.

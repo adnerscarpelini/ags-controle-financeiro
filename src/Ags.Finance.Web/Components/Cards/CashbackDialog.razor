@@ -3,6 +3,7 @@
 @using Ags.Finance.Modules.Accounts.Contracts
 @using Ags.Finance.Modules.Invoices.Contracts
 @using Ags.Finance.SharedKernel
+@inject Ags.Finance.Web.Components.Layout.ViewportState Viewport
 @inject IInvoicePaymentCatalog Payments
 @inject IInvoiceCatalog Invoices
 @inject IAccountCatalog Accounts
@@ -42,7 +43,7 @@
                 <li class="list-row"><span>@CardName(card.Key)</span><span class="numeric">@(new Money(card.Sum(x => x.Amount.Amount)))</span></li>
             }
         </ul>
-        <MudTable T="InvoicePaymentDetails" Items="_history" Elevation="0" Class="data-table" Breakpoint="Breakpoint.Sm" aria-label="Histórico de abatimentos">
+        <MudTable T="InvoicePaymentDetails" Items="_history" Elevation="0" Class="data-table" Breakpoint="AppTables.Breakpoint(Viewport.IsMobile)" aria-label="Histórico de abatimentos">
             <HeaderContent>
                 <MudTh>Data</MudTh>
                 <MudTh>Cartão e fatura</MudTh>

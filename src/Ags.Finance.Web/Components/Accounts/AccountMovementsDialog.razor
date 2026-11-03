@@ -2,6 +2,7 @@
 @using Ags.Finance.Modules.Accounts.Contracts
 @using Ags.Finance.Modules.Transactions.Contracts
 @implements IDisposable
+@inject Ags.Finance.Web.Components.Layout.ViewportState Viewport
 @inject IAccountMovementCatalog Movements
 @inject EntryDialogs EntryWindows
 @inject EntryChangeNotifier EntryChanges
@@ -9,7 +10,7 @@
 <MudDialog Class="app-dialog">
     <DialogContent>
         <p class="form-note">Transferências e ajustes de saldo não são receitas nem despesas.</p>
-        <MudTable T="AccountMovementDetails" Items="_movements" Elevation="0" Class="data-table" Breakpoint="Breakpoint.Sm" aria-label="Movimentações de contas">
+        <MudTable T="AccountMovementDetails" Items="_movements" Elevation="0" Class="data-table" Breakpoint="AppTables.Breakpoint(Viewport.IsMobile)" aria-label="Movimentações de contas">
             <HeaderContent>
                 <MudTh>Data</MudTh>
                 <MudTh>Tipo</MudTh>

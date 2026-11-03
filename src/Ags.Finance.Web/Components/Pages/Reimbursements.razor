@@ -55,7 +55,7 @@
 
 <section class="panel data-panel">
     <MonthPicker Value="_month" ValueChanged="MonthChangedAsync" Disabled="_allMonths" />
-    <MudTable T="ReimbursementItem" Items="_overview.Items" Elevation="0" Hover="true" Class="data-table" Breakpoint="Breakpoint.Sm" aria-label="Reembolsos">
+    <MudTable T="ReimbursementItem" Items="_overview.Items" Elevation="0" Hover="true" Class="data-table" Breakpoint="AppTables.Breakpoint(IsMobile)" SortLabel="@AppTables.SortLabel" aria-label="Reembolsos">
         <HeaderContent>
             <MudTh Class="col-select">
                 @if (HasPending)
@@ -110,6 +110,9 @@
 </section>
 
 @code {
+    [CascadingParameter(Name = "IsMobile")]
+    public bool IsMobile { get; set; }
+
     private IReadOnlyList<PersonDetails> _people = [];
     private ReimbursementOverview _overview = new([], [], default, default, default, default);
     private ReferenceMonth _month;

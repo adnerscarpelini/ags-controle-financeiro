@@ -54,7 +54,7 @@ else
 }
 
 <section class="panel data-panel">
-    <MudTable T="BackupPackage" Items="_packages" Elevation="0" Hover="true" Class="data-table" Breakpoint="Breakpoint.Sm" aria-label="Backups disponíveis">
+    <MudTable T="BackupPackage" Items="_packages" Elevation="0" Hover="true" Class="data-table" Breakpoint="AppTables.Breakpoint(IsMobile)" SortLabel="@AppTables.SortLabel" aria-label="Backups disponíveis">
         <HeaderContent>
             <MudTh>Pacote</MudTh>
             <MudTh>Tipo</MudTh>
@@ -76,6 +76,9 @@ else
 </section>
 
 @code {
+    [CascadingParameter(Name = "IsMobile")]
+    public bool IsMobile { get; set; }
+
     private IReadOnlyList<BackupPackage> _packages = [];
     private BackupPackage? _pendingRestore;
     private string _confirmation = string.Empty;
