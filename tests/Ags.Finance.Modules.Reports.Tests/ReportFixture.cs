@@ -84,6 +84,7 @@ public abstract class ReportFixture : IAsyncLifetime
     {
         public DateTimeOffset Now { get; set; } = now;
         public override DateTimeOffset GetUtcNow() => Now;
-        public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
+        public TimeZoneInfo Zone { get; set; } = TimeZoneInfo.Utc;
+        public override TimeZoneInfo LocalTimeZone => Zone;
     }
 }

@@ -3,6 +3,7 @@ using Ags.Finance.Modules.Reports.Application.CategoryReport;
 using Ags.Finance.Modules.Reports.Application.HeatMap;
 using Ags.Finance.Modules.Reports.Application.InvoiceReport;
 using Ags.Finance.Modules.Reports.Application.MonthlySummary;
+using Ags.Finance.Modules.Reports.Application.PendingAgenda;
 using Ags.Finance.Modules.Reports.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<ICategoryReports, CategoryReports>();
         services.AddScoped<IInvoiceReports, InvoiceReports>();
         services.AddScoped<IHeatMapReports, HeatMapReports>();
+        services.AddScoped<IPendingAgenda, PendingAgendaReport>();
         return services;
     }
 }
