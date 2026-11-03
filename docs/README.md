@@ -33,6 +33,7 @@
 - [Resumo do mês (#24)](reports/monthly-summary.md)
 - [Despesas e receitas por categoria (#25)](reports/category-report.md)
 - [Faturas por cartão no dashboard (#26)](reports/invoices-dashboard.md)
+- [Mapa de calor de despesas (#27)](reports/heat-map.md)
 
 Esta pasta registra comportamento implementado e decisões de arquitetura.
 Requisitos, critérios de aceite e dúvidas permanecem nas issues.
