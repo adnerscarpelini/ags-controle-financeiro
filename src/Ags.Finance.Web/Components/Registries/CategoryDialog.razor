@@ -1,0 +1,85 @@
+@* Criar ou editar uma categoria. *@
+@using Ags.Finance.Modules.Transactions.Contracts
+@inject IClassificationCatalog Catalog
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <form id="category-form" class="entry-column" @onsubmit="() => SaveAsync(closeAfterSave: true)" @onsubmit:preventDefault>
+            <div class="field"><label for="category-name">Nome</label><input id="category-name" class="input" maxlength="100" @bind="_name" @bind:event="oninput" /></div>
+            <div class="field">
+                <label for="category-kind">Tipo <HelpTip Text="Despesas e receitas aparecem nos lançamentos do tipo correspondente." /></label>
+                <select id="category-kind" class="input" @bind="_kind">
+                    <option value="@CategoryKind.Expense">Despesa</option>
+                    <option value="@CategoryKind.Income">Receita</option>
+                    <option value="@CategoryKind.Transfer">Transferência</option>
+                </select>
+            </div>
+        </form>
+        @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+        @if (_success is not null) { <p class="form-success" role="status" data-entry-success>@_success</p> }
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-cancel Disabled="@_busy" OnClick="() => Dialog?.Cancel()">Cancelar</MudButton>
+        @if (Category is null)
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Primary" data-save-new Disabled="@(_busy || _name.Trim().Length == 0)" OnClick="() => SaveAsync(closeAfterSave: false)">Salvar e criar novo</MudButton>
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" form="category-form" data-save Disabled="@(_busy || _name.Trim().Length == 0)">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public CategoryDetails? Category { get; set; }
+
+    [Parameter]
+    public CategoryKind InitialKind { get; set; }
+
+    [Parameter]
+    public EventCallback Saved { get; set; }
+
+    private string _name = string.Empty;
+    private CategoryKind _kind;
+    private bool _busy;
+    private string? _error;
+    private string? _success;
+
+    protected override void OnInitialized()
+    {
+        _name = Category?.Name ?? string.Empty;
+        _kind = Category?.Kind ?? InitialKind;
+    }
+
+    private async Task SaveAsync(bool closeAfterSave)
+    {
+        if (_busy) { return; }
+        _busy = true;
+        _error = null;
+        _success = null;
+        try
+        {
+            var result = await Catalog.SaveCategoryAsync(Category?.ExternalId, _name, _kind);
+            if (!result.Succeeded)
+            {
+                _error = result.Error;
+                return;
+            }
+
+            await Saved.InvokeAsync();
+            Snackbar.Add("Categoria salva.", Severity.Success);
+            if (closeAfterSave)
+            {
+                Dialog?.Close(DialogResult.Ok(true));
+                return;
+            }
+
+            _name = string.Empty;
+            _success = "Categoria salva. Preencha a próxima.";
+        }
+        finally { _busy = false; }
+    }
+}

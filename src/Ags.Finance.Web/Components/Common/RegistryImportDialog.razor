@@ -1,0 +1,16 @@
+@* Importação de cadastros em janela, com o mesmo passo a passo de Arquivos CSV. *@
+@inject EntryChangeNotifier Notifier
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <RegistryImportPanel Imported="Notifier.Notify" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-done OnClick="() => Dialog?.Close(DialogResult.Ok(true))">Fechar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+}

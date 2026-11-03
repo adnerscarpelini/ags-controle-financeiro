@@ -1,76 +1,70 @@
 @page "/cadastros/pessoas"
 @using System.Globalization
+@using Ags.Finance.Modules.Imports.Contracts
 @using Ags.Finance.Modules.Reimbursements.Contracts
+@using Ags.Finance.Web.Components.Layout
+@using Ags.Finance.Web.Components.Registries
 @inject IPersonCatalog Catalog
+@inject IDialogService Dialogs
+@inject ViewportState Viewport
+@inject ISnackbar Snackbar
 
-<PageHeader Title="Pessoas" />
-@if (_message is not null) { <p role="status">@_message</p> }
-<section class="panel">
-    <h2>@(_externalId is null ? "Nova pessoa" : "Editar pessoa")</h2>
-    <p>O percentual padrão só pré-preenche novas seleções em despesas. Alterá-lo não muda lançamentos nem recorrências já gravados.</p>
-    <form @onsubmit="SaveAsync" @onsubmit:preventDefault>
-        <div class="catalog-fields">
-            <div class="field"><label for="person-name">Nome</label><input id="person-name" @bind="_name" maxlength="100" required /></div>
-            <div class="field"><label for="person-percent">Percentual padrão de reembolso (0 a 100)</label><input id="person-percent" type="number" step="0.01" min="0" max="100" @bind="_defaultPercent" required /></div>
-        </div>
-        <button class="button" disabled="@_busy">Salvar pessoa</button>
-        <button class="button" type="button" @onclick="Reset">Limpar</button>
-    </form>
-</section>
-<section class="panel">
-    <h2>Pessoas cadastradas</h2>
-    @if (_loaded && _people.Count == 0) { <p>Nenhuma pessoa cadastrada.</p> }
-    <ul class="catalog-list">
-        @foreach (var person in _people)
-        {
-            <li><span>@person.Name · @person.DefaultPercent.ToString("0.##", CultureInfo.GetCultureInfo("pt-BR"))%</span>
-                <button class="button" @onclick="() => Edit(person)">Editar</button>
-                <button class="button" @onclick="() => DeleteAsync(person.ExternalId)" disabled="@_busy">Excluir</button>
-            </li>
-        }
-    </ul>
-</section>
+<RegistryPage TItem="PersonDetails" Title="Pessoas" Help="Pessoas que podem reembolsar despesas, com o percentual padrão." NewLabel="Nova pessoa" OnNew="() => OpenAsync(null)"
+              @bind-Search="_search" Items="Visible" Loaded="_loaded" Message="@_message" OnExternalChange="ReloadAsync" EmptyIcon="@Icons.Material.Outlined.Person" EmptyMessage="Nenhuma pessoa cadastrada. Cadastre a primeira para registrar reembolsos.">
+    <MoreActions><RegistryCsvMenu Kinds="s_kinds" /></MoreActions>
+    <Columns>
+        <MudTh><MudTableSortLabel T="PersonDetails" SortBy="x => x.Name" InitialDirection="SortDirection.Ascending">Nome</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="PersonDetails" SortBy="x => x.DefaultPercent">Percentual padrão</MudTableSortLabel></MudTh>
+        <MudTh>Ações</MudTh>
+    </Columns>
+    <Row Context="person">
+        <MudTd DataLabel="Nome"><span class="row-title">@person.Name</span></MudTd>
+        <MudTd DataLabel="Percentual padrão" Class="numeric-left">@person.DefaultPercent.ToString("0.##", CultureInfo.GetCultureInfo("pt-BR"))%</MudTd>
+        <MudTd DataLabel="Ações" Class="col-actions"><RowActions Actions="ActionsFor(person)" /></MudTd>
+    </Row>
+</RegistryPage>
 
 @code {
+    private static readonly RegistryKind[] s_kinds = [RegistryKind.People];
     private IReadOnlyList<PersonDetails> _people = [];
-    private Guid? _externalId;
-    private string _name = string.Empty;
-    private decimal _defaultPercent;
+    private string _search = string.Empty;
     private string? _message;
-    private bool _busy;
     private bool _loaded;
 
-    protected override async Task OnInitializedAsync()
+    private IReadOnlyList<PersonDetails> Visible => _people.Where(x => x.Name.Contains(_search.Trim(), StringComparison.CurrentCultureIgnoreCase)).ToList();
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
     {
         _people = await Catalog.GetAsync();
         _loaded = true;
     }
 
-    private void Edit(PersonDetails person) { _externalId = person.ExternalId; _name = person.Name; _defaultPercent = decimal.Parse(person.DefaultPercent.ToString("0.##", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture); }
-    private void Reset() { _externalId = null; _name = string.Empty; _defaultPercent = 0; }
-
-    private async Task SaveAsync()
+    private async Task ReloadAndRenderAsync()
     {
-        await RunAsync(async () =>
-        {
-            var result = await Catalog.SaveAsync(_externalId, _name, _defaultPercent);
-            if (result.Succeeded) { Reset(); }
-            return result;
-        }, "Pessoa salva.");
+        await ReloadAsync();
+        StateHasChanged();
     }
 
-    private async Task DeleteAsync(Guid externalId) => await RunAsync(() => Catalog.DeleteAsync(externalId), "Pessoa excluída.");
+    private IReadOnlyList<RowAction> ActionsFor(PersonDetails person) =>
+    [
+        new("Editar", Icons.Material.Outlined.Edit, "edit", EventCallback.Factory.Create(this, () => OpenAsync(person))),
+        new("Excluir", Icons.Material.Outlined.Delete, "delete", EventCallback.Factory.Create(this, () => AskDeleteAsync(person))),
+    ];
 
-    private async Task RunAsync(Func<Task<ReimbursementResult>> action, string success)
+    private async Task OpenAsync(PersonDetails? person)
     {
-        if (_busy) { return; }
-        _busy = true;
-        try
-        {
-            var result = await action();
-            _message = result.Succeeded ? success : result.Error;
-            _people = await Catalog.GetAsync();
-        }
-        finally { _busy = false; }
+        var parameters = new DialogParameters<PersonDialog> { { x => x.Person, person }, { x => x.Saved, EventCallback.Factory.Create(this, ReloadAndRenderAsync) } };
+        await Dialogs.ShowAsync<PersonDialog>(person is null ? "Nova pessoa" : "Editar pessoa", parameters, AppDialogs.Options(Viewport, MaxWidth.ExtraSmall));
+    }
+
+    private async Task AskDeleteAsync(PersonDetails person)
+    {
+        if (!await ConfirmDialog.AskAsync(Dialogs, "Excluir pessoa", $"{person.Name} será excluída do cadastro. Quem já tem reembolso em lançamentos não pode ser excluído.", "Excluir", destructive: true)) { return; }
+        var result = await Catalog.DeleteAsync(person.ExternalId);
+        _message = result.Error;
+        if (result.Succeeded) { Snackbar.Add("Pessoa excluída.", Severity.Success); }
+        await ReloadAsync();
     }
 }

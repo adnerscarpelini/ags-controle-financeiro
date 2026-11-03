@@ -1,0 +1,86 @@
+@* Criar ou editar uma subcategoria. Aberta por "Nova subcategoria", já vem com a categoria da linha. *@
+@using Ags.Finance.Modules.Transactions.Contracts
+@inject IClassificationCatalog Catalog
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <form id="subcategory-form" class="entry-column" @onsubmit="() => SaveAsync(closeAfterSave: true)" @onsubmit:preventDefault>
+            <div class="field">
+                <label for="subcategory-category">Categoria</label>
+                <select id="subcategory-category" class="input" @bind="_parent">
+                    <option value="@Guid.Empty">Selecione</option>
+                    @foreach (var category in _categories) { <option value="@category.ExternalId">@category.Name</option> }
+                </select>
+            </div>
+            <div class="field"><label for="subcategory-name">Nome</label><input id="subcategory-name" class="input" maxlength="100" @bind="_name" @bind:event="oninput" /></div>
+        </form>
+        @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+        @if (_success is not null) { <p class="form-success" role="status" data-entry-success>@_success</p> }
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-cancel Disabled="@_busy" OnClick="() => Dialog?.Cancel()">Cancelar</MudButton>
+        @if (Subcategory is null)
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Primary" data-save-new Disabled="@(_busy || _name.Trim().Length == 0)" OnClick="() => SaveAsync(closeAfterSave: false)">Salvar e criar novo</MudButton>
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" form="subcategory-form" data-save Disabled="@(_busy || _name.Trim().Length == 0)">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public SubcategoryDetails? Subcategory { get; set; }
+
+    [Parameter]
+    public Guid CategoryExternalId { get; set; }
+
+    [Parameter]
+    public EventCallback Saved { get; set; }
+
+    private IReadOnlyList<CategoryDetails> _categories = [];
+    private Guid _parent;
+    private string _name = string.Empty;
+    private bool _busy;
+    private string? _error;
+    private string? _success;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _parent = CategoryExternalId;
+        _name = Subcategory?.Name ?? string.Empty;
+        _categories = (await Catalog.GetCategoriesAsync(false)).Where(x => x.IsActive || x.ExternalId == CategoryExternalId).ToList();
+    }
+
+    private async Task SaveAsync(bool closeAfterSave)
+    {
+        if (_busy) { return; }
+        _busy = true;
+        _error = null;
+        _success = null;
+        try
+        {
+            var result = await Catalog.SaveSubcategoryAsync(Subcategory?.ExternalId, _parent, _name);
+            if (!result.Succeeded)
+            {
+                _error = result.Error;
+                return;
+            }
+
+            await Saved.InvokeAsync();
+            Snackbar.Add("Subcategoria salva.", Severity.Success);
+            if (closeAfterSave)
+            {
+                Dialog?.Close(DialogResult.Ok(true));
+                return;
+            }
+
+            _name = string.Empty;
+            _success = "Subcategoria salva. Preencha a próxima.";
+        }
+        finally { _busy = false; }
+    }
+}

@@ -1,119 +1,92 @@
 @page "/cadastros/descricoes"
+@using Ags.Finance.Modules.Imports.Contracts
 @using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.Web.Components.Layout
+@using Ags.Finance.Web.Components.Registries
 @inject IMerchantCatalog Catalog
 @inject IClassificationCatalog Classifications
+@inject IDialogService Dialogs
+@inject ViewportState Viewport
+@inject ISnackbar Snackbar
 
-<PageHeader Title="Descrições" />
-@if (_message is not null) { <p role="status">@_message</p> }
-@if (_pendingId is not null)
-{
-    <section class="panel" role="alertdialog" aria-label="Confirmar operação">
-        <p>@(_merge ? "Mesclar transfere as referências para a descrição mantida e remove a origem." : "Desativar preserva os lançamentos e retira a descrição das novas seleções.")</p>
-        <p>Origem: @_allMerchants.FirstOrDefault(x => x.ExternalId == _pendingId)?.Name</p>
-        @if (_merge) { <p>Manter: @_allMerchants.FirstOrDefault(x => x.ExternalId == _pendingTargetId)?.Name</p> }
-        <button class="button" @onclick="ConfirmAsync" disabled="@_busy">Confirmar</button>
-        <button class="button" @onclick="() => _pendingId = null">Cancelar</button>
-    </section>
-}
-<section class="panel">
-    <h2>@(_externalId is null ? "Nova descrição" : "Editar descrição")</h2>
-    <form @onsubmit="SaveAsync" @onsubmit:preventDefault>
-        <div class="field"><label for="merchant-name">Nome</label><input id="merchant-name" value="@_name" @oninput="SuggestAsync" maxlength="100" required /></div>
-        @if (_suggestions.Count > 0)
-        {
-            <p>Descrições parecidas já cadastradas:</p>
-            <ul aria-label="Sugestões">@foreach (var item in _suggestions) { <li><button class="button" type="button" @onclick="() => Edit(item)">@item.Name</button></li> }</ul>
-        }
-        <div class="field"><label for="merchant-subcategory">Subcategoria padrão (opcional)</label><select id="merchant-subcategory" @bind="_subcategoryId">
-            <option value="@Guid.Empty">Sem padrão</option>
-            @foreach (var item in _subcategories) { <option value="@item.ExternalId">@item.DisplayName</option> }
-        </select></div>
-        <button class="button" disabled="@_busy">Salvar descrição</button>
-        <button class="button" type="button" @onclick="Reset">Limpar</button>
-    </form>
-</section>
-<section class="panel">
-    <h2>Descrições cadastradas</h2>
-    <div class="field"><label for="merchant-search">Buscar por nome</label><input id="merchant-search" @bind="_search" @bind:after="ReloadAsync" /></div>
-    <ul class="catalog-list">
-        @foreach (var item in _merchants)
-        {
-            <li><span>@item.Name · @(item.IsActive ? "Ativa" : "Desativada")</span>
-                <span>@_subcategories.FirstOrDefault(x => x.ExternalId == item.DefaultSubcategoryExternalId)?.DisplayName</span>
-                <button class="button" @onclick="() => Edit(item)">Editar</button>
-                @if (item.IsActive) { <button class="button" @onclick="() => Ask(item.ExternalId, false)">Excluir / desativar</button> }
-                <button class="button" @onclick="() => _sourceId = item.ExternalId">Mesclar como origem</button>
-            </li>
-        }
-    </ul>
-    <div class="field"><label for="merge-target">Descrição a manter</label><select id="merge-target" @bind="_targetId">
-        <option value="@Guid.Empty">Selecione</option>
-        @foreach (var item in _allMerchants.Where(x => x.IsActive && x.ExternalId != _sourceId)) { <option value="@item.ExternalId">@item.Name</option> }
-    </select></div>
-    <p>Origem: @_allMerchants.FirstOrDefault(x => x.ExternalId == _sourceId)?.Name</p>
-    <button class="button" disabled="@(_sourceId == Guid.Empty || _targetId == Guid.Empty)" @onclick="() => Ask(_sourceId, true)">Mesclar descrições</button>
-</section>
+<RegistryPage TItem="MerchantDetails" Title="Descrições" Help="Nomes usados nos lançamentos. Podem sugerir uma subcategoria." NewLabel="Nova descrição" OnNew="() => OpenAsync(null)"
+              Search="@_search" SearchChanged="SearchChangedAsync" Items="_merchants" Loaded="_loaded" Message="@_message" OnExternalChange="ReloadAsync" EmptyIcon="@Icons.Material.Outlined.Label" EmptyMessage="Nenhuma descrição ainda. Cadastre a primeira ou crie durante um lançamento.">
+    <MoreActions><RegistryCsvMenu Kinds="s_kinds" /></MoreActions>
+    <Columns>
+        <MudTh><MudTableSortLabel T="MerchantDetails" SortBy="x => x.Name" InitialDirection="SortDirection.Ascending">Descrição</MudTableSortLabel></MudTh>
+        <MudTh>Subcategoria padrão</MudTh>
+        <MudTh>Situação</MudTh>
+        <MudTh>Ações</MudTh>
+    </Columns>
+    <Row Context="item">
+        <MudTd DataLabel="Descrição"><span class="row-title">@item.Name</span></MudTd>
+        <MudTd DataLabel="Subcategoria padrão">@SubcategoryLabel(item)</MudTd>
+        <MudTd DataLabel="Situação">@(item.IsActive ? "Ativa" : "Desativada")</MudTd>
+        <MudTd DataLabel="Ações" Class="col-actions"><RowActions Actions="ActionsFor(item)" /></MudTd>
+    </Row>
+</RegistryPage>
 
 @code {
+    private static readonly RegistryKind[] s_kinds = [RegistryKind.Merchants];
     private IReadOnlyList<MerchantDetails> _merchants = [];
-    private IReadOnlyList<MerchantDetails> _allMerchants = [];
-    private IReadOnlyList<MerchantDetails> _suggestions = [];
     private IReadOnlyList<SubcategoryDetails> _subcategories = [];
-    private Guid? _externalId;
-    private Guid? _pendingId;
-    private Guid _subcategoryId;
-    private Guid _sourceId;
-    private Guid _targetId;
-    private Guid _pendingTargetId;
-    private string _name = string.Empty;
     private string _search = string.Empty;
     private string? _message;
-    private bool _merge;
-    private bool _busy;
+    private bool _loaded;
 
     protected override async Task OnInitializedAsync()
     {
-        _subcategories = await Classifications.GetSubcategoriesAsync();
+        _subcategories = await Classifications.GetSubcategoriesAsync(false);
         await ReloadAsync();
     }
+
     private async Task ReloadAsync()
     {
         _merchants = await Catalog.FindAsync(_search, false);
-        _allMerchants = await Catalog.FindAsync(activeOnly: false);
+        _loaded = true;
     }
-    private async Task SuggestAsync(ChangeEventArgs args)
+
+    private async Task ReloadAndRenderAsync()
     {
-        _name = args.Value?.ToString() ?? string.Empty;
-        var search = _name;
-        var suggestions = search.Length > 1 ? await Catalog.FindAsync(search, false) : [];
-        if (_name == search) { _suggestions = suggestions.Where(x => x.ExternalId != _externalId).ToList(); }
+        await ReloadAsync();
+        StateHasChanged();
     }
-    private async Task SaveAsync()
+
+    private async Task SearchChangedAsync(string search)
     {
-        if (_busy) { return; }
-        _busy = true;
-        try
-        {
-            var result = await Catalog.SaveAsync(_externalId, _name, _subcategoryId == Guid.Empty ? null : _subcategoryId);
-            _message = result.Error ?? "Descrição salva.";
-            if (result.Succeeded) { Reset(); await ReloadAsync(); }
-        }
-        finally { _busy = false; }
+        _search = search;
+        await ReloadAsync();
     }
-    private void Edit(MerchantDetails item) { _externalId = item.ExternalId; _name = item.Name; _subcategoryId = item.DefaultSubcategoryExternalId ?? Guid.Empty; _suggestions = []; }
-    private void Reset() { _externalId = null; _name = string.Empty; _subcategoryId = Guid.Empty; _suggestions = []; }
-    private void Ask(Guid externalId, bool merge) { _pendingId = externalId; _merge = merge; _pendingTargetId = _targetId; }
-    private async Task ConfirmAsync()
+
+    private string SubcategoryLabel(MerchantDetails item) =>
+        _subcategories.FirstOrDefault(x => x.ExternalId == item.DefaultSubcategoryExternalId)?.DisplayName.Replace(" > ", " › ", StringComparison.Ordinal) ?? "Sem padrão";
+
+    private IReadOnlyList<RowAction> ActionsFor(MerchantDetails item)
     {
-        if (_pendingId is not { } id || _busy) { return; }
-        _busy = true;
-        try
-        {
-            var result = _merge ? await Catalog.MergeAsync(id, _pendingTargetId) : await Catalog.DeactivateAsync(id);
-            _message = result.Error ?? "Operação concluída.";
-            _pendingId = null;
-            if (result.Succeeded) { Reset(); _sourceId = Guid.Empty; _targetId = Guid.Empty; await ReloadAsync(); }
-        }
-        finally { _busy = false; }
+        var actions = new List<RowAction> { new("Editar", Icons.Material.Outlined.Edit, "edit", EventCallback.Factory.Create(this, () => OpenAsync(item))) };
+        actions.Add(new("Mesclar com outra", Icons.Material.Outlined.CallMerge, "merge", EventCallback.Factory.Create(this, () => OpenMergeAsync(item)), "Transfere os lançamentos para outra descrição e remove esta"));
+        if (item.IsActive) { actions.Add(new("Excluir ou desativar", Icons.Material.Outlined.Delete, "delete", EventCallback.Factory.Create(this, () => AskDeactivationAsync(item)))); }
+        return actions;
+    }
+
+    private async Task OpenAsync(MerchantDetails? item)
+    {
+        var parameters = new DialogParameters<MerchantDialog> { { x => x.Merchant, item }, { x => x.Saved, EventCallback.Factory.Create(this, ReloadAndRenderAsync) } };
+        await Dialogs.ShowAsync<MerchantDialog>(item is null ? "Nova descrição" : "Editar descrição", parameters, AppDialogs.Options(Viewport, MaxWidth.ExtraSmall));
+    }
+
+    private async Task OpenMergeAsync(MerchantDetails item)
+    {
+        var parameters = new DialogParameters<MerchantMergeDialog> { { x => x.Source, item }, { x => x.Saved, EventCallback.Factory.Create(this, ReloadAndRenderAsync) } };
+        await Dialogs.ShowAsync<MerchantMergeDialog>("Mesclar descrições", parameters, AppDialogs.Options(Viewport, MaxWidth.ExtraSmall));
+    }
+
+    private async Task AskDeactivationAsync(MerchantDetails item)
+    {
+        if (!await ConfirmDialog.AskAsync(Dialogs, "Excluir ou desativar", $"{item.Name}: desativar preserva os lançamentos e retira a descrição das novas seleções.", "Desativar", destructive: true)) { return; }
+        var result = await Catalog.DeactivateAsync(item.ExternalId);
+        _message = result.Error;
+        if (result.Succeeded) { Snackbar.Add("Descrição desativada.", Severity.Success); }
+        await ReloadAsync();
     }
 }

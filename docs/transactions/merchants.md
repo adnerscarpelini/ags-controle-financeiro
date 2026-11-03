@@ -13,3 +13,7 @@ Excluir oferece desativação com confirmação para preservar histórico. Mescl
 remove a origem e mantém a identidade do destino ativo numa transação. A mesclagem
 transfere as referências dos lançamentos na mesma transação (#11). A proteção
 da #50 rejeita integralmente uma mesclagem que alcance compras em fatura protegida.
+
+## Tela de Descrições (#101)
+
+`/cadastros/descricoes` abre na tabela, com busca pelo nome. A janela de criar e editar mostra as descrições parecidas já cadastradas. **Mesclar com outra** abre uma janela própria, que explica o efeito e pede a descrição a manter.

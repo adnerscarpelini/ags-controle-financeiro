@@ -7,7 +7,7 @@ Origem: [issue #7](https://github.com/adnerscarpelini/ags-controle-financeiro/is
 A reversibilidade de arquivamento da #53 foi aprovada para contas/cartões, sem ampliar
 automaticamente o escopo para finais.
 
-Em **Contas e cartões > Finais do cartão**, cadastrar ou editar quatro dígitos,
+Em **Cartões**, no menu ⋮ do cartão, **Finais do cartão**, cadastrar ou editar quatro dígitos,
 uso Próprio, Compartilhado ou Assinatura, e rótulo livre opcional.
 O final é texto, preservando zeros à esquerda; aceita somente quatro caracteres de 0 a 9.
 O mesmo final pode existir em cartões distintos, mas não se repete no mesmo cartão,

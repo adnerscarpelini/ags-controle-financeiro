@@ -1,0 +1,70 @@
+@* Criar ou editar um cadastro de um campo só. A regra e a mensagem de erro vêm do caso de uso, por Save. *@
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <form id="name-form" class="entry-column" @onsubmit="() => SaveAsync(closeAfterSave: true)" @onsubmit:preventDefault>
+            <div class="field"><label for="registry-name">@Label</label><input id="registry-name" class="input" maxlength="100" @bind="_name" @bind:event="oninput" @ref="_input" /></div>
+        </form>
+        @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+        @if (_success is not null) { <p class="form-success" role="status" data-entry-success>@_success</p> }
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-cancel Disabled="@_busy" OnClick="() => Dialog?.Cancel()">Cancelar</MudButton>
+        @if (AllowCreateAnother)
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Primary" data-save-new Disabled="@(_busy || _name.Trim().Length == 0)" OnClick="() => SaveAsync(closeAfterSave: false)">Salvar e criar novo</MudButton>
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" form="name-form" data-save Disabled="@(_busy || _name.Trim().Length == 0)">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "Nome";
+
+    [Parameter]
+    public string InitialName { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool AllowCreateAnother { get; set; } = true;
+
+    /// <summary>Grava e devolve a mensagem de erro, ou null quando deu certo.</summary>
+    [Parameter, EditorRequired]
+    public Func<string, Task<string?>> Save { get; set; } = default!;
+
+    private ElementReference _input;
+    private string _name = string.Empty;
+    private bool _busy;
+    private string? _error;
+    private string? _success;
+
+    protected override void OnInitialized() => _name = InitialName;
+
+    private async Task SaveAsync(bool closeAfterSave)
+    {
+        if (_busy) { return; }
+        _busy = true;
+        _error = null;
+        _success = null;
+        try
+        {
+            _error = await Save(_name);
+            if (_error is not null) { return; }
+            Snackbar.Add("Cadastro salvo.", Severity.Success);
+            if (closeAfterSave)
+            {
+                Dialog?.Close(DialogResult.Ok(true));
+                return;
+            }
+
+            _name = string.Empty;
+            _success = "Cadastro salvo. Preencha o próximo.";
+            await _input.FocusAsync();
+        }
+        finally { _busy = false; }
+    }
+}

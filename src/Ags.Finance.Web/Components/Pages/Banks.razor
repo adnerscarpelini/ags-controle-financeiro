@@ -1,0 +1,79 @@
+@page "/cadastros/bancos"
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Imports.Contracts
+@using Ags.Finance.Web.Components.Layout
+@using Ags.Finance.Web.Components.Registries
+@inject IAccountCatalog Catalog
+@inject IDialogService Dialogs
+@inject ViewportState Viewport
+@inject ISnackbar Snackbar
+
+<RegistryPage TItem="BankDetails" Title="Bancos" Help="Cadastre os bancos para vincular contas e logos." NewLabel="Novo banco" OnNew="OpenNewAsync"
+              @bind-Search="_search" Items="Visible" Loaded="_loaded" OnExternalChange="ReloadAsync" EmptyIcon="@Icons.Material.Outlined.AccountBalance" EmptyMessage="Nenhum banco ainda. Cadastre o primeiro para vincular contas e logos.">
+    <MoreActions><RegistryCsvMenu Kinds="s_kinds" /></MoreActions>
+    <Columns>
+        <MudTh Class="col-logo">Logo</MudTh>
+        <MudTh><MudTableSortLabel T="BankDetails" SortBy="x => x.Name" InitialDirection="SortDirection.Ascending">Nome</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="BankDetails" SortBy="x => LinkedAccounts(x)">Contas vinculadas</MudTableSortLabel></MudTh>
+        <MudTh>Ações</MudTh>
+    </Columns>
+    <Row Context="bank">
+        <MudTd DataLabel="Logo"><BankLogo Bank="bank" /></MudTd>
+        <MudTd DataLabel="Nome"><span class="row-title">@bank.Name</span></MudTd>
+        <MudTd DataLabel="Contas vinculadas">@LinkedAccounts(bank)</MudTd>
+        <MudTd DataLabel="Ações" Class="col-actions"><RowActions Actions="ActionsFor(bank)" /></MudTd>
+    </Row>
+</RegistryPage>
+
+@code {
+    private static readonly RegistryKind[] s_kinds = [RegistryKind.Banks];
+    private IReadOnlyList<BankDetails> _banks = [];
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private string _search = string.Empty;
+    private bool _loaded;
+
+    private IReadOnlyList<BankDetails> Visible => _banks.Where(x => x.Name.Contains(_search.Trim(), StringComparison.CurrentCultureIgnoreCase)).ToList();
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        _banks = await Catalog.GetBanksAsync();
+        _accounts = await Catalog.GetAccountsAsync(activeOnly: false);
+        _loaded = true;
+    }
+
+    private int LinkedAccounts(BankDetails bank) => _accounts.Count(x => x.BankExternalId == bank.ExternalId);
+
+    private IReadOnlyList<RowAction> ActionsFor(BankDetails bank) =>
+        [new(bank.LogoVersion is null ? "Adicionar logo" : "Editar logo", Icons.Material.Outlined.Image, "logo", EventCallback.Factory.Create(this, () => OpenLogoAsync(bank)))];
+
+    private async Task OpenNewAsync()
+    {
+        var parameters = new DialogParameters<NameDialog>
+        {
+            { x => x.Label, "Nome do banco" },
+            {
+                x => x.Save, async name =>
+                {
+                    var result = await Catalog.CreateBankAsync(name);
+                    if (result.Succeeded) { await InvokeAsync(ReloadAndRenderAsync); }
+                    return result.Error;
+                }
+            },
+        };
+        await Dialogs.ShowAsync<NameDialog>("Novo banco", parameters, AppDialogs.Options(Viewport, MaxWidth.ExtraSmall));
+    }
+
+    private async Task ReloadAndRenderAsync()
+    {
+        await ReloadAsync();
+        StateHasChanged();
+    }
+
+    private async Task OpenLogoAsync(BankDetails bank)
+    {
+        var parameters = new DialogParameters<BankLogoDialog> { { x => x.Bank, bank }, { x => x.Saved, EventCallback.Factory.Create(this, ReloadAsync) } };
+        await Dialogs.ShowAsync<BankLogoDialog>($"Logo de {bank.Name}", parameters, AppDialogs.Options(Viewport));
+    }
+}
