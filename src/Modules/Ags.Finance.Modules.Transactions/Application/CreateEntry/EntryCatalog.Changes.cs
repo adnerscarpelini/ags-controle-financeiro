@@ -68,6 +68,7 @@ internal sealed partial class EntryCatalog
             if (error is not null) { return new(null, error); }
         }
         await store.DeleteEntriesAsync(affected, cancellationToken);
+        await TrashDeletedOwnersAsync(affected, all, cancellationToken);
         return new(externalId, null);
     }
 

@@ -1,5 +1,6 @@
 @using Ags.Finance.Modules.Transactions.Contracts
 @using Ags.Finance.Modules.Accounts.Contracts
+@inject IEntryAttachmentCatalog Documents
 @inject IEntryCatalog Entries
 @inject IAccountCatalog Accounts
 @inject TimeProvider Clock
@@ -15,7 +16,8 @@
     }
     else { <p>Carregando conta…</p> }
     @if (_error is not null) { <p role="status">@_error</p> }
-    <button class="button" @onclick="ConfirmAsync" disabled="@(_busy || !_ready)">Confirmar baixa</button>
+    <AttachmentPicker @ref="_picker" />
+    <button class="button" @onclick="ConfirmAsync" disabled="@(_busy || !_ready)">@(_confirmed ? "Reenviar anexos (baixa já registrada)" : "Confirmar baixa")</button>
     <button class="button" @onclick="() => Cancelled.InvokeAsync()" disabled="@_busy">Cancelar</button>
 </section>
 
@@ -23,6 +25,8 @@
     [Parameter, EditorRequired] public EntryDetails Entry { get; set; } = default!;
     [Parameter] public EventCallback Confirmed { get; set; }
     [Parameter] public EventCallback Cancelled { get; set; }
+    private AttachmentPicker? _picker;
+    private bool _confirmed;
     private DateOnly _date;
     private string _accountName = string.Empty;
     private bool _archived;
@@ -43,9 +47,15 @@
         _busy = true;
         try
         {
-            var result = await Entries.ConfirmEffectiveAsync(Entry.ExternalId, _date);
+            var result = _confirmed ? new ClassificationResult(Entry.ExternalId, null) : await Entries.ConfirmEffectiveAsync(Entry.ExternalId, _date);
             _error = result.Error;
-            if (result.Succeeded) { await Confirmed.InvokeAsync(); }
+            if (result.Succeeded)
+            {
+                _confirmed = true;
+                if (_picker is not null && !await _picker.SendAsync((kind, name, content) => Documents.UploadAsync(Entry.ExternalId, kind, name, content)))
+                { _error = "Baixa registrada. O documento falhou; tente enviar novamente."; return; }
+                await Confirmed.InvokeAsync();
+            }
         }
         finally { _busy = false; }
     }

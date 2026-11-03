@@ -526,3 +526,8 @@ a:hover {
     body { padding-bottom: env(safe-area-inset-bottom); }
     .topbar { padding-top: calc(var(--space-2) + env(safe-area-inset-top)); }
 }
+
+/* Documentos: nomes extensos quebram linha e os controles continuam acessíveis ao toque. */
+.attachment-controls { min-width: 0; overflow-wrap: anywhere; }
+.attachment-controls input, .attachment-controls select { max-width: 100%; min-height: var(--touch-target); }
+.attachment-controls .button { min-width: var(--touch-target); min-height: var(--touch-target); white-space: normal; }

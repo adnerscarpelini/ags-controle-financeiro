@@ -70,6 +70,7 @@ public partial class Transactions
                 Optional(_filterCategory), Optional(_filterSubcategory), _filterText, _filterEffective, Page: _page, PageSize: _pageSize));
             if (version != _queryVersion) { return; }
             _query = result; _entries = result.Entries; _page = result.Page;
+            await ReloadAttachmentCountsAsync();
             if (result.Error is not null) { _message = result.Error; }
         }
         finally { if (version == _queryVersion) { _queryBusy = false; } }
