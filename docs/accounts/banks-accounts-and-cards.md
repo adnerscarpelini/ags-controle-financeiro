@@ -3,7 +3,7 @@
 Origem: [issue #6](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/6).
 
 **Estado:** cadastro e desativação estão implementados. Arquivar/desarquivar (#53),
-logo de banco (#54) e carteira visual (#55) são evoluções aprovadas, ainda pendentes.
+[Logos de banco (#54)](bank-logos.md) estão implementados; carteira visual (#55) permanece pendente.
 A persistência usa [PostgreSQL](../architecture/persistence-postgresql.md) (#60): tabelas no schema `accounts`.
 
 Em **Cadastros > Contas e cartões**, cadastrar bancos pelo nome; cadastrar e editar contas

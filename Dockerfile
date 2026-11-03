@@ -18,6 +18,7 @@ COPY src/Modules/Ags.Finance.Modules.Reports/Ags.Finance.Modules.Reports.csproj 
 COPY src/Modules/Ags.Finance.Modules.Transactions/Ags.Finance.Modules.Transactions.csproj src/Modules/Ags.Finance.Modules.Transactions/
 RUN dotnet restore src/Ags.Finance.Web/Ags.Finance.Web.csproj
 
+COPY licenses/ licenses/
 COPY src/ src/
 ARG VERSION=0.0.0-dev
 RUN dotnet publish src/Ags.Finance.Web/Ags.Finance.Web.csproj \

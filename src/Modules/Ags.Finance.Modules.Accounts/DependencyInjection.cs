@@ -1,5 +1,6 @@
 using Ags.Finance.Modules.Accounts.Application;
 using Ags.Finance.Modules.Accounts.Application.CalculateAccountingMonth;
+using Ags.Finance.Modules.Accounts.Application.ManageBankLogos;
 using Ags.Finance.Modules.Accounts.Application.ManageCardLastDigits;
 using Ags.Finance.Modules.Accounts.Application.ManageCatalog;
 using Ags.Finance.Modules.Accounts.Contracts;
@@ -29,6 +30,8 @@ public static class DependencyInjection
 
         services.AddScoped<IAccountsStore, AccountsStore>();
         services.AddScoped<IAccountCatalog, AccountCatalog>();
+        services.AddSingleton<ILogoProcessor, LogoProcessor>();
+        services.AddScoped<IBankLogoCatalog, BankLogoCatalog>();
         services.AddScoped<ICardLastDigitsCatalog, CardLastDigitsCatalog>();
         services.AddScoped<IAccountingMonthCalculator, AccountingMonthCalculator>();
         return services;

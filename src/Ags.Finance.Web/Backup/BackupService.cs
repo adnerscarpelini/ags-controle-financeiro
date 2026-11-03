@@ -19,7 +19,7 @@ internal sealed record BackupEnvironment(string ConnectionString, string DataDir
 
 /// <summary>
 /// Backup e restauração do conjunto recuperável: o dump custom do PostgreSQL (todos os schemas, migrations, dados,
-/// sequências e vínculos) e os arquivos da aplicação (certificado, chaves de Data Protection e futuros logos).
+/// sequências e vínculos) e os arquivos da aplicação (certificado e chaves de Data Protection; logos estão no dump PostgreSQL).
 /// Um backup só existe como pasta final depois de completo e conferido; antes disso vive em uma pasta
 /// <c>.partial-*</c> que nunca é listada nem restaurada.
 /// </summary>

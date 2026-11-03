@@ -67,3 +67,6 @@ Arquivamento reversível (#53), logos (#54), carteira visual (#55), faturas/paga
 - [Ajuste de total de fatura (#52)](invoices/total-adjustments.md)
 
 - [Arquivamento reversível de contas/cartões (#53)](accounts/archiving.md)
+
+- [Logos de bancos (#54)](accounts/bank-logos.md)
+- [Armazenamento e processamento de logos (#54)](architecture/bank-logo-storage.md)

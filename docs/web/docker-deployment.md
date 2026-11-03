@@ -13,7 +13,7 @@ O que não foi comprovado está em [Limites da validação](#limites-da-validaç
 | --- | --- |
 | Serviços | `db` (`postgres:18.6-alpine`) e `app` (imagem `ghcr.io/adnerscarpelini/ags-controle-financeiro:<versão>`, .NET 10 em Ubuntu 24.04, usuário sem root `app`, UID 1654) |
 | Rede | Só o HTTPS do `app` é publicado (porta `5280` por padrão, `AGS_PORT`). O `db` não publica porta: só o `app` o alcança pela rede interna do Compose |
-| Volumes | `db-data` (dados do PostgreSQL), `app-data` (`/data`: certificado, chaves do Data Protection e futuros logos) e a pasta de backup do host (`AGS_BACKUP_DIR`, `/backups`), três destinos separados |
+| Volumes | `db-data` (dados do PostgreSQL), `app-data` (`/data`: certificado e chaves do Data Protection; logos ficam no PostgreSQL) e a pasta de backup do host (`AGS_BACKUP_DIR`, `/backups`), três destinos separados |
 | Processo | `dotnet Ags.Finance.Web.dll` direto no container (PID 1), `SIGTERM` com parada graciosa (30 s), logs em stdout/stderr, `restart: unless-stopped` |
 | Fuso | `TZ=America/Sao_Paulo` (`AGS_TIMEZONE`); datas de negócio seguem o fuso, a auditoria continua em UTC |
 | Internet | Só é preciso para obter as imagens. Depois, a aplicação funciona na LAN sem internet |

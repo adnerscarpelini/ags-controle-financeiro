@@ -14,7 +14,7 @@ public enum CardBrand
     Mastercard,
     Elo
 }
-public sealed record BankDetails(Guid ExternalId, string Name);
+public sealed record BankDetails(Guid ExternalId, string Name, Guid? LogoVersion = null);
 public sealed record AccountDetails(Guid ExternalId, Guid BankExternalId, string Name, AccountKind Kind, string Color, bool IsActive, Money OpeningBalance = default, DateOnly? OpeningDate = null);
 public sealed record CreditCardDetails(Guid ExternalId, Guid AccountExternalId, string Name, CardBrand Brand, Money CreditLimit, int ClosingDay, int DueDay, bool IncludesClosingDay, string Color, bool IsActive, bool IsAccountActive = true)
 {

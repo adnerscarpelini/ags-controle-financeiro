@@ -26,7 +26,7 @@ conversão do SQLite e sem manter dois providers.
   substituem a fronteira dos Contracts**: uma referência a outro módulo guarda o `ExternalId`. A
   [tabela de dependências](module-structure.md) continua sem ciclos.
 - PostgreSQL usa volume local próprio. `DataDirectory` fica para certificados, Data Protection e
-  arquivos da aplicação, incluindo logos quando implementados. Dados ativos não ficam em pasta sincronizada.
+  arquivos da aplicação. Logos normalizados ficam no próprio banco (#54). Dados ativos não ficam em pasta sincronizada.
 - Pacotes: `Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.3 (provider do EF Core 10, nos módulos) e `Npgsql`
   10.0.3 (verificação de prontidão no host e nos testes). As versões ficam em `Directory.Packages.props`.
 - Versão do servidor: PostgreSQL 18 (os testes e o CI fixam `postgres:18.6-alpine`). Atualizar o major
@@ -47,7 +47,7 @@ conversão do SQLite e sem manter dois providers.
   atender**, sem servir com o banco parcial.
 - O host passa a connection string a cada módulo: `Add<Module>Module(this IServiceCollection, string)`. O
   módulo não conhece o host nem lê configuração.
-- `DataDirectoryResolver` escolhe a pasta de arquivos da aplicação (certificados e, depois, logos).
+- `DataDirectoryResolver` escolhe a pasta de arquivos da aplicação (certificados e chaves; logos ficam no PostgreSQL).
 
 ### Padrão em cada módulo
 
