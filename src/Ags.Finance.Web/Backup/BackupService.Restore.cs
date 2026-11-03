@@ -1,5 +1,7 @@
 using System.Formats.Tar;
 using System.IO.Compression;
+using System.Text.Json;
+using Ags.Finance.Web.Attachments;
 using Npgsql;
 
 namespace Ags.Finance.Web.Backup;
@@ -81,6 +83,7 @@ internal sealed partial class BackupService
                 $"o servidor atual é {serverVersion} e o pg_restore é {clientVersion}. Restaure em uma instalação com a mesma versão principal.");
         }
 
+        attachmentFiles?.ClearConnections();
         var exclusivity = await EnsureExclusiveAsync(forceDisconnect, cancellationToken);
         if (exclusivity is not null)
         {
@@ -92,6 +95,19 @@ internal sealed partial class BackupService
         {
             return BackupResult.Failure($"A restauração foi cancelada porque o backup do estado atual falhou: {safety.Error}");
         }
+
+        await using var attachmentLease = attachmentFiles is null ? null : await attachmentFiles.AcquireAsync(cancellationToken);
+        try
+        {
+            if (package.Manifest.FormatVersion >= 2)
+            {
+                var entries = await AttachmentBackup.ReadIndexAsync(package.Path, cancellationToken);
+                if (attachmentFiles is null && entries.Count > 0) { return BackupResult.Failure("Configure a pasta de anexos antes de restaurar."); }
+                if (attachmentFiles is not null) { await attachmentFiles.RestoreFilesAsync(settings.Directory!, entries, cancellationToken); }
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or JsonException)
+        { return BackupResult.Failure("Não foi possível copiar os anexos. O banco atual não foi alterado."); }
 
         NpgsqlConnection.ClearAllPools();
         string preamble;

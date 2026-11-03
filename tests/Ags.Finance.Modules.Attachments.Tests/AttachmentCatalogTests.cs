@@ -1,8 +1,11 @@
 using System.Security.Cryptography;
 using System.Text;
+using Ags.Finance.Modules.Attachments.Application;
 using Ags.Finance.Modules.Attachments.Contracts;
+using Ags.Finance.Modules.Attachments.Infrastructure;
 using Ags.Finance.Tests.Support;
 using Microsoft.Extensions.DependencyInjection;
+using SkiaSharp;
 
 namespace Ags.Finance.Modules.Attachments.Tests;
 
@@ -43,6 +46,33 @@ public sealed class AttachmentCatalogTests : IAsyncLifetime
         Assert.EndsWith($"_receipt_{row.ExternalId}.pdf", row.StorageKey, StringComparison.Ordinal);
         Assert.Equal(Pdf, await File.ReadAllBytesAsync(Path.Combine(_directory, row.StorageKey)));
         Assert.Equal(7, row.ExternalId.Version);
+    }
+    [Theory]
+    [InlineData(SKEncodedImageFormat.Jpeg, "image/jpeg")]
+    [InlineData(SKEncodedImageFormat.Png, "image/png")]
+    [InlineData(SKEncodedImageFormat.Webp, "image/webp")]
+    public async Task ImagesAreIdentifiedByTheirContentAndPreservedWithoutChanges(SKEncodedImageFormat format, string contentType)
+    {
+        using var bitmap = new SKBitmap(4, 4);
+        bitmap.Erase(SKColors.Green);
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(format, 90);
+        var bytes = data.ToArray();
+        using var source = new MemoryStream(bytes);
+        Assert.True((await Catalog.UploadAsync(_owner, AttachmentKind.Other, "misleading.pdf", source)).Succeeded);
+        var row = Assert.Single(await Catalog.ListAsync());
+        Assert.Equal(contentType, row.ContentType);
+        Assert.Equal(bytes, await File.ReadAllBytesAsync(Path.Combine(_directory, row.StorageKey)));
+    }
+    [Fact]
+    public async Task DeniedDirectoryReturnsAnErrorAndTheRestOfTheCatalogContinuesWorking()
+    {
+        var provider = _provider ?? throw new InvalidOperationException();
+        var denied = new AttachmentCatalog(provider.GetRequiredService<IAttachmentStore>(), new DeniedFiles(), new(_directory), TimeProvider.System);
+        using var source = new MemoryStream(Pdf);
+        Assert.False((await denied.UploadAsync(_owner, AttachmentKind.Other, "fictitious.pdf", source)).Succeeded);
+        Assert.Empty(await Catalog.ListAsync());
+        Assert.Empty(Directory.GetFiles(_directory, "*", SearchOption.AllDirectories));
     }
     [Theory]
     [InlineData("MZ this is an executable renamed to PDF")]
@@ -89,6 +119,19 @@ public sealed class AttachmentCatalogTests : IAsyncLifetime
         Assert.False(Directory.Exists(_directory));
     }
     [Fact]
+    public async Task MissingMountDoesNotPurgeMetadataWhileItsFilesAreUnavailable()
+    {
+        using var source = new MemoryStream(Pdf);
+        Assert.True((await Catalog.UploadAsync(_owner, AttachmentKind.Receipt, "fictitious.pdf", source)).Succeeded);
+        await Database.ExecuteAsync("UPDATE attachments.documents SET \"DeletedAt\" = now() - interval '31 days'");
+        var provider = _provider ?? throw new InvalidOperationException();
+        var unavailableOptions = new AttachmentStorageOptions(_directory + "-unmounted");
+        var unavailable = new AttachmentCatalog(provider.GetRequiredService<IAttachmentStore>(), new AttachmentFiles(unavailableOptions), unavailableOptions, TimeProvider.System);
+        await unavailable.PurgeAsync();
+        Assert.Single(await Catalog.ListAsync());
+        Assert.Single(Directory.GetFiles(_directory, "*", SearchOption.AllDirectories));
+    }
+    [Fact]
     public async Task TrashRejectsAnotherOwnerAndAllowsDownloadAndRestoreWithinThirtyDays()
     {
         using var source = new MemoryStream(Pdf);
@@ -113,5 +156,14 @@ public sealed class AttachmentCatalogTests : IAsyncLifetime
         Assert.Equal(removed, (await Catalog.ListAsync()).Count == 0);
         Assert.Equal(removed, Directory.GetFiles(_directory, "*", SearchOption.AllDirectories).Length == 0);
         if (removed) { Assert.Null(await Catalog.OpenAsync(id)); }
+    }
+    private sealed class DeniedFiles : IAttachmentFiles
+    {
+        public bool IsDirectoryAvailable => false;
+        public Task<(long Bytes, string Sha256)> WriteAsync(string temporaryKey, Stream source, CancellationToken cancellationToken) => throw new UnauthorizedAccessException();
+        public (string ContentType, string Extension)? Identify(string temporaryKey) => throw new NotSupportedException();
+        public void Move(string temporaryKey, string storageKey) => throw new NotSupportedException();
+        public void Delete(string storageKey) { }
+        public Stream Open(string storageKey) => throw new NotSupportedException();
     }
 }

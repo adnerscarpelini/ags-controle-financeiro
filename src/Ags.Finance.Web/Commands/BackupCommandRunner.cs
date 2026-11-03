@@ -1,3 +1,5 @@
+using Ags.Finance.Modules.Attachments;
+using Ags.Finance.Web.Attachments;
 using Ags.Finance.Web.Backup;
 using Ags.Finance.Web.Persistence;
 using Microsoft.Extensions.Logging;
@@ -27,14 +29,17 @@ internal static class BackupCommandRunner
         }
 
         var dataDirectory = DataDirectoryResolver.Resolve(configuration["DataDirectory"], OperatingSystem.IsWindows());
+        var attachmentOptions = AttachmentSetup.ReadOptions(configuration, dataDirectory);
+        await using var provider = new ServiceCollection().AddAttachmentsModule(connectionString, attachmentOptions).BuildServiceProvider();
+        var attachmentBackup = new AttachmentBackup(provider.GetRequiredService<IServiceScopeFactory>(), attachmentOptions);
         using var loggerFactory = LoggerFactory.Create(builder => builder.AddSimpleConsole(options => options.SingleLine = true));
         var service = new BackupService(
             settings,
             new BackupEnvironment(connectionString, dataDirectory, BackupEnvironment.CurrentAppVersion),
             new PostgresTools(settings),
             TimeProvider.System,
-            loggerFactory.CreateLogger<BackupService>());
+            loggerFactory.CreateLogger<BackupService>(), attachmentBackup);
 
-        return await new BackupCommands(service, settings, connectionString, terminal).RunAsync(arguments, cancellationToken);
+        return await new BackupCommands(service, settings, connectionString, terminal, attachmentOptions).RunAsync(arguments, cancellationToken);
     }
 }

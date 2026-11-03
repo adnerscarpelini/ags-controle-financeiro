@@ -2,7 +2,7 @@
 
 Origem: [#75](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/75).
 
-**Anexos** está disponível nas ações da fatura em qualquer situação: Aberta, Fechada ou Paga. Tipos: Fatura, Comprovante ou Outro. Anexar e remover não modifica situação, compras, totais nem pagamentos. O primeiro envio cria a fatura como Aberta quando ela ainda não tem registro; apenas consultar o seletor não cria registros. Reabrir mantém os documentos.
+**Anexos** está disponível nas ações da fatura em qualquer situação: Aberta, Fechada ou Paga. Tipos: Fatura, Comprovante ou Outro. Anexar e remover não modifica situação, compras, totais nem pagamentos. O primeiro envio cria a fatura como Aberta quando ela ainda não tem registro; apenas consultar o seletor não cria registros. Reabrir mantém os documentos. Uma fatura antiga criada para receber um documento continua sujeita à rotina de fechamento automático existente; o upload não suprime o calendário.
 
 O diálogo de pagamento oferece seleção opcional de vários documentos, vinculados ao pagamento confirmado e acessíveis pelo histórico. Confirmar o pagamento é uma etapa definitiva, anterior ao envio. A tela atualiza a lista imediatamente após a confirmação e, se o envio falhar, oferece **Reenviar somente anexos**. Essa ação usa o identificador do pagamento já gravado e nunca chama novamente a confirmação financeira. **Fechar** permite sair e reenviar depois pelo histórico.
 

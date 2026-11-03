@@ -530,4 +530,4 @@ a:hover {
 /* Documentos: nomes extensos quebram linha e os controles continuam acessíveis ao toque. */
 .attachment-controls { min-width: 0; overflow-wrap: anywhere; }
 .attachment-controls input, .attachment-controls select { max-width: 100%; min-height: var(--touch-target); }
-.attachment-controls .button { min-width: var(--touch-target); min-height: var(--touch-target); white-space: normal; }
+.attachment-controls .button { display: inline-flex; align-items: center; justify-content: center; min-width: var(--touch-target); min-height: var(--touch-target); white-space: normal; }

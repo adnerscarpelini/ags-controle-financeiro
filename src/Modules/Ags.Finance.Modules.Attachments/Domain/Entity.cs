@@ -1,8 +1,8 @@
 namespace Ags.Finance.Modules.Attachments.Domain;
 
 /// <summary>
-/// Base de toda entidade com tabela própria. <see cref="Id"/> é a chave interna e nunca sai do módulo;
-/// <see cref="ExternalId"/> é a identidade pública. Os carimbos de data são preenchidos pela Infrastructure.
+/// Base for persisted entities. <see cref="Id"/> remains internal to the module;
+/// <see cref="ExternalId"/> is the public identity. Infrastructure supplies audit timestamps.
 /// </summary>
 internal abstract class Entity
 {

@@ -1,15 +1,17 @@
+using System.Transactions;
 using Ags.Finance.Modules.Attachments.Contracts;
 using Ags.Finance.Modules.Attachments.Domain;
 
 namespace Ags.Finance.Modules.Attachments.Application;
 
-internal sealed class AttachmentCatalog(IAttachmentStore store, IAttachmentFiles files, AttachmentStorageOptions options, TimeProvider clock) : IAttachmentCatalog
+internal sealed class AttachmentCatalog(IAttachmentStore store, IAttachmentFiles files, AttachmentStorageOptions options, TimeProvider clock, IAttachmentAccess? access = null) : IAttachmentCatalog
 {
     public async Task<IReadOnlyList<AttachmentDetails>> ListAsync(CancellationToken cancellationToken = default)
         => (await store.ListAsync(cancellationToken)).Select(Describe).ToList();
 
     public async Task<AttachmentResult> UploadAsync(AttachmentOwner owner, AttachmentKind kind, string originalFileName, Stream content, CancellationToken cancellationToken = default)
     {
+        if (access?.IsBlocked == true) { return new(null, "A aplicação está em manutenção. Tente novamente depois da restauração."); }
         if (options.Error is { } error) { return new(null, error); }
         if (!Enum.IsDefined(owner.Type) || !Enum.IsDefined(kind) || owner.ExternalId == Guid.Empty)
         { return new(null, "Informe o dono e o tipo do documento."); }
@@ -21,6 +23,7 @@ internal sealed class AttachmentCatalog(IAttachmentStore store, IAttachmentFiles
         var saved = false;
         try
         {
+            await using var lease = Transaction.Current is null ? await store.AcquireMaintenanceLeaseAsync(cancellationToken) : null;
             var (size, hash) = await files.WriteAsync(temporary, content, cancellationToken);
             var format = files.Identify(temporary);
             if (format is null) { return new(null, "Envie um PDF, JPEG, PNG ou WebP válido."); }
@@ -44,6 +47,7 @@ internal sealed class AttachmentCatalog(IAttachmentStore store, IAttachmentFiles
 
     public async Task<AttachmentContent?> OpenAsync(Guid externalId, CancellationToken cancellationToken = default)
     {
+        if (access?.IsBlocked == true) { return null; }
         var row = (await store.ListAsync(cancellationToken)).FirstOrDefault(x => x.ExternalId == externalId);
         if (row is null || row.DeletedAt <= clock.GetUtcNow().AddDays(-30) || options.Error is not null) { return null; }
         try { return new(Describe(row), files.Open(row.StorageKey)); }
@@ -52,6 +56,7 @@ internal sealed class AttachmentCatalog(IAttachmentStore store, IAttachmentFiles
 
     public async Task<AttachmentResult> TrashAsync(AttachmentOwner owner, Guid externalId, CancellationToken cancellationToken = default)
     {
+        if (access?.IsBlocked == true) { return new(null, "A aplicação está em manutenção."); }
         var row = (await store.ListAsync(cancellationToken)).FirstOrDefault(x => x.ExternalId == externalId && Owns(x, owner));
         if (row is null) { return new(null, "Anexo não encontrado para este dono."); }
         row.Trash(clock.GetUtcNow());
@@ -67,6 +72,7 @@ internal sealed class AttachmentCatalog(IAttachmentStore store, IAttachmentFiles
 
     public async Task<AttachmentResult> RestoreAsync(AttachmentOwner owner, Guid externalId, CancellationToken cancellationToken = default)
     {
+        if (access?.IsBlocked == true) { return new(null, "A aplicação está em manutenção."); }
         var row = (await store.ListAsync(cancellationToken)).FirstOrDefault(x => x.ExternalId == externalId && Owns(x, owner));
         if (row is null || row.DeletedAt <= clock.GetUtcNow().AddDays(-30)) { return new(null, "O prazo de restauração deste anexo terminou."); }
         row.Restore();
@@ -79,7 +85,7 @@ internal sealed class AttachmentCatalog(IAttachmentStore store, IAttachmentFiles
 
     public async Task PurgeAsync(CancellationToken cancellationToken = default)
     {
-        if (options.Error is not null) { return; }
+        if (options.Error is not null || !files.IsDirectoryAvailable) { return; }
         await using var lease = await AcquireMaintenanceLeaseAsync(cancellationToken);
         foreach (var row in (await store.ListAsync(cancellationToken)).Where(x => x.DeletedAt <= clock.GetUtcNow().AddDays(-30)))
         {

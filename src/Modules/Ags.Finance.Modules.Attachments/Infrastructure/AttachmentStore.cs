@@ -1,3 +1,4 @@
+using System.Transactions;
 using Ags.Finance.Modules.Attachments.Application;
 using Ags.Finance.Modules.Attachments.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -28,11 +29,13 @@ internal sealed class AttachmentStore(IDbContextFactory<AttachmentsDbContext> fa
     }
     public async Task<IAsyncDisposable> AcquireMaintenanceLeaseAsync(CancellationToken cancellationToken)
     {
+        using var suppression = new TransactionScope(TransactionScopeOption.Suppress, TransactionScopeAsyncFlowOption.Enabled);
         var connection = await source.OpenConnectionAsync(cancellationToken);
         try
         {
             await using var command = new NpgsqlCommand("SELECT pg_advisory_lock(73477630)", connection);
             await command.ExecuteNonQueryAsync(cancellationToken);
+            suppression.Complete();
             return new MaintenanceLease(connection);
         }
         catch { await connection.DisposeAsync(); throw; }

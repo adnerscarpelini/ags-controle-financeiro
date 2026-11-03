@@ -3,10 +3,22 @@ description: Um comportamento implementado que não funciona como deveria.
 title: "[<Module>] Corrigir <problema>"
 labels: ["bug"]
 body:
-  - type: input
+  - type: dropdown
     id: module
     attributes:
       label: Módulo
+      options:
+        - Attachments
+        - Identity
+        - Accounts
+        - Transactions
+        - Invoices
+        - Reimbursements
+        - Preferences
+        - Reports
+        - Imports
+        - Web
+        - Transversal
     validations:
       required: true
   - type: textarea

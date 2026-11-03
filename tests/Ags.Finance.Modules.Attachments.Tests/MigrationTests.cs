@@ -62,7 +62,7 @@ public sealed class MigrationTests : IAsyncLifetime
         Assert.All(tables, schema => Assert.Equal(Schema, schema));
     }
 
-    /// <summary>O snapshot e a migration escritos à mão precisam descrever exatamente o modelo atual.</summary>
+    /// <summary>The snapshot and migration must describe the current model exactly.</summary>
     [Fact]
     public void TheMigrationsMatchTheCurrentModel()
     {

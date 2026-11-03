@@ -60,6 +60,8 @@ internal sealed class AppFactory : WebApplicationFactory<App>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        Directory.CreateDirectory(_dataDirectory + "-attachments");
+        builder.UseSetting("Attachments:Directory", _dataDirectory + "-attachments");
         builder.UseSetting("DataDirectory", _dataDirectory);
         builder.UseSetting("ConnectionStrings:Finance", _database.ConnectionString);
 
@@ -80,6 +82,7 @@ internal sealed class AppFactory : WebApplicationFactory<App>
         if (disposing)
         {
             _database.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            if (Directory.Exists(_dataDirectory + "-attachments")) { Directory.Delete(_dataDirectory + "-attachments", true); }
             if (Directory.Exists(_dataDirectory))
             {
                 Directory.Delete(_dataDirectory, recursive: true);

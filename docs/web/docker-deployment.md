@@ -13,7 +13,7 @@ O que não foi comprovado está em [Limites da validação](#limites-da-validaç
 | --- | --- |
 | Serviços | `db` (`postgres:18.6-alpine`) e `app` (imagem `ghcr.io/adnerscarpelini/ags-controle-financeiro:<versão>`, .NET 10 em Ubuntu 24.04, usuário sem root `app`, UID 1654) |
 | Rede | Só o HTTPS do `app` é publicado (porta `5280` por padrão, `AGS_PORT`). O `db` não publica porta: só o `app` o alcança pela rede interna do Compose |
-| Volumes | `db-data` (dados do PostgreSQL), `app-data` (`/data`: certificado e chaves do Data Protection; logos ficam no PostgreSQL) e a pasta de backup do host (`AGS_BACKUP_DIR`, `/backups`), três destinos separados |
+| Volumes | `db-data` (dados do PostgreSQL), `app-data` (`/data`: certificado e chaves do Data Protection; logos ficam no PostgreSQL) a pasta de backup do host (`AGS_BACKUP_DIR`, `/backups`) e a pasta própria de anexos (`AGS_ATTACHMENTS_DIR`, `/attachments`), quatro destinos separados |
 | Processo | `dotnet Ags.Finance.Web.dll` direto no container (PID 1), `SIGTERM` com parada graciosa (30 s), logs em stdout/stderr, `restart: unless-stopped` |
 | Fuso | `TZ=America/Sao_Paulo` (`AGS_TIMEZONE`); datas de negócio seguem o fuso, a auditoria continua em UTC |
 | Internet | Só é preciso para obter as imagens. Depois, a aplicação funciona na LAN sem internet |
@@ -111,10 +111,10 @@ precisa ser refeito (ou prefira a rede espelhada).
 
 ## Backup e recuperação
 
-Um backup é uma pasta em `AGS_BACKUP_DIR` com `database.dump` (`pg_dump` formato custom de **todo o banco**: todos os
+Cada pacote de backup é uma pasta em `AGS_BACKUP_DIR` com `database.dump` (`pg_dump` formato custom de **todo o banco**: todos os
 schemas, migrations, dados, sequências e vínculos), `app-files.tar.gz` (certificado e chave privada, chaves do Data
 Protection e demais arquivos de `/data`) e `manifest.json` (versões do PostgreSQL, do `pg_dump` e da aplicação, migrations
-aplicadas e SHA-256 dos arquivos). A pasta só aparece como backup depois de completa e conferida (`pg_restore --list`);
+aplicadas e SHA-256 dos arquivos), no formato v2, e `attachments.json` (caminho, tamanho e SHA-256 de todos os anexos daquele momento, incluindo lixeira). Os bytes dos anexos ficam numa cópia incremental única em `AGS_BACKUP_DIR/attachments/`, com os mesmos caminhos da pasta ativa. O índice é lido depois do dump e a limpeza da lixeira aguarda o backup. A pasta do pacote só aparece como backup depois de completa e conferida (`pg_restore --list`);
 antes disso vive em `.partial-*`, que nunca é listada nem restaurada. Os arquivos ficam acessíveis só ao dono (0600/0700):
 contêm dados financeiros e a chave privada do certificado.
 
@@ -131,14 +131,14 @@ docker compose stop app && docker compose run --rm app backup restore NOME
   Se o computador estava desligado no horário, o backup devido é feito assim que a aplicação sobe; uma falha é registrada e
   repetida em 1 hora. Sem `Backup__Directory`, a agenda fica desativada.
 - **Retenção:** mantém os `AGS_BACKUP_RETENTION` backups mais recentes (padrão 30). O **primeiro backup de cada mês** é marcado
-  como mensal e nunca é apagado; o backup mais recente também nunca é apagado. Só pastas que são backups válidos são tocadas.
+  como mensal e nunca é apagado; o backup mais recente também nunca é apagado. Só pastas que são backups válidos são tocadas. Um documento da cópia compartilhada só é removido quando nenhum pacote mantido o referencia.
 - **Tela:** em **Configurações > Backup e restauração** (`/backups`): agenda e retenção, último resultado, **Fazer backup agora**
   e a lista de backups com **Restaurar**. A restauração pela tela exige digitar o nome do backup, coloca a aplicação em
   **manutenção** (todas as requisições recebem 503 enquanto dura), faz um backup do estado atual, encerra as conexões ao banco,
   restaura numa única transação e reinicia a aplicação (o Compose a sobe de novo, já com o certificado e as chaves restaurados).
   Se falhar, a manutenção termina e o estado anterior permanece.
 - **Antes de atualizar:** `docker compose run --rm app backup create --pre-update` marca o backup como pré-atualização.
-- **Registro:** início, fim, sucesso ou falha e o nome do arquivo vão para o log da aplicação (`docker compose logs app`), sem
+- **Registro:** início, fim, sucesso ou falha e o identificador do pacote vão para o log da aplicação (`docker compose logs app`), sem
   credenciais nem conteúdo financeiro.
 
 O ponto recuperável é o estado do **backup concluído**: não há recuperação por instante nem garantia de perda zero
@@ -147,7 +147,7 @@ entre backups. CSV é troca de dados do sistema e não substitui o backup.
 ### Cópia para fora da máquina
 
 Volume ou pasta local não protegem contra a perda do computador, do disco ou da distribuição WSL. Depois de cada backup,
-copie a pasta para outro dispositivo ou nuvem **a partir do host** (não há sincronizador nem API de nuvem no container):
+copie a **pasta de backup inteira** (todos os pacotes e `attachments/`) para outro dispositivo ou nuvem **a partir do host** (não há sincronizador nem API de nuvem no container):
 
 ```bash
 sudo rsync -a backups/ /mnt/disco-externo/ags-backups/        # Linux ou WSL, com o disco montado
@@ -159,7 +159,7 @@ do Windows sobre `\\wsl$\<distro>\...`. Não sincronize a pasta de dados ativa d
 ### Recuperar em uma instalação nova
 
 1. Máquina nova: instale Docker/Compose, clone o repositório e crie o `.env` (senhas novas servem; `AGS_HOST_NAMES` do novo computador).
-2. Copie a pasta do backup para `AGS_BACKUP_DIR` (dono UID 1654) e suba só o banco: `docker compose up -d --wait db`
+2. Copie a **pasta de backup inteira**, incluindo `attachments/`, para `AGS_BACKUP_DIR` (dono UID 1654) e suba só o banco: `docker compose up -d --wait db`
    (o script de inicialização cria o papel e o banco vazios).
 3. Restaure e suba a aplicação:
 
@@ -169,18 +169,18 @@ docker compose up -d --wait app
 ```
 
 O restore confere o pacote e as versões, exige acesso exclusivo ao banco (recusa se há outras conexões, a menos que se use
-`--force`), **faz um backup do estado atual** (`pre-restore`) e restaura numa única transação: apaga os schemas atuais e
+`--force`), **faz um backup do estado atual** (`pre-restore`) e copia/verifica os anexos que faltam **antes da restauração SQL**. Depois restaura numa única transação: apaga os schemas atuais e
 recria os do backup, então um erro desfaz tudo e nunca anuncia sucesso parcial. Depois restaura os arquivos da aplicação e
-aplica migrations que faltarem. O backup e o servidor precisam ter a mesma versão principal do PostgreSQL.
+aplica migrations que faltarem. O backup e o servidor precisam ter a mesma versão principal do PostgreSQL. Backups v1, sem índice de anexos, continuam verificáveis e restauráveis; as migrations acrescentam o schema novo. Arquivos sem referência depois do restore não são apagados automaticamente. Um arquivo existente e corrompido no destino é recusado; preserve-o separadamente e corrija a pasta antes de repetir a recuperação.
 
 ### Ensaio de recuperação
 
 `scripts/rehearse-recovery.sh` automatiza o ensaio completo, com dados fictícios e projetos Compose descartáveis
-(`ags-rehearsal-a/b`): usuário e registros com vínculos → backup → instalação nova **vazia e sem o volume original** →
+(`ags-rehearsal-<id>-a/b`): usuário e registros com vínculos → backup → instalação nova **vazia e sem o volume original** →
 restauração → login, registros, vínculos, totais e sequências conferidos, sessão antiga ainda válida, certificado idêntico.
 As definições das chaves estrangeiras são comparadas antes e depois da restauração.
 Vínculos dentro do schema de um módulo são permitidos; FKs entre schemas são rejeitadas.
-Rode-o a partir da raiz, em Linux ou no WSL: `scripts/rehearse-recovery.sh`.
+O ensaio também valida anexos, download autenticado, ZIP com `SHA256SUMS` e restauração de fixture v1 sem schema de anexos. Requer Python 3 apenas para preparar o manifesto legado fictício. Rode-o a partir da raiz, em Linux ou no WSL: `scripts/rehearse-recovery.sh`.
 
 ## Atualização
 
@@ -214,7 +214,7 @@ aplicação (padrão: pasta local do usuário). Testes relacionais: [persistênc
 Validado: construção da imagem, subida do Compose, papéis do banco, criação do usuário, login, recriação dos containers
 mantendo certificado e backups, backup agendado feito pela própria aplicação, parada graciosa (código 0 em 1 s), falha clara com credencial errada e com banco indisponível,
 fuso `America/Sao_Paulo` (01/01/2027 02:30 UTC = 31/12/2026 23:30), backup, verificação, restauração em instalação vazia
-e continuidade da sessão.
+e continuidade da sessão. No lote 09, o ensaio também conferiu anexos em instalação vazia, download autenticado, checksums do ZIP e restauração de uma fixture no formato v1 sem o schema `attachments`.
 
 **Não comprovado** nesta entrega e que exige teste em campo: reinício real do Windows com a tarefa de inicialização
 automática, acesso do celular pela LAN (firewall e `portproxy`/rede espelhada), confiança do certificado nos dispositivos,
@@ -223,3 +223,7 @@ teste de internet desligada com as imagens já obtidas e Linux nativo (apenas o 
 ## Pasta de anexos (#73)
 
 `AGS_ATTACHMENTS_DIR` (padrão `./attachments`) monta `/attachments`, configurada como `Attachments__Directory`. Prepare-a antes de subir o Compose (UID 1654, modo 0750). O bind não cria a pasta automaticamente; a imagem também não a cria. Ela deve estar fora de DataDirectory e backup, em disco local. Uma configuração sobreposta bloqueia anexos; pasta ausente ou sem permissão devolve erro no envio. `Attachments__MaxFileSizeMb` permite reduzir o limite de 20 MB. Os arquivos originais nunca vão para o Git ou a imagem.
+
+## Gestão e ZIP dos anexos
+
+A página `/anexos` lista documentos, tipo, período de upload, uso de disco e lixeira. Consulte [backup, reconciliação e exportação](../attachments/backup-and-export.md) para os comandos `attachments verify [--clean-orphans]` e `attachments export`. O ZIP não é criptografado, não é reimportado e não substitui o backup.

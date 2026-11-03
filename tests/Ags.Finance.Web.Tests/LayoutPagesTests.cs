@@ -13,6 +13,7 @@ public sealed partial class LayoutPagesTests : IDisposable
     {
         { "lancamentos", "Lançamentos" },
         { "faturas", "Faturas" },
+        { "anexos", "Anexos" },
         { "cashback", "Cashback" },
         { "reembolsos", "Reembolsos" },
         { "dashboard", "Dashboard" },

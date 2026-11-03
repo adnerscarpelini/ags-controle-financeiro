@@ -4,6 +4,8 @@ using System.IO.Compression;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using Ags.Finance.Web.Attachments;
 using Npgsql;
 
 namespace Ags.Finance.Web.Backup;
@@ -28,7 +30,7 @@ internal sealed partial class BackupService(
     BackupEnvironment environment,
     IPostgresTools tools,
     TimeProvider clock,
-    ILogger<BackupService> logger) : IDisposable
+    ILogger<BackupService> logger, AttachmentBackup? attachmentFiles = null) : IDisposable
 {
     public const string KindManual = "manual";
     public const string KindScheduled = "scheduled";
@@ -87,13 +89,27 @@ internal sealed partial class BackupService(
     /// <summary>Confere o pacote: manifesto, arquivos, tamanhos, SHA-256 e se o dump abre. <c>null</c> quando íntegro.</summary>
     public async Task<string?> VerifyAsync(BackupPackage package, CancellationToken cancellationToken)
     {
-        if (package.Manifest.FormatVersion != BackupManifest.CurrentFormatVersion)
+        try
+        {
+            return await VerifyCoreAsync(package, cancellationToken);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or JsonException)
+        { return "Não foi possível conferir o backup: arquivo ou índice de anexos ausente, inválido ou sem permissão."; }
+    }
+
+    private async Task<string?> VerifyCoreAsync(BackupPackage package, CancellationToken cancellationToken)
+    {
+        if (package.Manifest.FormatVersion is < 1 or > BackupManifest.CurrentFormatVersion)
         {
             return $"O backup {package.Name} usa um formato ({package.Manifest.FormatVersion}) que esta versão não conhece.";
         }
 
+        if (package.Manifest.Files.Select(x => x.Name).Distinct(StringComparer.Ordinal).Count() != package.Manifest.Files.Count)
+        { return "O manifesto contém arquivos repetidos."; }
         foreach (var entry in package.Manifest.Files)
         {
+            if (entry.Name is not (BackupManifest.DatabaseFileName or BackupManifest.AppFilesName or AttachmentBackup.IndexFileName))
+            { return "O manifesto contém um caminho inválido."; }
             var path = Path.Combine(package.Path, entry.Name);
             if (!File.Exists(path))
             {
@@ -111,6 +127,18 @@ internal sealed partial class BackupService(
             return $"O backup {package.Name} não contém o dump do banco.";
         }
 
+        if (package.Manifest.Files.All(entry => entry.Name != BackupManifest.AppFilesName)) { return "O backup não contém os arquivos da aplicação."; }
+        if (package.Manifest.FormatVersion >= 2)
+        {
+            if (package.Manifest.Files.All(entry => entry.Name != AttachmentBackup.IndexFileName)) { return "O backup não contém o índice de anexos."; }
+            var entries = await AttachmentBackup.ReadIndexAsync(package.Path, cancellationToken);
+            foreach (var entry in entries)
+            {
+                var pool = Path.Combine(settings.Directory ?? Path.GetDirectoryName(package.Path) ?? throw new IOException(), AttachmentBackup.PoolDirectoryName);
+                if (!await AttachmentBackup.MatchesAsync(AttachmentBackup.Resolve(pool, entry.StorageKey), entry, cancellationToken))
+                { return "O backup contém um anexo ausente ou corrompido (tamanho ou SHA-256 inválido)."; }
+            }
+        }
         var listing = await tools.ListAsync(Path.Combine(package.Path, BackupManifest.DatabaseFileName), cancellationToken);
         return listing.Succeeded
             ? null
@@ -154,6 +182,7 @@ internal sealed partial class BackupService(
         var partial = Path.Combine(directory, PartialPrefix + Guid.NewGuid().ToString("N"));
         try
         {
+            await using var lease = attachmentFiles is null ? null : await attachmentFiles.AcquireAsync(cancellationToken);
             Directory.CreateDirectory(partial);
             Protect(partial, directory: true);
 
@@ -167,7 +196,7 @@ internal sealed partial class BackupService(
             BackupLog.Failed(logger, kind, exception.Message);
             return BackupResult.Failure(exception.Message);
         }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or NpgsqlException)
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or NpgsqlException)
         {
             var message = $"Não foi possível concluir o backup: {exception.GetType().Name}.";
             BackupLog.Failed(logger, kind, message);
@@ -208,11 +237,15 @@ internal sealed partial class BackupService(
             throw new BackupFailedException($"O dump gerado não passou na conferência do pg_restore: {Summarize(listing.Error)}");
         }
 
+        var attachmentEntries = attachmentFiles is null ? [] : await attachmentFiles.ReadCurrentAsync(cancellationToken);
+        if (attachmentFiles is not null) { await attachmentFiles.CopyToPoolAsync(directory, attachmentEntries, cancellationToken); }
+        await AttachmentBackup.WriteIndexAsync(partial, attachmentEntries, cancellationToken);
+
         var archivePath = Path.Combine(partial, BackupManifest.AppFilesName);
         await ArchiveAppFilesAsync(archivePath, cancellationToken);
 
         var files = new List<BackupFileEntry>();
-        foreach (var name in new[] { BackupManifest.DatabaseFileName, BackupManifest.AppFilesName })
+        foreach (var name in new[] { BackupManifest.DatabaseFileName, BackupManifest.AppFilesName, AttachmentBackup.IndexFileName })
         {
             var path = Path.Combine(partial, name);
             files.Add(new BackupFileEntry(name, new FileInfo(path).Length, await HashAsync(path, cancellationToken)));
@@ -401,6 +434,9 @@ internal static partial class BackupLog
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Backup ({Kind}) falhou: {Reason}")]
     public static partial void Failed(ILogger logger, string kind, string reason);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Retenção dos anexos não aplicada: confira a integridade dos índices mantidos.")]
+    public static partial void AttachmentRetentionSkipped(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Retenção aplicada: {Removed} backup(s) antigo(s) removido(s) (limite {Limit}).")]
     public static partial void RetentionApplied(ILogger logger, int removed, int limit);

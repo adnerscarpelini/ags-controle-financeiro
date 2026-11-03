@@ -45,6 +45,11 @@ if (args is ["backup", .. var backupArguments])
         new ConsoleTerminal());
 }
 
+if (args is ["attachments", .. var attachmentArguments])
+{
+    return await AttachmentCommandRunner.RunAsync(attachmentArguments, UserCommandRunner.BuildConfiguration(attachmentArguments), new ConsoleTerminal());
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 var dataDirectory = DataDirectoryResolver.Resolve(
@@ -88,6 +93,9 @@ builder.Services
     .AddImportsModule();
 builder.Services.AddHostedService<Ags.Finance.Web.Invoices.InvoiceClosingScheduler>();
 builder.Services.AddHostedService<AttachmentCleanup>();
+builder.Services.AddSingleton<Ags.Finance.Modules.Attachments.Contracts.IAttachmentAccess, AttachmentAccess>();
+builder.Services.AddScoped<AttachmentInventory>();
+builder.Services.AddScoped<AttachmentExport>();
 
 // Sem as chaves em disco, recriar o container invalidaria o cookie de sessão e o antiforgery.
 builder.Services.AddDataProtection()

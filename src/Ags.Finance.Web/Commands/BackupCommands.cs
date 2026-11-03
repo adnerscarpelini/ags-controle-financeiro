@@ -1,5 +1,7 @@
 using System.Globalization;
 using Ags.Finance.Modules.Accounts;
+using Ags.Finance.Modules.Attachments;
+using Ags.Finance.Modules.Attachments.Contracts;
 using Ags.Finance.Modules.Identity;
 using Ags.Finance.Modules.Invoices;
 using Ags.Finance.Modules.Preferences;
@@ -15,7 +17,7 @@ namespace Ags.Finance.Web.Commands;
 /// Os comandos <c>backup create|list|verify|restore</c>, que rodam sem subir o servidor web. São o caminho de
 /// manutenção da instalação Docker: <c>docker compose run --rm app backup create</c>.
 /// </summary>
-internal sealed class BackupCommands(BackupService service, BackupSettings settings, string connectionString, ITerminal terminal)
+internal sealed class BackupCommands(BackupService service, BackupSettings settings, string connectionString, ITerminal terminal, AttachmentStorageOptions? attachmentOptions = null)
 {
     public const string Usage =
         "Uso: Ags.Finance.Web backup <create [--pre-update] | list | verify NOME | restore NOME [--force] [--yes]>";
@@ -53,7 +55,7 @@ internal sealed class BackupCommands(BackupService service, BackupSettings setti
         terminal.WriteLine($"Backup concluído: {result.Package.Name}");
         terminal.WriteLine($"  PostgreSQL {manifest.PostgresServerVersion}, pg_dump {manifest.PgDumpVersion}, aplicação {manifest.AppVersion}");
         terminal.WriteLine($"  Pasta: {result.Package.Path}");
-        terminal.WriteLine("  Copie esta pasta para fora da máquina/disco: o volume sozinho não protege contra a perda do computador.");
+        terminal.WriteLine("  Copie a pasta de backup inteira, incluindo attachments/, para fora da máquina/disco.");
         return UserCommands.Success;
     }
 
@@ -119,6 +121,7 @@ internal sealed class BackupCommands(BackupService service, BackupSettings setti
 
         // O backup pode ser de uma versão anterior: aplica as migrations que faltarem.
         await using var provider = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
+            .AddAttachmentsModule(connectionString, attachmentOptions ?? new(Path.GetTempPath()))
             .AddIdentityModule(connectionString)
             .AddAccountsModule(connectionString)
             .AddTransactionsModule(connectionString)

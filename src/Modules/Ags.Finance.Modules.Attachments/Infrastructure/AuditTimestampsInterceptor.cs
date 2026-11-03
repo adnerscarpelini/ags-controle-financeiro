@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Ags.Finance.Modules.Attachments.Infrastructure;
 
-/// <summary>Preenche <c>CreatedAt</c> e <c>UpdatedAt</c> (UTC) a partir do <see cref="TimeProvider"/>.</summary>
+/// <summary>Stamps <c>CreatedAt</c> and <c>UpdatedAt</c> in UTC using <see cref="TimeProvider"/>.</summary>
 internal sealed class AuditTimestampsInterceptor : SaveChangesInterceptor
 {
     private readonly TimeProvider _timeProvider;

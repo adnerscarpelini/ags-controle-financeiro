@@ -20,7 +20,7 @@ internal sealed record BackupManifest(
     IReadOnlyDictionary<string, IReadOnlyList<string>> Migrations,
     IReadOnlyList<BackupFileEntry> Files)
 {
-    public const int CurrentFormatVersion = 1;
+    public const int CurrentFormatVersion = 2;
     public const string FileName = "manifest.json";
     public const string DatabaseFileName = "database.dump";
     public const string AppFilesName = "app-files.tar.gz";
@@ -36,7 +36,8 @@ internal sealed record BackupManifest(
     {
         try
         {
-            return JsonSerializer.Deserialize<BackupManifest>(json, s_json);
+            var manifest = JsonSerializer.Deserialize<BackupManifest>(json, s_json);
+            return manifest is null || manifest.Files is null || manifest.Migrations is null || manifest.Files.Any(x => x is null) ? null : manifest;
         }
         catch (JsonException)
         {

@@ -12,6 +12,7 @@ internal interface IAttachmentStore
 
 internal interface IAttachmentFiles
 {
+    bool IsDirectoryAvailable { get; }
     Task<(long Bytes, string Sha256)> WriteAsync(string temporaryKey, Stream source, CancellationToken cancellationToken);
     (string ContentType, string Extension)? Identify(string temporaryKey);
     void Move(string temporaryKey, string storageKey);

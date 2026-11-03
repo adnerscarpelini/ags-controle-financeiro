@@ -26,6 +26,19 @@ internal static class AttachmentSetup
 
     public static IEndpointRouteBuilder MapAttachmentEndpoints(this IEndpointRouteBuilder app)
     {
+        app.MapGet("/attachments/export", async Task<IResult> (DateOnly from, DateOnly to, AttachmentKind? kind, AttachmentExport export, HttpContext context, CancellationToken cancellationToken) =>
+        {
+            var plan = await export.PlanAsync(new(from, to, kind), cancellationToken);
+            if (plan.Error is { } error) { return Results.Text(error, "text/plain; charset=utf-8", statusCode: 400); }
+            context.Response.Headers.XContentTypeOptions = "nosniff";
+            try
+            {
+                var stream = await export.CreateTemporaryAsync(plan, cancellationToken);
+                return Results.Stream(stream, "application/zip", "anexos.zip");
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
+            { return Results.Text("Não foi possível preparar o ZIP. Verifique a integridade dos anexos e o espaço temporário disponível.", "text/plain; charset=utf-8", statusCode: 400); }
+        }).RequireAuthorization();
         app.MapGet("/attachments/{externalId:guid}", async Task<IResult> (Guid externalId, bool? download, IAttachmentCatalog catalog, HttpContext context, CancellationToken cancellationToken) =>
         {
             var file = await catalog.OpenAsync(externalId, cancellationToken);

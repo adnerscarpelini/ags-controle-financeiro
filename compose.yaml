@@ -40,6 +40,7 @@ services:
       Hosting__Names: ${AGS_HOST_NAMES:?defina AGS_HOST_NAMES no .env com os nomes/IPs do computador}
       Database__ReadyTimeoutSeconds: ${AGS_DB_READY_TIMEOUT:-60}
       Attachments__Directory: /attachments
+      Attachments__MaxFileSizeMb: ${Attachments__MaxFileSizeMb:-20}
       Backup__Directory: /backups
       Backup__ScheduleTime: ${AGS_BACKUP_TIME:-02:00}
       Backup__RetentionDays: ${AGS_BACKUP_RETENTION:-30}
