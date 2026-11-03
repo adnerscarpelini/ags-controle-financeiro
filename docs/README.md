@@ -86,3 +86,6 @@ A previsão consolidada de caixa da #58 continua pendente; efetivação e consul
 - [Armazenamento e processamento de logos (#54)](architecture/bank-logo-storage.md)
 
 - [Carteira visual de cartões (#55)](accounts/card-wallet.md)
+
+- [Armazenamento de anexos](architecture/attachments-storage.md)
+- [Documentos anexados](attachments/document-storage.md)

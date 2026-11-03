@@ -39,6 +39,7 @@ services:
       # Nomes e IPs pelos quais os dispositivos da rede acessam este computador (entram no certificado HTTPS).
       Hosting__Names: ${AGS_HOST_NAMES:?defina AGS_HOST_NAMES no .env com os nomes/IPs do computador}
       Database__ReadyTimeoutSeconds: ${AGS_DB_READY_TIMEOUT:-60}
+      Attachments__Directory: /attachments
       Backup__Directory: /backups
       Backup__ScheduleTime: ${AGS_BACKUP_TIME:-02:00}
       Backup__RetentionDays: ${AGS_BACKUP_RETENTION:-30}
@@ -47,6 +48,11 @@ services:
       # Único serviço publicado na LAN: o HTTPS da aplicação.
       - "${AGS_PORT:-5280}:5280"
     volumes:
+      - type: bind
+        source: ${AGS_ATTACHMENTS_DIR:-./attachments}
+        target: /attachments
+        bind:
+          create_host_path: false
       - app-data:/data
       - ${AGS_BACKUP_DIR:-./backups}:/backups
     stop_grace_period: 30s

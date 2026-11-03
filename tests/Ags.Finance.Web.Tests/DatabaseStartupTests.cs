@@ -11,7 +11,7 @@ namespace Ags.Finance.Web.Tests;
 /// <summary>Sobe a aplicação inteira sobre um PostgreSQL real e vazio e confere o banco criado.</summary>
 public sealed class DatabaseStartupTests : IAsyncLifetime
 {
-    private static readonly string[] s_modules = ["identity", "accounts", "transactions", "invoices", "reimbursements", "preferences"];
+    private static readonly string[] s_modules = ["attachments", "identity", "accounts", "transactions", "invoices", "reimbursements", "preferences"];
 
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "ags-finance-tests-" + Guid.NewGuid().ToString("N"));
     private PostgresTestDatabase? _database;

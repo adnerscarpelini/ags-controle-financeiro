@@ -38,7 +38,7 @@ informe em `AGS_HOST_NAMES` os nomes e IPs pelos quais os dispositivos acessam o
 (por exemplo `meu-pc,192.168.0.10`). Prepare a pasta de backup, que precisa pertencer ao UID 1654:
 
 ```bash
-sudo install -d -o 1654 -g 1654 -m 0750 backups
+sudo install -d -o 1654 -g 1654 -m 0750 backups attachments
 ```
 
 Suba a instalação (usa a imagem publicada, ou constrói localmente se ela não existir; `--build` força a construção):
@@ -219,3 +219,7 @@ e continuidade da sessão.
 **Não comprovado** nesta entrega e que exige teste em campo: reinício real do Windows com a tarefa de inicialização
 automática, acesso do celular pela LAN (firewall e `portproxy`/rede espelhada), confiança do certificado nos dispositivos,
 teste de internet desligada com as imagens já obtidas e Linux nativo (apenas o Docker Engine no WSL foi usado).
+
+## Pasta de anexos (#73)
+
+`AGS_ATTACHMENTS_DIR` (padrão `./attachments`) monta `/attachments`, configurada como `Attachments__Directory`. Prepare-a antes de subir o Compose (UID 1654, modo 0750). O bind não cria a pasta automaticamente; a imagem também não a cria. Ela deve estar fora de DataDirectory e backup, em disco local. Uma configuração sobreposta bloqueia anexos; pasta ausente ou sem permissão devolve erro no envio. `Attachments__MaxFileSizeMb` permite reduzir o limite de 20 MB. Os arquivos originais nunca vão para o Git ou a imagem.

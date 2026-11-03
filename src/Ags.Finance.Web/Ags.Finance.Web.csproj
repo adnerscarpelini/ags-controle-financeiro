@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <ProjectReference Include="..\Modules\Ags.Finance.Modules.Attachments\Ags.Finance.Modules.Attachments.csproj" />
     <PackageReference Include="Npgsql" />
   </ItemGroup>
 

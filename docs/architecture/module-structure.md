@@ -10,10 +10,11 @@ A aplicação é um **monólito modular**. Um único host web (`Ags.Finance.Web`
 
 | Módulo | Projeto | Responsável por | Pode consumir `Contracts` de |
 | --- | --- | --- | --- |
+| Attachments | `Ags.Finance.Modules.Attachments` | Arquivos originais, metadados, lixeira e integridade (#73) | — |
 | Identity | `Ags.Finance.Modules.Identity` | Usuário único, hash de senha, comandos `user create` e `user reset-password` | — |
 | Accounts | `Ags.Finance.Modules.Accounts` | Bancos/logos, contas, cartões/finais, calendário e arquivamento cadastral | — |
-| Transactions | `Ags.Finance.Modules.Transactions` | Categorias, descrições, lançamentos, parcelas, recorrência, efetivação e filtros salvos | Accounts |
-| Invoices | `Ags.Finance.Modules.Invoices` | Faturas e suas situações, pagamentos, cashback, descontos, ajustes e antecipação de parcelas | Accounts, Transactions, Preferences |
+| Transactions | `Ags.Finance.Modules.Transactions` | Categorias, descrições, lançamentos, parcelas, recorrência, efetivação e filtros salvos | Accounts, Attachments |
+| Invoices | `Ags.Finance.Modules.Invoices` | Faturas e suas situações, pagamentos, cashback, descontos, ajustes e antecipação de parcelas | Accounts, Transactions, Preferences, Attachments |
 | Preferences | `Ags.Finance.Modules.Preferences` | Parametrizações do aplicativo: tema, tela inicial, recorrentes na fatura, dashboard, paginação e duração da sessão (#69) | — |
 | Reimbursements | `Ags.Finance.Modules.Reimbursements` | Pessoas, regras de rateio (filtro salvo + percentual), valores a receber e recebidos | Accounts, Transactions |
 | Reports | `Ags.Finance.Modules.Reports` | Dashboard e análises, somente leitura | Identity, Accounts, Transactions, Invoices, Reimbursements, Preferences |
@@ -43,3 +44,5 @@ Somente `Contracts` e `DependencyInjection` são públicos. Os testes de arquite
 - **Microsserviços:** sem sentido para uma aplicação de um usuário.
 - **Host desktop (Avalonia):** foi a primeira escolha; trocado por web para permitir o acesso pelo celular na rede local.
 - **Menos módulos** (Catálogo dentro de Transactions, Reembolsos dentro de Invoices): considerado; mantidos separados porque têm regras e motivos de mudança distintos.
+
+Attachments não depende de outros módulos. Transactions e Invoices validam o dono antes de chamar seus Contracts. Não há FK ou JOIN entre módulos. A data do upload define o caminho imutável, conforme [armazenamento](attachments-storage.md).

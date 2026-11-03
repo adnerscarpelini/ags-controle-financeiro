@@ -17,7 +17,7 @@ conversão do SQLite e sem manter dois providers.
 
 - PostgreSQL é o único banco, em serviço separado da aplicação no Compose.
 - Um banco, com **um schema por módulo persistente** (`identity`, `accounts`, `transactions`,
-  `invoices`, `reimbursements`, `preferences`), **um `DbContext` e um histórico de migrations próprios** por módulo
+  `invoices`, `reimbursements`, `preferences`, `attachments`), **um `DbContext` e um histórico de migrations próprios** por módulo
   (`<schema>.__ef_migrations`). Reports e Imports não têm tabelas.
 - Money continua decimal no domínio e centavos em `BIGINT`; AccountingMonth continua inteiro `yyyyMM`
   (`INTEGER`). `ExternalId` é Guid v7 gerado no domínio (`UUID`, índice único); `Id` é `BIGINT` identity;
@@ -134,3 +134,5 @@ as mudanças do banco.
 - **Um banco por módulo:** isolamento total, mas complica backup, restauração e a operação do serviço.
 - **Manter SQLite em paralelo:** duplicaria migrations e testes, sem necessidade aprovada.
 - **Nomes em snake_case:** exigiria um pacote a mais para o provider; adiado.
+
+Anexos (#73) guardam só metadados no schema `attachments`; os originais ficam em pasta própria. Ver [decisão](attachments-storage.md). Não estão no arquivo `app-files.tar.gz`.

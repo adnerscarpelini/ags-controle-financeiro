@@ -8,6 +8,7 @@ body:
     attributes:
       label: Módulo
       options:
+        - Attachments
         - Identity
         - Accounts
         - Transactions
