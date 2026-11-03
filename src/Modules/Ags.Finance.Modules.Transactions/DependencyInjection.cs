@@ -36,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped<IAccountMovementCatalog, AccountMovementCatalog>();
         services.AddScoped<IEntryStore, EntryStore>();
         services.AddScoped<IEntryCatalog, EntryCatalog>();
+        services.AddScoped<IEntryTotals, EntryTotals>();
         services.AddScoped<ISavedFilterStore, SavedFilterStore>();
         services.AddScoped<ISavedFilterCatalog, SavedFilterCatalog>();
         services.TryAddScoped<IInvoiceWriteGuard, OpenInvoiceWriteGuard>();
