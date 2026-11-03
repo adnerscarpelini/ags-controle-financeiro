@@ -2,7 +2,7 @@
 
 A [#77](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/77) mostra numa só tabela onde
 o dinheiro foi gasto e o que vem pela frente (`IPlanningReports`, em `Reports.Contracts`; página
-`/planejamento`).
+`/relatorios/visao-19-meses`).
 
 **Período.** 19 meses de referência: 6 anteriores, o atual e 12 seguintes. As setas deslocam o período um
 mês por vez, mantendo as 19 colunas. O mês atual fica em destaque.
@@ -51,4 +51,6 @@ intervalo de datas suportado), a tela avisa e mostra o que está gravado.
 
 Clicar num valor para abrir os lançamentos, exportar, previsão de caixa por conta e filtros estão fora do escopo.
 
-Testes: `PlanningTests` (regras) e `PlanningPageTests` (tela).
+Desde a [#94](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/94), esta visão fica em **Relatórios**. O menu Planejamento abre o [orçamento mensal](monthly-planning.md). O contrato `IPlanningReports`, os cálculos e os totais da visão de 19 meses permanecem os mesmos.
+
+Testes: `PlanningTests` (regras) e `CategoryPlanningReportPageTests` (tela).

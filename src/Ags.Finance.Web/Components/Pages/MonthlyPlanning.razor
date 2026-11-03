@@ -1,0 +1,141 @@
+@page "/planejamento"
+@using System.Globalization
+@using Ags.Finance.Modules.Reports.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+@using Ags.Finance.Web.Components.Planning
+@inject IMonthlyPlanReports Reports
+@inject IMonthlyPlanCatalog Plans
+@inject IClassificationCatalog Classifications
+@inject TimeProvider Clock
+
+<PageHeader Title="Planejamento mensal" />
+<section class="panel monthly-plan-navigation">
+    <button class="button" @onclick="() => MoveAsync(-1)" disabled="@(_busy || _month == new ReferenceMonth(1, 1))">Mês anterior</button>
+    <h2>@_month.FirstDay.ToString("MMMM 'de' yyyy", CultureInfo.GetCultureInfo("pt-BR"))</h2>
+    <button class="button" @onclick="() => MoveAsync(1)" disabled="@(_busy || _month == new ReferenceMonth(9999, 12))">Próximo mês</button>
+</section>
+@if (_message is not null) { <p role="status">@_message</p> }
+@if (_report?.Error is { } error) { <p role="alert">@error</p> }
+@if (_showEditor)
+{
+    <MonthlyPlanEditor @key="_month" Month="_month" Plan="_report?.Plan" Saved="SavedAsync" Cancelled="() => _showEditor = false" />
+}
+@if (_categoryDialog)
+{
+    <section class="panel" role="dialog" aria-label="Orçamento de categoria">
+        <h2>@(_editingCategory ? "Editar orçamento de categoria" : "Novo orçamento de categoria")</h2>
+        <div class="field"><label for="monthly-plan-category">Categoria</label><select id="monthly-plan-category" @bind="_categoryId" disabled="@_editingCategory"><option value="@Guid.Empty">Selecione</option>
+            @foreach (var category in AvailableCategories) { <option value="@category.ExternalId">@category.Name</option> }
+        </select></div>
+        <div class="field"><label for="monthly-plan-target">Meta planejada (R$)</label><input id="monthly-plan-target" type="number" step="0.01" min="0" @bind="_target" /></div>
+        <button class="button" @onclick="SaveCategoryAsync" disabled="@_busy">Salvar meta</button><button class="button" @onclick="() => _categoryDialog = false" disabled="@_busy">Cancelar</button>
+    </section>
+}
+@if (_deletePlan || _removingCategory is not null)
+{
+    <section class="panel" role="alertdialog" aria-label="Excluir planejamento ou meta">
+        <h2>@(_deletePlan ? "Excluir planejamento" : "Remover orçamento de categoria")</h2>
+        <p>@_month @(_removingCategory?.Name)</p>
+        <button class="button" @onclick="ConfirmDeleteAsync" disabled="@_busy">Confirmar exclusão</button><button class="button" @onclick="CancelDelete" disabled="@_busy">Cancelar</button>
+    </section>
+}
+@if (_report is { Plan: null } && !_showEditor && !_busy)
+{
+    <section class="panel" aria-label="Mês sem planejamento"><h2>Defina o planejamento deste mês</h2>
+        <button class="button" id="define-monthly-plan" @onclick="() => _showEditor = true">Definir novo planejamento</button>
+        <button class="button" id="copy-monthly-plan" @onclick="CopyAsync">Copiar planejamento do mês anterior</button>
+    </section>
+}
+@if (_report is { Plan: { } plan, Error: null } report)
+{
+    <div class="monthly-plan-actions">
+        <button class="button" @onclick="() => _showEditor = true" disabled="@_busy">Editar planejamento</button>
+        <button class="button" @onclick="AddCategory" disabled="@_busy">Novo orçamento de categoria</button>
+        <button class="button" @onclick="() => _deletePlan = true" disabled="@_busy">Excluir planejamento</button>
+        <div class="field"><label for="monthly-plan-card-view">Visualização do cartão</label><select id="monthly-plan-card-view" @bind="_cardView" @bind:after="ChangeCardViewAsync" disabled="@_busy"><option value="@MonthlyPlanCardView.InvoiceDate">Pela data da fatura</option><option value="@MonthlyPlanCardView.PurchaseDate">Pela data da compra</option></select></div>
+        <div class="field"><label for="monthly-plan-search">Buscar categoria</label><input id="monthly-plan-search" @bind="_search" @bind:event="oninput" /></div>
+    </div>
+    <div class="monthly-plan-layout">
+        <section class="panel monthly-plan-main">
+            <div class="monthly-plan-summary"><h2>@(report.Remaining.IsNegative ? $"Excederam {-report.Remaining}" : $"Restam {report.Remaining}")</h2><p>@report.Total de @report.PlannedExpenses gastos</p>
+                <div class="monthly-plan-bar" aria-label="@($"Pagas {report.Paid}; previstas {report.Forecast}")"><span class="monthly-plan-paid" style="@Width(report.PaidProgress)"></span><span class="monthly-plan-forecast" style="@Width(report.ForecastProgress)"></span></div>
+                <p>Pagas: @report.Paid · Previstas: @report.Forecast</p>
+            </div>
+            <MonthlyPlanTable Rows="VisibleRows" Edit="EditCategory" Remove="row => _removingCategory = row" />
+        </section>
+        <aside aria-label="Resumo do planejamento" class="monthly-plan-cards">
+            <section class="panel"><h3>Receitas do mês</h3><p class="numeric">@report.ReceivedIncome</p><small>Somente Recebidas</small></section>
+            <section class="panel"><h3>Gastos planejados</h3><p class="numeric">@report.PlannedExpenses</p></section>
+            <section class="panel"><h3>Balanço planejado</h3><p class="numeric @(report.PlannedBalance.IsNegative ? "entry-expense" : "entry-income")">@report.PlannedBalance</p></section>
+            <section class="panel"><h3>Economia planejada</h3><p class="numeric">@report.PlannedSavingsPercent.ToString("N2", CultureInfo.GetCultureInfo("pt-BR"))%</p></section>
+        </aside>
+    </div>
+}
+
+@code {
+    private ReferenceMonth _month = new(2026, 1);
+    private MonthlyPlanReport? _report;
+    private IReadOnlyList<CategoryDetails> _categories = [];
+    private MonthlyPlanCardView _cardView;
+    private string _search = string.Empty;
+    private string? _message;
+    private bool _busy;
+    private bool _showEditor;
+    private bool _categoryDialog;
+    private bool _editingCategory;
+    private Guid _categoryId;
+    private decimal _target;
+    private bool _deletePlan;
+    private MonthlyPlanLine? _removingCategory;
+    private IEnumerable<CategoryDetails> AvailableCategories => _categories.Where(x => x.Kind == CategoryKind.Expense && (_editingCategory ? x.ExternalId == _categoryId : _report?.Plan?.Categories.All(c => c.CategoryExternalId != x.ExternalId) == true));
+    private IReadOnlyList<MonthlyPlanLine> VisibleRows => (_report?.Categories ?? []).Concat(_report?.RemainingCategories is { } remaining ? [remaining] : []).Where(x => x.Name.Contains(_search, StringComparison.CurrentCultureIgnoreCase)).ToList();
+    protected override async Task OnInitializedAsync()
+    {
+        _month = ReferenceMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime));
+        _categories = await Classifications.GetCategoriesAsync(false);
+        await ReloadAsync();
+    }
+    private async Task ReloadAsync()
+    {
+        _busy = true;
+        try { _report = await Reports.GetAsync(_month); _cardView = _report.Plan?.CardView ?? MonthlyPlanCardView.InvoiceDate; }
+        finally { _busy = false; }
+    }
+    private async Task MoveAsync(int offset)
+    {
+        if (_busy) { return; }
+        _month = _month.AddMonths(offset);
+        _showEditor = false; _categoryDialog = false; CancelDelete(); _message = null;
+        await ReloadAsync();
+    }
+    private async Task SavedAsync() { _showEditor = false; _message = "Planejamento salvo."; await ReloadAsync(); }
+    private Task CopyAsync() => MutateAsync(() => Plans.CopyPreviousAsync(_month));
+    private async Task ChangeCardViewAsync()
+    {
+        if (_report?.Plan is not { } plan) { return; }
+        await MutateAsync(() => Plans.EditAsync(new(_month, plan.Income, plan.SavingsPercent, _cardView)));
+    }
+    private void AddCategory() { _categoryId = Guid.Empty; _target = 0m; _editingCategory = false; _categoryDialog = true; }
+    private void EditCategory(MonthlyPlanLine row) { _categoryId = row.CategoryExternalId!.Value; _target = row.Target.Amount; _editingCategory = true; _categoryDialog = true; }
+    private Task SaveCategoryAsync() => MutateAsync(() => Plans.SetCategoryAsync(_month, _categoryId, new Money(_target)));
+    private void CancelDelete() { _deletePlan = false; _removingCategory = null; }
+    private async Task ConfirmDeleteAsync()
+    {
+        if (_deletePlan) { await MutateAsync(() => Plans.DeleteAsync(_month)); }
+        else if (_removingCategory?.CategoryExternalId is { } category) { await MutateAsync(() => Plans.RemoveCategoryAsync(_month, category)); }
+    }
+    private async Task MutateAsync(Func<Task<MonthlyPlanResult>> operation)
+    {
+        if (_busy) { return; }
+        _busy = true;
+        try
+        {
+            var result = await operation();
+            _message = result.Error ?? "Planejamento atualizado.";
+            if (result.Succeeded) { _categoryDialog = false; CancelDelete(); await ReloadAsync(); }
+        }
+        finally { _busy = false; }
+    }
+    private static string Width(decimal ratio) => $"width: {(ratio * 100m).ToString("0.####", CultureInfo.InvariantCulture)}%";
+}

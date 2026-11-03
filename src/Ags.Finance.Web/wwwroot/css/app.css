@@ -546,3 +546,16 @@ a:hover {
 .attachment-controls { min-width: 0; overflow-wrap: anywhere; }
 .attachment-controls input, .attachment-controls select { max-width: 100%; min-height: var(--touch-target); }
 .attachment-controls .button { display: inline-flex; align-items: center; justify-content: center; min-width: var(--touch-target); min-height: var(--touch-target); white-space: normal; }
+
+.monthly-plan-navigation, .monthly-plan-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.monthly-plan-layout { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 16px; }
+.monthly-plan-main { min-width: 0; }
+.monthly-plan-cards { display: grid; gap: 12px; align-content: start; }
+.monthly-plan-cards .panel { margin: 0; }
+.monthly-plan-bar { display: flex; min-width: 120px; height: 8px; border-radius: 8px; overflow: hidden; background: var(--color-border); }
+.monthly-plan-paid { background: var(--color-accent); }
+.monthly-plan-forecast { background: var(--color-income); opacity: 0.55; }
+.monthly-plan-exceeded td { color: var(--color-expense); }
+.monthly-plan-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.monthly-plan-preview dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 900px) { .monthly-plan-layout { grid-template-columns: minmax(0, 1fr); } .monthly-plan-cards { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); } }
