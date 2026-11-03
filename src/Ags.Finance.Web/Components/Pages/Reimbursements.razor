@@ -1,3 +1,101 @@
 @page "/reembolsos"
+@using System.Globalization
+@using Ags.Finance.Modules.Reimbursements.Contracts
+@using Ags.Finance.SharedKernel
+@inject IReimbursementOverviews Overviews
+@inject IPersonCatalog People
+@inject TimeProvider Clock
 
 <PageHeader Title="Reembolsos" />
+@if (_message is not null) { <p role="status">@_message</p> }
+<section class="panel">
+    <h2>Filtrar reembolsos</h2>
+    <form id="reimbursement-filters" @onsubmit="LoadAsync" @onsubmit:preventDefault>
+        <div class="catalog-fields">
+            <div class="field"><label for="reimbursement-month">Mês contábil</label><input id="reimbursement-month" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" disabled="@_allMonths" /></div>
+            <div class="field"><label for="reimbursement-person">Pessoa</label><select id="reimbursement-person" @bind="_personId">
+                <option value="@Guid.Empty">Todas</option>@foreach (var person in _people) { <option value="@person.ExternalId">@person.Name</option> }
+            </select></div>
+            <div class="field"><label for="reimbursement-status">Situação</label><select id="reimbursement-status" @bind="_status">
+                <option value="">Todas</option><option value="@ReimbursementStatus.Pending">Pendente</option><option value="@ReimbursementStatus.Received">Recebido</option>
+            </select></div>
+        </div>
+        <label class="checkbox"><input id="reimbursement-all-months" type="checkbox" @bind="_allMonths" />Todos os meses</label>
+        <button class="button" disabled="@_busy">Filtrar</button>
+    </form>
+    @if (!_overview.PendingBeforeMonth.IsZero)
+    {
+        <p class="reimbursement-warning" role="note">Há <span class="numeric">@_overview.PendingBeforeMonth</span> pendentes em meses anteriores. Marque "Todos os meses" para vê-los.</p>
+    }
+</section>
+<section class="panel">
+    <h2>Reembolsos</h2>
+    <ul class="catalog-list" aria-label="Reembolsos">
+        @foreach (var item in _overview.Items)
+        {
+            <li>
+                <span>@item.Date.ToString("dd/MM/yyyy") · @item.Description · @item.Classification · Mês @item.Month</span>
+                <span>@item.PersonName · @item.ExpenseAmount × @Percent(item.Percent)</span>
+                @if (!item.IsExpenseEffective) { <span>Despesa ainda pendente</span> }
+                <span>Esperado: <span class="numeric">@item.Expected</span></span>
+                <span>Recebido: <span class="numeric">@(item.Received is { } received ? received.ToString() : "—")</span></span>
+                <span>@(item.Status == ReimbursementStatus.Received ? "Recebido" : "Pendente")</span>
+            </li>
+        }
+    </ul>
+    @if (_overview.Items.Count == 0 && !_busy) { <p>Nenhum reembolso neste filtro.</p> }
+    @if (_overview.Items.Count > 0)
+    {
+        <footer aria-label="Totais dos reembolsos">
+            <p>Esperado: <span class="numeric">@_overview.Expected</span></p>
+            <p>Recebido: <span class="numeric">@_overview.Received</span></p>
+            <p>Pendente: <span class="numeric">@_overview.Pending</span></p>
+            <ul class="catalog-list" aria-label="Totais por pessoa">
+                @foreach (var total in _overview.People)
+                {
+                    <li><span>@total.PersonName</span>
+                        <span>Esperado: <span class="numeric">@total.Expected</span></span>
+                        <span>Recebido: <span class="numeric">@total.Received</span></span>
+                        <span>Pendente: <span class="numeric">@total.Pending</span></span></li>
+                }
+            </ul>
+        </footer>
+    }
+</section>
+
+@code {
+    private IReadOnlyList<PersonDetails> _people = [];
+    private ReimbursementOverview _overview = new([], [], default, default, default, default);
+    private string _month = string.Empty;
+    private Guid _personId;
+    private ReimbursementStatus? _status;
+    private bool _allMonths;
+    private bool _busy;
+    private string? _message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _month = Clock.GetLocalNow().ToString("yyyy-MM", CultureInfo.InvariantCulture);
+        _people = await People.GetAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        AccountingMonth? month = null;
+        if (!_allMonths)
+        {
+            if (!DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)) { _message = "Informe um mês contábil válido."; return; }
+            month = AccountingMonth.FromDate(date);
+        }
+        _busy = true;
+        try
+        {
+            _overview = await Overviews.GetAsync(new(month, _personId == Guid.Empty ? null : _personId, _status));
+            _message = _overview.Error;
+        }
+        finally { _busy = false; }
+    }
+
+    private static string Percent(decimal value) => value.ToString("0.##", CultureInfo.GetCultureInfo("pt-BR")) + "%";
+}

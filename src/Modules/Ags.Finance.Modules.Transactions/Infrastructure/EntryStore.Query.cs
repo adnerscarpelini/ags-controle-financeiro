@@ -23,6 +23,7 @@ internal sealed partial class EntryStore
         await using var context = await factory.CreateDbContextAsync(cancellationToken);
         var query = context.Set<TransactionEntry>().AsNoTracking();
         if (filter.PendingRecurringOnly) { query = query.Where(x => !x.IsEffective && x.CardExternalId == null && x.RecurringEntryExternalId != null); }
+        if (filter.HasReimbursement) { query = query.Where(x => x.ReimbursementPersonExternalId != null); }
         if (filter.Month is { } month) { query = query.Where(x => x.Month == month); }
         if (filter.FromDate is { } from) { query = query.Where(x => x.Date >= from); }
         if (filter.ToDate is { } to) { query = query.Where(x => x.Date <= to); }
