@@ -51,6 +51,36 @@ Cadastros arquivados/desativados saem com `is_active=false` ([#53](../accounts/a
 mantêm o estado. Logos de banco (binários), regras de rateio, filtros salvos, senhas, hashes e
 credenciais não fazem parte do CSV.
 
+## Lançamentos e séries recorrentes (versão 1, [#62](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/62))
+
+Dois arquivos, `lancamentos-transactions-v1.csv` e `lancamentos-recurring-series-v1.csv`, com as regras do formato acima.
+
+**Cobertura.** Receitas e despesas: avulsas, de cartão, parcelas e ocorrências recorrentes, com o estado
+Pendente/Efetivado. **Ficam de fora**, por decisão desta versão: ajustes de fatura (#52), transferências
+entre contas e pagamentos/cashbacks/descontos de fatura. Eles nunca são tratados como despesa, os pagamentos
+continuam imutáveis, e a importação (#29) rejeita esses tipos em vez de interpretá-los.
+
+| Tipo (linha 1) | Colunas |
+| --- | --- |
+| `transactions` | `external_id`, `date`, `accounting_month` (`yyyy-MM`, o mês gravado, inclusive o escolhido manualmente), `kind` (`Income`, `Expense`), `amount_cents` (positivo; o sinal vem de `kind`), `merchant_external_id`, `subcategory_external_id`, `account_external_id`, `card_external_id` (opcional), `card_digits_external_id` (opcional), `details`, `is_effective`, `effective_date` (opcional), `installment_purchase_external_id`, `installment_number`, `installment_count` (os três opcionais, juntos), `recurring_entry_external_id` (opcional), `occurrence_month` (`yyyy-MM-dd`, opcional) |
+| `recurring_series` | `external_id`, `start_date`, `day`, `end_month` (`yyyy-MM`, opcional), `merchant_external_id`, `subcategory_external_id`, `account_external_id`, `card_external_id` (opcional), `card_digits_external_id` (opcional), `amount_cents`, `details`, `accounting_month` (opcional), `is_active` |
+
+**Vínculos explícitos.** Parcelas são agrupadas pelo `installment_purchase_external_id` e numeradas por
+`installment_number`/`installment_count`; ocorrências recorrentes apontam para a série por
+`recurring_entry_external_id` e identificam o mês por `occurrence_month`. Nada é inferido por
+descrição, `(x/y)` ou semelhança de valor. A definição da série vai no arquivo `recurring_series`, que
+contém as séries referenciadas pelos lançamentos do mesmo filtro. Os meses excluídos de uma série
+("somente esta" apagada) não existem no Contract e portanto não são exportados.
+
+**Filtros.** Os mesmos da tela Lançamentos ([#15](../transactions/entry-filters.md)): mês contábil, intervalo de
+datas, conta, cartão, final, categoria, subcategoria, texto, situação e tipo, ou um filtro salvo
+([#33](../transactions/saved-filters.md)) aplicado ao mês/intervalo. Valor de filtro inválido rejeita o pedido.
+Endpoints: `GET /csv/lancamentos`, `/csv/lancamentos/series` (mesma query string), e `/modelo` e `/exemplo` de
+cada um. Sem registros, o arquivo traz só versão e cabeçalhos.
+
+**Somente consulta.** A exportação usa a mesma consulta da tela Lançamentos, que materializa as ocorrências
+recorrentes do período; nada é efetivado, nenhum pagamento é criado e saldos e faturas não mudam.
+
 ## Modelo, exemplo e exportação
 
 A tela **Arquivos CSV** (`/arquivos-csv`, acessível por Cadastros) baixa, por tipo, a exportação
@@ -60,5 +90,5 @@ somente leitura: não altera cadastros nem saldos.
 
 ## Estado
 
-Implementados: layout, escrita e leitura estrita, exportação de cadastros, modelo e exemplo.
-A importação dos cadastros é a #28 e a troca de lançamentos, #62/#29.
+Implementados: layout, escrita e leitura estrita, exportação de cadastros (#61) e de lançamentos e séries (#62), modelos e exemplos.
+A importação é a #28 (cadastros) e a #29 (lançamentos).

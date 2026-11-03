@@ -1,6 +1,8 @@
 @page "/arquivos-csv"
 @using Ags.Finance.Modules.Imports.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
 @using Ags.Finance.Web.Csv
+@inject ISavedFilterCatalog SavedFilters
 
 <PageHeader Title="Arquivos CSV" />
 <p><a href="/cadastros">Cadastros</a> / Arquivos CSV</p>
@@ -19,7 +21,37 @@
     </ul>
 </section>
 
+<section class="panel">
+    <h2>Lançamentos</h2>
+    <p>Receitas e despesas (avulsas, de cartão, parceladas e recorrentes), com mês contábil, centavos, vínculos e estado Pendente/Efetivado. Ajustes de fatura, transferências e
+        pagamentos de fatura não fazem parte do layout. Baixe também as séries recorrentes referenciadas pelo mesmo filtro.</p>
+    <form id="transaction-export" method="get" action="/csv/lancamentos" data-enhance-nav="false">
+        <div class="catalog-fields">
+            <div class="field"><label for="export-month">Mês contábil</label><input id="export-month" name="month" type="month" /></div>
+            <div class="field"><label for="export-from">De</label><input id="export-from" name="from" type="date" /></div>
+            <div class="field"><label for="export-to">Até</label><input id="export-to" name="to" type="date" /></div>
+            <div class="field"><label for="export-saved">Filtro salvo</label><select id="export-saved" name="savedFilter">
+                <option value="">Nenhum</option>@foreach (var filter in _filters) { <option value="@filter.ExternalId">@filter.Name</option> }
+            </select></div>
+            <div class="field"><label for="export-effective">Situação</label><select id="export-effective" name="effective"><option value="">Todas</option><option value="true">Efetivado</option><option value="false">Pendente</option></select></div>
+            <div class="field"><label for="export-text">Texto</label><input id="export-text" name="text" maxlength="200" /></div>
+        </div>
+        <button class="button">Exportar lançamentos</button>
+        <button class="button" type="submit" formaction="/csv/lancamentos/series">Exportar séries recorrentes</button>
+    </form>
+    <p>
+        <a class="button" data-enhance-nav="false" href="/csv/lancamentos/modelo">Modelo de lançamentos</a>
+        <a class="button" data-enhance-nav="false" href="/csv/lancamentos/exemplo">Exemplo de lançamentos</a>
+        <a class="button" data-enhance-nav="false" href="/csv/lancamentos/series/modelo">Modelo de séries</a>
+        <a class="button" data-enhance-nav="false" href="/csv/lancamentos/series/exemplo">Exemplo de séries</a>
+    </p>
+</section>
+
 @code {
+    private IReadOnlyList<SavedFilterDetails> _filters = [];
+
+    protected override async Task OnInitializedAsync() => _filters = await SavedFilters.GetAsync();
+
     private sealed record Item(RegistryKind Kind, string Label);
 
     // Na ordem de importação documentada.
