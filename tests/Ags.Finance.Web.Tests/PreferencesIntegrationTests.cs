@@ -231,7 +231,7 @@ public sealed class PreferencesIntegrationTests : IDisposable
         var classifications = provider.GetRequiredService<IClassificationCatalog>();
         var merchants = provider.GetRequiredService<IMerchantCatalog>();
         var catalog = provider.GetRequiredService<IEntryCatalog>();
-        var today = DateOnly.FromDateTime(DateTime.Now);
+        var today = DateOnly.FromDateTime(provider.GetRequiredService<TimeProvider>().GetLocalNow().DateTime);
         var subcategories = new List<Guid>();
         for (var index = 0; index < (distinctSubcategories ? entries : 1); index++)
         {

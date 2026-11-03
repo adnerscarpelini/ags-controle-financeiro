@@ -22,7 +22,7 @@ public sealed class AccountTransferPageTests
         await context.Services.MigrateTransactionsModuleAsync();
         var accounts = context.Services.GetRequiredService<IAccountCatalog>();
         var bank = await accounts.CreateBankAsync("Banco Exemplo");
-        var today = DateOnly.FromDateTime(DateTime.Now);
+        var today = DateOnly.FromDateTime(context.Services.GetRequiredService<TimeProvider>().GetLocalNow().DateTime);
         var source = await accounts.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Corrente Exemplo", AccountKind.Checking, "green", new Money(1000), today));
         var destination = await accounts.SaveAccountAsync(new(null, bank.ExternalId.Value, "Reserva Exemplo", AccountKind.Investment, "green"));
         var page = context.Render<AccountTransfers>();
