@@ -1,4 +1,5 @@
 using Ags.Finance.Modules.Imports.Application.Registries;
+using Ags.Finance.Modules.Imports.Application.Transactions;
 using Ags.Finance.Modules.Imports.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,6 +10,7 @@ public static class DependencyInjection
     public static IServiceCollection AddImportsModule(this IServiceCollection services)
     {
         services.AddScoped<IRegistryExport, RegistryExporter>();
+        services.AddScoped<ITransactionExport, TransactionExporter>();
         return services;
     }
 }

@@ -119,6 +119,7 @@ app.UseAntiforgery();
 app.MapAccountEndpoints();
 app.MapBankLogoEndpoints();
 app.MapCsvEndpoints();
+app.MapTransactionCsvEndpoints();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
