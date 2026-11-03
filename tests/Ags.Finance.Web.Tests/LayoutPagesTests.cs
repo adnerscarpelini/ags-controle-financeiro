@@ -14,12 +14,11 @@ public sealed partial class LayoutPagesTests : IDisposable
         { "lancamentos", "Lançamentos" },
         { "faturas", "Faturas" },
         { "anexos", "Anexos" },
-        { "cashback", "Cashback" },
         { "reembolsos", "Reembolsos" },
         { "dashboard", "Dashboard" },
         { "planejamento", "Planejamento mensal" },
         { "relatorios/visao-19-meses", "Relatórios: visão de 19 meses" },
-        { "cadastros", "Cadastros" },
+        { "cadastros/categorias", "Categorias e subcategorias" },
         { "configuracoes", "Configurações" },
     };
 
@@ -49,6 +48,29 @@ public sealed partial class LayoutPagesTests : IDisposable
         {
             Assert.Matches($"<a[^>]*href=\"{route}\"[^>]*>", html);
         }
+    }
+
+    [Fact]
+    public async Task TheOldMasterDataRouteRedirectsToCategories()
+    {
+        using var browser = await _factory.CreateSignedInBrowserAsync();
+
+        using var response = await browser.GetAsync("/cadastros");
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.EndsWith("/cadastros/categorias", response.Headers.Location?.ToString(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("/lancamentos", "/pendentes")]
+    [InlineData("/faturas", "/compromissos")]
+    [InlineData("/faturas", "/cashback")]
+    [InlineData("/cadastros/contas-cartoes", "/transferencias")]
+    public async Task ScreensWithoutAMenuItemAreLinkedFromARelatedScreen(string page, string target)
+    {
+        var html = await GetHtmlAsync(page);
+
+        Assert.Contains($"href=\"{target}\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -122,7 +144,7 @@ public sealed partial class LayoutPagesTests : IDisposable
         _factory.Dispose();
     }
 
-    [GeneratedRegex(@"<a\b[^>]*\bclass=""[^""]*nav-link[^""]*""[^>]*>|<a\b[^>]*\bhref=""[^""]*""[^>]*\bclass=""[^""]*nav-link[^""]*""[^>]*>")]
+    [GeneratedRegex(@"<a\b[^>]*\bmud-nav-link\b[^>]*>")]
     private static partial Regex NavLinkRegex();
 
     [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline)]

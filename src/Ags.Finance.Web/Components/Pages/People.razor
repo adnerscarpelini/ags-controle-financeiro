@@ -4,7 +4,6 @@
 @inject IPersonCatalog Catalog
 
 <PageHeader Title="Pessoas" />
-<p><a href="/cadastros">Cadastros</a> / Pessoas</p>
 @if (_message is not null) { <p role="status">@_message</p> }
 <section class="panel">
     <h2>@(_externalId is null ? "Nova pessoa" : "Editar pessoa")</h2>

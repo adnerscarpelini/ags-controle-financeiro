@@ -13,6 +13,28 @@
         }
     });
 
+    // Menu recolhido: a escolha é por navegador. Sem armazenamento (janela privada, dados bloqueados), vale até recarregar.
+    window.agsMenu = {
+        isCollapsed: function () {
+            try {
+                return window.localStorage.getItem('ags.menu-collapsed') === '1';
+            } catch (error) {
+                return false;
+            }
+        },
+        setCollapsed: function (collapsed) {
+            try {
+                if (collapsed) {
+                    window.localStorage.setItem('ags.menu-collapsed', '1');
+                } else {
+                    window.localStorage.removeItem('ags.menu-collapsed');
+                }
+            } catch (error) {
+                // a escolha vale só até recarregar
+            }
+        },
+    };
+
     window.agsViewport = {
         watch: function (reference) {
             var listener = function (event) {

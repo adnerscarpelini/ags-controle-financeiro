@@ -20,9 +20,10 @@
         <PrivacyToggle Class="icon-button privacy-toggle" />
     </MudAppBar>
 
-    <MudDrawer id="sidebar" Class="sidebar" Elevation="0" Variant="@(Viewport.IsMobile ? DrawerVariant.Temporary : DrawerVariant.Persistent)"
-               Open="@(!Viewport.IsMobile || _drawerOpen)" OpenChanged="DrawerOpenChanged">
-        <NavMenu OnNavigate="CloseDrawer" />
+    <MudDrawer id="sidebar" Class="@(IsCollapsed ? "sidebar sidebar-collapsed" : "sidebar")" Elevation="0" OpenMiniOnHover="false" Breakpoint="Breakpoint.Xs"
+               Variant="@(Viewport.IsMobile ? DrawerVariant.Temporary : DrawerVariant.Mini)"
+               Open="@(Viewport.IsMobile ? _drawerOpen : !_collapsed)" OpenChanged="DrawerOpenChanged">
+        <NavMenu OnNavigate="CloseDrawer" Collapsed="IsCollapsed" CanCollapse="@(!Viewport.IsMobile)" OnToggleCollapsed="ToggleCollapsedAsync" />
     </MudDrawer>
 
     <MudMainContent Class="app-main">
@@ -39,6 +40,9 @@
     private bool _isDarkMode = true;
     private bool _systemIsDark = true;
     private bool _drawerOpen;
+    private bool _collapsed;
+
+    private bool IsCollapsed => !Viewport.IsMobile && _collapsed;
 
     protected override async Task OnInitializedAsync()
     {
@@ -57,6 +61,7 @@
 
         _reference = DotNetObjectReference.Create(this);
         Viewport.Set(await Js.InvokeAsync<bool>("agsViewport.watch", _reference));
+        _collapsed = await Js.InvokeAsync<bool>("agsMenu.isCollapsed");
         if (_themeProvider is not null)
         {
             await _themeProvider.WatchSystemDarkModeAsync(SystemThemeChangedAsync);
@@ -102,6 +107,12 @@
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 
     private void CloseDrawer() => _drawerOpen = false;
+
+    private async Task ToggleCollapsedAsync()
+    {
+        _collapsed = !_collapsed;
+        await Js.InvokeVoidAsync("agsMenu.setCollapsed", _collapsed);
+    }
 
     private void DrawerOpenChanged(bool open)
     {
