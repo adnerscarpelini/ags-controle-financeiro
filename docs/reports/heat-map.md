@@ -22,4 +22,4 @@ negrito.
 **Troca de ano.** O ano vem do mês selecionado, então mudar de ano mostra os meses do novo
 ano sem configuração. Ocorrências recorrentes só são geradas até o mês selecionado; os
 meses seguintes mostram o que já está lançado (por exemplo parcelas). Exportar a tabela
-está fora do escopo.
+está fora do escopo. Para os meses futuros com as recorrentes, use o [planejamento](planning.md).
