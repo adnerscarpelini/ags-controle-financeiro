@@ -53,7 +53,7 @@ Requisitos, critérios de aceite e dúvidas permanecem nas issues.
 
 A persistência usa PostgreSQL (#60) e a distribuição é Docker Compose (#59), com backup e recuperação (#31).
 Não há migração de dados SQLite. O restante do produto continua nas issues,
-incluindo o CSV oficial (#28/#29/#61/#62).
+incluindo a validação em campo da PWA (#38).
 
 ## Funcionalidades implementadas
 
@@ -61,6 +61,7 @@ incluindo o CSV oficial (#28/#29/#61/#62).
 - Web: [Layout e navegação](web/layout-and-navigation.md)
 - Web: [Instalação com Docker Compose e backup (#59/#31)](web/docker-deployment.md)
 - Web: [Certificado HTTPS](web/https-certificate.md)
+- Web: [Instalação como PWA (#38)](web/pwa.md)
 - Identity: [Criação e redefinição do usuário](identity/user-creation.md)
 - Identity: [Login com usuário e senha](identity/login.md)
 - Accounts: [Bancos, contas e cartões](accounts/banks-accounts-and-cards.md)

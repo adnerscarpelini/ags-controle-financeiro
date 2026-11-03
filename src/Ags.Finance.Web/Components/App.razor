@@ -3,7 +3,13 @@
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Finanças" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
     <base href="/" />
     <link rel="icon" type="image/png" sizes="64x64" href="img/favicon.png" />
     <link rel="preload" href="fonts/inter-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
@@ -16,6 +22,7 @@
     <Routes @rendermode="PageRenderMode" />
     <script src="_framework/blazor.web.js"></script>
     <script src="js/keyboard-shortcuts.js"></script>
+    <script src="js/pwa.js"></script>
 </body>
 
 </html>
