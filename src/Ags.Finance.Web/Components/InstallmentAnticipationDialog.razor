@@ -1,0 +1,60 @@
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Invoices.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+@inject IInvoiceAnticipationCatalog Anticipations
+@inject IAccountingMonthCalculator Calendar
+@inject TimeProvider Clock
+
+<section class="panel" role="alertdialog" aria-label="Antecipar parcelas">
+    <h2>Antecipar parcelas de @Entry.MerchantName</h2>
+    <p>As últimas parcelas futuras da compra serão movidas para a fatura atual: @_month.</p>
+    @if (_error is not null) { <p role="status">@_error</p> }
+    @if (_review)
+    {
+        <p>Confirmar antecipação de @_count parcelas para @_month, com desconto de @(new Money(_discount))?</p>
+        <p>Os valores das parcelas serão preservados. Desconto será um abatimento separado na fatura.</p>
+        <button class="button" @onclick="ConfirmAsync" disabled="@_busy">Confirmar antecipação</button>
+        <button class="button" @onclick="() => _review = false" disabled="@_busy">Voltar</button>
+    }
+    else
+    {
+        <form id="anticipation-form" @onsubmit="() => _review = true" @onsubmit:preventDefault>
+            <div class="catalog-fields">
+                <div class="field"><label for="anticipation-count">Quantidade das últimas parcelas futuras</label><input id="anticipation-count" type="number" min="1" max="48" @bind="_count" required /></div>
+                <div class="field"><label for="anticipation-discount">Desconto obtido (R$)</label><input id="anticipation-discount" type="number" min="0" step="0.01" @bind="_discount" required /></div>
+            </div><button class="button" disabled="@(_busy || _month is null)">Revisar antecipação</button>
+        </form>
+    }
+    <button class="button" @onclick="() => Cancelled.InvokeAsync()" disabled="@_busy">Cancelar</button>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public EntryDetails Entry { get; set; } = default!;
+    [Parameter] public EventCallback Confirmed { get; set; }
+    [Parameter] public EventCallback Cancelled { get; set; }
+    private readonly Guid _confirmationId = Guid.CreateVersion7();
+    private AccountingMonth? _month;
+    private int _count = 1;
+    private decimal _discount;
+    private bool _review;
+    private bool _busy;
+    private string? _error;
+    protected override async Task OnInitializedAsync()
+    {
+        var suggestion = await Calendar.CalculateAsync(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime), Entry.CardExternalId);
+        _month = suggestion.Month; _error = suggestion.Error;
+    }
+    private async Task ConfirmAsync()
+    {
+        if (_busy || _month is null) { return; }
+        _busy = true;
+        try
+        {
+            var result = await Anticipations.AnticipateAsync(new(_confirmationId, Entry.ExternalId, _count, new Money(_discount), _month));
+            _error = result.Error;
+            if (result.Succeeded) { await Confirmed.InvokeAsync(); }
+        }
+        finally { _busy = false; }
+    }
+}

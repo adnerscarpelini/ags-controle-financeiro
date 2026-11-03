@@ -48,3 +48,11 @@ mesma transação; os movimentos de caixa ficam fora das despesas do orçamento.
 Testes forçam falha tanto no débito quanto na gravação final do pagamento e
 comprovam rollback do estado, do movimento e do histórico. Identidade estável da
 confirmação e lock transacional protegem cliques/chamadas concorrentes.
+
+## Antecipação de parcelas (#32)
+
+Invoices reutiliza a edição protegida de parcelas em Transactions, o catálogo de
+abatimentos e o registro de antecipação em uma única operação financeira.
+Não cria referência inversa nem FK para as entidades de Transactions. A trilha de
+confirmação pertence a Invoices e guarda identificadores públicos históricos.
+Falhas posteriores ao movimento e ao desconto revertem ambos os módulos.

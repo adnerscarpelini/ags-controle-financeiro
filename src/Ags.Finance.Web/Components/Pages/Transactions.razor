@@ -13,6 +13,7 @@
 
 <PageHeader Title="Lançamentos" />
 @if (_message is not null) { <p role="status">@_message</p> }
+@if (_anticipating is { } anticipating) { <InstallmentAnticipationDialog @key="anticipating.ExternalId" Entry="anticipating" Confirmed="AnticipatedAsync" Cancelled="() => _anticipating = null" /> }
 @if (_effectiveEntry is { } pending)
 {
     <EffectiveEntryDialog @key="pending.ExternalId" Entry="pending" Confirmed="EffectiveConfirmedAsync" Cancelled="() => _effectiveEntry = null" />
@@ -145,6 +146,7 @@
                     <button class="button" @onclick="() => _selectedId = entry.ExternalId">@(_selectedId == entry.ExternalId ? "Selecionado" : "Selecionar")</button>
                         <button class="button" @onclick="() => EditEntryAsync(entry)" disabled="@_busy">Editar</button>
                         <button class="button" @onclick="() => AskDelete(entry)" disabled="@_busy">Excluir</button>
+                    @if (entry.InstallmentPurchaseExternalId is not null) { <button class="button" @onclick="() => _anticipating = entry" disabled="@_busy">Antecipar parcelas</button> }
                     @if (!entry.IsEffective && entry.CardExternalId is null && entry.RecurringEntryExternalId is not null)
                     {
                         <button class="button" @onclick="() => _effectiveEntry = entry" disabled="@_busy">Registrar baixa manual</button>
@@ -198,6 +200,8 @@
     private int _recurringDay;
     private EntryChangeScope? _scope;
     private EntryDetails? _deleteEntry;
+    private EntryDetails? _anticipating;
+    private async Task AnticipatedAsync() { _anticipating = null; _message = "Parcelas antecipadas."; await ReloadQueryAsync(); }
     private EntryDetails? _effectiveEntry;
     private async Task EffectiveConfirmedAsync() { _effectiveEntry = null; _message = "Baixa registrada."; await ReloadQueryAsync(); }
     private EntryChangeScope? _deleteScope;

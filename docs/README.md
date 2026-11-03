@@ -61,3 +61,5 @@ Arquivamento reversível (#53), logos (#54), carteira visual (#55), faturas/paga
 (#18/#19/#50–#52) e efetivação/pendentes (#56–#58) ainda não são apresentados como recursos entregues.
 
 - [Saldos e parcelas futuras (#20)](invoices/future-obligations.md)
+
+- [Antecipação de parcelas (#32)](invoices/installment-anticipation.md)

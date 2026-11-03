@@ -77,6 +77,16 @@ public sealed class TransactionPageTests
         Assert.Equal(3, installments.Count);
         Assert.Equal(-1000m, installments.Sum(x => x.Amount.Amount));
         Assert.Contains("Parcela 1/3", page.Markup, StringComparison.Ordinal);
+        var anticipating = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 1/3", StringComparison.Ordinal));
+        await anticipating.QuerySelectorAll("button").Single(x => x.TextContent == "Antecipar parcelas").ClickAsync(new());
+        page.WaitForAssertion(() => Assert.False(page.Find("#anticipation-form button").HasAttribute("disabled")));
+        await page.FindAll("[aria-label='Antecipar parcelas'] button").Single(x => x.TextContent == "Cancelar").ClickAsync(new());
+        anticipating = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 1/3", StringComparison.Ordinal));
+        await anticipating.QuerySelectorAll("button").Single(x => x.TextContent == "Antecipar parcelas").ClickAsync(new());
+        page.WaitForAssertion(() => Assert.False(page.Find("#anticipation-form button").HasAttribute("disabled")));
+        await page.Find("#anticipation-form").SubmitAsync(EventArgs.Empty);
+        await page.FindAll("[aria-label='Antecipar parcelas'] button").Single(x => x.TextContent == "Confirmar antecipação").ClickAsync(new());
+        Assert.Equal(new AccountingMonth(2026, 9), (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.InstallmentNumber == 3).Month);
         var firstRow = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 1/3", StringComparison.Ordinal));
         await firstRow.QuerySelectorAll("button")[1].ClickAsync(new());
         Assert.Equal("2026-12", page.Find("#entry-month").GetAttribute("value"));
