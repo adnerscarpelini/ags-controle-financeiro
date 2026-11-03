@@ -2,6 +2,7 @@ using Ags.Finance.Modules.Reimbursements.Application;
 using Ags.Finance.Modules.Reimbursements.Application.ManagePeople;
 using Ags.Finance.Modules.Reimbursements.Contracts;
 using Ags.Finance.Modules.Reimbursements.Infrastructure;
+using Ags.Finance.Modules.Transactions.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,7 @@ public static class DependencyInjection
 
         services.AddScoped<IReimbursementStore, ReimbursementStore>();
         services.AddScoped<IPersonCatalog, PersonCatalog>();
+        services.AddScoped<IReimbursementWriteGuard, ReimbursementWriteGuard>();
         return services;
     }
 

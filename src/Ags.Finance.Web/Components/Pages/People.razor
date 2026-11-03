@@ -42,7 +42,7 @@
 
     protected override async Task OnInitializedAsync() => _people = await Catalog.GetAsync();
 
-    private void Edit(PersonDetails person) { _externalId = person.ExternalId; _name = person.Name; _defaultPercent = person.DefaultPercent; }
+    private void Edit(PersonDetails person) { _externalId = person.ExternalId; _name = person.Name; _defaultPercent = decimal.Parse(person.DefaultPercent.ToString("0.##", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture); }
     private void Reset() { _externalId = null; _name = string.Empty; _defaultPercent = 0; }
 
     private async Task SaveAsync()

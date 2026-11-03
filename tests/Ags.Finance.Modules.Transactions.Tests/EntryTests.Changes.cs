@@ -11,7 +11,7 @@ namespace Ags.Finance.Modules.Transactions.Tests;
 public sealed partial class EntryTests
 {
     private static CreateEntryRequest Change(EntryDetails entry) => new(entry.Date, entry.MerchantExternalId, entry.SubcategoryExternalId,
-        entry.AccountExternalId, new Money(Math.Abs(entry.Amount.Amount)), entry.Details, entry.Month, entry.CardExternalId, entry.CardLastDigitsExternalId);
+        entry.AccountExternalId, new Money(Math.Abs(entry.Amount.Amount)), entry.Details, entry.Month, entry.CardExternalId, entry.CardLastDigitsExternalId, entry.Reimbursement);
 
     [Fact]
     public async Task EditingAndDeletingEffectiveCashRecalculatesBalanceAndPreservesIdentity()

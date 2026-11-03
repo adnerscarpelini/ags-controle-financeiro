@@ -37,7 +37,7 @@ internal sealed class InvoiceAnticipationCatalog(IEntryCatalog entries, IInvoice
         foreach (var entry in moving)
         {
             var changed = await entries.EditAsync(entry.ExternalId, new(entry.Date, entry.MerchantExternalId, entry.SubcategoryExternalId, entry.AccountExternalId,
-                new Money(Math.Abs(entry.Amount.Amount)), entry.Details, month, entry.CardExternalId, entry.CardLastDigitsExternalId), EntryChangeScope.OnlyThis, cancellationToken);
+                new Money(Math.Abs(entry.Amount.Amount)), entry.Details, month, entry.CardExternalId, entry.CardLastDigitsExternalId, entry.Reimbursement), EntryChangeScope.OnlyThis, cancellationToken);
             if (!changed.Succeeded) { return new(changed.Error); }
         }
         if (!request.Discount.IsZero)

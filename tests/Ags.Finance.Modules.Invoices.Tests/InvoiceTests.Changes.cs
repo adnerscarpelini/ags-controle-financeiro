@@ -8,7 +8,18 @@ namespace Ags.Finance.Modules.Invoices.Tests;
 public sealed partial class InvoiceTests
 {
     private static CreateEntryRequest Change(EntryDetails entry) => new(entry.Date, entry.MerchantExternalId, entry.SubcategoryExternalId,
-        entry.AccountExternalId, new Money(Math.Abs(entry.Amount.Amount)), entry.Details, entry.Month, entry.CardExternalId, entry.CardLastDigitsExternalId);
+        entry.AccountExternalId, new Money(Math.Abs(entry.Amount.Amount)), entry.Details, entry.Month, entry.CardExternalId, entry.CardLastDigitsExternalId, entry.Reimbursement);
+
+    [Fact]
+    public async Task ClosedInvoiceBlocksChangingTheReimbursementOfAPurchase()
+    {
+        var entries = Provider.GetRequiredService<IEntryCatalog>();
+        await entries.CreateAsync(Purchase(100));
+        var source = Assert.Single(await entries.GetAsync());
+        await Lifecycle.CloseAsync(_cardId, s_october);
+        Assert.False((await entries.EditAsync(source.ExternalId, Change(source) with { Reimbursement = new(Guid.CreateVersion7(), 50m) }, EntryChangeScope.OnlyThis)).Succeeded);
+        Assert.Null(Assert.Single(await entries.GetAsync()).Reimbursement);
+    }
 
     [Fact]
     public async Task MovingRequiresBothSourceAndDestinationOpenAndPreservesPurchaseData()
