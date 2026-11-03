@@ -13,6 +13,10 @@ public sealed record ReceiveReimbursementsResult(IReadOnlyList<Guid> ReceiptExte
     public bool Succeeded => Error is null;
 }
 
+public sealed record ReimbursementReceiptItemDetails(Guid EntryExternalId, DateOnly Date, string Description, AccountingMonth Month, Money Expected, Money Received);
+
+public sealed record ReimbursementReceiptDetails(Guid ExternalId, string PersonName, DateOnly Date, Guid? AccountExternalId, Money Total, IReadOnlyList<ReimbursementReceiptItemDetails> Items);
+
 public interface IReimbursementReceipts
 {
     /// <summary>
@@ -20,4 +24,9 @@ public interface IReimbursementReceipts
     /// qualquer falha desfaz a efetivação inteira.
     /// </summary>
     Task<ReceiveReimbursementsResult> ReceiveAsync(ReceiveReimbursementsRequest request, CancellationToken cancellationToken = default);
+
+    Task<ReimbursementReceiptDetails?> FindAsync(Guid receiptExternalId, CancellationToken cancellationToken = default);
+
+    /// <summary>Desfaz o recebimento inteiro da pessoa: exclui a receita gerada e os itens voltam a Pendente, em uma operação financeira.</summary>
+    Task<ReimbursementResult> UndoAsync(Guid receiptExternalId, CancellationToken cancellationToken = default);
 }

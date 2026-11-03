@@ -25,4 +25,11 @@ alterados nem ser excluída; os demais campos continuam editáveis, e o item aco
 do lançamento. A receita gerada não pode ser editada nem excluída em Lançamentos. A pessoa com
 recebimento não pode ser excluída.
 
+**Desfazer ([#83](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/83)).** Um
+recebimento pode ser desfeito, ao contrário de um pagamento de fatura. O alcance é o recebimento
+inteiro da pessoa, porque a receita cobre todos os itens dela naquela efetivação; os de outras pessoas
+não são afetados. A tela mostra o que será desfeito e pede confirmação. Em uma única operação, a receita
+é excluída, com seus anexos indo para a lixeira, os itens voltam a Pendente e as proteções da despesa
+deixam de valer. Não há histórico de recebimentos desfeitos.
+
 O modelo está em [Reembolsos](../architecture/reimbursements.md).

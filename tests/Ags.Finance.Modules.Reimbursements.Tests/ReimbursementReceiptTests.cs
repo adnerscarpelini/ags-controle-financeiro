@@ -299,6 +299,106 @@ public sealed class ReimbursementReceiptTests : ReimbursementFixture
         Assert.Equal((new Money(100m), 40m, new Money(40m), new Money(40m)), (item.ExpenseAmount, item.Percent, item.Expected, item.Received!.Value));
     }
 
+    [Fact]
+    public async Task UndoingRemovesTheIncomeAndReturnsAllItemsToPending()
+    {
+        var person = await PersonAsync();
+        var first = await ExpenseAsync(100m, person);
+        var second = await ExpenseAsync(200m, person);
+        var before = await BalanceAsync();
+        var receipt = Assert.Single((await Receipts.ReceiveAsync(Request(Item(first, 100m), Item(second, 200m)))).ReceiptExternalIds);
+
+        var details = await Receipts.FindAsync(receipt);
+        Assert.Equal(("Ana Exemplo", s_day, (Guid?)AccountId, new Money(300m), 2), (details!.PersonName, details.Date, details.AccountExternalId, details.Total, details.Items.Count));
+
+        var result = await Receipts.UndoAsync(receipt);
+
+        Assert.True(result.Succeeded, result.Error);
+        Assert.Empty(await IncomesAsync());
+        Assert.Equal(before, await BalanceAsync());
+        var overview = await Overviews.GetAsync(new(s_october));
+        Assert.Equal(2, overview.Items.Count);
+        Assert.All(overview.Items, x => Assert.Equal((ReimbursementStatus.Pending, (Money?)null), (x.Status, x.Received)));
+        Assert.Null(await Receipts.FindAsync(receipt));
+    }
+
+    [Fact]
+    public async Task UndoingOnePersonKeepsTheOtherReceipt()
+    {
+        var first = await ExpenseAsync(100m, await PersonAsync());
+        var second = await ExpenseAsync(200m, await PersonAsync("Bia Exemplo"));
+        var receipts = (await Receipts.ReceiveAsync(Request(Item(first, 100m), Item(second, 200m)))).ReceiptExternalIds;
+
+        Assert.True((await Receipts.UndoAsync(receipts[0])).Succeeded);
+
+        Assert.Equal("Bia Exemplo", Assert.Single(await IncomesAsync()).MerchantName);
+        var items = (await Overviews.GetAsync(new(s_october))).Items;
+        Assert.Equal(ReimbursementStatus.Pending, items.Single(x => x.EntryExternalId == first).Status);
+        Assert.Equal(ReimbursementStatus.Received, items.Single(x => x.EntryExternalId == second).Status);
+    }
+
+    [Fact]
+    public async Task AfterUndoingTheExpenseIsFreeAndExpectedFollowsIt()
+    {
+        var entry = await ExpenseAsync(100m, await PersonAsync());
+        var receipt = Assert.Single((await Receipts.ReceiveAsync(Request(Item(entry, 100m, 80m)))).ReceiptExternalIds);
+        Assert.True((await Receipts.UndoAsync(receipt)).Succeeded);
+        var details = Assert.Single(await Entries.GetAsync());
+
+        Assert.True((await Entries.EditAsync(entry, Change(details) with { Amount = new Money(150m) }, EntryChangeScope.OnlyThis)).Succeeded);
+
+        Assert.Equal(new Money(150m), Assert.Single((await Overviews.GetAsync(new(s_october))).Items).Expected);
+    }
+
+    [Fact]
+    public async Task UndoneReceiptCanBeReceivedAgainWithoutDuplicates()
+    {
+        var entry = await ExpenseAsync(100m, await PersonAsync());
+        var receipt = Assert.Single((await Receipts.ReceiveAsync(Request(Item(entry, 100m)))).ReceiptExternalIds);
+        Assert.True((await Receipts.UndoAsync(receipt)).Succeeded);
+
+        Assert.True((await Receipts.ReceiveAsync(Request(Item(entry, 100m, 90m)))).Succeeded);
+
+        Assert.Equal(new Money(90m), Assert.Single(await IncomesAsync()).Amount);
+    }
+
+    [Fact]
+    public async Task ZeroTotalReceiptCanBeUndoneWithoutAccountEffect()
+    {
+        var entry = await ExpenseAsync(100m, await PersonAsync());
+        var before = await BalanceAsync();
+        var receipt = Assert.Single((await Receipts.ReceiveAsync(new(s_day, null, [Item(entry, 100m, 0m)]))).ReceiptExternalIds);
+
+        Assert.True((await Receipts.UndoAsync(receipt)).Succeeded);
+
+        Assert.Equal(ReimbursementStatus.Pending, Assert.Single((await Overviews.GetAsync(new(s_october))).Items).Status);
+        Assert.Equal(before, await BalanceAsync());
+    }
+
+    [Fact]
+    public async Task FailureDeletingTheIncomeKeepsTheReceiptIntact()
+    {
+        var entry = await ExpenseAsync(100m, await PersonAsync());
+        var receipt = Assert.Single((await Receipts.ReceiveAsync(Request(Item(entry, 100m)))).ReceiptExternalIds);
+        var income = Assert.Single(await IncomesAsync());
+        await Database.ScalarAsync($"DELETE FROM transactions.entries WHERE \"ExternalId\" = '{income.ExternalId}' RETURNING 1");
+
+        Assert.False((await Receipts.UndoAsync(receipt)).Succeeded);
+
+        Assert.NotNull(await Receipts.FindAsync(receipt));
+        Assert.Equal(ReimbursementStatus.Received, Assert.Single((await Overviews.GetAsync(new(s_october))).Items).Status);
+    }
+
+    [Fact]
+    public async Task UndoingAgainIsRejected()
+    {
+        var entry = await ExpenseAsync(100m, await PersonAsync());
+        var receipt = Assert.Single((await Receipts.ReceiveAsync(Request(Item(entry, 100m)))).ReceiptExternalIds);
+        Assert.True((await Receipts.UndoAsync(receipt)).Succeeded);
+
+        Assert.False((await Receipts.UndoAsync(receipt)).Succeeded);
+    }
+
     private sealed class FailingStore(IDbContextFactory<ReimbursementsDbContext> factory) : IReimbursementStore
     {
         private readonly ReimbursementStore _inner = new(factory);
@@ -308,6 +408,7 @@ public sealed class ReimbursementReceiptTests : ReimbursementFixture
         public Task DeletePersonAsync(Person person, CancellationToken cancellationToken) => _inner.DeletePersonAsync(person, cancellationToken);
         public Task<IReadOnlyList<ReimbursementReceipt>> GetReceiptsAsync(CancellationToken cancellationToken) => _inner.GetReceiptsAsync(cancellationToken);
         public Task<IReadOnlyList<ReimbursementReceiptItem>> GetReceiptItemsAsync(CancellationToken cancellationToken) => _inner.GetReceiptItemsAsync(cancellationToken);
+        public Task DeleteReceiptAsync(ReimbursementReceipt receipt, CancellationToken cancellationToken) => _inner.DeleteReceiptAsync(receipt, cancellationToken);
         public Task<bool> IsIncomeOfReceiptAsync(Guid entryExternalId, CancellationToken cancellationToken) => _inner.IsIncomeOfReceiptAsync(entryExternalId, cancellationToken);
         public Task<bool> IsReceivedExpenseAsync(Guid entryExternalId, CancellationToken cancellationToken) => _inner.IsReceivedExpenseAsync(entryExternalId, cancellationToken);
         public Task AddReceiptAsync(ReimbursementReceipt receipt, IReadOnlyList<ReimbursementReceiptItem> items, CancellationToken cancellationToken)

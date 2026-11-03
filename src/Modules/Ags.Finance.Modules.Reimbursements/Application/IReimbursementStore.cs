@@ -10,6 +10,7 @@ internal interface IReimbursementStore
     Task<IReadOnlyList<ReimbursementReceipt>> GetReceiptsAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<ReimbursementReceiptItem>> GetReceiptItemsAsync(CancellationToken cancellationToken);
     Task AddReceiptAsync(ReimbursementReceipt receipt, IReadOnlyList<ReimbursementReceiptItem> items, CancellationToken cancellationToken);
+    Task DeleteReceiptAsync(ReimbursementReceipt receipt, CancellationToken cancellationToken);
     Task<bool> IsIncomeOfReceiptAsync(Guid entryExternalId, CancellationToken cancellationToken);
     Task<bool> IsReceivedExpenseAsync(Guid entryExternalId, CancellationToken cancellationToken);
 }

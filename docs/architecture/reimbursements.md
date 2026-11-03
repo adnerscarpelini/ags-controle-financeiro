@@ -35,9 +35,11 @@ valor, tipo, pessoa ou percentual alterados nem ser excluída; a receita gerada 
 alterada nem excluída. Se um alcance atingir um lançamento protegido, a operação inteira é
 rejeitada.
 
+**Desfazer.** O registro do recebimento é removido antes da receita, para o guard não impedir a
+exclusão legítima; a transação ambiente garante o tudo ou nada.
+
 **Estado:** cadastro de pessoas (#78), pessoa e percentual em despesas (#79) e recorrentes
-(#80), análise do mês (#81) e recebimento (#82) entregues. Os demais passos estão nas issues
-[#83](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/83) e
+(#80), análise do mês (#81), recebimento (#82) e desfazer (#83) entregues. O CSV está na issue
 [#84](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/84).
 
 ## Alternativas

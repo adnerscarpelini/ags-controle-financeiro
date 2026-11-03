@@ -30,7 +30,7 @@
 - [Pessoas de reembolso (#78)](reimbursements/people.md)
 - [Pessoa e percentual de reembolso em despesas e recorrentes (#79/#80)](transactions/entry-reimbursement.md)
 - [Reembolsos do mês (#81)](reimbursements/monthly-reimbursements.md)
-- [Recebimento de reembolsos (#82)](reimbursements/receiving.md)
+- [Recebimento de reembolsos e como desfazê-lo (#82/#83)](reimbursements/receiving.md)
 - [Resumo do mês (#24)](reports/monthly-summary.md)
 - [Despesas e receitas por categoria (#25)](reports/category-report.md)
 - [Faturas por cartão no dashboard (#26)](reports/invoices-dashboard.md)
