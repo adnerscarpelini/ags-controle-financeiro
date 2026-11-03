@@ -1,0 +1,142 @@
+@page "/planejamento"
+@using System.Globalization
+@using Ags.Finance.Modules.Reports.Contracts
+@using Ags.Finance.SharedKernel
+@using Ags.Finance.Web.Components.Planning
+@inject IPlanningReports Reports
+
+<PageHeader Title="Planejamento" />
+<section class="panel" aria-labelledby="planning-period">
+    <h2 id="planning-period">@PeriodName</h2>
+    <div class="planning-actions">
+        <button type="button" class="button" disabled="@_busy" @onclick="() => MoveAsync(-1)">Mês anterior</button>
+        <button type="button" class="button" disabled="@_busy" @onclick="() => MoveAsync(1)">Próximo mês</button>
+        @if (_report is { IsEmpty: false })
+        {
+            <button type="button" class="button" @onclick="ExpandAll">Expandir tudo</button>
+            <button type="button" class="button" @onclick="CollapseAll">Recolher tudo</button>
+        }
+    </div>
+    @if (_report?.ProjectionError is { } error) { <p role="alert">As recorrentes futuras não puderam ser calculadas: @error</p> }
+    <p aria-live="polite" data-testid="planning-detail">@_detail</p>
+    @if (_report is { } report)
+    {
+        @if (report.IsEmpty)
+        {
+            <p>Nenhuma receita ou despesa neste período.</p>
+        }
+        else
+        {
+            <div class="table-scroll">
+                <table class="planning-table">
+                    <caption class="visually-hidden">Receitas, despesas e saldos por mês, com receitas e despesas por categoria e subcategoria</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Linha</th>
+                            @foreach (var month in report.Months)
+                            {
+                                <th scope="col" class="numeric @CurrentClass(report, month)" aria-current="@(month == report.CurrentMonth ? "date" : null)">@MonthName(month)</th>
+                            }
+                            <th scope="col" class="numeric">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th scope="row">Receitas</th>
+                            @for (var i = 0; i < report.Months.Count; i++)
+                            {
+                                <PlanningCellView Cell="report.Income[i]" RowName="Receitas" MonthName="@MonthName(report.Months[i])" Class="@($"entry-income {CurrentClass(report, report.Months[i])}")" DetailRequested="ShowDetail" />
+                            }
+                            <td class="numeric entry-income">@Sum(report.Income)</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Despesas</th>
+                            @for (var i = 0; i < report.Months.Count; i++)
+                            {
+                                <PlanningCellView Cell="report.Expenses[i]" RowName="Despesas" MonthName="@MonthName(report.Months[i])" ShowAsNegative="true" Class="@($"entry-expense {CurrentClass(report, report.Months[i])}")" DetailRequested="ShowDetail" />
+                            }
+                            <td class="numeric entry-expense">@(-Sum(report.Expenses))</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Saldo do mês</th>
+                            @for (var i = 0; i < report.Months.Count; i++)
+                            {
+                                <td class="numeric @SignClass(report.Balance[i]) @CurrentClass(report, report.Months[i])">@report.Balance[i]</td>
+                            }
+                            <td class="numeric">@(new Money(report.Balance.Sum(x => x.Amount)))</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Saldo acumulado <span class="planning-note">(não é saldo de conta)</span></th>
+                            @for (var i = 0; i < report.Months.Count; i++)
+                            {
+                                var accumulated = report.AccumulatedBalance[i];
+                                <td class="numeric @(accumulated is { } value ? SignClass(value) : string.Empty) @CurrentClass(report, report.Months[i])">@(accumulated?.ToString() ?? "-")</td>
+                            }
+                            <td class="numeric">-</td>
+                        </tr>
+                        <PlanningCategoryRows Title="Receitas por categoria" Prefix="income" Categories="report.IncomeCategories" Months="report.Months" CurrentMonth="report.CurrentMonth" HeatColor="--color-income" Expanded="_expanded" Toggled="Toggle" DetailRequested="ShowDetail" />
+                        <PlanningCategoryRows Title="Despesas por categoria" Prefix="expense" Categories="report.ExpenseCategories" Months="report.Months" CurrentMonth="report.CurrentMonth" HeatColor="--color-expense" Expanded="_expanded" Toggled="Toggle" DetailRequested="ShowDetail" />
+                    </tbody>
+                </table>
+            </div>
+            <p class="planning-note">Valores em itálico e sublinhados incluem recorrentes pendentes ou previstas: toque ou passe o mouse para ver o detalhe. O saldo acumulado parte de zero no mês atual e não considera o saldo das contas.</p>
+        }
+    }
+    else
+    {
+        <p aria-live="polite">Consultando…</p>
+    }
+</section>
+
+@code {
+    private readonly HashSet<string> _expanded = [];
+    private PlanningReport? _report;
+    private string? _detail;
+    private bool _busy;
+
+    protected override Task OnInitializedAsync() => LoadAsync(null);
+
+    private string PeriodName => _report is { } report ? $"De {MonthName(report.Months[0])} a {MonthName(report.Months[^1])}" : "Período";
+
+    private async Task MoveAsync(int months)
+    {
+        if (_report is { } report) { await LoadAsync(report.Months[0].AddMonths(months)); }
+    }
+
+    private async Task LoadAsync(AccountingMonth? firstMonth)
+    {
+        if (_busy) { return; }
+        _busy = true;
+        try
+        {
+            _report = await Reports.GetAsync(firstMonth);
+            _detail = null;
+        }
+        finally { _busy = false; }
+    }
+
+    private void Toggle(string key)
+    {
+        if (!_expanded.Remove(key)) { _expanded.Add(key); }
+    }
+
+    private void ExpandAll()
+    {
+        if (_report is not { } report) { return; }
+        _expanded.UnionWith(report.IncomeCategories.Select(x => PlanningCategoryRows.Key("income", x)));
+        _expanded.UnionWith(report.ExpenseCategories.Select(x => PlanningCategoryRows.Key("expense", x)));
+    }
+
+    private void CollapseAll() => _expanded.Clear();
+
+    private void ShowDetail(string detail) => _detail = detail;
+
+    private static string MonthName(AccountingMonth month)
+        => $"{CultureInfo.GetCultureInfo("pt-BR").DateTimeFormat.GetAbbreviatedMonthName(month.Month).TrimEnd('.')}/{month.Year % 100:00}";
+
+    private static string CurrentClass(PlanningReport report, AccountingMonth month) => month == report.CurrentMonth ? "planning-current" : string.Empty;
+
+    private static string SignClass(Money value) => value.IsNegative ? "entry-expense" : "entry-income";
+
+    private static Money Sum(IEnumerable<PlanningCell> cells) => new(cells.Sum(x => x.Amount.Amount));
+}

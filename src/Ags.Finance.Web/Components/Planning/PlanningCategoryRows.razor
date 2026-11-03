@@ -1,0 +1,63 @@
+@using System.Globalization
+@using Ags.Finance.Modules.Reports.Contracts
+@using Ags.Finance.SharedKernel
+
+@if (Categories.Count > 0)
+{
+    <tr class="planning-separator"><th scope="colgroup" colspan="@(Months.Count + 2)">@Title</th></tr>
+    @foreach (var category in Categories)
+    {
+        var key = Key(Prefix, category);
+        var open = Expanded.Contains(key);
+        <tr class="planning-category">
+            <th scope="row">
+                @if (category.Subcategories.Count > 0)
+                {
+                    <button type="button" class="planning-toggle" aria-expanded="@(open ? "true" : "false")" @onclick="() => Toggled.InvokeAsync(key)"><span aria-hidden="true">@(open ? "−" : "+")</span> @category.Name</button>
+                }
+                else
+                {
+                    @category.Name
+                }
+            </th>
+            @for (var i = 0; i < Months.Count; i++)
+            {
+                <PlanningCellView Cell="category.Cells[i]" RowName="@category.Name" MonthName="@MonthName(Months[i])" HeatColor="@HeatColor" Class="@CurrentClass(Months[i])" DetailRequested="DetailRequested" />
+            }
+            <td class="numeric">@category.Total</td>
+        </tr>
+        @if (open)
+        {
+            @foreach (var sub in category.Subcategories)
+            {
+                <tr class="planning-subcategory">
+                    <th scope="row">@sub.Name</th>
+                    @for (var i = 0; i < Months.Count; i++)
+                    {
+                        <PlanningCellView Cell="sub.Cells[i]" RowName="@sub.Name" MonthName="@MonthName(Months[i])" HeatColor="@HeatColor" Class="@CurrentClass(Months[i])" DetailRequested="DetailRequested" />
+                    }
+                    <td class="numeric">@sub.Total</td>
+                </tr>
+            }
+        }
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Prefix { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public IReadOnlyList<PlanningCategory> Categories { get; set; } = [];
+    [Parameter, EditorRequired] public IReadOnlyList<AccountingMonth> Months { get; set; } = [];
+    [Parameter, EditorRequired] public AccountingMonth CurrentMonth { get; set; }
+    [Parameter, EditorRequired] public string HeatColor { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public IReadOnlySet<string> Expanded { get; set; } = new HashSet<string>();
+    [Parameter] public EventCallback<string> Toggled { get; set; }
+    [Parameter] public EventCallback<string> DetailRequested { get; set; }
+
+    public static string Key(string prefix, PlanningCategory category) => $"{prefix}:{category.Name}";
+
+    private string CurrentClass(AccountingMonth month) => month == CurrentMonth ? "planning-current" : string.Empty;
+
+    private static string MonthName(AccountingMonth month)
+        => $"{CultureInfo.GetCultureInfo("pt-BR").DateTimeFormat.GetAbbreviatedMonthName(month.Month).TrimEnd('.')}/{month.Year % 100:00}";
+}

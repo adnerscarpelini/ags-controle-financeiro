@@ -522,6 +522,20 @@ a:hover {
 .heat-map .heat-selected { font-weight: 700; }
 .heat-map .heat-separator th { text-align: left; color: var(--color-text-secondary); }
 
+.planning-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
+.planning-table th, .planning-table td { white-space: nowrap; }
+.planning-table th:first-child { position: sticky; left: 0; z-index: 1; background: var(--color-surface); }
+.planning-table .planning-current { font-weight: 700; border-left: 1px solid var(--color-accent); border-right: 1px solid var(--color-accent); }
+.planning-table .planning-separator th { text-align: left; color: var(--color-text-secondary); }
+.planning-table .planning-subcategory th { padding-left: var(--space-6); font-weight: 400; color: var(--color-text-secondary); }
+.planning-note { font-size: .875rem; font-weight: 400; color: var(--color-text-secondary); }
+.planning-toggle { padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.planning-forecast { padding: 0; border: 0; background: none; color: inherit; font: inherit; font-style: italic; text-decoration: underline dotted; cursor: pointer; }
+.planning-toggle:focus-visible, .planning-forecast:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+@media (max-width: 640px) {
+    .planning-table th:first-child { max-width: 140px; white-space: normal; }
+}
+
 /* App instalado no celular (tela cheia): respeita a área segura do aparelho */
 @media (display-mode: standalone) {
     body { padding-bottom: env(safe-area-inset-bottom); }
