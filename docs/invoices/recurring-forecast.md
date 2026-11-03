@@ -30,7 +30,7 @@ Total e saldo em `/faturas`, valor sugerido em "Pagar", saldos de `/compromissos
 do dashboard (tabela e gráfico). A composição da fatura mostra as previstas num grupo próprio, nas duas
 opções. A confirmação de fechamento mostra o total com as previstas, porque fechar protege todas elas.
 
-A "Média no ano" do dashboard não conta um mês cuja fatura só tem previstas fora do total.
+A tabela de faturas do dashboard tem a coluna **Previsto** (#71) com `ForecastTotal` quando as previstas ficam fora do total, e zero quando já estão somadas. A "Média no ano" do dashboard não conta um mês cuja fatura só tem previstas fora do total.
 
 ## O que não muda
 

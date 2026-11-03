@@ -11,7 +11,7 @@ cashback e descontos separados.
 
 **Tabela do mês.** Por cartão: fatura, cashback/desconto, pago, em aberto, mês anterior,
 média no ano e em aberto daqui pra frente (o saldo que a tela de obrigações já usa: o
-mês selecionado e os meses futuros com parcelas). A linha de total soma cada coluna.
+mês selecionado e os meses futuros com parcelas). A linha de total soma cada coluna. A coluna **Previsto** mostra o total das recorrentes previstas que ainda não somam na fatura ([#69](../invoices/recurring-forecast.md)): é zero quando a preferência é "Somar desde já", porque elas já estão no total (#71).
 O cartão entra se tem fatura no mês ou saldo daqui pra frente. A média do ano usa os
 meses de janeiro até o selecionado em que o cartão tem fatura.
 
