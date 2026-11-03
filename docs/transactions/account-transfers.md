@@ -21,3 +21,7 @@ efetivados, respeitando a referência de abertura. Consultas por data preservam 
 saldo anterior à transferência. AccountMovement não entra na grade de receitas e
 despesas: não se cria descrição, categoria ou receita fictícia para representar
 uma entrada entre contas do mesmo patrimônio.
+
+## Janela de transferência (#97)
+
+**+ Novo > Transferência** abre `Components/Entries/TransferDialog.razor`, com valor, data, conta de origem e conta de destino. Salvar continua pedindo a confirmação com contas, data e valor antes de movimentar as contas.

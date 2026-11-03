@@ -1,4 +1,7 @@
-@* Botão "+ Novo", sempre visível. Enquanto as janelas de lançamento (#97) não existem, as opções levam às telas atuais. *@
+@* Botão "+ Novo", sempre visível: abre a janela do tipo escolhido, sem sair da tela atual. *@
+@using Ags.Finance.Web.Components.Entries
+@inject EntryDialogs Entries
+
 <div class="new-entry" data-new-entry-menu>
     @if (Collapsed)
     {
@@ -26,9 +29,21 @@
     public EventCallback OnChosen { get; set; }
 
     private RenderFragment Options => @<text>
-        <MudMenuItem Icon="@Icons.Material.Outlined.ArrowDownward" IconColor="Color.Error" Href="lancamentos" OnClick="OnChosen">Despesa</MudMenuItem>
-        <MudMenuItem Icon="@Icons.Material.Outlined.ArrowUpward" IconColor="Color.Success" Href="lancamentos" OnClick="OnChosen">Receita</MudMenuItem>
-        <MudMenuItem Icon="@Icons.Material.Outlined.CreditCard" IconColor="Color.Primary" Href="lancamentos" OnClick="OnChosen">Despesa cartão</MudMenuItem>
-        <MudMenuItem Icon="@Icons.Material.Outlined.SwapHoriz" Href="transferencias" OnClick="OnChosen">Transferência</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Outlined.ArrowDownward" IconColor="Color.Error" OnClick="() => OpenEntryAsync(EntryDialogType.Expense)">Despesa</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Outlined.ArrowUpward" IconColor="Color.Success" OnClick="() => OpenEntryAsync(EntryDialogType.Income)">Receita</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Outlined.CreditCard" IconColor="Color.Primary" OnClick="() => OpenEntryAsync(EntryDialogType.CardExpense)">Despesa cartão</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Outlined.SwapHoriz" OnClick="OpenTransferAsync">Transferência</MudMenuItem>
     </text>;
+
+    private async Task OpenEntryAsync(EntryDialogType type)
+    {
+        await OnChosen.InvokeAsync();
+        await Entries.ShowNewAsync(type);
+    }
+
+    private async Task OpenTransferAsync()
+    {
+        await OnChosen.InvokeAsync();
+        await Entries.ShowTransferAsync();
+    }
 }

@@ -1,321 +1,189 @@
-using Ags.Finance.Modules.Accounts;
-using Ags.Finance.Modules.Accounts.Contracts;
-using Ags.Finance.Modules.Invoices;
 using Ags.Finance.Modules.Invoices.Contracts;
-using Ags.Finance.Modules.Preferences;
-using Ags.Finance.Modules.Reimbursements;
-using Ags.Finance.Modules.Reimbursements.Contracts;
-using Ags.Finance.Modules.Transactions;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
-using Ags.Finance.Tests.Support;
 using Ags.Finance.Web.Components.Pages;
 using Bunit;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ags.Finance.Web.Tests;
 
+/// <summary>Consulta e ações por linha de Lançamentos. Os cenários de formulário estão em EntryDialogTests.</summary>
 public sealed class TransactionPageTests
 {
     [Fact]
-    public async Task CountedRepetitionIsExclusiveWithFixedAndShowsExplicitNumberAndScope()
+    public async Task EditingARowOpensTheWindowAndSavingUpdatesTheRow()
     {
-        await using var database = await PostgresTestDatabase.CreateAsync();
-        await using var context = new BunitContext();
-        context.Services.AddSingleton<TimeProvider>(new PreviewClock()).AddAccountsModule(database.ConnectionString).AddTransactionsModule(database.ConnectionString).AddReimbursementsModule(database.ConnectionString).AddInvoicesModule(database.ConnectionString).AddPreferencesModule(database.ConnectionString);
-        await context.Services.MigrateAccountsModuleAsync();
-        await context.Services.MigrateTransactionsModuleAsync();
-        await context.Services.MigrateReimbursementsModuleAsync();
-        await context.Services.MigrateInvoicesModuleAsync();
-        await context.Services.MigratePreferencesModuleAsync();
-        var accounts = context.Services.GetRequiredService<IAccountCatalog>();
-        var bank = await accounts.CreateBankAsync("Banco Exemplo");
-        var account = await accounts.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta Exemplo", AccountKind.Checking, "green"));
-        var card = await accounts.SaveCreditCardAsync(new(null, account.ExternalId!.Value, "Cartão Exemplo", CardBrand.Visa, new Money(10000), 3, 10, true, "green"));
-        var classifications = context.Services.GetRequiredService<IClassificationCatalog>();
-        var category = await classifications.SaveCategoryAsync(null, "Mercado", CategoryKind.Expense);
-        var subcategory = await classifications.SaveSubcategoryAsync(null, category.ExternalId!.Value, "Feira");
-        await context.Services.GetRequiredService<IMerchantCatalog>().SaveAsync(null, "Loja Exemplo", subcategory.ExternalId);
-        var page = context.Render<Transactions>();
-        page.WaitForAssertion(() => Assert.Contains("Feira", page.Find("#entry-subcategory").TextContent, StringComparison.Ordinal));
-        await page.Find("#entry-repeat").ChangeAsync(true);
-        Assert.True(page.Find("#entry-counted-repeat").HasAttribute("disabled"));
-        await page.Find("#entry-repeat").ChangeAsync(false);
-        await page.Find("#entry-counted-repeat").ChangeAsync(true);
-        Assert.True(page.Find("#entry-repeat").HasAttribute("disabled"));
-        Assert.Equal("2", page.Find("#entry-repeat-count").GetAttribute("value"));
-        Assert.Equal(RepeatPeriod.Months.ToString(), page.Find("#entry-repeat-period").GetAttribute("value"));
-        await page.Find("#entry-date").ChangeAsync("2027-01-31");
-        await page.Find("#entry-merchant").InputAsync("Loja Exemplo");
-        await page.Find("#entry-account").ChangeAsync(account.ExternalId!.Value.ToString());
-        await page.Find("#entry-amount").ChangeAsync("100");
-        await page.Find("#entry-repeat-count").ChangeAsync("3");
-        await page.Find("form").SubmitAsync(EventArgs.Empty);
-        Assert.Contains("(1/3)", page.Markup, StringComparison.Ordinal);
-        Assert.Contains("(3/3)", page.Markup, StringComparison.Ordinal);
-        var row = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("(3/3)", StringComparison.Ordinal));
-        await row.QuerySelectorAll("button").Single(x => x.TextContent == "Editar").ClickAsync(new());
-        Assert.Equal(4, page.FindAll("#entry-scope option").Count);
-        await page.Find("#entry-scope").ChangeAsync(EntryChangeScope.OnlyThis.ToString());
-        await page.Find("#entry-amount").ChangeAsync("200");
-        await page.Find("form").SubmitAsync(EventArgs.Empty);
-        var entries = await context.Services.GetRequiredService<IEntryCatalog>().GetAsync();
-        Assert.Equal(new Money(-200), entries.Single(x => x.RepetitionNumber == 3).Amount);
-        Assert.Equal(new Money(-100), entries.Single(x => x.RepetitionNumber == 1).Amount);
+        await using var ui = await EntryUi.CreateAsync();
+        await ui.Entries.CreateAsync(new(new DateOnly(2026, 9, 1), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(50)));
+        var page = ui.Context.Render<Transactions>();
+        page.WaitForAssertion(() => Assert.Contains("-R$ 50,00", page.Find(".catalog-list").TextContent, StringComparison.Ordinal));
+
+        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Editar").ClickAsync(new MouseEventArgs());
+        ui.Dialogs.WaitForAssertion(() => Assert.Equal("Loja Exemplo", ui.Dialogs.Find("#entry-merchant").GetAttribute("value")));
+        ui.SetAmount("60");
+        await ui.SubmitAsync();
+
+        page.WaitForAssertion(() => Assert.Contains("-R$ 60,00", page.Find(".catalog-list").TextContent, StringComparison.Ordinal));
     }
 
     [Fact]
-    public async Task QuickEntryUsesDateAndSelectableInvoicesAndKeepsDateForNextEntry()
+    public async Task InstallmentsCanBeAnticipatedCancelledAndDeletedByScope()
     {
-        await using var database = await PostgresTestDatabase.CreateAsync();
-        await using var context = new BunitContext();
-        context.Services.AddSingleton<TimeProvider>(new PreviewClock()).AddAccountsModule(database.ConnectionString).AddTransactionsModule(database.ConnectionString).AddReimbursementsModule(database.ConnectionString).AddInvoicesModule(database.ConnectionString).AddPreferencesModule(database.ConnectionString);
-        await context.Services.MigrateAccountsModuleAsync();
-        await context.Services.MigrateTransactionsModuleAsync();
-        await context.Services.MigrateReimbursementsModuleAsync();
-        await context.Services.MigrateInvoicesModuleAsync();
-        await context.Services.MigratePreferencesModuleAsync();
-        var accounts = context.Services.GetRequiredService<IAccountCatalog>();
-        var bank = await accounts.CreateBankAsync("Banco Exemplo");
-        var account = await accounts.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta Exemplo", AccountKind.Checking, "green"));
-        var card = await accounts.SaveCreditCardAsync(new(null, account.ExternalId!.Value, "Cartão Exemplo", CardBrand.Visa, new Money(10000), 3, 10, true, "green"));
-        var classifications = context.Services.GetRequiredService<IClassificationCatalog>();
-        var category = await classifications.SaveCategoryAsync(null, "Mercado", CategoryKind.Expense);
-        var subcategory = await classifications.SaveSubcategoryAsync(null, category.ExternalId!.Value, "Feira");
-        await context.Services.GetRequiredService<IMerchantCatalog>().SaveAsync(null, "Loja Exemplo", subcategory.ExternalId);
-        var page = context.Render<Transactions>();
-        page.WaitForAssertion(() => Assert.Contains("Feira", page.Find("#entry-subcategory").TextContent, StringComparison.Ordinal));
-        Assert.True(page.Find("#entry-paid").HasAttribute("checked"));
-        await page.Find("#entry-date").ChangeAsync("2026-10-05");
-        await page.Find("#entry-merchant").InputAsync("Loja Exemplo");
-        Assert.Equal(subcategory.ExternalId!.Value.ToString(), page.Find("#entry-subcategory").GetAttribute("value"));
-        page.Find("#entry-account").Change(account.ExternalId!.Value.ToString());
-        page.Find("#entry-amount").Change("150");
-        Assert.Empty(page.FindAll("#entry-month"));
-        Assert.Empty(page.FindAll("#entry-invoice"));
-        await page.Find("form").SubmitAsync(EventArgs.Empty);
-        var entry = Assert.Single(await context.Services.GetRequiredService<IEntryCatalog>().GetAsync());
-        Assert.Equal(new Money(-150), entry.Amount);
-        Assert.Equal(new ReferenceMonth(2026, 10), entry.Month);
-        Assert.Equal("2026-10-05", page.Find("#entry-date").GetAttribute("value"));
-        Assert.Equal(string.Empty, page.Find("#entry-merchant").GetAttribute("value"));
-        Assert.True(page.Find("#entry-paid").HasAttribute("checked"));
-        await page.Find("#entry-card").ChangeAsync(card.ExternalId!.Value.ToString());
-        Assert.Equal("2026-11", page.Find("#entry-invoice").GetAttribute("value"));
-        await page.Find("#entry-date").ChangeAsync("2026-10-02");
-        Assert.Equal("2026-10", page.Find("#entry-invoice").GetAttribute("value"));
-        await page.Find("#entry-merchant").InputAsync("Loja Exemplo");
-        page.Find("#entry-amount").Change("100");
-        page.Find("#entry-invoice").Change("2026-11");
-        await page.Find("form").SubmitAsync(EventArgs.Empty);
-        var purchase = (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.CardExternalId is not null);
-        Assert.Equal(card.ExternalId, purchase.CardExternalId);
-        Assert.Equal(new DateOnly(2026, 10, 2), purchase.Date);
-        Assert.Equal(new ReferenceMonth(2026, 11), purchase.Month);
-        var invoices = context.Render<Ags.Finance.Web.Components.Pages.Invoices>();
-        invoices.WaitForAssertion(() => Assert.Single(invoices.FindAll(".catalog-list li")));
-        await invoices.Find(".catalog-list button").ClickAsync(new());
-        Assert.Contains("Loja Exemplo", invoices.Find("[aria-label='Composição da fatura']").TextContent, StringComparison.Ordinal);
-        Assert.Single(invoices.FindAll("[aria-label='Composição da fatura'] li"));
-        await invoices.FindAll(".catalog-list button").Single(x => x.TextContent == "Fechar").ClickAsync(new());
-        await invoices.FindAll("[role=alertdialog] button")[1].ClickAsync(new());
-        Assert.Empty(invoices.FindAll("[role=alertdialog]"));
-        await invoices.FindAll(".catalog-list button").Single(x => x.TextContent == "Fechar").ClickAsync(new());
-        await invoices.Find("[role=alertdialog] button").ClickAsync(new());
-        Assert.Contains("Fechada", invoices.Find("[aria-label='Composição da fatura']").TextContent, StringComparison.Ordinal);
-        await page.Find("#entry-date").ChangeAsync("2026-10-05");
-        Assert.Equal("2026-12", page.Find("#entry-invoice").GetAttribute("value"));
-        Assert.Contains("Selecionada a próxima Aberta", page.Markup, StringComparison.Ordinal);
-        Assert.True(page.Find("#entry-invoice option[value='2026-11']").HasAttribute("disabled"));
-        await page.Find("#entry-date").ChangeAsync("2026-10-02");
-        await page.Find("#entry-merchant").InputAsync("Loja Exemplo");
-        page.Find("#entry-invoice").Change("2026-12");
-        page.Find("#entry-amount").Change("1000");
-        page.Find("#entry-installments").Change("3");
-        await page.Find("form").SubmitAsync(EventArgs.Empty);
-        var installments = (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Where(x => x.InstallmentNumber is not null).ToList();
-        Assert.Equal(3, installments.Count);
-        Assert.Equal(-1000m, installments.Sum(x => x.Amount.Amount));
-        Assert.Contains("Parcela 1/3", page.Markup, StringComparison.Ordinal);
+        await using var ui = await EntryUi.CreateAsync();
+        await ui.Entries.CreateInstallmentsAsync(new(new DateOnly(2026, 10, 2), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(1000), string.Empty, new ReferenceMonth(2026, 12), ui.Card, UseSelectedInvoice: true), 3);
+        var page = ui.Context.Render<Transactions>();
+        page.WaitForAssertion(() => Assert.Contains("Parcela 1/3", page.Markup, StringComparison.Ordinal));
+
         var anticipating = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 1/3", StringComparison.Ordinal));
-        await anticipating.QuerySelectorAll("button").Single(x => x.TextContent == "Antecipar parcelas").ClickAsync(new());
+        await anticipating.QuerySelectorAll("button").Single(x => x.TextContent == "Antecipar parcelas").ClickAsync(new MouseEventArgs());
         page.WaitForAssertion(() => Assert.False(page.Find("#anticipation-form button").HasAttribute("disabled")));
-        await page.FindAll("[aria-label='Antecipar parcelas'] button").Single(x => x.TextContent == "Cancelar").ClickAsync(new());
+        await page.FindAll("[aria-label='Antecipar parcelas'] button").Single(x => x.TextContent == "Cancelar").ClickAsync(new MouseEventArgs());
         anticipating = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 1/3", StringComparison.Ordinal));
-        await anticipating.QuerySelectorAll("button").Single(x => x.TextContent == "Antecipar parcelas").ClickAsync(new());
+        await anticipating.QuerySelectorAll("button").Single(x => x.TextContent == "Antecipar parcelas").ClickAsync(new MouseEventArgs());
         page.WaitForAssertion(() => Assert.False(page.Find("#anticipation-form button").HasAttribute("disabled")));
         await page.Find("#anticipation-form").SubmitAsync(EventArgs.Empty);
-        await page.FindAll("[aria-label='Antecipar parcelas'] button").Single(x => x.TextContent == "Confirmar antecipação").ClickAsync(new());
-        Assert.Equal(new ReferenceMonth(2026, 9), (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.InstallmentNumber == 3).Month);
-        var firstRow = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 1/3", StringComparison.Ordinal));
-        await firstRow.QuerySelectorAll("button").Single(x => x.TextContent == "Editar").ClickAsync(new());
-        Assert.Equal("2026-12", page.Find("#entry-invoice").GetAttribute("value"));
-        page.Find("#entry-amount").Change("400");
-        await page.Find("form").SubmitAsync(EventArgs.Empty);
-        Assert.Contains("Escolha o alcance", page.Find("[role=status]").TextContent, StringComparison.Ordinal);
-        page.Find("#entry-scope").Change(EntryChangeScope.OnlyThis.ToString());
-        await page.Find("form").SubmitAsync(EventArgs.Empty);
-        Assert.Equal(new Money(-400), (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.InstallmentNumber == 1).Amount);
-        var secondRow = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 2/3", StringComparison.Ordinal));
-        await secondRow.QuerySelectorAll("button").Single(x => x.TextContent == "Excluir").ClickAsync(new());
-        await page.FindAll("[role=alertdialog] button")[1].ClickAsync(new());
-        Assert.Equal(3, (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Count(x => x.InstallmentNumber is not null));
-        secondRow = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 2/3", StringComparison.Ordinal));
-        await secondRow.QuerySelectorAll("button").Single(x => x.TextContent == "Excluir").ClickAsync(new());
+        await page.FindAll("[aria-label='Antecipar parcelas'] button").Single(x => x.TextContent == "Confirmar antecipação").ClickAsync(new MouseEventArgs());
+        Assert.Equal(new ReferenceMonth(2026, 9), (await ui.Entries.GetAsync()).Single(x => x.InstallmentNumber == 3).Month);
+
+        var second = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 2/3", StringComparison.Ordinal));
+        await second.QuerySelectorAll("button").Single(x => x.TextContent == "Excluir").ClickAsync(new MouseEventArgs());
+        await page.FindAll("[role=alertdialog] button")[1].ClickAsync(new MouseEventArgs());
+        Assert.Equal(3, (await ui.Entries.GetAsync()).Count(x => x.InstallmentNumber is not null));
+        second = page.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Parcela 2/3", StringComparison.Ordinal));
+        await second.QuerySelectorAll("button").Single(x => x.TextContent == "Excluir").ClickAsync(new MouseEventArgs());
         page.Find("#delete-scope").Change(EntryChangeScope.ThisAndFollowing.ToString());
-        await page.Find("[role=alertdialog] button").ClickAsync(new());
-        Assert.Single((await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()), x => x.InstallmentNumber is not null);
-        page.Find("#filter-month").Change("2026-12");
+        await page.Find("[role=alertdialog] button").ClickAsync(new MouseEventArgs());
+        Assert.Single(await ui.Entries.GetAsync(), x => x.InstallmentNumber is not null);
+    }
+
+    [Fact]
+    public async Task FiltersByMonthAndTextShowTheTotalsAndCanBeCleared()
+    {
+        await using var ui = await EntryUi.CreateAsync();
+        await ui.Entries.CreateAsync(new(new DateOnly(2026, 10, 2), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(400)));
+        await ui.Entries.CreateAsync(new(new DateOnly(2026, 11, 2), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(100)));
+        var page = ui.Context.Render<Transactions>();
+        page.WaitForAssertion(() => Assert.Equal(2, page.FindAll(".catalog-list li").Count));
+
+        page.Find("#filter-month").Change("2026-10");
         await page.Find("#entry-filters").SubmitAsync(EventArgs.Empty);
         Assert.Single(page.FindAll(".catalog-list li"));
         Assert.Contains("-R$ 400,00", page.Find("[aria-label='Totais do filtro']").TextContent, StringComparison.Ordinal);
         Assert.Empty(page.FindAll(".entry-month-future"));
+
         page.Find("#entry-search").Change("sem correspondencia");
         await page.Find("#entry-filters").SubmitAsync(EventArgs.Empty);
         Assert.Empty(page.FindAll(".catalog-list li"));
-        await page.FindAll("#entry-filters button").Single(x => x.TextContent == "Limpar filtros").ClickAsync(new());
-        Assert.Equal(3, page.FindAll(".catalog-list li").Count);
-        await page.Find("#entry-card").ChangeAsync(Guid.Empty.ToString());
-        await page.Find("#entry-date").ChangeAsync("2026-09-10");
-        await page.Find("#entry-merchant").InputAsync("Loja Exemplo");
-        page.Find("#entry-amount").Change("50");
-        page.Find("#entry-paid").Change(false);
-        page.Find("#entry-repeat").Change(true);
-        page.Find("#entry-repeat-until").Change("2026-12");
-        await page.Find("form").SubmitAsync(EventArgs.Empty);
+
+        await page.FindAll("#entry-filters button").Single(x => x.TextContent == "Limpar filtros").ClickAsync(new MouseEventArgs());
+        Assert.Equal(2, page.FindAll(".catalog-list li").Count);
+    }
+
+    [Fact]
+    public async Task RecurringRowsAreDeletedByScopeAfterChoosingIt()
+    {
+        await using var ui = await EntryUi.CreateAsync();
+        await ui.Entries.CreateRecurringAsync(new(new(new DateOnly(2026, 9, 10), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(50), IsPaid: false), new ReferenceMonth(2026, 12)));
+        await ui.Entries.EnsureRecurringMonthAsync(new ReferenceMonth(2026, 11));
+        var page = ui.Context.Render<Transactions>();
+        page.WaitForAssertion(() => Assert.Contains("Recorrente", page.Markup, StringComparison.Ordinal));
         page.Find("#filter-month").Change("2026-10");
         page.Find("#filter-effective").Change("false");
         await page.Find("#entry-filters").SubmitAsync(EventArgs.Empty);
         Assert.Single(page.FindAll(".catalog-list li"));
-        Assert.Contains("Recorrente", page.Find(".catalog-list").TextContent, StringComparison.Ordinal);
         Assert.Contains("Pendente", page.Find(".catalog-list").TextContent, StringComparison.Ordinal);
-        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Editar").ClickAsync(new());
-        Assert.Equal(RecurringEditScope.OnlyThis.ToString(), page.Find("#entry-recurring-scope").GetAttribute("value"));
-        Assert.Equal(3, page.FindAll("#entry-recurring-scope option").Count);
-        page.Find("#entry-amount").Change("70");
-        await page.Find("[data-new-entry]").ClickAsync(new());
-        var untouched = (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.RecurringEntryExternalId is not null && x.Month == new ReferenceMonth(2026, 10));
-        Assert.Equal(new Money(-50), untouched.Amount);
-        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Editar").ClickAsync(new());
-        page.Find("#entry-amount").Change("60");
-        await page.Find("form").SubmitAsync(EventArgs.Empty);
-        Assert.Contains("-R$ 60,00", page.Find(".catalog-list").TextContent, StringComparison.Ordinal);
-        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Excluir").ClickAsync(new());
+
+        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Excluir").ClickAsync(new MouseEventArgs());
         Assert.Equal(4, page.FindAll("#delete-recurring-scope option").Count);
-        await page.FindAll("[role=alertdialog] button")[1].ClickAsync(new());
+        await page.FindAll("[role=alertdialog] button")[1].ClickAsync(new MouseEventArgs());
         Assert.Single(page.FindAll(".catalog-list li"));
-        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Excluir").ClickAsync(new());
-        await page.Find("[role=alertdialog] button").ClickAsync(new());
+        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Excluir").ClickAsync(new MouseEventArgs());
+        await page.Find("[role=alertdialog] button").ClickAsync(new MouseEventArgs());
         Assert.Contains("Escolha o alcance", page.Find("[role=status]").TextContent, StringComparison.Ordinal);
         page.Find("#delete-recurring-scope").Change(RecurringChangeScope.OnlyThis.ToString());
-        await page.Find("[role=alertdialog] button").ClickAsync(new());
+        await page.Find("[role=alertdialog] button").ClickAsync(new MouseEventArgs());
         Assert.Empty(page.FindAll(".catalog-list li"));
-        page.Find("#filter-month").Change("2026-11");
-        await page.Find("#entry-filters").SubmitAsync(EventArgs.Empty);
-        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Pagar").ClickAsync(new());
-        await page.FindAll("[aria-label='Registrar baixa manual'] button")[1].ClickAsync(new());
-        Assert.Single(page.FindAll(".catalog-list li"));
-        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Pagar").ClickAsync(new());
-        await page.WaitForElement("#effective-date").ChangeAsync("2026-11-12");
-        await page.Find("[aria-label='Registrar baixa manual'] button").ClickAsync(new());
-        Assert.Empty(page.FindAll(".catalog-list li"));
-        var confirmed = (await context.Services.GetRequiredService<IEntryCatalog>().GetAsync()).Single(x => x.RecurringEntryExternalId is not null && x.IsEffective);
-        Assert.Equal(new DateOnly(2026, 11, 12), confirmed.EffectiveDate);
-        var payable = context.Render<Ags.Finance.Web.Components.Pages.Invoices>();
-        payable.WaitForAssertion(() => Assert.Contains("Pagar", payable.Markup, StringComparison.Ordinal));
-        var closedRow = payable.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Fechada", StringComparison.Ordinal));
-        await closedRow.QuerySelectorAll("button").Single(x => x.TextContent == "Ajustar valor").ClickAsync(new());
-        payable.Find("#invoice-correct-total").Change("100.01");
-        await payable.FindAll("[aria-label='Ajustar total da fatura'] button").Single(x => x.TextContent == "Cancelar").ClickAsync(new());
-        closedRow = payable.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Fechada", StringComparison.Ordinal));
-        await closedRow.QuerySelectorAll("button").Single(x => x.TextContent == "Ajustar valor").ClickAsync(new());
-        payable.Find("#invoice-correct-total").Change("100.01");
-        await payable.Find("#invoice-adjustment-form").SubmitAsync(EventArgs.Empty);
-        Assert.Contains("R$ 0,01", payable.Find("[aria-label='Ajustar total da fatura']").TextContent, StringComparison.Ordinal);
-        await payable.FindAll("[aria-label='Ajustar total da fatura'] button").Single(x => x.TextContent == "Confirmar ajuste de fatura").ClickAsync(new());
-        closedRow = payable.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Fechada", StringComparison.Ordinal));
-        await closedRow.QuerySelectorAll("button").Single(x => x.TextContent == "Pagar").ClickAsync(new());
-        payable.WaitForAssertion(() => Assert.False(payable.Find("#invoice-payment-form button").HasAttribute("disabled")));
-        Assert.Equal(account.ExternalId.Value.ToString(), payable.Find("#payment-account").GetAttribute("value"));
-        await payable.FindAll("[aria-label='Registrar pagamento de fatura'] button").Single(x => x.TextContent == "Cancelar").ClickAsync(new());
-        Assert.Empty(await context.Services.GetRequiredService<IInvoicePaymentCatalog>().GetHistoryAsync());
-        closedRow = payable.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Fechada", StringComparison.Ordinal));
-        await closedRow.QuerySelectorAll("button").Single(x => x.TextContent == "Pagar").ClickAsync(new());
-        payable.WaitForAssertion(() => Assert.False(payable.Find("#invoice-payment-form button").HasAttribute("disabled")));
-        payable.Find("#payment-settle").Change(true);
-        await payable.Find("#invoice-payment-form").SubmitAsync(EventArgs.Empty);
-        Assert.Contains("definitivo", payable.Find("[aria-label='Registrar pagamento de fatura']").TextContent, StringComparison.Ordinal);
-        await payable.FindAll("[aria-label='Registrar pagamento de fatura'] button").Single(x => x.TextContent == "Confirmar pagamento").ClickAsync(new());
-        Assert.Contains("Paga", payable.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("11/2026", StringComparison.Ordinal)).TextContent, StringComparison.Ordinal);
-        Assert.Single(await context.Services.GetRequiredService<IInvoicePaymentCatalog>().GetHistoryAsync());
     }
 
     [Fact]
-    public async Task ReimbursementFieldsAppearOnlyForExpensesAndThePersonPrefillsThePercent()
+    public async Task APendingRowCanBeCancelledAndThenPaidWithTheChosenDate()
     {
-        await using var database = await PostgresTestDatabase.CreateAsync();
-        await using var context = new BunitContext();
-        context.Services.AddSingleton<TimeProvider>(new PreviewClock()).AddAccountsModule(database.ConnectionString).AddTransactionsModule(database.ConnectionString).AddReimbursementsModule(database.ConnectionString).AddInvoicesModule(database.ConnectionString).AddPreferencesModule(database.ConnectionString);
-        await context.Services.MigrateAccountsModuleAsync();
-        await context.Services.MigrateTransactionsModuleAsync();
-        await context.Services.MigrateReimbursementsModuleAsync();
-        await context.Services.MigrateInvoicesModuleAsync();
-        await context.Services.MigratePreferencesModuleAsync();
-        var accounts = context.Services.GetRequiredService<IAccountCatalog>();
-        var bank = await accounts.CreateBankAsync("Banco Exemplo");
-        var account = await accounts.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta Exemplo", AccountKind.Checking, "green"));
-        var classifications = context.Services.GetRequiredService<IClassificationCatalog>();
-        var expenses = await classifications.SaveCategoryAsync(null, "Casa", CategoryKind.Expense);
-        var expense = await classifications.SaveSubcategoryAsync(null, expenses.ExternalId!.Value, "Internet");
-        var incomes = await classifications.SaveCategoryAsync(null, "Receitas", CategoryKind.Income);
-        var income = await classifications.SaveSubcategoryAsync(null, incomes.ExternalId!.Value, "Salário");
-        await context.Services.GetRequiredService<IMerchantCatalog>().SaveAsync(null, "Provedor Exemplo", expense.ExternalId);
-        var people = context.Services.GetRequiredService<IPersonCatalog>();
-        var person = (await people.SaveAsync(null, "Pessoa Exemplo", 50m)).ExternalId!.Value;
-        var page = context.Render<Transactions>();
-        page.WaitForAssertion(() => Assert.Contains("Internet", page.Find("#entry-subcategory").TextContent, StringComparison.Ordinal));
+        await using var ui = await EntryUi.CreateAsync();
+        await ui.Entries.CreateAsync(new(new DateOnly(2026, 11, 10), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(50), IsPaid: false));
+        var page = ui.Context.Render<Transactions>();
+        page.WaitForAssertion(() => Assert.Single(page.FindAll(".catalog-list li")));
+        page.Find("#filter-effective").Change("false");
+        await page.Find("#entry-filters").SubmitAsync(EventArgs.Empty);
 
-        Assert.Empty(page.FindAll("#entry-reimbursement-person"));
-        await page.Find("#entry-subcategory").ChangeAsync(income.ExternalId!.Value.ToString());
-        Assert.Empty(page.FindAll("#entry-reimbursement-person"));
+        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Pagar").ClickAsync(new MouseEventArgs());
+        await page.FindAll("[aria-label='Registrar baixa manual'] button")[1].ClickAsync(new MouseEventArgs());
+        Assert.Single(page.FindAll(".catalog-list li"));
+        await page.FindAll(".catalog-list button").Single(x => x.TextContent == "Pagar").ClickAsync(new MouseEventArgs());
+        await page.WaitForElement("#effective-date").ChangeAsync("2026-11-12");
+        await page.Find("[aria-label='Registrar baixa manual'] button").ClickAsync(new MouseEventArgs());
 
-        await page.Find("#entry-merchant").InputAsync("Provedor Exemplo");
-        await page.Find("#entry-subcategory").ChangeAsync(expense.ExternalId!.Value.ToString());
-        await page.Find("#entry-reimbursement-person").ChangeAsync(person.ToString());
-        Assert.Equal("50", page.Find("#entry-reimbursement-percent").GetAttribute("value"));
-
-        await page.Find("#entry-reimbursement-percent").ChangeAsync("30");
-        page.Find("#entry-account").Change(account.ExternalId!.Value.ToString());
-        page.Find("#entry-amount").Change("100");
-        await page.Find("form").SubmitAsync(EventArgs.Empty);
-
-        var entries = context.Services.GetRequiredService<IEntryCatalog>();
-        var entry = Assert.Single(await entries.GetAsync());
-        Assert.Equal(new EntryReimbursement(person, 30m), entry.Reimbursement);
-        Assert.Equal(50m, Assert.Single(await people.GetAsync()).DefaultPercent);
-        page.WaitForAssertion(() => Assert.Contains("Reembolso: Pessoa Exemplo · 30%", page.Find(".catalog-list li").TextContent, StringComparison.Ordinal));
-
-        await people.SaveAsync(person, "Pessoa Exemplo", 70m);
-        await page.FindAll(".catalog-list li button").Single(x => x.TextContent == "Editar").ClickAsync(new());
-        Assert.Equal("30", page.Find("#entry-reimbursement-percent").GetAttribute("value"));
-
-        await page.Find("#entry-subcategory").ChangeAsync(income.ExternalId!.Value.ToString());
-        Assert.Empty(page.FindAll("#entry-reimbursement-person"));
-
-        await page.Find("[data-new-entry]").ClickAsync(new());
-        await page.Find("#entry-merchant").InputAsync("Provedor Exemplo");
-        await page.Find("#entry-repeat").ChangeAsync(true);
-        await page.Find("#entry-reimbursement-person").ChangeAsync(person.ToString());
-        Assert.Equal("50", page.Find("#entry-reimbursement-percent").GetAttribute("value"));
-        page.Find("#entry-amount").Change("80");
-        await page.Find("form").SubmitAsync(EventArgs.Empty);
-        var occurrence = (await entries.GetAsync()).Single(x => x.RecurringEntryExternalId is not null);
-        Assert.Equal(new EntryReimbursement(person, 50m), occurrence.Reimbursement);
-        Assert.Equal(new EntryReimbursement(person, 50m), (await entries.GetRecurringAsync(occurrence.RecurringEntryExternalId!.Value))!.Template.Reimbursement);
+        Assert.Empty(page.FindAll(".catalog-list li"));
+        Assert.Equal(new DateOnly(2026, 11, 12), Assert.Single(await ui.Entries.GetAsync()).EffectiveDate);
     }
 
-    private sealed class PreviewClock : TimeProvider
+    [Fact]
+    public async Task TheInvoiceScreenShowsThePurchaseClosesAdjustsAndPays()
     {
-        public override DateTimeOffset GetUtcNow() => new(2026, 9, 1, 12, 0, 0, TimeSpan.Zero);
+        await using var ui = await EntryUi.CreateAsync();
+        await ui.Entries.CreateAsync(new(new DateOnly(2026, 10, 2), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(100), string.Empty, new ReferenceMonth(2026, 11), ui.Card, UseSelectedInvoice: true));
+        var invoices = ui.Context.Render<Ags.Finance.Web.Components.Pages.Invoices>();
+        invoices.WaitForAssertion(() => Assert.Single(invoices.FindAll(".catalog-list li")));
+        await invoices.Find(".catalog-list button").ClickAsync(new MouseEventArgs());
+        Assert.Contains("Loja Exemplo", invoices.Find("[aria-label='Composição da fatura']").TextContent, StringComparison.Ordinal);
+        Assert.Single(invoices.FindAll("[aria-label='Composição da fatura'] li"));
+
+        await invoices.FindAll(".catalog-list button").Single(x => x.TextContent == "Fechar").ClickAsync(new MouseEventArgs());
+        await invoices.FindAll("[role=alertdialog] button")[1].ClickAsync(new MouseEventArgs());
+        Assert.Empty(invoices.FindAll("[role=alertdialog]"));
+        await invoices.FindAll(".catalog-list button").Single(x => x.TextContent == "Fechar").ClickAsync(new MouseEventArgs());
+        await invoices.Find("[role=alertdialog] button").ClickAsync(new MouseEventArgs());
+        Assert.Contains("Fechada", invoices.Find("[aria-label='Composição da fatura']").TextContent, StringComparison.Ordinal);
+
+        var closedRow = invoices.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Fechada", StringComparison.Ordinal));
+        await closedRow.QuerySelectorAll("button").Single(x => x.TextContent == "Ajustar valor").ClickAsync(new MouseEventArgs());
+        invoices.Find("#invoice-correct-total").Change("100.01");
+        await invoices.FindAll("[aria-label='Ajustar total da fatura'] button").Single(x => x.TextContent == "Cancelar").ClickAsync(new MouseEventArgs());
+        closedRow = invoices.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Fechada", StringComparison.Ordinal));
+        await closedRow.QuerySelectorAll("button").Single(x => x.TextContent == "Ajustar valor").ClickAsync(new MouseEventArgs());
+        invoices.Find("#invoice-correct-total").Change("100.01");
+        await invoices.Find("#invoice-adjustment-form").SubmitAsync(EventArgs.Empty);
+        Assert.Contains("R$ 0,01", invoices.Find("[aria-label='Ajustar total da fatura']").TextContent, StringComparison.Ordinal);
+        await invoices.FindAll("[aria-label='Ajustar total da fatura'] button").Single(x => x.TextContent == "Confirmar ajuste de fatura").ClickAsync(new MouseEventArgs());
+
+        closedRow = invoices.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Fechada", StringComparison.Ordinal));
+        await closedRow.QuerySelectorAll("button").Single(x => x.TextContent == "Pagar").ClickAsync(new MouseEventArgs());
+        invoices.WaitForAssertion(() => Assert.False(invoices.Find("#invoice-payment-form button").HasAttribute("disabled")));
+        Assert.Equal(ui.Account.ToString(), invoices.Find("#payment-account").GetAttribute("value"));
+        await invoices.FindAll("[aria-label='Registrar pagamento de fatura'] button").Single(x => x.TextContent == "Cancelar").ClickAsync(new MouseEventArgs());
+        var payments = ui.Context.Services.GetRequiredService<IInvoicePaymentCatalog>();
+        Assert.Empty(await payments.GetHistoryAsync());
+        closedRow = invoices.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Fechada", StringComparison.Ordinal));
+        await closedRow.QuerySelectorAll("button").Single(x => x.TextContent == "Pagar").ClickAsync(new MouseEventArgs());
+        invoices.WaitForAssertion(() => Assert.False(invoices.Find("#invoice-payment-form button").HasAttribute("disabled")));
+        invoices.Find("#payment-settle").Change(true);
+        await invoices.Find("#invoice-payment-form").SubmitAsync(EventArgs.Empty);
+        Assert.Contains("definitivo", invoices.Find("[aria-label='Registrar pagamento de fatura']").TextContent, StringComparison.Ordinal);
+        await invoices.FindAll("[aria-label='Registrar pagamento de fatura'] button").Single(x => x.TextContent == "Confirmar pagamento").ClickAsync(new MouseEventArgs());
+
+        Assert.Contains("Paga", invoices.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("11/2026", StringComparison.Ordinal)).TextContent, StringComparison.Ordinal);
+        Assert.Single(await payments.GetHistoryAsync());
+    }
+
+    [Fact]
+    public async Task TheRowShowsTheReimbursementPersonAndPercent()
+    {
+        await using var ui = await EntryUi.CreateAsync();
+        var person = await ui.AddPersonAsync();
+        await ui.Entries.CreateAsync(new(new DateOnly(2026, 9, 1), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(100), string.Empty, Reimbursement: new(person, 30m)));
+
+        var page = ui.Context.Render<Transactions>();
+
+        page.WaitForAssertion(() => Assert.Contains("Reembolso: Pessoa Exemplo · 30%", page.Find(".catalog-list li").TextContent, StringComparison.Ordinal));
     }
 }

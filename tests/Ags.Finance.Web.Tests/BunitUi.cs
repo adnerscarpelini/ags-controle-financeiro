@@ -1,4 +1,5 @@
 using Ags.Finance.Modules.Preferences.Contracts;
+using Ags.Finance.Web.Components.Entries;
 using Ags.Finance.Web.Components.Layout;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +17,8 @@ internal static class BunitUi
         context.Services.AddMudServices();
         context.Services.TryAddScoped<ThemeState>();
         context.Services.TryAddScoped<ViewportState>();
+        context.Services.TryAddScoped<EntryChangeNotifier>();
+        context.Services.TryAddScoped<EntryDialogs>();
         return context;
     }
 

@@ -4,9 +4,12 @@
     <div class="field"><label for="@(_id + "-kind")">Tipo do documento</label><select id="@(_id + "-kind")" @bind="_kind" disabled="@_busy">
         @foreach (var kind in Kinds) { <option value="@kind">@Label(kind)</option> }
     </select></div>
-    <div class="field"><label for="@_id">Anexar documentos (opcional)</label><InputFile @key="_inputVersion" id="@_id" OnChange="Selected" multiple accept="application/pdf,image/jpeg,image/png,image/webp" disabled="@_busy" /></div>
-    <p>PDF, JPEG, PNG ou WebP, até 20 MB por arquivo. O seletor do aparelho pode oferecer a câmera.</p>
-    @if (_files.Count > 0) { <p>@_files.Count documento(s) aguardando envio.</p> }
+    <div class="field attachment-file">
+        <label for="@_id" class="attachment-button"><MudIcon Icon="@Icons.Material.Outlined.AttachFile" Size="Size.Small" aria-hidden="true" /> Anexar arquivo</label>
+        <InputFile @key="_inputVersion" id="@_id" class="visually-hidden" OnChange="Selected" multiple accept="application/pdf,image/jpeg,image/png,image/webp" disabled="@_busy" />
+    </div>
+    <p class="form-note">PDF, JPEG, PNG ou WebP, até 20 MB por arquivo. O seletor do aparelho pode oferecer a câmera.</p>
+    @if (_files.Count > 0) { <p class="form-note" data-attachment-count>@_files.Count documento(s) aguardando envio.</p> }
     @if (_error is not null) { <p role="status">@_error</p> }
 </div>
 

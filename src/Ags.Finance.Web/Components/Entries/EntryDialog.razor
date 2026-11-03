@@ -1,0 +1,647 @@
+@* Janela de lançamento: nova despesa, receita ou despesa no cartão e edição. As regras de mês, parcela e fatura continuam
+   nos casos de uso, por IEntryCatalog e IInvoiceCatalog; aqui ficam só os campos e o que falta preencher. *@
+@using System.Globalization
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Invoices.Contracts
+@using Ags.Finance.Modules.Reimbursements.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+@inject IEntryAttachmentCatalog EntryDocuments
+@inject IEntryCatalog Entries
+@inject IAccountCatalog Accounts
+@inject IMerchantCatalog Merchants
+@inject IClassificationCatalog Classifications
+@inject IInvoiceCatalog Invoices
+@inject ICardLastDigitsCatalog CardDigits
+@inject IPersonCatalog People
+@inject TimeProvider Clock
+@inject EntryChangeNotifier Notifier
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog entry-dialog">
+    <TitleContent>
+        <div class="dialog-title">
+            <h2>@Title</h2>
+            <MudIconButton Icon="@Icons.Material.Outlined.Close" aria-label="Fechar" data-dialog-close OnClick="RequestCloseAsync" />
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <form id="entry-form" data-ready="@(_loaded ? "true" : "false")" class="entry-form @(_showDetails ? "entry-form-details" : null)" @onsubmit="() => SaveAsync(closeAfterSave: true)" @onsubmit:preventDefault @onkeydown="KeyDownAsync">
+            <div class="entry-column">
+                <MoneyField @ref="_amountField" Id="entry-amount" Label="@(HasInstallments ? "Valor total" : "Valor")" @bind-Value="_amount" Class="@AmountClass" AutoFocus="true" />
+
+                @if (!IsCard)
+                {
+                    <div class="switch-row">
+                        <label for="entry-paid">@PaidLabel <HelpTip Text="Ligado: já movimentou a conta. Desligado: fica pendente até você dar baixa. Em recorrências, os próximos meses sempre nascem pendentes." /></label>
+                        <input id="entry-paid" class="switch" type="checkbox" role="switch" @bind="_isPaid" />
+                    </div>
+                }
+
+                <div class="field">
+                    <span class="field-label" id="entry-date-label">Data</span>
+                    <div class="pills">
+                        <button type="button" class="pill @(_date == Today ? "on" : null)" aria-pressed="@(_date == Today ? "true" : "false")" data-date-today @onclick="() => SetDateAsync(Today)">Hoje</button>
+                        <button type="button" class="pill @(_date == Today.AddDays(-1) ? "on" : null)" aria-pressed="@(_date == Today.AddDays(-1) ? "true" : "false")" data-date-yesterday @onclick="() => SetDateAsync(Today.AddDays(-1))">Ontem</button>
+                        <input id="entry-date" class="input input-date" type="date" aria-label="Outra data" @bind="_date" @bind:after="DateChangedAsync" required />
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="entry-merchant">Descrição</label>
+                    <input id="entry-merchant" class="input" value="@_merchantName" @oninput="SearchMerchantAsync" list="entry-merchants" maxlength="100" placeholder="Ex.: Conta de água" autocomplete="off" />
+                    <datalist id="entry-merchants">@foreach (var merchant in _suggestions) { <option value="@merchant.Name"></option> }</datalist>
+                    @if (_merchantName.Trim().Length > 0 && _merchantId == Guid.Empty)
+                    {
+                        <button type="button" class="link-button" data-create-merchant disabled="@_busy" @onclick="CreateMerchantAsync">Cadastrar nova descrição</button>
+                    }
+                </div>
+
+                <div class="field">
+                    <label for="entry-subcategory">Categoria e subcategoria <HelpTip Text="Escolha a subcategoria. A categoria acima dela é usada nos totais e no planejamento." /></label>
+                    <select id="entry-subcategory" class="input" @bind="_subcategoryId">
+                        <option value="@Guid.Empty">Selecione</option>
+                        @foreach (var group in SubcategoryGroups)
+                        {
+                            <optgroup label="@group.Key">
+                                @foreach (var item in group) { <option value="@item.ExternalId">@group.Key › @item.Name</option> }
+                            </optgroup>
+                        }
+                    </select>
+                </div>
+
+                @if (ShowCardField)
+                {
+                    <div class="field">
+                        <label for="entry-card">Cartão</label>
+                        <select id="entry-card" class="input" @bind="_cardId" @bind:after="CardChangedAsync">
+                            <option value="@Guid.Empty">@(IsEditing ? "Sem cartão" : "Selecione")</option>
+                            @foreach (var card in _cards) { <option value="@card.ExternalId">@card.Name</option> }
+                        </select>
+                    </div>
+                }
+
+                @if (!IsCard)
+                {
+                    <div class="field">
+                        <label for="entry-account">Conta</label>
+                        <select id="entry-account" class="input" @bind="_accountId">
+                            <option value="@Guid.Empty">Selecione</option>
+                            @foreach (var account in _accounts) { <option value="@account.ExternalId">@account.Name</option> }
+                        </select>
+                    </div>
+                }
+                else if (_cardId != Guid.Empty)
+                {
+                    <div class="field">
+                        <span class="field-label">Fatura <HelpTip Text="Calculada pela data e pelo dia de fechamento do cartão. Se o banco lançar em outro mês, escolha outra fatura aberta." /></span>
+                        <div class="pills" role="group" aria-label="Fatura">
+                            @foreach (var invoice in _selectableInvoices)
+                            {
+                                var value = MonthValue(invoice.Month);
+                                <button type="button" class="pill @(_month == value ? "on" : null)" aria-pressed="@(_month == value ? "true" : "false")" data-invoice="@value" disabled="@(invoice.Status != InvoiceStatus.Open)" @onclick="() => _month = value">@invoice.Month · @InvoiceStatusText(invoice.Status)</button>
+                            }
+                            <button type="button" class="link-button" data-more-invoices disabled="@_busy" @onclick="MoreInvoicesAsync">Carregar próximas faturas</button>
+                        </div>
+                        @if (_invoiceNotice is not null) { <p class="form-warning" role="status">@_invoiceNotice</p> }
+                    </div>
+                }
+
+                @if (_editingRecurring)
+                {
+                    <div class="field">
+                        <label for="entry-recurring-scope">Alcance da alteração</label>
+                        <select id="entry-recurring-scope" class="input" @bind="_recurringScope">
+                            <option value="@RecurringEditScope.OnlyThis">Editar somente esta</option>
+                            <option value="@RecurringEditScope.AllPending">Editar todas as pendentes</option>
+                            <option value="@RecurringEditScope.All">Editar todas (incluindo @(IsExpense ? "Pagas" : "Recebidas"))</option>
+                        </select>
+                    </div>
+                    @if (_recurringScope is RecurringEditScope.AllPending or RecurringEditScope.All)
+                    {
+                        <div class="field"><label for="entry-recurring-day">Dia das próximas ocorrências</label><input id="entry-recurring-day" class="input" type="number" inputmode="numeric" min="1" max="31" @bind="_recurringDay" /></div>
+                    }
+                }
+                else if (_editingInstallment || _editingRepetition)
+                {
+                    <div class="field">
+                        <label for="entry-scope">Alcance da alteração</label>
+                        <select id="entry-scope" class="input" @bind="_scope">
+                            <option value="">Escolha o alcance</option>
+                            <option value="@EntryChangeScope.OnlyThis">@(_editingRepetition ? "Somente esta" : "Somente esta parcela")</option>
+                            <option value="@EntryChangeScope.ThisAndFollowing">Esta e as futuras</option>
+                            @if (_editingRepetition) { <option value="@EntryChangeScope.All">Todas</option> }
+                        </select>
+                    </div>
+                }
+
+                <div class="details-toggle">
+                    <button type="button" class="link-button" data-toggle-details aria-expanded="@(_showDetails ? "true" : "false")" @onclick="ToggleDetailsAsync">
+                        @(_showDetails ? "Menos detalhes" : "Mais detalhes")
+                        <MudIcon Icon="@(_showDetails ? Icons.Material.Outlined.ChevronLeft : Icons.Material.Outlined.ChevronRight)" Size="Size.Small" aria-hidden="true" />
+                    </button>
+                </div>
+            </div>
+
+            @* Os detalhes continuam montados quando recolhidos: anexos escolhidos e valores digitados não se perdem. *@
+            <div class="entry-column" data-entry-details hidden="@(!_showDetails)">
+                @if (!IsEditing)
+                {
+                    <div class="switch-row">
+                        <label for="entry-repeat">@(IsExpense ? "Despesa fixa" : "Receita fixa") <HelpTip Text="Repete todo mês, sem data para acabar. Ex.: aluguel, água." /></label>
+                        <input id="entry-repeat" class="switch" type="checkbox" role="switch" @bind="_repeat" @bind:after="RepeatChanged" disabled="@(_countedRepeat || HasInstallments)" />
+                    </div>
+                    @if (_repeat)
+                    {
+                        <div class="field"><label for="entry-repeat-until">Até o mês da ocorrência (vazio para sem fim)</label><input id="entry-repeat-until" class="input" type="month" value="@_repeatUntil" @onchange="args => _repeatUntil = args.Value?.ToString() ?? string.Empty" /></div>
+                    }
+                    @if (IsCard)
+                    {
+                        <div class="switch-row">
+                            <label for="entry-installment-switch">Parcelado <HelpTip Text="Divide o valor total em parcelas, uma em cada fatura. A diferença de centavos vai para a primeira." /></label>
+                            <input id="entry-installment-switch" class="switch" type="checkbox" role="switch" checked="@HasInstallments" disabled="@_repeat" @onchange="InstallmentSwitchChanged" />
+                        </div>
+                        @if (HasInstallments)
+                        {
+                            <div class="field"><label for="entry-installments">Número de parcelas</label><input id="entry-installments" class="input" type="number" inputmode="numeric" min="2" max="48" @bind="_installments" /></div>
+                            <p class="form-note">@_installments parcelas em faturas consecutivas. A diferença de centavos vai para a primeira.</p>
+                        }
+                    }
+                    else
+                    {
+                        <div class="switch-row">
+                            <label for="entry-counted-repeat">Repetir <HelpTip Text="Cria um número definido de lançamentos com o valor cheio." /></label>
+                            <input id="entry-counted-repeat" class="switch" type="checkbox" role="switch" @bind="_countedRepeat" disabled="@_repeat" />
+                        </div>
+                        @if (_countedRepeat)
+                        {
+                            <div class="field-row">
+                                <div class="field"><label for="entry-repeat-count">Número de vezes</label><input id="entry-repeat-count" class="input" type="number" inputmode="numeric" min="2" max="120" @bind="_repeatCount" /></div>
+                                <div class="field"><label for="entry-repeat-period">Período</label><select id="entry-repeat-period" class="input" @bind="_repeatPeriod"><option value="@RepeatPeriod.Days">Dias</option><option value="@RepeatPeriod.Weeks">Semanas</option><option value="@RepeatPeriod.Months">Meses</option><option value="@RepeatPeriod.Years">Anos</option></select></div>
+                            </div>
+                            <p class="form-note">@_repeatCount lançamentos com o valor cheio. Só o primeiro segue a chave @(IsExpense ? "Pago" : "Recebido"); os demais nascem pendentes.</p>
+                        }
+                    }
+                }
+                @if (_cardId != Guid.Empty)
+                {
+                    <div class="field">
+                        <label for="entry-final">Final do cartão</label>
+                        <select id="entry-final" class="input" @bind="_finalId">
+                            <option value="@Guid.Empty">Sem final</option>
+                            @foreach (var final in _finals) { <option value="@final.ExternalId">@final.Digits · @final.Label</option> }
+                        </select>
+                    </div>
+                }
+                @if (IsExpense)
+                {
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="entry-reimbursement-person">Reembolso de</label>
+                            <select id="entry-reimbursement-person" class="input" @bind="_reimbursementPersonId" @bind:after="ReimbursementPersonChanged">
+                                <option value="@Guid.Empty">Ninguém</option>
+                                @foreach (var person in _people) { <option value="@person.ExternalId">@person.Name</option> }
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="entry-reimbursement-percent">Percentual <HelpTip Text="Quanto desta despesa a pessoa vai devolver, de 0 a 100." /></label>
+                            <input id="entry-reimbursement-percent" class="input" type="number" inputmode="decimal" step="0.01" min="0" max="100" disabled="@(_reimbursementPersonId == Guid.Empty)" @bind="_reimbursementPercent" />
+                        </div>
+                    </div>
+                }
+                <div class="field"><label for="entry-details">Observação</label><textarea id="entry-details" class="input input-area" rows="4" maxlength="1000" @bind="_details"></textarea></div>
+                <AttachmentPicker @ref="_attachmentPicker" />
+                @if (_savedAttachmentEntry is not null)
+                {
+                    <MudButton Variant="Variant.Outlined" data-retry-attachments Disabled="@_busy" OnClick="RetryAttachmentsAsync">Reenviar anexos do lançamento salvo</MudButton>
+                }
+            </div>
+        </form>
+        @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+        @if (_success is not null) { <p class="form-success" role="status" data-entry-success>@_success</p> }
+        @if (MissingReason is { } missing) { <p class="form-note" data-entry-missing>@missing</p> }
+    </DialogContent>
+    <DialogActions>
+        @if (!IsEditing)
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Primary" data-save-new Disabled="@(!CanSave)" OnClick="() => SaveAsync(closeAfterSave: false)">Salvar e criar nova</MudButton>
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" form="entry-form" data-save Disabled="@(!CanSave)">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public EntryDialogType Type { get; set; } = EntryDialogType.Expense;
+
+    /// <summary>Na edição, o lançamento aberto.</summary>
+    [Parameter]
+    public EntryDetails? Entry { get; set; }
+
+    /// <summary>Conta já escolhida, como em "Adicionar despesa" no card da conta.</summary>
+    [Parameter]
+    public Guid? AccountExternalId { get; set; }
+
+    private MoneyField? _amountField;
+    private AttachmentPicker? _attachmentPicker;
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private IReadOnlyList<CreditCardDetails> _cards = [];
+    private IReadOnlyList<CardLastDigitsDetails> _finals = [];
+    private IReadOnlyList<MerchantDetails> _merchants = [];
+    private IReadOnlyList<MerchantDetails> _suggestions = [];
+    private IReadOnlyList<SubcategoryDetails> _subcategories = [];
+    private IReadOnlyList<CategoryDetails> _categories = [];
+    private IReadOnlyList<PersonDetails> _people = [];
+    private IReadOnlyList<SelectableInvoice> _selectableInvoices = [];
+    private DateOnly _date;
+    private decimal _amount;
+    private string _merchantName = string.Empty;
+    private Guid _merchantId;
+    private Guid _subcategoryId;
+    private Guid _accountId;
+    private Guid _cardId;
+    private Guid _finalId;
+    private int _installments = 1;
+    private string _details = string.Empty;
+    private bool _isPaid = true;
+    private bool _repeat;
+    private string _repeatUntil = string.Empty;
+    private bool _countedRepeat;
+    private int _repeatCount = 2;
+    private RepeatPeriod _repeatPeriod = RepeatPeriod.Months;
+    private Guid _reimbursementPersonId;
+    private decimal _reimbursementPercent;
+    private string _month = string.Empty;
+    private string _suggestedMonth = string.Empty;
+    private string? _invoiceNotice;
+    private bool _editingInstallment;
+    private bool _editingRepetition;
+    private bool _editingRecurring;
+    private RecurringEditScope? _recurringScope = RecurringEditScope.OnlyThis;
+    private int _recurringDay;
+    private EntryChangeScope? _scope;
+    private bool _showDetails;
+    private bool _busy;
+    private bool _loaded;
+    private string? _error;
+    private string? _success;
+    private Guid? _savedAttachmentEntry;
+    private bool _closeAfterAttachments;
+    private string _initialSnapshot = string.Empty;
+
+    private bool IsEditing => Entry is not null;
+    private bool IsExpense => Entry is { } entry ? entry.Kind == CategoryKind.Expense : Type != EntryDialogType.Income;
+    private bool IsCard => _cardId != Guid.Empty || (!IsEditing && Type == EntryDialogType.CardExpense);
+    private bool ShowCardField => (!IsEditing && Type == EntryDialogType.CardExpense) || (IsEditing && (IsExpense || Entry!.CardExternalId is not null));
+    private bool HasInstallments => _installments > 1;
+    private DateOnly Today => DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+    private string PaidLabel => _isPaid ? IsExpense ? "Pago" : "Recebido" : IsExpense ? "Não foi pago" : "Não foi recebido";
+    private string AmountClass => IsCard ? "amount-card" : IsExpense ? "amount-expense" : "amount-income";
+
+    private string Title => (IsEditing, IsCard, IsExpense) switch
+    {
+        (false, true, _) => "Nova despesa no cartão",
+        (false, _, true) => "Nova despesa",
+        (false, _, false) => "Nova receita",
+        (true, true, _) => "Editar despesa no cartão",
+        (true, _, true) => "Editar despesa",
+        _ => "Editar receita",
+    };
+
+    private IEnumerable<IGrouping<string, SubcategoryDetails>> SubcategoryGroups => _subcategories
+        .Where(x => x.Kind == (IsExpense ? CategoryKind.Expense : CategoryKind.Income))
+        .GroupBy(x => _categories.FirstOrDefault(c => c.ExternalId == x.CategoryExternalId)?.Name ?? x.DisplayName);
+
+    /// <summary>O preenchimento mínimo que falta, em linguagem simples. As demais regras vêm do caso de uso ao salvar.</summary>
+    private string? MissingReason
+    {
+        get
+        {
+            if (!_loaded) { return null; }
+            if (_amount <= 0) { return "Informe um valor maior que zero."; }
+            if (_merchantId == Guid.Empty) { return _merchantName.Trim().Length > 0 ? "Cadastre a nova descrição para continuar." : "Informe a descrição."; }
+            if (_subcategoryId == Guid.Empty) { return "Escolha a categoria e a subcategoria."; }
+            if (!IsCard && _accountId == Guid.Empty) { return "Escolha a conta."; }
+            if (IsCard && _cardId == Guid.Empty) { return "Escolha o cartão."; }
+            if (IsCard && _month.Length == 0) { return "Escolha uma fatura aberta."; }
+            if ((_editingInstallment || _editingRepetition) && _scope is null) { return "Escolha o alcance da alteração."; }
+            return null;
+        }
+    }
+
+    private bool CanSave => _loaded && !_busy && _savedAttachmentEntry is null && MissingReason is null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _date = Today;
+        // O título é desenhado pelo contêiner da biblioteca, antes da carga: o tipo do lançamento precisa estar definido aqui.
+        _cardId = Entry?.CardExternalId ?? Guid.Empty;
+        _people = await People.GetAsync();
+        _categories = await Classifications.GetCategoriesAsync(false);
+        _merchants = await Merchants.FindAsync();
+        _suggestions = _merchants;
+        if (Entry is { } entry)
+        {
+            await LoadEntryAsync(entry);
+        }
+        else
+        {
+            _accounts = await Accounts.GetAccountsAsync();
+            _cards = await Accounts.GetCreditCardsAsync();
+            _subcategories = await Classifications.GetSubcategoriesAsync();
+            if (AccountExternalId is { } account && _accounts.Any(x => x.ExternalId == account)) { _accountId = account; }
+        }
+
+        _loaded = true;
+        _initialSnapshot = Snapshot();
+    }
+
+    private async Task LoadEntryAsync(EntryDetails entry)
+    {
+        _isPaid = entry.IsEffective;
+        _editingRecurring = entry.RecurringEntryExternalId is not null;
+        _recurringDay = entry.RecurringEntryExternalId is { } seriesId ? (await Entries.GetRecurringAsync(seriesId))?.Day ?? entry.Date.Day : entry.Date.Day;
+        _editingRepetition = entry.RepetitionExternalId is not null;
+        _editingInstallment = entry.InstallmentPurchaseExternalId is not null;
+        _scope = _editingInstallment || _editingRepetition ? null : EntryChangeScope.OnlyThis;
+        _accounts = (await Accounts.GetAccountsAsync(false)).Where(x => x.IsActive || x.ExternalId == entry.AccountExternalId).ToList();
+        _subcategories = (await Classifications.GetSubcategoriesAsync(false)).Where(x => x.IsActive || x.ExternalId == entry.SubcategoryExternalId).ToList();
+        var availableCards = (await Accounts.GetCreditCardsAsync()).ToList();
+        if (entry.CardExternalId is { } cardId && availableCards.All(x => x.ExternalId != cardId))
+        {
+            var historical = (await Accounts.GetCreditCardsAsync(false)).FirstOrDefault(x => x.ExternalId == cardId);
+            if (historical is not null) { availableCards.Add(historical); }
+        }
+
+        _cards = availableCards;
+        _cardId = entry.CardExternalId ?? Guid.Empty;
+        _finals = _cardId == Guid.Empty ? [] : (await CardDigits.GetAsync(_cardId, false)).Where(x => x.IsActive || x.ExternalId == entry.CardLastDigitsExternalId).ToList();
+        _date = entry.Date;
+        _merchantName = entry.MerchantName;
+        _merchantId = entry.MerchantExternalId;
+        _subcategoryId = entry.SubcategoryExternalId;
+        _accountId = entry.AccountExternalId;
+        _reimbursementPersonId = entry.Reimbursement?.PersonExternalId ?? Guid.Empty;
+        _reimbursementPercent = PlainPercent(entry.Reimbursement?.Percent ?? 0);
+        _finalId = entry.CardLastDigitsExternalId ?? Guid.Empty;
+        _amount = Math.Abs(entry.Amount.Amount);
+        _details = entry.Details;
+        await SuggestMonthAsync();
+        _month = MonthValue(entry.Month);
+        _suggestedMonth = _month;
+        _installments = 1;
+    }
+
+    private static string MonthValue(ReferenceMonth month) => month.FirstDay.ToString("yyyy-MM", CultureInfo.InvariantCulture);
+
+    private static string InvoiceStatusText(InvoiceStatus status) => status switch { InvoiceStatus.Open => "Aberta", InvoiceStatus.Closed => "Fechada", _ => "Paga" };
+
+    private static decimal PlainPercent(decimal value) => decimal.Parse(value.ToString("0.##", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+
+    private async Task SetDateAsync(DateOnly date)
+    {
+        _date = date;
+        await DateChangedAsync();
+    }
+
+    private async Task DateChangedAsync()
+    {
+        _recurringDay = _date.Day;
+        await SuggestMonthAsync();
+    }
+
+    private async Task SuggestMonthAsync()
+    {
+        _invoiceNotice = null;
+        if (_cardId == Guid.Empty)
+        {
+            _month = string.Empty;
+            _suggestedMonth = string.Empty;
+            return;
+        }
+
+        var selection = await Invoices.GetSelectableInvoicesAsync(_cardId, _date);
+        _selectableInvoices = selection.Invoices;
+        if (selection.SuggestedMonth is { } month)
+        {
+            _month = MonthValue(month);
+            _suggestedMonth = _month;
+            if (month != selection.CalculatedMonth) { _invoiceNotice = $"A fatura calculada {selection.CalculatedMonth} está protegida. Selecionada a próxima Aberta: {month}."; }
+        }
+        else
+        {
+            _error = selection.Error;
+        }
+    }
+
+    private async Task MoreInvoicesAsync()
+    {
+        if (_cardId == Guid.Empty || _selectableInvoices.Count == 0) { return; }
+        var last = _selectableInvoices.Max(x => x.Month);
+        var remaining = (9999 - last.Year) * 12 + 12 - last.Month;
+        var selection = await Invoices.GetSelectableInvoicesAsync(_cardId, _date, last.AddMonths(Math.Min(12, remaining)));
+        _selectableInvoices = selection.Invoices;
+        _error = selection.Error;
+    }
+
+    private async Task CardChangedAsync()
+    {
+        _installments = 1;
+        _countedRepeat = false;
+        _finalId = Guid.Empty;
+        _finals = _cardId == Guid.Empty ? [] : await CardDigits.GetAsync(_cardId);
+        var card = _cards.FirstOrDefault(x => x.ExternalId == _cardId);
+        if (card is not null) { _accountId = card.AccountExternalId; }
+        await SuggestMonthAsync();
+        Dialog?.StateHasChanged();
+    }
+
+    private async Task SearchMerchantAsync(ChangeEventArgs args)
+    {
+        _merchantName = args.Value?.ToString() ?? string.Empty;
+        _merchantId = _merchants.FirstOrDefault(x => string.Equals(x.Name, _merchantName, StringComparison.OrdinalIgnoreCase))?.ExternalId ?? Guid.Empty;
+        var selected = _merchants.FirstOrDefault(x => x.ExternalId == _merchantId);
+        if (selected?.DefaultSubcategoryExternalId is { } subcategory && _subcategories.Any(x => x.ExternalId == subcategory && x.Kind == (IsExpense ? CategoryKind.Expense : CategoryKind.Income)))
+        {
+            _subcategoryId = subcategory;
+        }
+
+        _suggestions = await Merchants.FindAsync(_merchantName);
+    }
+
+    private async Task CreateMerchantAsync()
+    {
+        if (_busy) { return; }
+        _busy = true;
+        try
+        {
+            var result = await Merchants.SaveAsync(null, _merchantName, _subcategoryId == Guid.Empty ? null : _subcategoryId);
+            _error = result.Error;
+            _merchants = await Merchants.FindAsync();
+            if (result.Succeeded) { _merchantId = result.ExternalId ?? Guid.Empty; }
+        }
+        finally { _busy = false; }
+    }
+
+    private void RepeatChanged()
+    {
+        if (_repeat) { _installments = 1; }
+    }
+
+    private void InstallmentSwitchChanged(ChangeEventArgs args) => _installments = args.Value is true ? 2 : 1;
+
+    private void ReimbursementPersonChanged() => _reimbursementPercent = PlainPercent(_people.FirstOrDefault(x => x.ExternalId == _reimbursementPersonId)?.DefaultPercent ?? 0);
+
+    private async Task ToggleDetailsAsync()
+    {
+        _showDetails = !_showDetails;
+        if (Dialog is not null)
+        {
+            await Dialog.SetOptionsAsync(Dialog.Options with { MaxWidth = _showDetails ? MaxWidth.Medium : MaxWidth.Small });
+        }
+    }
+
+    private async Task SaveAsync(bool closeAfterSave)
+    {
+        if (!CanSave) { return; }
+        var monthDate = _date;
+        if (_cardId != Guid.Empty && !DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out monthDate))
+        {
+            _error = "Informe um mês de referência válido.";
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        _success = null;
+        try
+        {
+            var request = new CreateEntryRequest(_date, _merchantId, _subcategoryId, _accountId, new Money(_amount), _details, _cardId == Guid.Empty ? null : ReferenceMonth.FromDate(monthDate),
+                _cardId == Guid.Empty ? null : _cardId, _finalId == Guid.Empty ? null : _finalId,
+                IsExpense && _reimbursementPersonId != Guid.Empty ? new(_reimbursementPersonId, _reimbursementPercent) : null, IsPaid: _isPaid, UseSelectedInvoice: _cardId != Guid.Empty);
+            ReferenceMonth? until = null;
+            if (_repeat && _repeatUntil.Length > 0)
+            {
+                if (!DateOnly.TryParseExact(_repeatUntil + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
+                {
+                    _error = "Informe um término válido para a recorrência.";
+                    return;
+                }
+
+                until = ReferenceMonth.FromDate(endDate);
+            }
+
+            var result = Entry is { } editing ? _editingRecurring
+                ? await Entries.EditRecurringAsync(editing.ExternalId, new(request, _recurringScope ?? RecurringEditScope.OnlyThis, _recurringDay))
+                : await Entries.EditAsync(editing.ExternalId, request, _scope ?? EntryChangeScope.OnlyThis)
+                : _countedRepeat ? await Entries.CreateRepeatedAsync(request, _repeatCount, _repeatPeriod)
+                : _repeat ? await Entries.CreateRecurringAsync(new(request, until))
+                : HasInstallments ? await Entries.CreateInstallmentsAsync(request, _installments) : await Entries.CreateAsync(request);
+            if (!result.Succeeded)
+            {
+                _error = result.Error;
+                return;
+            }
+
+            Notifier.Notify();
+            var savedId = result.ExternalId!.Value;
+            if (Entry is null && (_repeat || _countedRepeat))
+            {
+                savedId = (await Entries.GetAsync()).Where(x => x.RecurringEntryExternalId == savedId || x.RepetitionExternalId == savedId).OrderBy(x => x.Date).First().ExternalId;
+            }
+
+            _closeAfterAttachments = closeAfterSave;
+            if (_attachmentPicker?.HasFiles == true)
+            {
+                _savedAttachmentEntry = savedId;
+                if (!await SendAttachmentsAsync()) { return; }
+            }
+
+            await FinishSaveAsync();
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task<bool> SendAttachmentsAsync()
+    {
+        if (_savedAttachmentEntry is not { } id || _attachmentPicker is null) { return true; }
+        var uploaded = await _attachmentPicker.SendAsync((kind, name, content) => EntryDocuments.UploadAsync(id, kind, name, content));
+        if (uploaded)
+        {
+            _savedAttachmentEntry = null;
+            return true;
+        }
+
+        _showDetails = true;
+        _error = "O lançamento está salvo. Tente enviar os documentos novamente, sem salvar outro lançamento.";
+        return false;
+    }
+
+    private async Task RetryAttachmentsAsync()
+    {
+        if (await SendAttachmentsAsync()) { await FinishSaveAsync(); }
+    }
+
+    private async Task FinishSaveAsync()
+    {
+        _error = null;
+        if (_closeAfterAttachments)
+        {
+            Snackbar.Add("Lançamento salvo.", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(true));
+            return;
+        }
+
+        _success = "Lançamento salvo. Preencha o próximo.";
+        Snackbar.Add("Lançamento salvo.", Severity.Success);
+        ResetForNextEntry();
+        if (_amountField is not null) { await _amountField.FocusAsync(); }
+    }
+
+    // A data e a conta ou o cartão continuam escolhidos, para lançar vários em sequência.
+    private void ResetForNextEntry()
+    {
+        _attachmentPicker?.Clear();
+        _countedRepeat = false;
+        _repeatCount = 2;
+        _repeatPeriod = RepeatPeriod.Months;
+        _isPaid = true;
+        _repeat = false;
+        _repeatUntil = string.Empty;
+        _merchantName = string.Empty;
+        _merchantId = Guid.Empty;
+        _subcategoryId = Guid.Empty;
+        _amount = 0;
+        _details = string.Empty;
+        _reimbursementPersonId = Guid.Empty;
+        _reimbursementPercent = 0;
+        _month = _suggestedMonth;
+        _suggestions = _merchants;
+        _installments = 1;
+        _finalId = Guid.Empty;
+        _initialSnapshot = Snapshot();
+    }
+
+    private string Snapshot() => string.Join('|', _amount, _date, _merchantName, _subcategoryId, _accountId, _cardId, _finalId, _month, _details, _isPaid, _repeat, _repeatUntil, _countedRepeat, _repeatCount, _repeatPeriod, _installments, _reimbursementPersonId, _reimbursementPercent, _scope, _recurringScope, _recurringDay);
+
+    private bool IsDirty => _loaded && (Snapshot() != _initialSnapshot || _attachmentPicker?.HasFiles == true);
+
+    private async Task KeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape") { await RequestCloseAsync(); }
+    }
+
+    private async Task RequestCloseAsync()
+    {
+        if (IsDirty && !await ConfirmDialog.AskAsync(Dialogs, "Descartar alterações?", "Os dados preenchidos nesta janela serão perdidos.", "Descartar", destructive: true, cancelText: "Continuar editando"))
+        {
+            return;
+        }
+
+        Dialog?.Cancel();
+    }
+}

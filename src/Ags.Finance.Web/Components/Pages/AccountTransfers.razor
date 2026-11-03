@@ -6,6 +6,9 @@
 @inject IAccountMovementCatalog Movements
 @inject IEntryCatalog Entries
 @inject TimeProvider Clock
+@inject EntryDialogs EntryWindows
+@inject EntryChangeNotifier EntryChanges
+@implements IDisposable
 
 <PageHeader Title="Transferências e saldos" />
 @if (_message is not null) { <p role="status">@_message</p> }
@@ -20,32 +23,7 @@
         <button class="button" @onclick="() => _adjustment = null" disabled="@_busy">Cancelar</button>
     </section>
 }
-@if (_confirmation is { } transfer)
-{
-    <section class="panel" role="alertdialog" aria-label="Confirmar transferência">
-        <h2>Confirmar transferência</h2>
-        <p>@Name(transfer.SourceAccountExternalId) → @Name(transfer.DestinationAccountExternalId)</p>
-        <p>@transfer.Date.ToString("dd/MM/yyyy") · @transfer.Amount</p>
-        <button class="button" @onclick="ConfirmTransferAsync" disabled="@_busy">Confirmar transferência</button>
-        <button class="button" @onclick="() => _confirmation = null" disabled="@_busy">Cancelar</button>
-    </section>
-}
-<section class="panel">
-    <h2>Transferir da corrente para investimento ou poupança</h2>
-    <form @onsubmit="AskTransfer" @onsubmit:preventDefault>
-        <div class="catalog-fields">
-            <div class="field"><label for="transfer-source">Conta corrente de origem</label><select id="transfer-source" @bind="_source" required>
-                <option value="@Guid.Empty">Selecione</option>@foreach (var account in _accounts.Where(x => x.IsActive && x.Kind == AccountKind.Checking)) { <option value="@account.ExternalId">@account.Name</option> }
-            </select></div>
-            <div class="field"><label for="transfer-destination">Conta de destino</label><select id="transfer-destination" @bind="_destination" required>
-                <option value="@Guid.Empty">Selecione</option>@foreach (var account in _accounts.Where(x => x.IsActive && x.Kind is AccountKind.Investment or AccountKind.Savings)) { <option value="@account.ExternalId">@account.Name</option> }
-            </select></div>
-            <div class="field"><label for="transfer-date">Data</label><input id="transfer-date" type="date" @bind="_date" required /></div>
-            <div class="field"><label for="transfer-amount">Valor (R$)</label><input id="transfer-amount" type="number" step="0.01" min="0.01" @bind="_amount" required /></div>
-        </div>
-        <button class="button" disabled="@(_busy || _confirmation is not null || _adjustment is not null)">Transferir</button>
-    </form>
-</section>
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.SwapHoriz" data-new-transfer OnClick="() => EntryWindows.ShowTransferAsync()">Nova transferência</MudButton>
 <section class="panel">
     <h2>Ajustar saldo</h2>
     <form id="balance-adjustment" @onsubmit="AskAdjustmentAsync" @onsubmit:preventDefault>
@@ -56,7 +34,7 @@
             <div class="field"><label for="adjust-date">Data de referência</label><input id="adjust-date" type="date" @bind="_adjustDate" required /></div>
             <div class="field"><label for="adjust-balance">Saldo correto (R$)</label><input id="adjust-balance" type="number" step="0.01" @bind="_correctBalance" required /></div>
         </div>
-        <button class="button" disabled="@(_busy || _confirmation is not null || _adjustment is not null)">Conferir ajuste</button>
+        <button class="button" disabled="@(_busy || _adjustment is not null)">Conferir ajuste</button>
     </form>
 </section>
 <section class="panel">
@@ -83,14 +61,9 @@
     private IReadOnlyList<AccountDetails> _accounts = [];
     private IReadOnlyList<AccountMovementDetails> _movements = [];
     private readonly Dictionary<Guid, Money> _balances = [];
-    private Guid _source;
-    private Guid _destination;
-    private DateOnly _date;
     private DateOnly _today;
-    private decimal _amount;
     private bool _busy;
     private string? _message;
-    private TransferRequest? _confirmation;
     private BalanceAdjustmentRequest? _adjustment;
     private Guid _adjustAccount;
     private DateOnly _adjustDate;
@@ -98,7 +71,7 @@
     protected override async Task OnInitializedAsync()
     {
         _today = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
-        _date = _today;
+        EntryChanges.Changed += EntriesChangedAsync;
         _adjustDate = _today;
         _adjustAccount = AccountExternalId ?? Guid.Empty;
         await ReloadAsync();
@@ -110,26 +83,15 @@
         foreach (var account in _accounts) { _balances[account.ExternalId] = (await Entries.GetBalanceAsync(account.ExternalId, _today))?.EffectiveBalance ?? Money.Zero; }
     }
     private string Name(Guid id) => _accounts.FirstOrDefault(x => x.ExternalId == id)?.Name ?? "Conta registrada";
-    private void AskTransfer()
+    private Task EntriesChangedAsync() => InvokeAsync(async () =>
     {
-        if (_busy || _confirmation is not null || _adjustment is not null) { return; }
-        _confirmation = new(Guid.CreateVersion7(), _source, _destination, _date, new Money(_amount));
-    }
-    private async Task ConfirmTransferAsync()
-    {
-        if (_busy || _confirmation is not { } request) { return; }
-        _busy = true;
-        try
-        {
-            var result = await Movements.TransferAsync(request);
-            _message = result.Error ?? "Transferência registrada.";
-            if (result.Succeeded) { _confirmation = null; _amount = 0; await ReloadAsync(); }
-        }
-        finally { _busy = false; }
-    }
+        await ReloadAsync();
+        StateHasChanged();
+    });
+    public void Dispose() => EntryChanges.Changed -= EntriesChangedAsync;
     private async Task AskAdjustmentAsync()
     {
-        if (_busy || _confirmation is not null || _adjustment is not null) { return; }
+        if (_busy || _adjustment is not null) { return; }
         _busy = true;
         try
         {

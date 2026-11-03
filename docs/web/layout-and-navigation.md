@@ -6,7 +6,7 @@ Origem: [#5](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/5
 
 - Menu lateral recolhível (256 px aberto, 76 px recolhido), na ordem: Dashboard, Lançamentos, Contas, Cartões, Planejamento, Relatórios, Reembolsos, Cadastros (Bancos, Categorias, Descrições e Pessoas), Mais opções (Anexos, Arquivos CSV e Backups) e Configurações. O item da tela aberta fica destacado, e o grupo dele aparece aberto.
 - Aberto, o menu mostra ícone e rótulo, com os grupos em árvore. Recolhido, mostra só ícones com tooltip, e os grupos abrem em menu flutuante. A escolha fica guardada neste navegador (`localStorage`), e sem armazenamento vale até recarregar.
-- O botão **+ Novo** fica sempre visível e abre Despesa, Receita, Despesa cartão e Transferência.
+- O botão **+ Novo** fica sempre visível e abre as janelas de Despesa, Receita, Despesa cartão e Transferência, sem sair da tela atual (#97). Ctrl+N abre o menu. Ao salvar, `EntryChangeNotifier` avisa a tela aberta, que recarrega sem recarregar a página.
 - No rodapé ficam [Ocultar valores](hide-values.md) (também na barra superior do celular), Recolher menu e **Sair** (veja [login.md](../identity/login.md)). Configurações também traz a troca de senha.
 - A raiz `/` abre a tela inicial das preferências. `/cadastros` redireciona para `/cadastros/categorias`. Telas sem item próprio têm link em uma tela relacionada: `/pendentes` em Lançamentos, `/compromissos` e `/cashback` em `/faturas`, `/transferencias` em Contas.
 - Abaixo de 768 px o menu vira uma gaveta: some da tela, abre pelo botão da barra superior e fecha ao escolher um item ou tocar na película escura. O conteúdo ocupa a largura inteira e não há rolagem horizontal. Itens e botão têm pelo menos 44 px de altura.
@@ -30,6 +30,9 @@ Origem: [#5](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/5
 | `Components/Common/EmptyState.razor` e `ConfirmDialog.razor` | Estado vazio e confirmação padrão. |
 | `Components/Layout/NavMenu.razor` | Árvore de seções (rota, rótulo, ícone), grupos abertos conforme a tela atual e modo recolhido. |
 | `Components/Layout/NewEntryMenu.razor` | Botão + Novo. |
+| `Components/Entries/EntryDialog.razor` e `TransferDialog.razor` | Janelas de lançamento e de transferência, abertas por `EntryDialogs`. |
+| `Components/Common/AppDialogs.cs` | Opções únicas das janelas de formulário. |
+| `Components/Common/MoneyField.razor` | Campo de valor em pt-BR, com teclado numérico. |
 | `Components/PageHeader.razor` | Título da página (`<PageTitle>` e `<h1>`), usado por todas as seções. |
 | `Components/Pages/*.razor` | Uma página por seção. |
 

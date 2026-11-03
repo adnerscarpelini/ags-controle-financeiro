@@ -6,17 +6,18 @@
 @using Ags.Finance.Modules.Reimbursements.Contracts
 @using Ags.Finance.Modules.Transactions.Contracts
 @using Ags.Finance.SharedKernel
+@implements IDisposable
 @inject IEntryAttachmentCatalog EntryDocuments
 @inject IEntryCatalog Entries
 @inject ISavedFilterCatalog SavedFilterCatalog
 @inject IAccountCatalog Accounts
-@inject IMerchantCatalog Merchants
 @inject IClassificationCatalog Classifications
-@inject IInvoiceCatalog Invoices
 @inject ICardLastDigitsCatalog CardDigits
 @inject TimeProvider Clock
 @inject IPreferences Preferences
 @inject IPersonCatalog People
+@inject EntryDialogs EntryWindows
+@inject EntryChangeNotifier EntryChanges
 
 <PageHeader Title="Lançamentos" />
 <p><a href="/pendentes">Ver pendências</a></p>
@@ -49,107 +50,6 @@
     </section>
 }
 @if (_attachmentEntry is { } attachmentEntry) { <EntryAttachments @key="attachmentEntry" EntryExternalId="attachmentEntry" Changed="ReloadAttachmentCountsAsync" /> }
-<section class="panel">
-    <h2>@(_editingId is null ? "Novo lançamento" : "Editar lançamento")</h2>
-    <p>Ctrl+N inicia um lançamento. Enter confirma. Informe o valor sem sinal.</p>
-    <form @onsubmit="SaveAsync" @onsubmit:preventDefault>
-        <div class="catalog-fields">
-            <div class="field"><label for="entry-date">Data</label><input id="entry-date" type="date" @bind="_date" @bind:after="DateChangedAsync" required /></div>
-            <div class="field"><label for="entry-merchant">Descrição</label><input id="entry-merchant" value="@_merchantName" @oninput="SearchMerchantAsync" list="entry-merchants" maxlength="100" required />
-                <datalist id="entry-merchants">@foreach (var merchant in _suggestions) { <option value="@merchant.Name"></option> }</datalist>
-                <button class="button" type="button" @onclick="CreateMerchantAsync" disabled="@_busy">Cadastrar nova descrição</button>
-            </div>
-            <div class="field"><label for="entry-subcategory">Classificação</label><select id="entry-subcategory" @bind="_subcategoryId" @bind:after="ClassificationChanged" required>
-                <option value="@Guid.Empty">Selecione</option>
-                @foreach (var item in _subcategories.Where(x => x.Kind != CategoryKind.Transfer)) { <option value="@item.ExternalId">@item.DisplayName</option> }
-            </select></div>
-            <div class="field"><label for="entry-amount">@(_installments > 1 ? "Valor total (R$)" : "Valor (R$)")</label><input id="entry-amount" type="number" step="0.01" min="0.01" @bind="_amount" required /></div>
-            <div class="field"><label for="entry-card">Cartão (opcional)</label><select id="entry-card" @bind="_cardId" @bind:after="CardChangedAsync">
-                <option value="@Guid.Empty">Sem cartão</option>
-                @foreach (var card in _cards) { <option value="@card.ExternalId">@card.Name</option> }
-            </select></div>
-            @if (_cardId != Guid.Empty)
-            {
-                <div class="field"><label for="entry-final">Final (opcional)</label><select id="entry-final" @bind="_finalId">
-                    <option value="@Guid.Empty">Sem final</option>
-                    @foreach (var final in _finals) { <option value="@final.ExternalId">@final.Digits · @final.Label</option> }
-                </select></div>
-                @if (_editingId is null && !_repeat) { <div class="field"><label for="entry-installments">Parcelas (1 para compra avulsa)</label><input id="entry-installments" type="number" min="1" max="48" @bind="_installments" required /></div> }
-            }
-            <div class="field"><label for="entry-account">Conta</label><select id="entry-account" @bind="_accountId" disabled="@(_cardId != Guid.Empty)" required>
-                <option value="@Guid.Empty">Selecione</option>
-                @foreach (var account in _accounts) { <option value="@account.ExternalId">@account.Name</option> }
-            </select></div>
-            @if (_cardId != Guid.Empty)
-            {
-                <div class="field"><label for="entry-invoice">Fatura</label><select id="entry-invoice" @bind="_month" required>
-                    @foreach (var invoice in _selectableInvoices)
-                    {
-                        <option value="@invoice.Month.FirstDay.ToString("yyyy-MM", CultureInfo.InvariantCulture)" disabled="@(invoice.Status != InvoiceStatus.Open)">@invoice.Month · @InvoiceStatusText(invoice.Status)</option>
-                    }
-                </select></div>
-                <button class="button" type="button" @onclick="MoreInvoicesAsync" disabled="@_busy">Carregar próximas faturas</button>
-                @if (_invoiceNotice is not null) { <p role="status">@_invoiceNotice</p> }
-            }
-            @if (_cardId == Guid.Empty)
-            {
-                <label class="checkbox"><input id="entry-paid" type="checkbox" @bind="_isPaid" />@(_isPaid ? IsExpense ? "Pago" : "Recebido" : IsExpense ? "Não foi paga" : "Não foi recebida")</label>
-            }
-            <div class="field"><label for="entry-details">Detalhes</label><input id="entry-details" @bind="_details" maxlength="1000" /></div>
-            @if (IsExpense)
-            {
-                <div class="field"><label for="entry-reimbursement-person">Pessoa do reembolso (opcional)</label><select id="entry-reimbursement-person" @bind="_reimbursementPersonId" @bind:after="ReimbursementPersonChanged">
-                    <option value="@Guid.Empty">Sem reembolso</option>
-                    @foreach (var person in _people) { <option value="@person.ExternalId">@person.Name</option> }
-                </select></div>
-                @if (_reimbursementPersonId != Guid.Empty)
-                {
-                    <div class="field"><label for="entry-reimbursement-percent">Percentual do reembolso (0 a 100)</label><input id="entry-reimbursement-percent" type="number" step="0.01" min="0" max="100" @bind="_reimbursementPercent" required /></div>
-                }
-            }
-            @if (_editingRecurring)
-            {
-                <div class="field"><label for="entry-recurring-scope">Alcance da alteração</label><select id="entry-recurring-scope" @bind="_recurringScope" required>
-                    <option value="@RecurringEditScope.OnlyThis">Editar somente esta</option><option value="@RecurringEditScope.AllPending">Editar todas as pendentes</option><option value="@RecurringEditScope.All">Editar todas (incluindo @(IsExpense ? "Pagas" : "Recebidas"))</option>
-                </select></div>
-                @if (_recurringScope is RecurringEditScope.AllPending or RecurringEditScope.All)
-                {
-                    <div class="field"><label for="entry-recurring-day">Dia das próximas ocorrências</label><input id="entry-recurring-day" type="number" min="1" max="31" @bind="_recurringDay" required /></div>
-                }
-            }
-            else if (_editingInstallment || _editingRepetition)
-            {
-                <div class="field"><label for="entry-scope">Alcance da alteração</label><select id="entry-scope" @bind="_scope" required>
-                    <option value="">Escolha o alcance</option><option value="@EntryChangeScope.OnlyThis">@(_editingRepetition ? "Somente esta" : "Somente esta parcela")</option><option value="@EntryChangeScope.ThisAndFollowing">Esta e as futuras</option>
-                    @if (_editingRepetition) { <option value="@EntryChangeScope.All">Todas</option> }
-                </select></div>
-            }
-        </div>
-        @if (_editingId is null)
-        {
-            <details><summary>Mais detalhes</summary>
-            <label class="checkbox"><input id="entry-repeat" type="checkbox" @bind="_repeat" @bind:after="RepeatChanged" disabled="@_countedRepeat" />Fixa: repetir todo mês no dia @_date.Day</label>
-            @if (_repeat)
-            {
-                <div class="field"><label for="entry-repeat-until">Até o mês da ocorrência (vazio para sem fim)</label><input id="entry-repeat-until" type="month" value="@_repeatUntil" @onchange="args => _repeatUntil = args.Value?.ToString() ?? string.Empty" /></div>
-            }
-            @if (_cardId == Guid.Empty)
-            {
-                <label class="checkbox"><input id="entry-counted-repeat" type="checkbox" @bind="_countedRepeat" disabled="@_repeat" />Repetir</label>
-                @if (_countedRepeat)
-                {
-                    <div class="field"><label for="entry-repeat-count">Número de vezes</label><input id="entry-repeat-count" type="number" min="2" max="120" @bind="_repeatCount" required /></div>
-                    <div class="field"><label for="entry-repeat-period">Período</label><select id="entry-repeat-period" @bind="_repeatPeriod"><option value="@RepeatPeriod.Days">Dias</option><option value="@RepeatPeriod.Weeks">Semanas</option><option value="@RepeatPeriod.Months">Meses</option><option value="@RepeatPeriod.Years">Anos</option></select></div>
-                }
-            }
-            </details>
-        }
-        <AttachmentPicker @ref="_attachmentPicker" />
-        @if (_savedAttachmentEntry is not null) { <button class="button" type="button" @onclick="RetryAttachmentsAsync" disabled="@_busy">Reenviar anexos do lançamento salvo</button> }
-        <button class="button" disabled="@(_busy || _savedAttachmentEntry is not null)">@(_editingId is null ? "Salvar e criar nova" : "Salvar lançamento")</button>
-        <button class="button" type="button" data-new-entry @onclick="StartNew" disabled="@_busy">Novo / limpar</button>
-    </form>
-</section>
 <section class="panel">
     <h2>Histórico</h2>
     <div class="catalog-fields" aria-label="Filtros salvos">
@@ -240,68 +140,16 @@
 
 @code {
     private Guid? _attachmentEntry;
-    private Guid? _savedAttachmentEntry;
-    private AttachmentPicker? _attachmentPicker;
     private IReadOnlyList<Ags.Finance.Modules.Attachments.Contracts.AttachmentDetails> _attachmentRows = [];
     private int AttachmentCount(EntryDetails entry) => _attachmentRows.Count(x => x.DeletedAt is null && x.Owner.ExternalId == (entry.InstallmentPurchaseExternalId ?? entry.ExternalId));
     private async Task ReloadAttachmentCountsAsync() => _attachmentRows = await EntryDocuments.ListAsync();
-    private void StartNew() { _savedAttachmentEntry = null; _attachmentPicker?.Clear(); Reset(); }
-    private async Task RetryAttachmentsAsync()
-    {
-        if (_savedAttachmentEntry is { } id && _attachmentPicker is not null)
-        {
-            var uploaded = await _attachmentPicker.SendAsync((kind, name, content) => EntryDocuments.UploadAsync(id, kind, name, content));
-            _message = uploaded ? "Documentos enviados ao lançamento salvo." : "O lançamento está salvo. Tente enviar os documentos novamente, sem salvar outro lançamento.";
-            if (uploaded) { _savedAttachmentEntry = null; }
-        }
-    }
-    private IReadOnlyList<AccountDetails> _accounts = [];
-    private IReadOnlyList<CreditCardDetails> _cards = [];
-    private IReadOnlyList<CardLastDigitsDetails> _finals = [];
-    private IReadOnlyList<MerchantDetails> _merchants = [];
-    private IReadOnlyList<MerchantDetails> _suggestions = [];
-    private IReadOnlyList<SubcategoryDetails> _subcategories = [];
     private IReadOnlyList<EntryDetails> _entries = [];
     private IReadOnlyList<PersonDetails> _people = [];
-    private Guid _reimbursementPersonId;
-    private decimal _reimbursementPercent;
-    private bool IsExpense => _subcategories.FirstOrDefault(x => x.ExternalId == _subcategoryId)?.Kind == CategoryKind.Expense;
     private string PersonName(Guid externalId) => _people.FirstOrDefault(x => x.ExternalId == externalId)?.Name ?? "Pessoa";
-    private void ClearReimbursement() { _reimbursementPersonId = Guid.Empty; _reimbursementPercent = 0; }
-    private void ClassificationChanged() { if (!IsExpense) { ClearReimbursement(); } }
-    private void ReimbursementPersonChanged() => _reimbursementPercent = PlainPercent(_people.FirstOrDefault(x => x.ExternalId == _reimbursementPersonId)?.DefaultPercent ?? 0);
-    private static decimal PlainPercent(decimal value) => decimal.Parse(value.ToString("0.##", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
-    private DateOnly _date;
-    private string _merchantName = string.Empty;
-    private Guid _merchantId;
-    private Guid _subcategoryId;
-    private Guid _accountId;
-    private Guid _cardId;
-    private Guid _finalId;
-    private decimal _amount;
-    private int _installments = 1;
-    private string _details = string.Empty;
-    private bool _isPaid = true;
-    private bool _countedRepeat;
-    private int _repeatCount = 2;
-    private RepeatPeriod _repeatPeriod = RepeatPeriod.Months;
-    private bool _editingRepetition;
-    private string _month = string.Empty;
-    private IReadOnlyList<SelectableInvoice> _selectableInvoices = [];
-    private string? _invoiceNotice;
-    private string _suggestedMonth = string.Empty;
     private string? _message;
     private bool _busy;
-    private bool _repeat;
-    private string _repeatUntil = string.Empty;
-    private Guid? _editingId;
     private Guid? _selectedId;
-    private bool _editingInstallment;
-    private bool _editingRecurring;
-    private RecurringEditScope? _recurringScope = RecurringEditScope.OnlyThis;
     private RecurringChangeScope? _deleteRecurringScope;
-    private int _recurringDay;
-    private EntryChangeScope? _scope;
     private EntryDetails? _deleteEntry;
     private EntryDetails? _anticipating;
     private async Task AnticipatedAsync() { _anticipating = null; _message = "Parcelas antecipadas."; await ReloadQueryAsync(); }
@@ -311,172 +159,26 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _date = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
-        _currentMonth = ReferenceMonth.FromDate(_date);
-        _accounts = await Accounts.GetAccountsAsync();
-        _cards = await Accounts.GetCreditCardsAsync();
-        _merchants = await Merchants.FindAsync();
-        _suggestions = _merchants;
-        _subcategories = await Classifications.GetSubcategoriesAsync();
+        EntryChanges.Changed += EntriesChangedAsync;
+        _currentMonth = ReferenceMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime));
         _people = await People.GetAsync();
         _pageSize = (await Preferences.GetAsync()).PageSize;
-        await SuggestMonthAsync();
         await InitializeFiltersAsync();
         await ReloadQueryAsync();
     }
-    private async Task DateChangedAsync() { _recurringDay = _date.Day; await SuggestMonthAsync(); }
-    private async Task SuggestMonthAsync()
-    {
-        _invoiceNotice = null;
-        if (_cardId == Guid.Empty) { _month = string.Empty; _suggestedMonth = string.Empty; return; }
-        var selection = await Invoices.GetSelectableInvoicesAsync(_cardId, _date);
-        _selectableInvoices = selection.Invoices;
-        if (selection.SuggestedMonth is { } month)
-        {
-            _month = month.FirstDay.ToString("yyyy-MM", CultureInfo.InvariantCulture); _suggestedMonth = _month;
-            if (month != selection.CalculatedMonth) { _invoiceNotice = $"A fatura calculada {selection.CalculatedMonth} está protegida. Selecionada a próxima Aberta: {month}."; }
-        }
-        else { _message = selection.Error; }
-    }
-    private static string InvoiceStatusText(InvoiceStatus status) => status switch { InvoiceStatus.Open => "Aberta", InvoiceStatus.Closed => "Fechada", _ => "Paga" };
-    private async Task MoreInvoicesAsync()
-    {
-        if (_cardId == Guid.Empty || _selectableInvoices.Count == 0) { return; }
-        var last = _selectableInvoices.Max(x => x.Month);
-        var remaining = (9999 - last.Year) * 12 + 12 - last.Month;
-        var selection = await Invoices.GetSelectableInvoicesAsync(_cardId, _date, last.AddMonths(Math.Min(12, remaining)));
-        _selectableInvoices = selection.Invoices;
-        _message = selection.Error;
-    }
-    private async Task CardChangedAsync()
-    {
-        _installments = 1;
-        _countedRepeat = false;
-        _finalId = Guid.Empty;
-        _finals = _cardId == Guid.Empty ? [] : await CardDigits.GetAsync(_cardId);
-        var card = _cards.FirstOrDefault(x => x.ExternalId == _cardId);
-        if (card is not null) { _accountId = card.AccountExternalId; }
-        await SuggestMonthAsync();
-    }
-    private async Task SearchMerchantAsync(ChangeEventArgs args)
-    {
-        _merchantName = args.Value?.ToString() ?? string.Empty;
-        _merchantId = _merchants.FirstOrDefault(x => string.Equals(x.Name, _merchantName, StringComparison.OrdinalIgnoreCase))?.ExternalId ?? Guid.Empty;
-        var selected = _merchants.FirstOrDefault(x => x.ExternalId == _merchantId);
-        if (selected?.DefaultSubcategoryExternalId is { } subcategory) { _subcategoryId = subcategory; ClassificationChanged(); }
-        _suggestions = await Merchants.FindAsync(_merchantName);
-    }
-    private async Task CreateMerchantAsync()
-    {
-        if (_busy) { return; }
-        _busy = true;
-        try
-        {
-            var result = await Merchants.SaveAsync(null, _merchantName, _subcategoryId == Guid.Empty ? null : _subcategoryId);
-            _message = result.Error ?? "Descrição cadastrada. Continue o lançamento.";
-            _merchants = await Merchants.FindAsync();
-            if (result.Succeeded) { _merchantId = result.ExternalId ?? Guid.Empty; }
-        }
-        finally { _busy = false; }
-    }
-    private async Task SaveAsync()
-    {
-        if (_busy || _savedAttachmentEntry is not null) { return; }
-        if (_editingRecurring && _recurringScope is null) { _message = "Escolha o alcance da alteração."; return; }
-        if ((_editingInstallment || _editingRepetition) && _scope is null) { _message = "Escolha o alcance da alteração."; return; }
-        var monthDate = _date;
-        if (_cardId != Guid.Empty && !DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out monthDate))
-        {
-            _message = "Informe um mês de referência válido."; return;
-        }
-        _busy = true;
-        try
-        {
-            var request = new CreateEntryRequest(_date, _merchantId, _subcategoryId, _accountId, new Money(_amount), _details, _cardId == Guid.Empty ? null : ReferenceMonth.FromDate(monthDate),
-                _cardId == Guid.Empty ? null : _cardId, _finalId == Guid.Empty ? null : _finalId,
-                IsExpense && _reimbursementPersonId != Guid.Empty ? new(_reimbursementPersonId, _reimbursementPercent) : null, IsPaid: _isPaid, UseSelectedInvoice: _cardId != Guid.Empty);
-            ReferenceMonth? until = null;
-            if (_repeat && _repeatUntil.Length > 0)
-            {
-                if (!DateOnly.TryParseExact(_repeatUntil + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var endDate))
-                {
-                    _message = "Informe um término válido para a recorrência."; return;
-                }
-                until = ReferenceMonth.FromDate(endDate);
-            }
-            var result = _editingId is { } editingId ? _editingRecurring
-                ? await Entries.EditRecurringAsync(editingId, new(request, _recurringScope!.Value, _recurringDay))
-                : await Entries.EditAsync(editingId, request, _scope ?? EntryChangeScope.OnlyThis)
-                : _countedRepeat ? await Entries.CreateRepeatedAsync(request, _repeatCount, _repeatPeriod)
-                : _repeat ? await Entries.CreateRecurringAsync(new(request, until))
-                : _installments == 1 ? await Entries.CreateAsync(request) : await Entries.CreateInstallmentsAsync(request, _installments);
-            _message = result.Error ?? "Lançamento salvo.";
-            if (result.Succeeded)
-            {
-                var savedId = result.ExternalId!.Value;
-                if (_editingId is null && (_repeat || _countedRepeat))
-                { savedId = (await Entries.GetAsync()).Where(x => x.RecurringEntryExternalId == savedId || x.RepetitionExternalId == savedId).OrderBy(x => x.Date).First().ExternalId; }
-                if (_attachmentPicker?.HasFiles == true) { _savedAttachmentEntry = savedId; await RetryAttachmentsAsync(); }
-                Reset(); await ReloadQueryAsync();
-            }
-        }
-        finally { _busy = false; }
-    }
-    private void Reset()
-    {
-        _countedRepeat = false; _repeatCount = 2; _repeatPeriod = RepeatPeriod.Months; _editingRepetition = false;
-        _isPaid = true; _repeat = false; _repeatUntil = string.Empty;
-        _editingId = null; _editingInstallment = false; _scope = null; _editingRecurring = false; _recurringScope = RecurringEditScope.OnlyThis;
-        _merchantName = string.Empty; _merchantId = Guid.Empty; _subcategoryId = Guid.Empty; _amount = 0; _details = string.Empty;
-        ClearReimbursement();
-        _month = _suggestedMonth;
-        _suggestions = _merchants;
-        _installments = 1;
-        _accounts = _accounts.Where(x => x.IsActive).ToList();
-        _subcategories = _subcategories.Where(x => x.IsActive).ToList();
-        _cards = _cards.Where(x => x.IsActive && _accounts.Any(a => a.ExternalId == x.AccountExternalId)).ToList();
-        _merchants = _merchants.Where(x => x.IsActive).ToList();
-        _finals = _finals.Where(x => x.IsActive).ToList();
-        if (!_accounts.Any(x => x.ExternalId == _accountId)) { _accountId = Guid.Empty; }
-        if (!_cards.Any(x => x.ExternalId == _cardId)) { _cardId = Guid.Empty; _finalId = Guid.Empty; }
-        if (!_finals.Any(x => x.ExternalId == _finalId)) { _finalId = Guid.Empty; }
-    }
 
-    private void RepeatChanged() { if (_repeat) { _installments = 1; } }
+    private Task EntriesChangedAsync() => InvokeAsync(async () =>
+    {
+        await ReloadQueryAsync();
+        StateHasChanged();
+    });
 
     private async Task EditEntryAsync(EntryDetails entry)
     {
-        if (_busy) { return; }
-        _busy = true;
-        try
-        {
-            _isPaid = entry.IsEffective; _editingId = entry.ExternalId; _selectedId = entry.ExternalId;
-            _editingRecurring = entry.RecurringEntryExternalId is not null;
-            _recurringScope = RecurringEditScope.OnlyThis;
-            _recurringDay = entry.RecurringEntryExternalId is { } seriesId ? (await Entries.GetRecurringAsync(seriesId))?.Day ?? entry.Date.Day : entry.Date.Day;
-            _editingRepetition = entry.RepetitionExternalId is not null;
-            _editingInstallment = entry.InstallmentPurchaseExternalId is not null;
-            _scope = _editingInstallment || _editingRepetition ? null : EntryChangeScope.OnlyThis;
-            _accounts = (await Accounts.GetAccountsAsync(false)).Where(x => x.IsActive || x.ExternalId == entry.AccountExternalId).ToList();
-            _subcategories = (await Classifications.GetSubcategoriesAsync(false)).Where(x => x.IsActive || x.ExternalId == entry.SubcategoryExternalId).ToList();
-            var availableCards = (await Accounts.GetCreditCardsAsync()).ToList();
-            if (entry.CardExternalId is { } cardId && availableCards.All(x => x.ExternalId != cardId))
-            {
-                var historical = (await Accounts.GetCreditCardsAsync(false)).FirstOrDefault(x => x.ExternalId == cardId);
-                if (historical is not null) { availableCards.Add(historical); }
-            }
-            _cards = availableCards;
-            _cardId = entry.CardExternalId ?? Guid.Empty;
-            _finals = _cardId == Guid.Empty ? [] : (await CardDigits.GetAsync(_cardId, false)).Where(x => x.IsActive || x.ExternalId == entry.CardLastDigitsExternalId).ToList();
-            _date = entry.Date; _merchantName = entry.MerchantName; _merchantId = entry.MerchantExternalId;
-            _subcategoryId = entry.SubcategoryExternalId; _accountId = entry.AccountExternalId;
-            _reimbursementPersonId = entry.Reimbursement?.PersonExternalId ?? Guid.Empty; _reimbursementPercent = PlainPercent(entry.Reimbursement?.Percent ?? 0);
-            _finalId = entry.CardLastDigitsExternalId ?? Guid.Empty; _amount = Math.Abs(entry.Amount.Amount); _details = entry.Details;
-            await SuggestMonthAsync();
-            _month = entry.Month.FirstDay.ToString("yyyy-MM", CultureInfo.InvariantCulture); _suggestedMonth = _month; _installments = 1;
-        }
-        finally { _busy = false; }
+        _selectedId = entry.ExternalId;
+        await EntryWindows.ShowEditAsync(entry);
     }
+
     private void AskDelete(EntryDetails entry) { _deleteEntry = entry; _deleteRecurringScope = null; _deleteScope = entry.InstallmentPurchaseExternalId is null && entry.RepetitionExternalId is null ? EntryChangeScope.OnlyThis : null; }
     private async Task ConfirmDeleteAsync()
     {
@@ -489,7 +191,7 @@
             var result = entry.RecurringEntryExternalId is not null ? await Entries.DeleteRecurringAsync(entry.ExternalId, _deleteRecurringScope!.Value) : await Entries.DeleteAsync(entry.ExternalId, scope);
             _message = result.Error ?? "Lançamento excluído.";
             _deleteEntry = null;
-            if (result.Succeeded) { Reset(); await ReloadQueryAsync(); }
+            if (result.Succeeded) { await ReloadQueryAsync(); }
         }
         finally { _busy = false; }
     }
@@ -505,4 +207,6 @@
         }
         finally { _busy = false; }
     }
+
+    public void Dispose() => EntryChanges.Changed -= EntriesChangedAsync;
 }
