@@ -15,7 +15,8 @@ O conceito central é o **mês contábil**, quando o valor pesa no orçamento. C
 contas com saldo inicial, cartões/finais, categorias, descrições, calendário de compras,
 HTTPS e login estão implementados. Há lançamentos à vista e no cartão e consulta,
 fechamento e reabertura de faturas, compras parceladas e séries mensais previstas com edição por alcance, baixa manual, visão de pendências, transferências e ajustes de saldo de contas.
-Pagamentos, ajustes de fatura e reembolsos ainda têm
+Há cadastro e histórico anual de cashback/desconto, com abatimento das faturas.
+Confirmação de pagamentos, ajustes de fatura e reembolsos ainda têm
 entregas abertas nas issues.
 
 Importação/exportação serão somente por **CSV no layout oficial do sistema**.

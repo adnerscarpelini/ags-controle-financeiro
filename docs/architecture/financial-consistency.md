@@ -57,9 +57,10 @@ O seletor de mês contábil não desloca essa janela.
   Informar o total correto gera lançamento da diferença no mesmo mês contábil, afetando despesas.
   Não reabre a fatura, altera compras originais ou modifica pagamentos; não é InvoicePayment.
 
-Limites ainda não definidos, como edição de abatimentos após quitação e detalhes de correção
-de ajustes, continuam nas respectivas issues antes da implementação. Esta nota não transforma
-ausência de regra em comportamento automático.
+A #19 implementa a política aprovada de abatimentos: criar, editar e excluir
+Cashback/Desconto é permitido em Aberta/Fechada e bloqueado em Paga, inclusive na
+origem e no destino de uma mudança. Pagamentos confirmados permanecem irreversíveis.
+O débito e a quitação da #51 ainda não foram liberados nesta etapa.
 
 ## Recorrência, histórico e arquivamento
 

@@ -1,5 +1,6 @@
 using Ags.Finance.Modules.Invoices.Application;
 using Ags.Finance.Modules.Invoices.Application.CloseInvoices;
+using Ags.Finance.Modules.Invoices.Application.ManagePayments;
 using Ags.Finance.Modules.Invoices.Application.QueryInvoices;
 using Ags.Finance.Modules.Invoices.Contracts;
 using Ags.Finance.Modules.Invoices.Infrastructure;
@@ -27,6 +28,7 @@ public static class DependencyInjection
             .AddInterceptors(provider.GetRequiredService<AuditTimestampsInterceptor>()));
 
         services.AddScoped<IInvoiceCatalog, InvoiceCatalog>();
+        services.AddScoped<IInvoicePaymentCatalog, InvoicePaymentCatalog>();
         services.AddScoped<IInvoiceStore, InvoiceStore>();
         services.AddScoped<IInvoiceLifecycle, InvoiceLifecycle>();
         services.AddScoped<IInvoiceWriteGuard, InvoiceWriteGuard>();

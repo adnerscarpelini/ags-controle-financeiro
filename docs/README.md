@@ -15,6 +15,7 @@
 
 - [Atomicidade e proteção entre módulos (#50)](architecture/financial-operations.md)
 
+- [Histórico de pagamentos e abatimentos (#19)](invoices/payments.md)
 - [Consulta e composição de faturas (#18)](invoices/composition.md)
 
 - [Compras no cartão e escolha de fatura (#12)](transactions/card-entries.md)

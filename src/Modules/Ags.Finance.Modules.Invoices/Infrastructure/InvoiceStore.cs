@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ags.Finance.Modules.Invoices.Infrastructure;
 
-internal sealed class InvoiceStore(IDbContextFactory<InvoicesDbContext> factory) : IInvoiceStore
+internal sealed partial class InvoiceStore(IDbContextFactory<InvoicesDbContext> factory) : IInvoiceStore
 {
     public async Task<IReadOnlyList<Invoice>> GetAsync(CancellationToken cancellationToken)
     {
