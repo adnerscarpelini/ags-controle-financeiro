@@ -103,7 +103,7 @@
         if (_report is { } report) { await LoadAsync(report.Months[0].AddMonths(months)); }
     }
 
-    private async Task LoadAsync(AccountingMonth? firstMonth)
+    private async Task LoadAsync(ReferenceMonth? firstMonth)
     {
         if (_busy) { return; }
         _busy = true;
@@ -131,10 +131,10 @@
 
     private void ShowDetail(string detail) => _detail = detail;
 
-    private static string MonthName(AccountingMonth month)
+    private static string MonthName(ReferenceMonth month)
         => $"{CultureInfo.GetCultureInfo("pt-BR").DateTimeFormat.GetAbbreviatedMonthName(month.Month).TrimEnd('.')}/{month.Year % 100:00}";
 
-    private static string CurrentClass(PlanningReport report, AccountingMonth month) => month == report.CurrentMonth ? "planning-current" : string.Empty;
+    private static string CurrentClass(PlanningReport report, ReferenceMonth month) => month == report.CurrentMonth ? "planning-current" : string.Empty;
 
     private static string SignClass(Money value) => value.IsNegative ? "entry-expense" : "entry-income";
 

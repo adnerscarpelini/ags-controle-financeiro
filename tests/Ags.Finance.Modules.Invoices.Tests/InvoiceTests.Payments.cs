@@ -9,14 +9,14 @@ namespace Ags.Finance.Modules.Invoices.Tests;
 public sealed partial class InvoiceTests
 {
     private ConfirmInvoicePaymentRequest Payment(decimal amount, bool settle = false)
-        => new(Guid.CreateVersion7(), _cardId, new AccountingMonth(2026, 10), _accountId, new DateOnly(2026, 9, 1), new Money(amount), settle);
+        => new(Guid.CreateVersion7(), _cardId, new ReferenceMonth(2026, 10), _accountId, new DateOnly(2026, 9, 1), new Money(amount), settle);
 
     [Fact]
     public async Task PartialAndTotalPaymentsDebitOnlyChosenAccountAndExplicitlySettle()
     {
         var entries = Provider.GetRequiredService<IEntryCatalog>();
         await entries.CreateAsync(Purchase(1000));
-        await Lifecycle.CloseAsync(_cardId, new AccountingMonth(2026, 10));
+        await Lifecycle.CloseAsync(_cardId, new ReferenceMonth(2026, 10));
         var accounts = Provider.GetRequiredService<IAccountCatalog>();
         var bank = Assert.Single(await accounts.GetBanksAsync());
         var other = await accounts.SaveAccountAsync(new(null, bank.ExternalId, "Outra Conta", AccountKind.Checking, "green", new Money(3000), new DateOnly(2026, 9, 1)));
@@ -71,9 +71,9 @@ public sealed partial class InvoiceTests
     {
         await Provider.GetRequiredService<IEntryCatalog>().CreateAsync(Purchase(100));
         await Payments.SaveAllowanceAsync(null, Allowance(100));
-        await Lifecycle.CloseAsync(_cardId, new AccountingMonth(2026, 10));
-        Assert.True((await Payments.ConfirmSettlementAsync(_cardId, new AccountingMonth(2026, 10))).Succeeded);
-        Assert.True((await Payments.ConfirmSettlementAsync(_cardId, new AccountingMonth(2026, 10))).Succeeded);
+        await Lifecycle.CloseAsync(_cardId, new ReferenceMonth(2026, 10));
+        Assert.True((await Payments.ConfirmSettlementAsync(_cardId, new ReferenceMonth(2026, 10))).Succeeded);
+        Assert.True((await Payments.ConfirmSettlementAsync(_cardId, new ReferenceMonth(2026, 10))).Succeeded);
         Assert.Single(await Payments.GetHistoryAsync());
         Assert.Empty(await Provider.GetRequiredService<IAccountMovementCatalog>().GetAsync());
     }
@@ -83,7 +83,7 @@ public sealed partial class InvoiceTests
     {
         var entries = Provider.GetRequiredService<IEntryCatalog>();
         await entries.CreateAsync(Purchase(100));
-        await Lifecycle.CloseAsync(_cardId, new AccountingMonth(2026, 10));
+        await Lifecycle.CloseAsync(_cardId, new ReferenceMonth(2026, 10));
         foreach (var invalid in new[] { Payment(0), Payment(-1), Payment(50, true), Payment(100) with { AccountExternalId = Guid.NewGuid() } })
         {
             Assert.False((await Payments.ConfirmPaymentAsync(invalid)).Succeeded);
@@ -101,7 +101,7 @@ public sealed partial class InvoiceTests
     public async Task FailureInEitherModuleRollsBackPaymentDebitAndStatus(bool failPayment)
     {
         await Provider.GetRequiredService<IEntryCatalog>().CreateAsync(Purchase(100));
-        await Lifecycle.CloseAsync(_cardId, new AccountingMonth(2026, 10));
+        await Lifecycle.CloseAsync(_cardId, new ReferenceMonth(2026, 10));
         var table = failPayment ? "invoices.invoice_payments" : "transactions.account_movements";
         var restriction = failPayment ? "\"Kind\" <> 0" : "\"Kind\" <> 2";
         await (_database ?? throw new InvalidOperationException()).ExecuteAsync($"ALTER TABLE {table} ADD CONSTRAINT test_reject_payment CHECK ({restriction})");

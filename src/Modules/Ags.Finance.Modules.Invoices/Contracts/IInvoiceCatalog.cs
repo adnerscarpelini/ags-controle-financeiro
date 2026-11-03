@@ -3,7 +3,7 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Invoices.Contracts;
 
-public sealed record InvoiceDetails(Guid CardExternalId, string CardName, AccountingMonth Month, Money Total, IReadOnlyList<EntryDetails> Entries, InvoiceStatus Status = InvoiceStatus.Open, Guid? ExternalId = null, IReadOnlyList<InvoicePaymentDetails>? Payments = null, bool HasConfirmedPayment = false, DateTimeOffset? PaidAt = null, IReadOnlyList<EntryDetails>? Forecast = null, bool ForecastIncluded = false)
+public sealed record InvoiceDetails(Guid CardExternalId, string CardName, ReferenceMonth Month, Money Total, IReadOnlyList<EntryDetails> Entries, InvoiceStatus Status = InvoiceStatus.Open, Guid? ExternalId = null, IReadOnlyList<InvoicePaymentDetails>? Payments = null, bool HasConfirmedPayment = false, DateTimeOffset? PaidAt = null, IReadOnlyList<EntryDetails>? Forecast = null, bool ForecastIncluded = false)
 {
     public IReadOnlyList<InvoicePaymentDetails> PaymentHistory => Payments ?? [];
     public Money PaymentsTotal => new(PaymentHistory.Where(x => x.Kind == InvoicePaymentKind.Payment).Sum(x => x.Amount.Amount));
@@ -30,13 +30,13 @@ public sealed record InvoiceDetails(Guid CardExternalId, string CardName, Accoun
     public bool OnlyForecast => !ForecastIncluded && ForecastEntries.Count > 0 && ForecastEntries.Count == Entries.Count;
 }
 
-public sealed record SelectableInvoice(AccountingMonth Month, InvoiceStatus Status);
-public sealed record InvoiceSelection(AccountingMonth? CalculatedMonth, AccountingMonth? SuggestedMonth, IReadOnlyList<SelectableInvoice> Invoices, string? Error = null);
+public sealed record SelectableInvoice(ReferenceMonth Month, InvoiceStatus Status);
+public sealed record InvoiceSelection(ReferenceMonth? CalculatedMonth, ReferenceMonth? SuggestedMonth, IReadOnlyList<SelectableInvoice> Invoices, string? Error = null);
 
 public interface IInvoiceCatalog
 {
-    Task<InvoiceSelection> GetSelectableInvoicesAsync(Guid cardExternalId, DateOnly date, AccountingMonth? through = null, CancellationToken cancellationToken = default);
-    Task<InvoiceObligations> GetObligationsAsync(AccountingMonth selectedMonth, CancellationToken cancellationToken = default);
+    Task<InvoiceSelection> GetSelectableInvoicesAsync(Guid cardExternalId, DateOnly date, ReferenceMonth? through = null, CancellationToken cancellationToken = default);
+    Task<InvoiceObligations> GetObligationsAsync(ReferenceMonth selectedMonth, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<InvoiceDetails>> GetAsync(CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<InvoiceDetails>> GetMonthAsync(AccountingMonth month, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<InvoiceDetails>> GetMonthAsync(ReferenceMonth month, CancellationToken cancellationToken = default);
 }

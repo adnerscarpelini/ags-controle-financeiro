@@ -4,7 +4,7 @@ A [#33](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/33)
 permite salvar com um nome os critérios de uma consulta de lançamentos: categorias,
 subcategorias, descrições, contas, cartões, finais, texto e, quando informada, a
 situação Pendente/Efetivado. O período **não** é salvo: cada execução recebe o mês
-contábil ou um intervalo de datas, então o mesmo filtro serve a qualquer mês.
+de referência ou um intervalo de datas, então o mesmo filtro serve a qualquer mês.
 
 Os critérios são listas (OU dentro de cada lista, E entre listas). O nome é único sem
 distinguir caixa, acentos ou pontuação. Um filtro precisa de ao menos um critério.

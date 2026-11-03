@@ -10,7 +10,7 @@ public sealed record InvoiceResult(string? Error)
 
 public interface IInvoiceLifecycle
 {
-    Task<InvoiceResult> CloseAsync(Guid cardExternalId, AccountingMonth month, CancellationToken cancellationToken = default);
-    Task<InvoiceResult> ReopenAsync(Guid cardExternalId, AccountingMonth month, CancellationToken cancellationToken = default);
+    Task<InvoiceResult> CloseAsync(Guid cardExternalId, ReferenceMonth month, CancellationToken cancellationToken = default);
+    Task<InvoiceResult> ReopenAsync(Guid cardExternalId, ReferenceMonth month, CancellationToken cancellationToken = default);
     Task<int> CloseDueAsync(CancellationToken cancellationToken = default);
 }

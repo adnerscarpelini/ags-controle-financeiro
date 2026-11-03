@@ -11,7 +11,7 @@
             <div class="metric"><dt>Receitas do mês</dt><dd class="numeric entry-income">@summary.Income</dd></div>
             <div class="metric"><dt>Despesas do mês</dt><dd class="numeric entry-expense">@Negative(summary.Expenses)</dd></div>
             <div class="metric"><dt>Saldo do orçamento mensal</dt><dd class="numeric @(summary.Balance.IsNegative ? "entry-expense" : "entry-income")">@summary.Balance</dd>
-                <small>Receitas menos despesas lançadas no mês contábil. Não é o saldo efetivo das contas.</small></div>
+                <small>Receitas menos despesas lançadas no mês de referência. Não é o saldo efetivo das contas.</small></div>
             <div class="metric"><dt>% guardado</dt><dd class="numeric">@(summary.SavedPercent is { } percent ? percent.ToString("0.##", CultureInfo.GetCultureInfo("pt-BR")) + "%" : "-")</dd>
                 <small>Saldo ÷ receitas</small></div>
             <div class="metric"><dt>Despesas do mês anterior</dt><dd class="numeric entry-expense">@Negative(summary.PreviousMonthExpenses)</dd></div>
@@ -23,9 +23,9 @@
 
 @code {
     private MonthlySummary? _summary;
-    private AccountingMonth _loaded;
+    private ReferenceMonth _loaded;
 
-    [Parameter, EditorRequired] public AccountingMonth Month { get; set; }
+    [Parameter, EditorRequired] public ReferenceMonth Month { get; set; }
 
     protected override async Task OnParametersSetAsync()
     {

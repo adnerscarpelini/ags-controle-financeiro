@@ -14,7 +14,7 @@ o último dia. O caso de uso também verifica o corte ao validar uma compra,
 impedindo que o intervalo entre verificações permita gravar em fatura vencida.
 
 Quando dois fechamentos calculados pelo calendário de Accounts apontam para o
-mesmo mês contábil, usa-se o último. Para um mês escolhido manualmente sem ciclo
+mesmo mês de referência, usa-se o último. Para um mês escolhido manualmente sem ciclo
 correspondente, usa-se o último fechamento anterior ao vencimento. Essas regras
 foram aprovadas para os limites de fevereiro; não alteram o mês gravado da compra.
 Se a meia-noite não existir no fuso, o corte usa o primeiro instante local válido.

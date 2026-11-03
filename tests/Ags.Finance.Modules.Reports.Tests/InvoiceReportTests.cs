@@ -10,7 +10,7 @@ namespace Ags.Finance.Modules.Reports.Tests;
 
 public sealed class InvoiceReportTests : ReportFixture
 {
-    private static readonly AccountingMonth s_october = new(2026, 10);
+    private static readonly ReferenceMonth s_october = new(2026, 10);
     private IInvoiceReports Reports => Provider.GetRequiredService<IInvoiceReports>();
 
     [Fact]
@@ -32,8 +32,8 @@ public sealed class InvoiceReportTests : ReportFixture
         var first = await CardAsync("Cartão A");
         await PurchaseAsync(first, new DateOnly(2026, 10, 1), 600m, installments: 6);
         var report = await Reports.GetAsync(s_october);
-        Assert.Equal(new AccountingMonth(2027, 3), report.Months[^1].Month);
-        Assert.Equal(new AccountingMonth(2026, 1), report.Months[0].Month);
+        Assert.Equal(new ReferenceMonth(2027, 3), report.Months[^1].Month);
+        Assert.Equal(new ReferenceMonth(2026, 1), report.Months[0].Month);
         Assert.Equal(new Money(100m), report.Months[^1].Total);
         var second = await CardAsync("Cartão Novo", "violet");
         await PurchaseAsync(second, new DateOnly(2026, 11, 20), 40m);
@@ -55,7 +55,7 @@ public sealed class InvoiceReportTests : ReportFixture
     [Fact]
     public async Task PaymentsAllowancesAndPreviousMonthAndYearAverageAreSeparatedFromTheInvoiceTotal()
     {
-        var november = new AccountingMonth(2026, 11);
+        var november = new ReferenceMonth(2026, 11);
         var card = await CardAsync("Cartão A");
         await PurchaseAsync(card, new DateOnly(2026, 10, 1), 200m);
         await PurchaseAsync(card, new DateOnly(2026, 10, 20), 400m);
@@ -74,7 +74,7 @@ public sealed class InvoiceReportTests : ReportFixture
     [InlineData(RecurringInvoiceMode.SumUpfront, 50, 125, 0)]
     public async Task AMonthWithOnlyForecastOccurrencesDoesNotLowerTheYearAverage(RecurringInvoiceMode mode, int invoice, int average, int forecast)
     {
-        var november = new AccountingMonth(2026, 11);
+        var november = new ReferenceMonth(2026, 11);
         var card = await CardAsync("Cartão A");
         await PurchaseAsync(card, new DateOnly(2026, 10, 1), 200m);
         var series = await Entries.CreateRecurringAsync(new(new CreateEntryRequest(new DateOnly(2026, 10, 20), MerchantId, ExpenseSubcategoryId, AccountId, new Money(50m), CardExternalId: card)));

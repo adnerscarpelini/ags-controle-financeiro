@@ -1,9 +1,9 @@
-# Mês contábil de uma compra
+# Mês de referência de uma compra
 
 Origem: [issue #8](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/8).
 
-O contrato IAccountingMonthCalculator recebe DateOnly e, opcionalmente, o ExternalId
-do cartão. Retorna uma sugestão de AccountingMonth ou falha esperada quando o cartão
+O contrato IReferenceMonthCalculator recebe DateOnly e, opcionalmente, o ExternalId
+do cartão. Retorna uma sugestão de ReferenceMonth ou falha esperada quando o cartão
 não existe ou a fatura ultrapassa o intervalo de datas suportado.
 Sem cartão, retorna o próprio mês da data.
 
@@ -26,7 +26,7 @@ dias se ajustam a 28/02. Em dezembro, o cálculo avança corretamente o ano.
 ## Decisões de design
 
 - O cálculo puro fica no Domain de Accounts; o SharedKernel mantém somente
-  Money e AccountingMonth. Application busca o cartão e traduz falhas para Contracts.
+  Money e ReferenceMonth. Application busca o cartão e traduz falhas para Contracts.
 - Usa DateOnly: nenhuma dependência de fuso horário ou horário de processamento.
 - Cartões desativados continuam permitindo cálculo para dados históricos, embora
   não apareçam nas seleções de novos lançamentos.

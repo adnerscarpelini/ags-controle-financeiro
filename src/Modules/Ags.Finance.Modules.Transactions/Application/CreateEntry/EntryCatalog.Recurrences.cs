@@ -28,12 +28,12 @@ internal sealed partial class EntryCatalog
             var series = (await store.GetRecurringAsync(token)).FirstOrDefault(x => x.ExternalId == externalId);
             var start = series is null ? default : OccurrenceDate(series.StartDate.AddMonths(series.DateMonthOffset), series.Day);
             return series is null ? null : new RecurringEntryDetails(series.ExternalId, start, series.Day,
-                series.EndMonth is { } end ? AccountingMonth.FromDate(end.AddMonths(series.DateMonthOffset)) : null, series.IsActive,
+                series.EndMonth is { } end ? ReferenceMonth.FromDate(end.AddMonths(series.DateMonthOffset)) : null, series.IsActive,
                 new(start, series.MerchantExternalId, series.SubcategoryExternalId, series.AccountExternalId, series.Amount,
                     series.Details, CardExternalId: series.CardExternalId, CardLastDigitsExternalId: series.CardLastDigitsExternalId, Reimbursement: ReimbursementOf(series)));
         }, _ => true, cancellationToken);
 
-    public Task<OccurrenceGenerationResult> EnsureRecurringMonthAsync(AccountingMonth month, CancellationToken cancellationToken = default)
+    public Task<OccurrenceGenerationResult> EnsureRecurringMonthAsync(ReferenceMonth month, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(token => month.Year == 0 ? Task.FromResult(new OccurrenceGenerationResult(0, 0, "Mês inválido."))
             : GenerateRecurringAsync(new(Month: month), token), x => x.Succeeded, cancellationToken);
 

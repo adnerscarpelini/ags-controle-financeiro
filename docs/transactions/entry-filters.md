@@ -1,7 +1,7 @@
 # Filtros e totais dos lançamentos
 
 A [#15](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/15)
-entrega filtros combinados por mês contábil, intervalo da data original, conta,
+entrega filtros combinados por mês de referência, intervalo da data original, conta,
 cartão, final, categoria, subcategoria, texto e Pendente/Efetivado. São interseções,
 aplicadas pelo mesmo contrato EntryFilter na tela e em consumidores internos.
 Ctrl+F foca a busca. Limpar filtros restaura a consulta completa.

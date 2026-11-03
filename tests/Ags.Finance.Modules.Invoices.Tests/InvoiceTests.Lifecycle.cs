@@ -12,7 +12,7 @@ namespace Ags.Finance.Modules.Invoices.Tests;
 public sealed partial class InvoiceTests
 {
     private IInvoiceLifecycle Lifecycle => Provider.GetRequiredService<IInvoiceLifecycle>();
-    private static readonly AccountingMonth s_october = new(2026, 10);
+    private static readonly ReferenceMonth s_october = new(2026, 10);
 
     [Fact]
     public async Task ConcurrentInvoiceQueryAndInstallmentsNeverExposePartialComposition()
@@ -33,12 +33,12 @@ public sealed partial class InvoiceTests
     [Fact]
     public async Task InstallmentsReachingProtectedDestinationRollBackPurchaseAndNewInvoiceRegistrations()
     {
-        await Lifecycle.CloseAsync(_cardId, new AccountingMonth(2026, 11));
+        await Lifecycle.CloseAsync(_cardId, new ReferenceMonth(2026, 11));
         var entries = Provider.GetRequiredService<IEntryCatalog>();
         Assert.False((await entries.CreateInstallmentsAsync(Purchase(1000), 3)).Succeeded);
         Assert.Empty(await entries.GetAsync());
         var invoice = Assert.Single(await Catalog.GetAsync());
-        Assert.Equal(new AccountingMonth(2026, 11), invoice.Month);
+        Assert.Equal(new ReferenceMonth(2026, 11), invoice.Month);
         Assert.Equal(InvoiceStatus.Closed, invoice.Status);
     }
 

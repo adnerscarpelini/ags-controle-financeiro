@@ -7,7 +7,7 @@ namespace Ags.Finance.Modules.Imports.Contracts;
 public enum TransactionFileKind { Transactions, RecurringSeries }
 
 /// <summary>Critérios da exportação, os mesmos da consulta de Lançamentos (#15). Com <see cref="SavedFilterExternalId"/>, aplica o filtro salvo (#33) ao mês ou intervalo.</summary>
-public sealed record TransactionExportFilter(AccountingMonth? Month = null, DateOnly? FromDate = null, DateOnly? ToDate = null, Guid? SavedFilterExternalId = null,
+public sealed record TransactionExportFilter(ReferenceMonth? Month = null, DateOnly? FromDate = null, DateOnly? ToDate = null, Guid? SavedFilterExternalId = null,
     Guid? AccountExternalId = null, Guid? CardExternalId = null, Guid? CardLastDigitsExternalId = null, Guid? CategoryExternalId = null, Guid? SubcategoryExternalId = null,
     string Text = "", bool? IsEffective = null, CategoryKind? Kind = null);
 

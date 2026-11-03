@@ -6,7 +6,7 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Transactions.Application.CreateEntry;
 
-internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementStore cashMovements, IClassificationCatalog classifications, IMerchantCatalog merchants, IAccountCatalog accounts, ICardLastDigitsCatalog cardDigits, IAccountingMonthCalculator calendar, TimeProvider clock, IFinancialOperation operations, IInvoiceWriteGuard invoices, IReimbursementWriteGuard reimbursements, IAttachmentCatalog? attachments = null) : IEntryCatalog
+internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementStore cashMovements, IClassificationCatalog classifications, IMerchantCatalog merchants, IAccountCatalog accounts, ICardLastDigitsCatalog cardDigits, IReferenceMonthCalculator calendar, TimeProvider clock, IFinancialOperation operations, IInvoiceWriteGuard invoices, IReimbursementWriteGuard reimbursements, IAttachmentCatalog? attachments = null) : IEntryCatalog
 {
     public Task<ClassificationResult> CreateAsync(CreateEntryRequest request, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(token => CreateCoreAsync(request, token), x => x.Succeeded, cancellationToken);
@@ -81,7 +81,7 @@ internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementSt
         }
         var chosenMonth = card is not null || importing ? request.Month : null;
         if (card is not null && chosenMonth is null && original is not null && request.Date == original.Date && card.ExternalId == original.CardExternalId) { chosenMonth = original.Month; }
-        var suggestion = chosenMonth is { } selectedMonth ? new AccountingMonthSuggestion(selectedMonth, null) : await calendar.CalculateAsync(request.Date, card?.ExternalId, cancellationToken);
+        var suggestion = chosenMonth is { } selectedMonth ? new ReferenceMonthSuggestion(selectedMonth, null) : await calendar.CalculateAsync(request.Date, card?.ExternalId, cancellationToken);
         if (!suggestion.Succeeded)
         {
             return (null, suggestion.Error);

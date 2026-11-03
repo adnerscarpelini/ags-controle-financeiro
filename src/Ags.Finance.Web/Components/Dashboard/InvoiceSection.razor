@@ -57,9 +57,9 @@
 
 @code {
     private InvoiceReport? _report;
-    private AccountingMonth _loaded;
+    private ReferenceMonth _loaded;
 
-    [Parameter, EditorRequired] public AccountingMonth Month { get; set; }
+    [Parameter, EditorRequired] public ReferenceMonth Month { get; set; }
 
     protected override async Task OnParametersSetAsync()
     {

@@ -75,7 +75,7 @@ public abstract class ReportFixture : IAsyncLifetime
         return (await classifications.SaveSubcategoryAsync(null, categoryId, name)).ExternalId!.Value;
     }
 
-    protected async Task<Guid> AddAsync(AccountingMonth month, decimal amount, Guid? subcategory = null, bool income = false, int day = 5)
+    protected async Task<Guid> AddAsync(ReferenceMonth month, decimal amount, Guid? subcategory = null, bool income = false, int day = 5)
     {
         var result = await Entries.CreateAsync(new(new DateOnly(month.Year, month.Month, day), MerchantId, subcategory ?? (income ? IncomeSubcategoryId : ExpenseSubcategoryId), AccountId, new Money(amount), Month: month));
         Assert.True(result.Succeeded, result.Error);

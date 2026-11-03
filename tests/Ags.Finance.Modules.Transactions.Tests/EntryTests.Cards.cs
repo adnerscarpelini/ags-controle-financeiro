@@ -21,13 +21,13 @@ public sealed partial class EntryTests
         var first = await Entries.CreateAsync(Request() with { Date = new DateOnly(2026, 9, 14), CardExternalId = card, AccountExternalId = Guid.NewGuid() });
         Assert.True(first.Succeeded, first.Error);
         var entry = Assert.Single(await Entries.GetAsync());
-        Assert.Equal(new AccountingMonth(2026, 10), entry.Month);
+        Assert.Equal(new ReferenceMonth(2026, 10), entry.Month);
         Assert.Equal(_accountId, entry.AccountExternalId);
-        var second = await Entries.CreateAsync(Request() with { Date = new DateOnly(2026, 10, 2), CardExternalId = card, Month = new AccountingMonth(2026, 11) });
+        var second = await Entries.CreateAsync(Request() with { Date = new DateOnly(2026, 10, 2), CardExternalId = card, Month = new ReferenceMonth(2026, 11) });
         Assert.True(second.Succeeded, second.Error);
         var manual = (await Entries.GetAsync()).Single(x => x.ExternalId == second.ExternalId);
         Assert.Equal(new DateOnly(2026, 10, 2), manual.Date);
-        Assert.Equal(new AccountingMonth(2026, 11), manual.Month);
+        Assert.Equal(new ReferenceMonth(2026, 11), manual.Month);
         Assert.Equal(new Money(1000), (await Entries.GetBalanceAsync(_accountId, new DateOnly(2026, 12, 31)))?.EffectiveBalance);
     }
 

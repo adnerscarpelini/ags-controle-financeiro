@@ -33,7 +33,7 @@ public sealed partial class EntryTests
         Assert.All(legs, x => Assert.Equal(request.ConfirmationId, x.OperationExternalId));
         Assert.Equal(0, legs.Sum(x => x.Amount.Amount));
         Assert.Empty(await Entries.GetAsync());
-        var budget = await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 11)));
+        var budget = await Entries.QueryAsync(new(Month: new ReferenceMonth(2026, 11)));
         Assert.Equal(Money.Zero, budget.Income);
         Assert.Equal(Money.Zero, budget.Expenses);
         Assert.False((await Movements.TransferAsync(request with { Amount = new Money(301) })).Succeeded);

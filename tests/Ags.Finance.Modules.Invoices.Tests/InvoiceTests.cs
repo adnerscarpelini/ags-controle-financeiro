@@ -59,7 +59,7 @@ public sealed partial class InvoiceTests : IAsyncLifetime
         if (Directory.Exists(_attachmentsDirectory)) { Directory.Delete(_attachmentsDirectory, true); }
     }
 
-    private CreateEntryRequest Purchase(decimal amount, int month = 10) => new(new DateOnly(2026, 9, 14), _merchantId, _subcategoryId, _accountId, new Money(amount), Month: new AccountingMonth(2026, month), CardExternalId: _cardId);
+    private CreateEntryRequest Purchase(decimal amount, int month = 10) => new(new DateOnly(2026, 9, 14), _merchantId, _subcategoryId, _accountId, new Money(amount), Month: new ReferenceMonth(2026, month), CardExternalId: _cardId);
 
     private sealed class InvoiceClock : TimeProvider
     {
@@ -79,11 +79,11 @@ public sealed partial class InvoiceTests : IAsyncLifetime
         Assert.True((await entries.CreateAsync(Purchase(999) with { CardExternalId = null })).Succeeded);
         var invoices = await Catalog.GetAsync();
         Assert.Equal(2, invoices.Count);
-        var october = invoices.Single(x => x.Month == new AccountingMonth(2026, 10));
+        var october = invoices.Single(x => x.Month == new ReferenceMonth(2026, 10));
         Assert.Equal(new Money(250), october.Total);
         Assert.Equal(2, october.Entries.Count);
         Assert.Equal(october.Total.Amount, -october.Entries.Sum(x => x.Amount.Amount));
-        Assert.Equal(new Money(50), invoices.Single(x => x.Month == new AccountingMonth(2026, 11)).Total);
+        Assert.Equal(new Money(50), invoices.Single(x => x.Month == new ReferenceMonth(2026, 11)).Total);
         Assert.Equal(4, (await entries.GetAsync()).Count);
     }
 

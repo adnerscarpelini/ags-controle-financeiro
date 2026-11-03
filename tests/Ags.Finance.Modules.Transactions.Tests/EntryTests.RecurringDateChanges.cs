@@ -8,12 +8,12 @@ public sealed partial class EntryTests
     [Fact]
     public async Task CashRecurringEditsIgnoreManualMonthForEveryScope()
     {
-        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Month = new AccountingMonth(2027, 1) }));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Month = new ReferenceMonth(2027, 1) }));
         foreach (var scope in Enum.GetValues<RecurringChangeScope>())
         {
             var first = (await Entries.GetAsync()).Single(x => x.OccurrenceMonth == new DateOnly(2026, 10, 1));
-            Assert.True((await Entries.EditRecurringAsync(first.ExternalId, new(Change(first) with { Month = new AccountingMonth(2027, 1) }, scope))).Succeeded);
-            Assert.All(await Entries.GetAsync(), entry => Assert.Equal(AccountingMonth.FromDate(entry.Date), entry.Month));
+            Assert.True((await Entries.EditRecurringAsync(first.ExternalId, new(Change(first) with { Month = new ReferenceMonth(2027, 1) }, scope))).Succeeded);
+            Assert.All(await Entries.GetAsync(), entry => Assert.Equal(ReferenceMonth.FromDate(entry.Date), entry.Month));
         }
     }
     [Theory]
@@ -23,11 +23,11 @@ public sealed partial class EntryTests
     [InlineData(RecurringChangeScope.All, true)]
     public async Task MovingDateAcrossMonthsKeepsMaterializedAndFutureOccurrencesConsistent(RecurringChangeScope scope, bool materialized)
     {
-        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 10, 10), Amount = new Money(50) }, new AccountingMonth(2026, 12)));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 10, 10), Amount = new Money(50) }, new ReferenceMonth(2026, 12)));
         var october = await OccurrenceAsync(2026, 10);
         var november = await OccurrenceAsync(2026, 11);
         EntryDetails? december = materialized ? await OccurrenceAsync(2026, 12) : null;
-        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Date = new DateOnly(2026, 12, 15), Month = new AccountingMonth(2026, 12) }, scope));
+        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Date = new DateOnly(2026, 12, 15), Month = new ReferenceMonth(2026, 12) }, scope));
         Assert.True(result.Succeeded, result.Error);
         var moved = await OccurrenceAsync(2026, 12);
         Assert.Equal(november.ExternalId, moved.ExternalId);
@@ -40,13 +40,13 @@ public sealed partial class EntryTests
         Assert.Equal(2, range.TotalCount);
         Assert.Equal(new DateOnly(2026, 12, 15), range.Entries[0].Date);
         Assert.Equal(new DateOnly(2027, 1, 15), range.Entries[1].Date);
-        Assert.Empty((await Entries.QueryAsync(new(Month: new AccountingMonth(2027, 2)))).Entries);
+        Assert.Empty((await Entries.QueryAsync(new(Month: new ReferenceMonth(2027, 2)))).Entries);
         var series = await Entries.GetRecurringAsync(moved.RecurringEntryExternalId!.Value);
-        Assert.Equal(new AccountingMonth(2027, 1), series?.EndMonth);
+        Assert.Equal(new ReferenceMonth(2027, 1), series?.EndMonth);
         if (scope == RecurringChangeScope.ThisAndFollowing)
         {
             Assert.Equal(october.ExternalId, (await OccurrenceAsync(2026, 10)).ExternalId);
-            Assert.Empty((await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 11)))).Entries);
+            Assert.Empty((await Entries.QueryAsync(new(Month: new ReferenceMonth(2026, 11)))).Entries);
         }
         else
         {

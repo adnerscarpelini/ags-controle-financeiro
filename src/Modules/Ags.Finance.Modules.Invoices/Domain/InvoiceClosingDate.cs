@@ -4,7 +4,7 @@ namespace Ags.Finance.Modules.Invoices.Domain;
 
 internal static class InvoiceClosingDate
 {
-    public static DateTimeOffset? Cutoff(AccountingMonth month, int closingDay, int dueDay, bool includesClosingDay, TimeZoneInfo zone)
+    public static DateTimeOffset? Cutoff(ReferenceMonth month, int closingDay, int dueDay, bool includesClosingDay, TimeZoneInfo zone)
     {
         var candidates = new List<DateOnly>();
         foreach (var offset in new[] { -1, 0 })
@@ -13,7 +13,7 @@ internal static class InvoiceClosingDate
             var closingMonth = month.AddMonths(offset);
             var closing = AtDay(closingMonth, closingDay);
             var due = AtDay(closingMonth, dueDay);
-            AccountingMonth? dueMonth = due >= closing ? closingMonth
+            ReferenceMonth? dueMonth = due >= closing ? closingMonth
                 : closingMonth.Year == 9999 && closingMonth.Month == 12 ? null : closingMonth.AddMonths(1);
             if (dueMonth == month) { candidates.Add(closing); }
         }
@@ -30,5 +30,5 @@ internal static class InvoiceClosingDate
         return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(local, zone));
     }
 
-    private static DateOnly AtDay(AccountingMonth month, int day) => new(month.Year, month.Month, Math.Min(day, month.LastDay.Day));
+    private static DateOnly AtDay(ReferenceMonth month, int day) => new(month.Year, month.Month, Math.Min(day, month.LastDay.Day));
 }

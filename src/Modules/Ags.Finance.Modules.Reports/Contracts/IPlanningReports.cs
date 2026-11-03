@@ -21,8 +21,8 @@ public sealed record PlanningCategory(string Name, bool IsInvoiceAdjustment, IRe
 /// <see cref="AccumulatedBalance"/> parte de zero no mês atual e é <c>null</c> antes dele; não é saldo de conta.
 /// </summary>
 public sealed record PlanningReport(
-    AccountingMonth CurrentMonth,
-    IReadOnlyList<AccountingMonth> Months,
+    ReferenceMonth CurrentMonth,
+    IReadOnlyList<ReferenceMonth> Months,
     IReadOnlyList<PlanningCell> Income,
     IReadOnlyList<PlanningCell> Expenses,
     IReadOnlyList<Money> Balance,
@@ -37,5 +37,5 @@ public sealed record PlanningReport(
 public interface IPlanningReports
 {
     /// <summary>Período de 19 meses a partir de <paramref name="firstMonth"/>; sem ele, 6 meses anteriores, o atual e 12 seguintes.</summary>
-    Task<PlanningReport> GetAsync(AccountingMonth? firstMonth = null, CancellationToken cancellationToken = default);
+    Task<PlanningReport> GetAsync(ReferenceMonth? firstMonth = null, CancellationToken cancellationToken = default);
 }

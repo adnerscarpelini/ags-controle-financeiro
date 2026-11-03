@@ -11,7 +11,7 @@ public sealed class PendingAgendaTests : ReportFixture
 
     private void Today(int year, int month, int day) => Clock.Now = new DateTimeOffset(year, month, day, 12, 0, 0, TimeSpan.Zero);
 
-    private async Task<Guid> PendingAsync(DateOnly date, decimal amount, bool income = false, AccountingMonth? month = null)
+    private async Task<Guid> PendingAsync(DateOnly date, decimal amount, bool income = false, ReferenceMonth? month = null)
     {
         var request = new Ags.Finance.Modules.Transactions.Contracts.CreateEntryRequest(date, MerchantId, income ? IncomeSubcategoryId : ExpenseSubcategoryId, AccountId, new Money(amount), Month: month);
         var result = await Entries.CreateRecurringAsync(new(request with { IsPaid = false }));
@@ -95,10 +95,10 @@ public sealed class PendingAgendaTests : ReportFixture
     }
 
     [Fact]
-    public async Task InclusionFollowsTheExpectedDateEvenWhenTheAccountingMonthDiffers()
+    public async Task InclusionFollowsTheExpectedDateEvenWhenTheReferenceMonthDiffers()
     {
         Today(2026, 11, 2);
-        await PendingAsync(new DateOnly(2026, 11, 5), 60m, month: new AccountingMonth(2026, 12));
+        await PendingAsync(new DateOnly(2026, 11, 5), 60m, month: new ReferenceMonth(2026, 12));
         var item = Assert.Single((await Agenda.GetAsync()).Upcoming.Items);
         Assert.Equal(new DateOnly(2026, 11, 5), item.Date);
     }

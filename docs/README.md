@@ -63,7 +63,7 @@ incluindo a validação em campo da PWA (#38).
 
 ## Funcionalidades implementadas
 
-- SharedKernel: [Money e AccountingMonth](shared-kernel/money-and-accounting-month.md)
+- SharedKernel: [Money e ReferenceMonth](shared-kernel/money-and-reference-month.md)
 - Web: [Layout e navegação](web/layout-and-navigation.md)
 - Web: [Instalação com Docker Compose e backup (#59/#31)](web/docker-deployment.md)
 - Web: [Certificado HTTPS](web/https-certificate.md)
@@ -73,7 +73,7 @@ incluindo a validação em campo da PWA (#38).
 - Identity: [Login com usuário e senha](identity/login.md)
 - Accounts: [Bancos, contas e cartões](accounts/banks-accounts-and-cards.md)
 - Accounts: [Finais de cartão](accounts/card-last-digits.md)
-- Accounts: [Mês contábil de uma compra](accounts/purchase-accounting-month.md)
+- Accounts: [Mês de referência de uma compra](accounts/purchase-reference-month.md)
 
 O Lote 07 entrega o núcleo financeiro e os cadastros visuais descritos neste índice.
 A previsão consolidada de caixa da #58 continua pendente; efetivação e consulta de pendências (#56/#57) estão implementadas.

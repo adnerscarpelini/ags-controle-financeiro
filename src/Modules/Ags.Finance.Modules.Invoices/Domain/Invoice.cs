@@ -7,7 +7,7 @@ internal enum InvoiceStatus { Open, Closed, Paid }
 internal sealed class Invoice : Entity
 {
     public Guid CardExternalId { get; private set; }
-    public AccountingMonth Month { get; private set; }
+    public ReferenceMonth Month { get; private set; }
     public InvoiceStatus Status { get; private set; }
     public bool AutoCloseSuppressed { get; private set; }
     public bool HasConfirmedPayment { get; private set; }
@@ -25,7 +25,7 @@ internal sealed class Invoice : Entity
         return null;
     }
 
-    public static Invoice Create(Guid cardExternalId, AccountingMonth month) => new() { CardExternalId = cardExternalId, Month = month };
+    public static Invoice Create(Guid cardExternalId, ReferenceMonth month) => new() { CardExternalId = cardExternalId, Month = month };
 
     public string? Close(DateTimeOffset now)
     {

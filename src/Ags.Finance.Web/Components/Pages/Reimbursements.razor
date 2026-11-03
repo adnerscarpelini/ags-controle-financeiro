@@ -15,7 +15,7 @@
     <h2>Filtrar reembolsos</h2>
     <form id="reimbursement-filters" @onsubmit="LoadAsync" @onsubmit:preventDefault>
         <div class="catalog-fields">
-            <div class="field"><label for="reimbursement-month">Mês contábil</label><input id="reimbursement-month" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" disabled="@_allMonths" /></div>
+            <div class="field"><label for="reimbursement-month">Mês de referência</label><input id="reimbursement-month" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" disabled="@_allMonths" /></div>
             <div class="field"><label for="reimbursement-person">Pessoa</label><select id="reimbursement-person" @bind="_personId">
                 <option value="@Guid.Empty">Todas</option>@foreach (var person in _people) { <option value="@person.ExternalId">@person.Name</option> }
             </select></div>
@@ -155,11 +155,11 @@
 
     private async Task LoadAsync()
     {
-        AccountingMonth? month = null;
+        ReferenceMonth? month = null;
         if (!_allMonths)
         {
-            if (!DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)) { _message = "Informe um mês contábil válido."; return; }
-            month = AccountingMonth.FromDate(date);
+            if (!DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)) { _message = "Informe um mês de referência válido."; return; }
+            month = ReferenceMonth.FromDate(date);
         }
         _busy = true;
         try

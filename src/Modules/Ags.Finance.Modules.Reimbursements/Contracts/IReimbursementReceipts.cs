@@ -13,7 +13,7 @@ public sealed record ReceiveReimbursementsResult(IReadOnlyList<Guid> ReceiptExte
     public bool Succeeded => Error is null;
 }
 
-public sealed record ReimbursementReceiptItemDetails(Guid EntryExternalId, DateOnly Date, string Description, AccountingMonth Month, Money Expected, Money Received);
+public sealed record ReimbursementReceiptItemDetails(Guid EntryExternalId, DateOnly Date, string Description, ReferenceMonth Month, Money Expected, Money Received);
 
 public sealed record ReimbursementReceiptDetails(Guid ExternalId, string PersonName, DateOnly Date, Guid? AccountExternalId, Money Total, IReadOnlyList<ReimbursementReceiptItemDetails> Items);
 

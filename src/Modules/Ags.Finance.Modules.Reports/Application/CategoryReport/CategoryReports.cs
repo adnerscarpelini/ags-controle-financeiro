@@ -8,10 +8,10 @@ internal sealed class CategoryReports(LedgerSource source, IClassificationCatalo
 {
     private const string AdjustmentName = "Ajuste de fatura";
 
-    public async Task<Contracts.CategoryReport> GetAsync(AccountingMonth month, CancellationToken cancellationToken = default)
+    public async Task<Contracts.CategoryReport> GetAsync(ReferenceMonth month, CancellationToken cancellationToken = default)
     {
         var previous = month.AddMonths(-1);
-        var from = previous.Year < month.Year ? previous : new AccountingMonth(month.Year, 1);
+        var from = previous.Year < month.Year ? previous : new ReferenceMonth(month.Year, 1);
         var ledger = await source.LoadAsync(from, month, month, cancellationToken);
         var categories = (await classifications.GetCategoriesAsync(false, cancellationToken)).ToDictionary(x => x.ExternalId, x => x.Name);
         var subcategories = (await classifications.GetSubcategoriesAsync(false, cancellationToken)).ToDictionary(x => x.ExternalId);
@@ -21,7 +21,7 @@ internal sealed class CategoryReports(LedgerSource source, IClassificationCatalo
             Lines(ledger, month, previous, CategoryKind.Income, row => subcategories.TryGetValue(row.SubcategoryExternalId, out var s) ? s.DisplayName : "Sem categoria"));
     }
 
-    private static List<CategoryLine> Lines(Ledger ledger, AccountingMonth month, AccountingMonth previous, CategoryKind kind, Func<MonthlyTotal, string> name)
+    private static List<CategoryLine> Lines(Ledger ledger, ReferenceMonth month, ReferenceMonth previous, CategoryKind kind, Func<MonthlyTotal, string> name)
     {
         var rows = ledger.Rows.Where(x => x.Kind == kind).Select(x => (Name: name(x), Row: x)).ToList();
         var sign = kind == CategoryKind.Expense ? -1m : 1m;

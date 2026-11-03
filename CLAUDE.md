@@ -20,7 +20,7 @@ Monólito modular com Clean Architecture dentro de cada módulo. A fonte de verd
 ```
 src/
   Ags.Finance.Web/                # host ASP.NET Core + Blazor: composition root, páginas, componentes, execução e backup
-  Ags.Finance.SharedKernel/       # somente Money e AccountingMonth
+  Ags.Finance.SharedKernel/       # somente Money e ReferenceMonth
   Modules/
     Ags.Finance.Modules.<Module>/
       Domain/                     # entidades, objetos de valor, invariantes; só depende da BCL e do SharedKernel
@@ -42,7 +42,7 @@ Módulos: `Attachments`, `Identity`, `Accounts`, `Transactions`, `Invoices`, `Re
 - `Contracts` expõe DTOs e interfaces pequenas, com o `ExternalId` (`Guid`). Nunca exponha entidades ou o `Id` interno.
 - `Domain` não depende de EF Core, ASP.NET Core, Blazor nem de outras pastas. `Application` depende de `Domain` e de `Contracts`.
 - Páginas e componentes Blazor chamam casos de uso pelos `Contracts` dos módulos, nunca a `Infrastructure`. Regra de negócio não fica em componente.
-- O `SharedKernel` contém apenas `Money` e `AccountingMonth`. Não adicione nada a ele sem uma decisão registrada.
+- O `SharedKernel` contém apenas `Money` e `ReferenceMonth`. Não adicione nada a ele sem uma decisão registrada.
 - Não adote CQRS, MediatR, Repository genérico, Unit of Work extra ou mensageria sem um problema concreto discutido antes.
 
 ### Persistência e recuperação (decisão PostgreSQL)
@@ -51,7 +51,7 @@ Módulos: `Attachments`, `Identity`, `Accounts`, `Transactions`, `Invoices`, `Re
 - Sem FK, JOIN ou SQL que cruze tabelas de módulos diferentes. Uma referência a outro módulo guarda o `ExternalId` dele.
 - Toda entidade com tabela própria tem `Id` (`long`, chave primária), `ExternalId` (`Guid`, gerado no domínio com `Guid.CreateVersion7()`, índice único), `CreatedAt` e `UpdatedAt` (`DateTimeOffset` UTC, vindos de `TimeProvider`, preenchidos por um interceptor do módulo).
 - Mapeamentos com `IEntityTypeConfiguration<T>` na `Infrastructure`; o domínio não tem atributos de persistência.
-- Valores monetários: `decimal` no código (`Money`), centavos em `BIGINT` no PostgreSQL. Nunca `float` ou `double`. Preservar `AccountingMonth` como inteiro `yyyyMM`.
+- Valores monetários: `decimal` no código (`Money`), centavos em `BIGINT` no PostgreSQL. Nunca `float` ou `double`. Preservar `ReferenceMonth` como inteiro `yyyyMM`.
 - O PostgreSQL tem volume persistente próprio. `DataDirectory` fica para certificados, chaves e arquivos da aplicação. Não manter dados ativos em pasta sincronizada.
 - Anexos originais ficam em pasta própria (`Attachments__Directory`, `AGS_ATTACHMENTS_DIR`), separada de DataDirectory e backup; metadados no schema `attachments`. PDF, JPEG, PNG e WebP até 20 MB, lixeira de 30 dias. Ver `docs/architecture/attachments-storage.md`.
 - Backup de anexos: manifesto v2, índice `attachments.json` por pacote e cópia incremental única em `<backup>/attachments/`, incluindo lixeira; copiar a pasta de backup inteira para fora da máquina. Backups v1 continuam verificáveis e restauráveis. Arquivos faltantes são copiados antes da restauração SQL; o ZIP de anexos não é reimportado nem substitui o backup.
@@ -61,8 +61,8 @@ Módulos: `Attachments`, `Identity`, `Accounts`, `Transactions`, `Invoices`, `Re
 
 Leia as issues antes de implementar. As regras mais sensíveis são:
 
-- **AccountingMonth:** no débito, PIX ou dinheiro, é o mês da data. No cartão, é o mês do vencimento da fatura em que a compra cai, conforme o dia de fechamento do cartão. Fora do cartão não é editável e acompanha a data; no cartão a tela permite escolher outra fatura Aberta. Se a calculada estiver protegida (inclusive pelo corte, mesmo sem registro), sugerir a próxima disponível e avisar. Edições de detalhes preservam a fatura; alterar data/cartão recalcula e é bloqueado em parcelas antecipadas. Alterar o calendário do cartão não recalcula histórico. CSV conserva exatamente o mês do arquivo (#89).
-- **Parcelas:** uma compra em N vezes gera N lançamentos em meses contábeis consecutivos. A diferença de centavos vai para a primeira parcela.
+- **ReferenceMonth:** no débito, PIX ou dinheiro, é o mês da data. No cartão, é o mês do vencimento da fatura em que a compra cai, conforme o dia de fechamento do cartão. Fora do cartão não é editável e acompanha a data; no cartão a tela permite escolher outra fatura Aberta. Se a calculada estiver protegida (inclusive pelo corte, mesmo sem registro), sugerir a próxima disponível e avisar. Edições de detalhes preservam a fatura; alterar data/cartão recalcula e é bloqueado em parcelas antecipadas. Alterar o calendário do cartão não recalcula histórico. CSV conserva exatamente o mês do arquivo (#89).
+- **Parcelas:** uma compra em N vezes gera N lançamentos em meses de referência consecutivos. A diferença de centavos vai para a primeira parcela.
 - **Pagamento de fatura não é despesa:** é um `InvoicePayment`. Despesas já estão lançadas item a item.
 - **Faturas:** somente **Aberta, Fechada e Paga** (#50). Fechamento automático pelo dia, com opção manual. Compras em Fechada/Paga não podem ser editadas, excluídas ou movidas; destino de compra também precisa estar Aberto. Reabertura manual só enquanto não existir pagamento confirmado. Saldo zero/crédito não marca Paga automaticamente: exigir confirmação explícita de quitação.
 - **Pagamentos:** totais ou parciais, antecipados ou após fechamento. Todo pagamento confirmado é irreversível. Conta vinculada ao cartão vem pré-selecionada, mas pode ser trocada; debitar apenas a escolhida, sem segunda despesa (#19/#51). Antecipação não fecha fatura Aberta por si só.

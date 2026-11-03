@@ -5,7 +5,7 @@ namespace Ags.Finance.Modules.Transactions.Domain;
 internal sealed class TransactionEntry : Entity
 {
     public DateOnly Date { get; private set; }
-    public AccountingMonth Month { get; private set; }
+    public ReferenceMonth Month { get; private set; }
     public Guid MerchantExternalId { get; private set; }
     public Guid SubcategoryExternalId { get; private set; }
     public Guid AccountExternalId { get; private set; }
@@ -25,11 +25,11 @@ internal sealed class TransactionEntry : Entity
     public Guid? ReimbursementPersonExternalId { get; private set; }
     public decimal? ReimbursementPercent { get; private set; }
 
-    public string? Update(DateOnly date, AccountingMonth month, Guid merchantExternalId, Guid subcategoryExternalId, Guid accountExternalId, CategoryKind kind, Money amount, string details, bool allowZeroAmount = false)
+    public string? Update(DateOnly date, ReferenceMonth month, Guid merchantExternalId, Guid subcategoryExternalId, Guid accountExternalId, CategoryKind kind, Money amount, string details, bool allowZeroAmount = false)
     {
         if (date == DateOnly.MinValue || month.Year == 0 || merchantExternalId == Guid.Empty || subcategoryExternalId == Guid.Empty || accountExternalId == Guid.Empty)
         {
-            return "Informe data, mês contábil, descrição, subcategoria e conta válidos.";
+            return "Informe data, mês de referência, descrição, subcategoria e conta válidos.";
         }
         if (amount.IsNegative || (amount.IsZero && !allowZeroAmount) || amount.Amount > 92233720368547758.07m || kind is not (CategoryKind.Income or CategoryKind.Expense))
         {

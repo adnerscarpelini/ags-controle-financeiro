@@ -213,7 +213,7 @@ internal sealed partial class EntryCatalog : IEntryImport
         }
     }
 
-    /// <summary>Valida o lançamento pelas mesmas regras da criação comum (cadastros ativos, cartão, fatura aberta, mês contábil informado) e preserva a identidade.</summary>
+    /// <summary>Valida o lançamento pelas mesmas regras da criação comum (cadastros ativos, cartão, fatura aberta, mês de referência informado) e preserva a identidade.</summary>
     private async Task<TransactionEntry?> PrepareImportedAsync(ImportedEntry row, ImportPass pass, CancellationToken cancellationToken)
     {
         var request = new CreateEntryRequest(row.Date, row.MerchantExternalId, row.SubcategoryExternalId, row.AccountExternalId, row.Amount, row.Details, row.Month, row.CardExternalId, row.CardLastDigitsExternalId, row.Reimbursement);
@@ -249,7 +249,7 @@ internal sealed partial class EntryCatalog : IEntryImport
         => saved.StartDate == row.StartDate && saved.Day == row.Day && saved.MerchantExternalId == row.MerchantExternalId && saved.SubcategoryExternalId == row.SubcategoryExternalId
             && saved.AccountExternalId == row.AccountExternalId && saved.CardExternalId == row.CardExternalId && saved.CardLastDigitsExternalId == row.CardLastDigitsExternalId
             && saved.Amount == row.Amount && saved.Details.Trim() == row.Details.Trim() && saved.IsActive == row.IsActive && saved.EndMonth == row.EndMonth?.FirstDay
-            && saved.AccountingMonthOffset == 0 && saved.DateMonthOffset == 0
+            && saved.ReferenceMonthOffset == 0 && saved.DateMonthOffset == 0
             && saved.ReimbursementPersonExternalId == row.Reimbursement?.PersonExternalId && saved.ReimbursementPercent == row.Reimbursement?.Percent;
 
     private static bool SameEntry(TransactionEntry saved, ImportedEntry row, Dictionary<Guid, InstallmentPurchase> purchases)

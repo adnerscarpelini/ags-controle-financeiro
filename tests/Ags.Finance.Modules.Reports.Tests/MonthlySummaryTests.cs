@@ -8,7 +8,7 @@ namespace Ags.Finance.Modules.Reports.Tests;
 
 public sealed class MonthlySummaryTests : ReportFixture
 {
-    private static readonly AccountingMonth s_october = new(2026, 10);
+    private static readonly ReferenceMonth s_october = new(2026, 10);
     private IMonthlySummaries Summaries => Provider.GetRequiredService<IMonthlySummaries>();
 
     [Fact]
@@ -32,11 +32,11 @@ public sealed class MonthlySummaryTests : ReportFixture
     [Fact]
     public async Task YearAverageDividesByMonthsWithExpensesAndPreviousMonthIsReported()
     {
-        await AddAsync(new AccountingMonth(2026, 1), 100m);
-        await AddAsync(new AccountingMonth(2026, 3), 300m);
-        await AddAsync(new AccountingMonth(2026, 9), 500m);
+        await AddAsync(new ReferenceMonth(2026, 1), 100m);
+        await AddAsync(new ReferenceMonth(2026, 3), 300m);
+        await AddAsync(new ReferenceMonth(2026, 9), 500m);
         await AddAsync(s_october, 200m);
-        await AddAsync(new AccountingMonth(2026, 11), 9999m);
+        await AddAsync(new ReferenceMonth(2026, 11), 9999m);
         var summary = await Summaries.GetAsync(s_october);
         Assert.Equal((new Money(275m), 4, new Money(500m)), (summary.YearAverageExpenses, summary.MonthsWithExpenses, summary.PreviousMonthExpenses));
     }
@@ -44,9 +44,9 @@ public sealed class MonthlySummaryTests : ReportFixture
     [Fact]
     public async Task PreviousMonthOfJanuaryIsDecemberOfTheYearBefore()
     {
-        await AddAsync(new AccountingMonth(2025, 12), 70m);
-        await AddAsync(new AccountingMonth(2026, 1), 10m);
-        var summary = await Summaries.GetAsync(new AccountingMonth(2026, 1));
+        await AddAsync(new ReferenceMonth(2025, 12), 70m);
+        await AddAsync(new ReferenceMonth(2026, 1), 10m);
+        var summary = await Summaries.GetAsync(new ReferenceMonth(2026, 1));
         Assert.Equal((new Money(70m), new Money(10m)), (summary.PreviousMonthExpenses, summary.YearAverageExpenses));
     }
 

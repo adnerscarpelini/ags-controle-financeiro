@@ -10,9 +10,9 @@
 
 @code {
     private CategoryReport? _report;
-    private AccountingMonth _loaded;
+    private ReferenceMonth _loaded;
 
-    [Parameter, EditorRequired] public AccountingMonth Month { get; set; }
+    [Parameter, EditorRequired] public ReferenceMonth Month { get; set; }
 
     /// <summary>Quantas categorias entram no gráfico; a tabela continua completa.</summary>
     [Parameter] public int TopCount { get; set; } = 10;

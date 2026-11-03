@@ -6,7 +6,7 @@ namespace Ags.Finance.Modules.Invoices.Application;
 internal interface IInvoiceStore
 {
     Task<IReadOnlyList<Invoice>> GetAsync(CancellationToken cancellationToken);
-    Task<Invoice?> FindAsync(Guid cardExternalId, AccountingMonth month, CancellationToken cancellationToken);
+    Task<Invoice?> FindAsync(Guid cardExternalId, ReferenceMonth month, CancellationToken cancellationToken);
     Task SaveAsync(Invoice invoice, CancellationToken cancellationToken);
     Task<IReadOnlyList<InvoicePayment>> GetPaymentsAsync(CancellationToken cancellationToken);
     Task SavePaymentAsync(InvoicePayment payment, CancellationToken cancellationToken);

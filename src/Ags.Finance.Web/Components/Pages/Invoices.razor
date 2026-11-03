@@ -14,7 +14,7 @@
 <section class="panel">
     <h2>Consultar mês</h2>
     <form id="invoice-filter" @onsubmit="ReloadInvoicesAsync" @onsubmit:preventDefault>
-        <div class="field"><label for="invoice-view-month">Mês contábil (vazio para todos os registrados)</label><input id="invoice-view-month" type="month" value="@_viewMonth" @onchange="args => _viewMonth = args.Value?.ToString() ?? string.Empty" /></div>
+        <div class="field"><label for="invoice-view-month">Mês de referência (vazio para todos os registrados)</label><input id="invoice-view-month" type="month" value="@_viewMonth" @onchange="args => _viewMonth = args.Value?.ToString() ?? string.Empty" /></div>
         <button class="button" disabled="@_busy">Consultar</button>
     </form>
 </section>
@@ -48,13 +48,13 @@
                 <option value="@Guid.Empty">Selecione</option>
                 @foreach (var card in _cards) { <option value="@card.ExternalId">@card.Name</option> }
             </select></div>
-            <div class="field"><label for="invoice-month">Mês contábil</label><input id="invoice-month" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" required /></div>
+            <div class="field"><label for="invoice-month">Mês de referência</label><input id="invoice-month" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" required /></div>
         </div>
         <button class="button">Revisar fechamento</button>
     </form>
 </section>
 <section class="panel">
-    <h2>Por cartão e mês contábil</h2>
+    <h2>Por cartão e mês de referência</h2>
     @if (_invoices.Count == 0) { <p>Nenhuma fatura registrada.</p> }
     <ul class="catalog-list">
         @foreach (var invoice in _invoices)
@@ -141,7 +141,7 @@
     private string _month = string.Empty;
     private string _viewMonth = string.Empty;
     private Guid? _selectedCard;
-    private AccountingMonth? _selectedMonth;
+    private ReferenceMonth? _selectedMonth;
     protected override async Task OnInitializedAsync()
     {
         _month = Clock.GetLocalNow().ToString("yyyy-MM", CultureInfo.InvariantCulture);
@@ -158,7 +158,7 @@
         {
             _message = "Selecione cartão e mês válidos."; return;
         }
-        var month = AccountingMonth.FromDate(date);
+        var month = ReferenceMonth.FromDate(date);
         Ask(_invoices.FirstOrDefault(x => x.CardExternalId == card.ExternalId && x.Month == month) ?? new(card.ExternalId, card.Name, month, Money.Zero, []), false);
     }
     private async Task ConfirmAsync()
@@ -186,6 +186,6 @@
         {
             _message = "Informe um mês válido para consulta."; return;
         }
-        _invoices = await Catalog.GetMonthAsync(AccountingMonth.FromDate(date));
+        _invoices = await Catalog.GetMonthAsync(ReferenceMonth.FromDate(date));
     }
 }

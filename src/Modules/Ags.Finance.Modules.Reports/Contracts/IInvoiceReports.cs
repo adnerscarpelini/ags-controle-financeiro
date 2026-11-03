@@ -9,16 +9,16 @@ public sealed record CardInvoiceLine(Guid CardExternalId, string CardName, strin
 public sealed record CardInvoiceAmount(Guid CardExternalId, Money Total);
 
 /// <summary>Uma coluna do gráfico empilhado: a fatura de cada cartão no mês, inclusive meses futuros com parcelas já lançadas.</summary>
-public sealed record InvoiceMonthColumn(AccountingMonth Month, IReadOnlyList<CardInvoiceAmount> Cards)
+public sealed record InvoiceMonthColumn(ReferenceMonth Month, IReadOnlyList<CardInvoiceAmount> Cards)
 {
     public Money Total => new(Cards.Sum(x => x.Total.Amount));
 }
 
 public sealed record InvoiceSeries(Guid CardExternalId, string CardName, string Color);
 
-public sealed record InvoiceReport(AccountingMonth Month, IReadOnlyList<CardInvoiceLine> Cards, CardInvoiceLine Total, IReadOnlyList<InvoiceSeries> Series, IReadOnlyList<InvoiceMonthColumn> Months);
+public sealed record InvoiceReport(ReferenceMonth Month, IReadOnlyList<CardInvoiceLine> Cards, CardInvoiceLine Total, IReadOnlyList<InvoiceSeries> Series, IReadOnlyList<InvoiceMonthColumn> Months);
 
 public interface IInvoiceReports
 {
-    Task<InvoiceReport> GetAsync(AccountingMonth month, CancellationToken cancellationToken = default);
+    Task<InvoiceReport> GetAsync(ReferenceMonth month, CancellationToken cancellationToken = default);
 }

@@ -12,7 +12,7 @@ internal sealed partial class InvoiceStore(IDbContextFactory<InvoicesDbContext> 
         await using var context = await factory.CreateDbContextAsync(cancellationToken);
         return await context.Set<Invoice>().AsNoTracking().ToListAsync(cancellationToken);
     }
-    public async Task<Invoice?> FindAsync(Guid cardExternalId, AccountingMonth month, CancellationToken cancellationToken)
+    public async Task<Invoice?> FindAsync(Guid cardExternalId, ReferenceMonth month, CancellationToken cancellationToken)
     {
         await using var context = await factory.CreateDbContextAsync(cancellationToken);
         return await context.Set<Invoice>().AsNoTracking().SingleOrDefaultAsync(x => x.CardExternalId == cardExternalId && x.Month == month, cancellationToken);

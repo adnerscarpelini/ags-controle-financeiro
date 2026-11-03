@@ -13,7 +13,7 @@ Esta nota registra as fronteiras entre conceitos; os critérios de aceite perman
 
 ## Datas, orçamento e caixa
 
-Fora do cartão, o mês contábil é sempre o mês da data, recalculado na edição (#89).
+Fora do cartão, o mês de referência é sempre o mês da data, recalculado na edição (#89).
 No cartão, o formulário mostra a fatura calculada por Accounts e permite escolher
 outra Aberta. Se a calculada estiver protegida, Invoices sugere a próxima disponível,
 com aviso; a proteção pelo corte permanece mesmo sem estado gravado (decisão do
@@ -36,7 +36,7 @@ pelo pagamento da fatura, sem nova despesa (#19/#51).
 
 A visão completa de pendentes (#57) inclui receitas e despesas. O dashboard (#58) usa a data
 prevista entre hoje e hoje + (N − 1) dias, com N escolhido nas preferências (#69; padrão 7), e com atrasados separados, no fuso de negócio configurado.
-O seletor de mês contábil não desloca essa janela.
+O seletor de mês de referência não desloca essa janela.
 
 ## Faturas, pagamentos e ajustes
 
@@ -60,7 +60,7 @@ O seletor de mês contábil não desloca essa janela.
 - Transferências e pagamentos podem deixar a conta corrente negativa, conforme decisão
   confirmada nas #46/#51. Saldo insuficiente, por si só, não bloqueia essas operações.
 - O ajuste específico de total (#52) é permitido em Aberta/Fechada e bloqueado em Paga.
-  Informar o total correto gera lançamento da diferença no mesmo mês contábil, afetando despesas.
+  Informar o total correto gera lançamento da diferença no mesmo mês de referência, afetando despesas.
   Não reabre a fatura, altera compras originais ou modifica pagamentos; não é InvoicePayment.
 
 A #19 implementa a política aprovada de abatimentos: criar, editar e excluir
@@ -72,7 +72,7 @@ confirmados não podem ser editados ou excluídos pelos comandos de abatimento.
 ## Reembolsos (#78–#83)
 
 Reembolso é indicado na despesa, por pessoa e percentual, e separado da baixa dela: uma despesa
-Pendente já entra nos reembolsos do mês contábil. Receber não altera a despesa, a baixa nem a
+Pendente já entra nos reembolsos do mês de referência. Receber não altera a despesa, a baixa nem a
 fatura, então uma compra em fatura Fechada ou Paga pode ser recebida. O recebimento cria uma
 receita avulsa Recebida por pessoa, com crédito único em conta. Receita e despesa continuam
 brutas nos relatórios, sem compensação. Ver [Reembolsos](reimbursements.md).

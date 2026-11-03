@@ -1,21 +1,21 @@
 namespace Ags.Finance.SharedKernel.Tests;
 
-public sealed class AccountingMonthTests
+public sealed class ReferenceMonthTests
 {
     [Fact]
     public void AddingOneMonthToDecemberMovesToJanuaryOfTheNextYear()
     {
-        var result = new AccountingMonth(2026, 12).AddMonths(1);
+        var result = new ReferenceMonth(2026, 12).AddMonths(1);
 
-        Assert.Equal(new AccountingMonth(2027, 1), result);
+        Assert.Equal(new ReferenceMonth(2027, 1), result);
     }
 
     [Fact]
     public void SubtractingOneMonthFromJanuaryMovesToDecemberOfThePreviousYear()
     {
-        var result = new AccountingMonth(2026, 1).AddMonths(-1);
+        var result = new ReferenceMonth(2026, 1).AddMonths(-1);
 
-        Assert.Equal(new AccountingMonth(2025, 12), result);
+        Assert.Equal(new ReferenceMonth(2025, 12), result);
     }
 
     [Theory]
@@ -26,9 +26,9 @@ public sealed class AccountingMonthTests
     [InlineData(2026, 6, 25, 2028, 7)]
     public void AddMonthsCrossesYearBoundaries(int year, int month, int delta, int expectedYear, int expectedMonth)
     {
-        var result = new AccountingMonth(year, month).AddMonths(delta);
+        var result = new ReferenceMonth(year, month).AddMonths(delta);
 
-        Assert.Equal(new AccountingMonth(expectedYear, expectedMonth), result);
+        Assert.Equal(new ReferenceMonth(expectedYear, expectedMonth), result);
     }
 
     [Theory]
@@ -37,7 +37,7 @@ public sealed class AccountingMonthTests
     [InlineData(-1)]
     public void CreationRejectsAnInvalidMonth(int month)
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new AccountingMonth(2026, month));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ReferenceMonth(2026, month));
     }
 
     [Theory]
@@ -45,22 +45,22 @@ public sealed class AccountingMonthTests
     [InlineData(10000)]
     public void CreationRejectsAnInvalidYear(int year)
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new AccountingMonth(year, 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ReferenceMonth(year, 1));
     }
 
     [Fact]
     public void AddMonthsRejectsResultsOutsideTheSupportedRange()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new AccountingMonth(9999, 12).AddMonths(1));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new AccountingMonth(1, 1).AddMonths(-1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ReferenceMonth(9999, 12).AddMonths(1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ReferenceMonth(1, 1).AddMonths(-1));
     }
 
     [Fact]
     public void FromDateKeepsOnlyYearAndMonth()
     {
-        var result = AccountingMonth.FromDate(new DateOnly(2026, 2, 28));
+        var result = ReferenceMonth.FromDate(new DateOnly(2026, 2, 28));
 
-        Assert.Equal(new AccountingMonth(2026, 2), result);
+        Assert.Equal(new ReferenceMonth(2026, 2), result);
     }
 
     [Theory]
@@ -71,26 +71,26 @@ public sealed class AccountingMonthTests
     [InlineData(2026, 12, 31)]
     public void FirstAndLastDayCoverTheWholeMonth(int year, int month, int lastDay)
     {
-        var accountingMonth = new AccountingMonth(year, month);
+        var referenceMonth = new ReferenceMonth(year, month);
 
-        Assert.Equal(new DateOnly(year, month, 1), accountingMonth.FirstDay);
-        Assert.Equal(new DateOnly(year, month, lastDay), accountingMonth.LastDay);
+        Assert.Equal(new DateOnly(year, month, 1), referenceMonth.FirstDay);
+        Assert.Equal(new DateOnly(year, month, lastDay), referenceMonth.LastDay);
     }
 
     [Fact]
     public void ComparisonOrdersByYearThenMonth()
     {
-        var earlier = new AccountingMonth(2025, 12);
-        var later = new AccountingMonth(2026, 1);
+        var earlier = new ReferenceMonth(2025, 12);
+        var later = new ReferenceMonth(2026, 1);
 
         Assert.True(earlier < later);
         Assert.True(earlier <= later);
         Assert.True(later > earlier);
         Assert.True(later >= earlier);
-        Assert.True(earlier <= new AccountingMonth(2025, 12));
-        Assert.True(earlier >= new AccountingMonth(2025, 12));
-        Assert.True(new AccountingMonth(2026, 2) > new AccountingMonth(2026, 1));
-        Assert.Equal(0, earlier.CompareTo(new AccountingMonth(2025, 12)));
+        Assert.True(earlier <= new ReferenceMonth(2025, 12));
+        Assert.True(earlier >= new ReferenceMonth(2025, 12));
+        Assert.True(new ReferenceMonth(2026, 2) > new ReferenceMonth(2026, 1));
+        Assert.Equal(0, earlier.CompareTo(new ReferenceMonth(2025, 12)));
     }
 
     [Theory]
@@ -99,6 +99,6 @@ public sealed class AccountingMonthTests
     [InlineData(5, 3, "03/0005")]
     public void ToStringUsesMonthSlashYear(int year, int month, string expected)
     {
-        Assert.Equal(expected, new AccountingMonth(year, month).ToString());
+        Assert.Equal(expected, new ReferenceMonth(year, month).ToString());
     }
 }

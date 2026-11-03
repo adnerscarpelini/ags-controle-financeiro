@@ -3,7 +3,7 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Accounts.Tests;
 
-public sealed class PurchaseAccountingMonthTests
+public sealed class PurchaseReferenceMonthTests
 {
     public static TheoryData<DateOnly, int, int, bool, int, int> CardExamples => new()
     {
@@ -41,7 +41,7 @@ public sealed class PurchaseAccountingMonthTests
     public void SuggestsTheMonthOfTheInvoiceDueDate(DateOnly date, int closingDay, int dueDay, bool includesClosingDay, int expectedYear, int expectedMonth)
     {
         var card = CreateCard(closingDay, dueDay, includesClosingDay);
-        Assert.Equal(new AccountingMonth(expectedYear, expectedMonth), PurchaseAccountingMonth.Calculate(date, card));
+        Assert.Equal(new ReferenceMonth(expectedYear, expectedMonth), PurchaseReferenceMonth.Calculate(date, card));
     }
 
     [Theory]
@@ -52,15 +52,15 @@ public sealed class PurchaseAccountingMonthTests
     [InlineData(9999, 12, 31)]
     public void WithoutCardUsesThePurchaseDateMonth(int year, int month, int day)
     {
-        Assert.Equal(new AccountingMonth(year, month), PurchaseAccountingMonth.Calculate(new DateOnly(year, month, day), null));
+        Assert.Equal(new ReferenceMonth(year, month), PurchaseReferenceMonth.Calculate(new DateOnly(year, month, day), null));
     }
 
     [Fact]
     public void ReturnsNoSuggestionWhenTheNextInvoiceWouldExceedTheDateRange()
     {
-        Assert.Null(PurchaseAccountingMonth.Calculate(DateOnly.MaxValue, CreateCard(3, 10, true)));
-        Assert.Null(PurchaseAccountingMonth.Calculate(new DateOnly(9999, 12, 20), CreateCard(25, 5, true)));
-        Assert.Equal(new AccountingMonth(9999, 12), PurchaseAccountingMonth.Calculate(DateOnly.MaxValue, CreateCard(31, 31, true)));
+        Assert.Null(PurchaseReferenceMonth.Calculate(DateOnly.MaxValue, CreateCard(3, 10, true)));
+        Assert.Null(PurchaseReferenceMonth.Calculate(new DateOnly(9999, 12, 20), CreateCard(25, 5, true)));
+        Assert.Equal(new ReferenceMonth(9999, 12), PurchaseReferenceMonth.Calculate(DateOnly.MaxValue, CreateCard(31, 31, true)));
     }
 
     private static CreditCard CreateCard(int closingDay, int dueDay, bool includesClosingDay)

@@ -16,7 +16,7 @@ public sealed partial class EntryTests
         await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 11, 3), Amount = new Money(200) }));
         await Entries.CreateAsync(Request() with { Date = new DateOnly(2026, 11, 1) });
         await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 11, 1), CardExternalId = await CreateCardAsync() }));
-        var filter = new EntryFilter(Month: new AccountingMonth(2026, 11), PageSize: 1);
+        var filter = new EntryFilter(Month: new ReferenceMonth(2026, 11), PageSize: 1);
         var all = await Entries.QueryPendingAsync(filter);
         Assert.Equal(3, all.TotalCount);
         Assert.Equal(new DateOnly(2026, 11, 1), Assert.Single(all.Entries).Date);

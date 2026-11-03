@@ -8,8 +8,8 @@ namespace Ags.Finance.Modules.Reimbursements.Tests;
 
 public sealed class ReimbursementOverviewTests : ReimbursementFixture
 {
-    private static readonly AccountingMonth s_september = new(2026, 9);
-    private static readonly AccountingMonth s_october = new(2026, 10);
+    private static readonly ReferenceMonth s_september = new(2026, 9);
+    private static readonly ReferenceMonth s_october = new(2026, 10);
 
     private IEntryCatalog Entries => Provider.GetRequiredService<IEntryCatalog>();
     private IReimbursementOverviews Overviews => Provider.GetRequiredService<IReimbursementOverviews>();
@@ -64,14 +64,14 @@ public sealed class ReimbursementOverviewTests : ReimbursementFixture
     }
 
     [Fact]
-    public async Task CardPurchaseAppearsInItsAccountingMonth()
+    public async Task CardPurchaseAppearsInItsReferenceMonth()
     {
         var person = await PersonAsync();
         var card = await Provider.GetRequiredService<IAccountCatalog>().SaveCreditCardAsync(new(null, AccountId, "Cartão Exemplo", CardBrand.Mastercard, new Money(10000), 3, 10, true, "green"));
         Assert.True((await Entries.CreateAsync(new(new DateOnly(2026, 10, 5), MerchantId, SubcategoryId, AccountId, new Money(100), CardExternalId: card.ExternalId, Reimbursement: new(person, 50m)))).Succeeded);
 
         Assert.Empty((await Overviews.GetAsync(new(s_october))).Items);
-        Assert.Single((await Overviews.GetAsync(new(new AccountingMonth(2026, 11)))).Items);
+        Assert.Single((await Overviews.GetAsync(new(new ReferenceMonth(2026, 11)))).Items);
     }
 
     [Fact]
@@ -82,8 +82,8 @@ public sealed class ReimbursementOverviewTests : ReimbursementFixture
         Assert.True((await Entries.CreateInstallmentsAsync(new(new DateOnly(2026, 10, 5), MerchantId, SubcategoryId, AccountId, new Money(100), Month: s_october, CardExternalId: card.ExternalId, Reimbursement: new(person, 100m)), 3)).Succeeded);
 
         Assert.Equal(new Money(33.34m), Assert.Single((await Overviews.GetAsync(new(s_october))).Items).Expected);
-        Assert.Equal(new Money(33.33m), Assert.Single((await Overviews.GetAsync(new(new AccountingMonth(2026, 11)))).Items).Expected);
-        Assert.Equal(new Money(33.33m), Assert.Single((await Overviews.GetAsync(new(new AccountingMonth(2026, 12)))).Items).Expected);
+        Assert.Equal(new Money(33.33m), Assert.Single((await Overviews.GetAsync(new(new ReferenceMonth(2026, 11)))).Items).Expected);
+        Assert.Equal(new Money(33.33m), Assert.Single((await Overviews.GetAsync(new(new ReferenceMonth(2026, 12)))).Items).Expected);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public sealed class ReimbursementOverviewTests : ReimbursementFixture
         var person = await PersonAsync();
         Assert.True((await Entries.CreateRecurringAsync(new(new(new DateOnly(2026, 10, 5), MerchantId, SubcategoryId, AccountId, new Money(100), Reimbursement: new(person, 50m))))).Succeeded);
 
-        var item = Assert.Single((await Overviews.GetAsync(new(new AccountingMonth(2027, 3)))).Items);
+        var item = Assert.Single((await Overviews.GetAsync(new(new ReferenceMonth(2027, 3)))).Items);
 
         Assert.Equal((new Money(50m), false), (item.Expected, item.IsExpenseEffective));
     }

@@ -8,7 +8,7 @@ não somente a página, e a ordenação é pela data prevista crescente, com des
 
 A tela mostra data prevista, descrição, receita/despesa, valor, conta e série.
 Atrasado, Hoje e Futuro são textos explícitos. É possível combinar conta, tipo,
-intervalo de datas, mês contábil e busca textual. O contrato também aceita os
+intervalo de datas, mês de referência e busca textual. O contrato também aceita os
 demais filtros compartilhados. O resumo é previsão, não saldo efetivo da conta.
 
 Sem intervalo futuro, a geração segue os meses até o atual e inclui ocorrências

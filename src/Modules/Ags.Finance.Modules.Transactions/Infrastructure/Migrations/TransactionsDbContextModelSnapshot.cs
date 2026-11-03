@@ -173,7 +173,7 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.HasIndex("MerchantExternalId");
             b.HasIndex("SubcategoryExternalId");
             b.Property<DateOnly[]>("ExcludedMonths").IsRequired().HasColumnType("date[]");
-            b.Property<int>("AccountingMonthOffset").HasColumnType("integer");
+            b.Property<int>("ReferenceMonthOffset").HasColumnType("integer");
             b.Property<int>("DateMonthOffset").HasColumnType("integer");
             b.Property<Guid?>("ReimbursementPersonExternalId").HasColumnType("uuid");
             b.Property<decimal?>("ReimbursementPercent").HasPrecision(5, 2).HasColumnType("numeric(5,2)");

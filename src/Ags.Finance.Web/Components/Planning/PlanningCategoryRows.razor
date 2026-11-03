@@ -47,8 +47,8 @@
     [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
     [Parameter, EditorRequired] public string Prefix { get; set; } = string.Empty;
     [Parameter, EditorRequired] public IReadOnlyList<PlanningCategory> Categories { get; set; } = [];
-    [Parameter, EditorRequired] public IReadOnlyList<AccountingMonth> Months { get; set; } = [];
-    [Parameter, EditorRequired] public AccountingMonth CurrentMonth { get; set; }
+    [Parameter, EditorRequired] public IReadOnlyList<ReferenceMonth> Months { get; set; } = [];
+    [Parameter, EditorRequired] public ReferenceMonth CurrentMonth { get; set; }
     [Parameter, EditorRequired] public string HeatColor { get; set; } = string.Empty;
     [Parameter, EditorRequired] public IReadOnlySet<string> Expanded { get; set; } = new HashSet<string>();
     [Parameter] public EventCallback<string> Toggled { get; set; }
@@ -56,8 +56,8 @@
 
     public static string Key(string prefix, PlanningCategory category) => $"{prefix}:{category.Name}";
 
-    private string CurrentClass(AccountingMonth month) => month == CurrentMonth ? "planning-current" : string.Empty;
+    private string CurrentClass(ReferenceMonth month) => month == CurrentMonth ? "planning-current" : string.Empty;
 
-    private static string MonthName(AccountingMonth month)
+    private static string MonthName(ReferenceMonth month)
         => $"{CultureInfo.GetCultureInfo("pt-BR").DateTimeFormat.GetAbbreviatedMonthName(month.Month).TrimEnd('.')}/{month.Year % 100:00}";
 }

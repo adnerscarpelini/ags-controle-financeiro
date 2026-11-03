@@ -75,7 +75,7 @@ public sealed class InvoiceForecastPageTests
         await using var context = new BunitContext();
         await SetUpAsync(context, database, mode);
 
-        var section = context.Render<InvoiceSection>(parameters => parameters.Add(x => x.Month, new AccountingMonth(2026, 10)));
+        var section = context.Render<InvoiceSection>(parameters => parameters.Add(x => x.Month, new ReferenceMonth(2026, 10)));
 
         section.WaitForAssertion(() => Assert.Contains("Cartão Exemplo", section.Find("tbody").TextContent, StringComparison.Ordinal));
         var headers = section.FindAll("thead th").Select(x => x.TextContent).ToList();

@@ -28,7 +28,7 @@ public partial class Transactions
     private int _page = 1;
     private int _queryVersion;
     private bool _queryBusy;
-    private AccountingMonth _currentMonth;
+    private ReferenceMonth _currentMonth;
 
     private async Task InitializeFiltersAsync()
     {
@@ -50,15 +50,15 @@ public partial class Transactions
 
     private async Task ReloadQueryAsync()
     {
-        _currentMonth = AccountingMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime));
-        AccountingMonth? month = null;
+        _currentMonth = ReferenceMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime));
+        ReferenceMonth? month = null;
         if (_filterMonth.Length > 0)
         {
             if (!DateOnly.TryParseExact(_filterMonth + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
             {
                 _message = "Informe um mês válido para filtrar."; return;
             }
-            month = AccountingMonth.FromDate(date);
+            month = ReferenceMonth.FromDate(date);
         }
         var version = ++_queryVersion;
         _queryBusy = true;

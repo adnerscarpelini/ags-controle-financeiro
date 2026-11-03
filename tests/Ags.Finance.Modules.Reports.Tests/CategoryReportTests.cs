@@ -8,14 +8,14 @@ namespace Ags.Finance.Modules.Reports.Tests;
 
 public sealed class CategoryReportTests : ReportFixture
 {
-    private static readonly AccountingMonth s_october = new(2026, 10);
+    private static readonly ReferenceMonth s_october = new(2026, 10);
     private ICategoryReports Reports => Provider.GetRequiredService<ICategoryReports>();
 
     [Fact]
     public async Task CategoryAboveItsYearAverageShowsThePositiveDifference()
     {
-        await AddAsync(new AccountingMonth(2026, 8), 800m);
-        await AddAsync(new AccountingMonth(2026, 9), 1000m);
+        await AddAsync(new ReferenceMonth(2026, 8), 800m);
+        await AddAsync(new ReferenceMonth(2026, 9), 1000m);
         await AddAsync(s_october, 1200m);
         var report = await Reports.GetAsync(s_october);
         var line = Assert.Single(report.Expenses);
@@ -31,7 +31,7 @@ public sealed class CategoryReportTests : ReportFixture
         var health = await SubcategoryAsync("Saúde", "Farmácia");
         await AddAsync(s_october, 300m);
         await AddAsync(s_october, 700m, transport);
-        await AddAsync(new AccountingMonth(2026, 9), 50m, health);
+        await AddAsync(new ReferenceMonth(2026, 9), 50m, health);
         var report = await Reports.GetAsync(s_october);
         Assert.Equal(["Transporte", "Mercado"], report.Expenses.Select(x => x.Name));
         Assert.Equal([70m, 30m], report.Expenses.Select(x => x.PercentOfMonth));
@@ -57,7 +57,7 @@ public sealed class CategoryReportTests : ReportFixture
     public async Task IncomeIsListedByCategoryAndSubcategoryWithTheSameColumns()
     {
         var bonus = await SubcategoryAsync("Trabalho", "Bônus", CategoryKind.Income);
-        await AddAsync(new AccountingMonth(2026, 9), 5000m, income: true);
+        await AddAsync(new ReferenceMonth(2026, 9), 5000m, income: true);
         await AddAsync(s_october, 6000m, income: true);
         await AddAsync(s_october, 2000m, bonus);
         var report = await Reports.GetAsync(s_october);

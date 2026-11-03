@@ -1,11 +1,11 @@
 # Resumo do mês
 
 A [#24](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/24) abre o
-dashboard com o resumo de um mês contábil (`IMonthlySummaries`, em
+dashboard com o resumo de um mês de referência (`IMonthlySummaries`, em
 `Reports.Contracts`; cards em `/dashboard`).
 
 **Base de apuração.** Reports lê os totais pelo contrato `IEntryTotals` de
-Transactions: soma por mês contábil, tipo e subcategoria, em uma consulta, sem acessar
+Transactions: soma por mês de referência, tipo e subcategoria, em uma consulta, sem acessar
 tabelas de outro módulo. É a mesma base usada pelos demais relatórios do dashboard
 (`Ledger`). Antes de ler, as ocorrências recorrentes dos meses de janeiro até o mês
 selecionado são garantidas, como a tela de Lançamentos faz ao consultar um mês;
@@ -17,7 +17,7 @@ janeiro) e média mensal de despesas no ano até o mês — soma das despesas di
 pelo número de meses de janeiro até o mês selecionado que têm ao menos um lançamento
 de despesa.
 
-**O que entra.** Receitas e despesas lançadas no mês contábil, **efetivadas e
+**O que entra.** Receitas e despesas lançadas no mês de referência, **efetivadas e
 pendentes, cada uma uma vez**. Transferências ficam de fora (não são lançamentos de
 receita/despesa). Ajustes de fatura ([#52](../invoices/total-adjustments.md)) entram
 como despesa uma única vez: acréscimo aumenta as despesas, redução as diminui, sem

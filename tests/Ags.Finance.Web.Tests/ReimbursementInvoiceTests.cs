@@ -36,7 +36,7 @@ public sealed class ReimbursementInvoiceTests
         var subcategory = (await classifications.SaveSubcategoryAsync(null, category.ExternalId!.Value, "Internet")).ExternalId!.Value;
         var merchant = (await provider.GetRequiredService<IMerchantCatalog>().SaveAsync(null, "Provedor Exemplo", subcategory)).ExternalId!.Value;
         var person = (await provider.GetRequiredService<IPersonCatalog>().SaveAsync(null, "Pessoa Exemplo", 50m)).ExternalId!.Value;
-        var month = new AccountingMonth(2026, 10);
+        var month = new ReferenceMonth(2026, 10);
         var entries = provider.GetRequiredService<IEntryCatalog>();
         var created = await entries.CreateAsync(new(new DateOnly(2026, 9, 14), merchant, subcategory, account, new Money(100), Month: month, CardExternalId: card, Reimbursement: new(person, 50m)));
         Assert.True(created.Succeeded, created.Error);

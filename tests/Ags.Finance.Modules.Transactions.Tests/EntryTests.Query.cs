@@ -28,12 +28,12 @@ public sealed partial class EntryTests
         await Entries.CreateAsync(Request());
         await Entries.CreateAsync(Request() with { Amount = new Money(75), Date = new DateOnly(2026, 11, 5) });
         await Entries.CreateAsync(Request() with { SubcategoryExternalId = await IncomeSubcategoryAsync(), Amount = new Money(500) });
-        var result = await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 10)));
+        var result = await Entries.QueryAsync(new(Month: new ReferenceMonth(2026, 10)));
         Assert.Equal(2, result.TotalCount);
         Assert.Equal(new Money(500), result.Income);
         Assert.Equal(new Money(-150), result.Expenses);
         Assert.Equal(new Money(350), result.Balance);
-        Assert.All(result.Entries, x => Assert.Equal(new AccountingMonth(2026, 10), x.Month));
+        Assert.All(result.Entries, x => Assert.Equal(new ReferenceMonth(2026, 10), x.Month));
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public sealed partial class EntryTests
             for (var index = 0; index < 10000; index++)
             {
                 var entry = new TransactionEntry();
-                Assert.Null(entry.Update(new DateOnly(2026, 10, 5), new AccountingMonth(2026, index % 2 == 0 ? 10 : 11), _merchantId, _subcategoryId,
+                Assert.Null(entry.Update(new DateOnly(2026, 10, 5), new ReferenceMonth(2026, index % 2 == 0 ? 10 : 11), _merchantId, _subcategoryId,
                     _accountId, Domain.CategoryKind.Expense, new Money(1), index % 2 == 0 ? "Filtro Exemplo" : "Outro Exemplo"));
                 entry.SetEffective(entry.Date, _clock.GetUtcNow());
                 context.Add(entry);
@@ -100,7 +100,7 @@ public sealed partial class EntryTests
         }
         await Entries.QueryAsync(new());
         var watch = Stopwatch.StartNew();
-        var result = await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 10), Text: "filtro"));
+        var result = await Entries.QueryAsync(new(Month: new ReferenceMonth(2026, 10), Text: "filtro"));
         watch.Stop();
         _output.WriteLine($"Consulta de 10.000 lançamentos: {watch.Elapsed.TotalMilliseconds:F1} ms.");
         Assert.Equal(5000, result.TotalCount);
@@ -108,9 +108,9 @@ public sealed partial class EntryTests
         Assert.Equal(new Money(-5000), result.Expenses);
         Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1), $"A consulta levou {watch.Elapsed.TotalMilliseconds:F1} ms.");
         var card = await CreateCardAsync();
-        Assert.True((await Entries.AdjustInvoiceAsync(new(Guid.CreateVersion7(), card, new AccountingMonth(2026, 10), new Money(1)))).Succeeded);
+        Assert.True((await Entries.AdjustInvoiceAsync(new(Guid.CreateVersion7(), card, new ReferenceMonth(2026, 10), new Money(1)))).Succeeded);
         watch.Restart();
-        var combined = await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 10)));
+        var combined = await Entries.QueryAsync(new(Month: new ReferenceMonth(2026, 10)));
         watch.Stop();
         _output.WriteLine($"Consulta de 10.000 lançamentos com ajuste: {watch.Elapsed.TotalMilliseconds:F1} ms.");
         Assert.Equal(5001, combined.TotalCount);

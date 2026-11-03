@@ -9,7 +9,7 @@ public sealed partial class InvoiceTests
 {
     private IInvoiceAdjustmentCatalog Adjustments => Provider.GetRequiredService<IInvoiceAdjustmentCatalog>();
     private AdjustInvoiceTotalRequest Adjustment(decimal total, decimal? expected = null)
-        => new(Guid.CreateVersion7(), _cardId, new AccountingMonth(2026, 10), new Money(total), expected is { } amount ? new Money(amount) : null);
+        => new(Guid.CreateVersion7(), _cardId, new ReferenceMonth(2026, 10), new Money(total), expected is { } amount ? new Money(amount) : null);
 
     [Theory]
     [InlineData(false)]
@@ -18,7 +18,7 @@ public sealed partial class InvoiceTests
     {
         var entries = Provider.GetRequiredService<IEntryCatalog>();
         await entries.CreateAsync(Purchase(100));
-        if (closed) { await Lifecycle.CloseAsync(_cardId, new AccountingMonth(2026, 10)); }
+        if (closed) { await Lifecycle.CloseAsync(_cardId, new ReferenceMonth(2026, 10)); }
         var request = Adjustment(100.01m, 100);
         var results = await Task.WhenAll(Adjustments.AdjustTotalAsync(request), Adjustments.AdjustTotalAsync(request));
         Assert.All(results, x => Assert.True(x.Succeeded, x.Error));
@@ -28,7 +28,7 @@ public sealed partial class InvoiceTests
         Assert.Equal(new Money(-100), invoice.Entries.Single(x => !x.IsInvoiceAdjustment).Amount);
         var adjustment = Assert.Single(invoice.Entries, x => x.IsInvoiceAdjustment);
         Assert.Equal(new DateOnly(2026, 9, 1), adjustment.Date);
-        Assert.Equal(new AccountingMonth(2026, 10), adjustment.Month);
+        Assert.Equal(new ReferenceMonth(2026, 10), adjustment.Month);
         Assert.Equal("Ajuste de fatura", adjustment.Classification);
         Assert.Equal(Guid.Empty, adjustment.MerchantExternalId);
         Assert.Equal(new Money(-0.01m), adjustment.Amount);
@@ -49,7 +49,7 @@ public sealed partial class InvoiceTests
     {
         var entries = Provider.GetRequiredService<IEntryCatalog>();
         await entries.CreateAsync(Purchase(1000));
-        await Lifecycle.CloseAsync(_cardId, new AccountingMonth(2026, 10));
+        await Lifecycle.CloseAsync(_cardId, new ReferenceMonth(2026, 10));
         await Payments.ConfirmPaymentAsync(Payment(200));
         Assert.True((await Adjustments.AdjustTotalAsync(Adjustment(1000.01m))).Succeeded);
         Assert.Equal(new Money(800.01m), Assert.Single(await Catalog.GetAsync()).RemainingBalance);

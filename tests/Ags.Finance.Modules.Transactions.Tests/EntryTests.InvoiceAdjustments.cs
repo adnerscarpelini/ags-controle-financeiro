@@ -17,14 +17,14 @@ public sealed partial class EntryTests
         var card = await CreateCardAsync();
         foreach (var total in new[] { 100, 102, 101 })
         {
-            var created = await Entries.AdjustInvoiceAsync(new(Guid.CreateVersion7(), card, new AccountingMonth(2026, 10), new Money(total)));
+            var created = await Entries.AdjustInvoiceAsync(new(Guid.CreateVersion7(), card, new ReferenceMonth(2026, 10), new Money(total)));
             Assert.True(created.Succeeded, created.Error);
             identifiers.Add(created.ExternalId!.Value);
         }
         var found = new List<Guid>();
         for (var page = 1; page <= 5; page++)
         {
-            var result = await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 10), Page: page, PageSize: 7));
+            var result = await Entries.QueryAsync(new(Month: new ReferenceMonth(2026, 10), Page: page, PageSize: 7));
             Assert.Equal(33, result.TotalCount);
             Assert.Equal(new Money(-131), result.Expenses);
             Assert.Equal(Money.Zero, result.Income);

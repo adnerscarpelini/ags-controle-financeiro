@@ -8,9 +8,9 @@ internal sealed class HeatMapReports(LedgerSource source, IClassificationCatalog
 {
     private const string AdjustmentName = "Ajuste de fatura";
 
-    public async Task<Contracts.HeatMap> GetAsync(AccountingMonth selectedMonth, CancellationToken cancellationToken = default)
+    public async Task<Contracts.HeatMap> GetAsync(ReferenceMonth selectedMonth, CancellationToken cancellationToken = default)
     {
-        var months = Enumerable.Range(1, 12).Select(x => new AccountingMonth(selectedMonth.Year, x)).ToList();
+        var months = Enumerable.Range(1, 12).Select(x => new ReferenceMonth(selectedMonth.Year, x)).ToList();
         // Só até o mês selecionado são geradas ocorrências recorrentes; meses seguintes mostram o que já está lançado (parcelas, por exemplo).
         var ledger = await source.LoadAsync(months[0], months[^1], selectedMonth, cancellationToken);
         var categories = (await classifications.GetCategoriesAsync(false, cancellationToken)).ToDictionary(x => x.ExternalId, x => x.Name);
@@ -38,7 +38,7 @@ internal sealed class HeatMapReports(LedgerSource source, IClassificationCatalog
         return new(selectedMonth.Year, selectedMonth, income, expenses, income.Zip(expenses, (i, e) => i - e).ToList(), rows);
     }
 
-    private static HeatRow BuildRow(string name, int level, bool adjustment, IReadOnlyList<AccountingMonth> months, IEnumerable<MonthlyTotal> items)
+    private static HeatRow BuildRow(string name, int level, bool adjustment, IReadOnlyList<ReferenceMonth> months, IEnumerable<MonthlyTotal> items)
     {
         var list = items.ToList();
         var amounts = months.Select(m => new Money(-list.Where(x => x.Month == m).Sum(x => x.Amount.Amount))).ToList();

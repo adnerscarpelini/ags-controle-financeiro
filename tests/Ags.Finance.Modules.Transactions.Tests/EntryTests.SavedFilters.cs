@@ -25,14 +25,14 @@ public sealed partial class EntryTests
         var energy = await SubcategoryAsync("Energia");
         var water = await SubcategoryAsync("Água");
         await Entries.CreateAsync(Request() with { SubcategoryExternalId = energy });
-        await Entries.CreateAsync(Request() with { SubcategoryExternalId = water, Date = new DateOnly(2026, 11, 5), Month = new AccountingMonth(2026, 11) });
-        await Entries.CreateAsync(Request() with { Date = new DateOnly(2026, 11, 6), Month = new AccountingMonth(2026, 11) });
+        await Entries.CreateAsync(Request() with { SubcategoryExternalId = water, Date = new DateOnly(2026, 11, 5), Month = new ReferenceMonth(2026, 11) });
+        await Entries.CreateAsync(Request() with { Date = new DateOnly(2026, 11, 6), Month = new ReferenceMonth(2026, 11) });
         var saved = await SavedFilters.SaveAsync(null, "Despesas da casa", Subcategories(energy, water));
         Assert.True(saved.Succeeded, saved.Error);
 
-        var october = await SavedFilters.RunAsync(saved.ExternalId!.Value, new AccountingMonth(2026, 10));
+        var october = await SavedFilters.RunAsync(saved.ExternalId!.Value, new ReferenceMonth(2026, 10));
         Assert.Equal(energy, Assert.Single(october.Entries).SubcategoryExternalId);
-        var november = await SavedFilters.RunAsync(saved.ExternalId!.Value, new AccountingMonth(2026, 11));
+        var november = await SavedFilters.RunAsync(saved.ExternalId!.Value, new ReferenceMonth(2026, 11));
         Assert.Equal(water, Assert.Single(november.Entries).SubcategoryExternalId);
         Assert.Equal(new Money(-150), november.Balance);
     }
@@ -55,7 +55,7 @@ public sealed partial class EntryTests
         await Entries.CreateAsync(Request() with { SubcategoryExternalId = energy });
         var saved = await SavedFilters.SaveAsync(null, "Energia", Subcategories(energy));
         await Provider.GetRequiredService<IClassificationCatalog>().DeactivateAsync(energy, true);
-        Assert.Single((await SavedFilters.RunAsync(saved.ExternalId!.Value, new AccountingMonth(2026, 10))).Entries);
+        Assert.Single((await SavedFilters.RunAsync(saved.ExternalId!.Value, new ReferenceMonth(2026, 10))).Entries);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public sealed partial class EntryTests
     {
         Assert.True((await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false }))).Succeeded);
         var saved = await SavedFilters.SaveAsync(null, "Pendentes", SavedFilterCriteria.Empty with { AccountExternalIds = [_accountId], IsEffective = false });
-        var month = new AccountingMonth(2026, 10);
+        var month = new ReferenceMonth(2026, 10);
         var occurrence = Assert.Single((await SavedFilters.RunAsync(saved.ExternalId!.Value, month)).Entries);
         Assert.True((await Entries.ConfirmEffectiveAsync(occurrence.ExternalId, occurrence.Date)).Succeeded);
         Assert.Empty((await SavedFilters.RunAsync(saved.ExternalId!.Value, month)).Entries);

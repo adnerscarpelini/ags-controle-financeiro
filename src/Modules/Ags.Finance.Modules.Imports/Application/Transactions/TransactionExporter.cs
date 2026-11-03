@@ -61,7 +61,7 @@ internal sealed class TransactionExporter(IEntryCatalog entries, ISavedFilterCat
         return new($"exemplo-{layout.FileName}", writer.ToBytes());
     }
 
-    private static string Month(AccountingMonth month) => $"{month.Year:0000}-{month.Month:00}";
+    private static string Month(ReferenceMonth month) => $"{month.Year:0000}-{month.Month:00}";
 
     private async Task<(List<EntryDetails> Entries, string? Error)> LoadAsync(TransactionExportFilter filter, CancellationToken cancellationToken)
     {

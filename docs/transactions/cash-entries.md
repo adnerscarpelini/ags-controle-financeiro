@@ -2,7 +2,7 @@
 
 A [#11](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/11)
 entrega entrada rápida em Lançamentos: data, descrição com sugestões, classificação,
-valor sem sinal, conta, detalhes e mês contábil editável. É possível cadastrar uma
+valor sem sinal, conta, detalhes e mês de referência editável. É possível cadastrar uma
 descrição sem sair da tela. Enter confirma o formulário; Ctrl+N limpa para o próximo
 lançamento, mantendo a data. Selecionar descrição sugere sua subcategoria padrão,
 que continua editável.

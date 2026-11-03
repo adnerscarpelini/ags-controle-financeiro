@@ -1,4 +1,4 @@
-# Money e AccountingMonth
+# Money e ReferenceMonth
 
 Implementa a issue [#3](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/3). A decisão de manter estes tipos no `SharedKernel` está em [shared-kernel.md](../architecture/shared-kernel.md).
 
@@ -21,18 +21,18 @@ Valor monetário em BRL, imutável (`readonly record struct`).
 
 `Split` com `n <= 0` lança `ArgumentOutOfRangeException`.
 
-## AccountingMonth
+## ReferenceMonth
 
 Ano e mês em que um valor pesa no orçamento (`readonly record struct`).
 
-- **Criação:** `new AccountingMonth(year, month)` rejeita mês fora de 1 a 12 e ano fora de 1 a 9999, com `ArgumentOutOfRangeException`. `AccountingMonth.FromDate(DateOnly)` usa o ano e o mês da data.
+- **Criação:** `new ReferenceMonth(year, month)` rejeita mês fora de 1 a 12 e ano fora de 1 a 9999, com `ArgumentOutOfRangeException`. `ReferenceMonth.FromDate(DateOnly)` usa o ano e o mês da data.
 - **Navegação:** `AddMonths(n)` aceita valores negativos e atravessa a virada de ano (12/2026 + 1 = 01/2027; 01/2026 − 1 = 12/2025). Um resultado fora do intervalo suportado lança `ArgumentOutOfRangeException`.
 - **Limites do mês:** `FirstDay` e `LastDay` (respeitam anos bissextos).
 - **Comparação:** por ano e depois por mês (`<`, `<=`, `>`, `>=`, `CompareTo`).
 - **Formatação:** `ToString()` devolve `MM/yyyy`.
 
-O cálculo do mês contábil de uma compra no cartão **não** está aqui: pertence ao módulo `Accounts`.
+O cálculo do mês de referência de uma compra no cartão **não** está aqui: pertence ao módulo `Accounts`.
 
 ## Limitação conhecida
 
-Como são `struct`, `default(AccountingMonth)` existe e tem ano e mês zerados, o que não é um mês válido. Código de aplicação não deve usá-lo; `default(Money)` é válido e igual a `Money.Zero`.
+Como são `struct`, `default(ReferenceMonth)` existe e tem ano e mês zerados, o que não é um mês válido. Código de aplicação não deve usá-lo; `default(Money)` é válido e igual a `Money.Zero`.

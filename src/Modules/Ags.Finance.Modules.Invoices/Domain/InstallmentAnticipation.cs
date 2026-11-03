@@ -9,13 +9,13 @@ internal sealed class InstallmentAnticipation : Entity
     public Guid EntryExternalId { get; private set; }
     public Guid PurchaseExternalId { get; private set; }
     public Guid CardExternalId { get; private set; }
-    public AccountingMonth Month { get; private set; }
+    public ReferenceMonth Month { get; private set; }
     public Guid[] EntryExternalIds { get; private set; } = [];
     public void SetEntries(IEnumerable<Guid> entryExternalIds) => EntryExternalIds = entryExternalIds.ToArray();
     public int Count { get; private set; }
     public Money Total { get; private set; }
     public Money Discount { get; private set; }
-    public static InstallmentAnticipation? Create(Guid confirmationId, Guid entryId, Guid purchaseId, Guid cardId, AccountingMonth month, int count, Money total, Money discount)
+    public static InstallmentAnticipation? Create(Guid confirmationId, Guid entryId, Guid purchaseId, Guid cardId, ReferenceMonth month, int count, Money total, Money discount)
     {
         if (confirmationId == Guid.Empty || entryId == Guid.Empty || purchaseId == Guid.Empty || cardId == Guid.Empty || month.Year == 0
             || count is < 1 or > 48 || total.IsNegative || discount.IsNegative || (!discount.IsZero && discount >= total)) { return null; }

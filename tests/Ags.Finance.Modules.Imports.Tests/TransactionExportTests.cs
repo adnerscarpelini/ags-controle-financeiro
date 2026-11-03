@@ -24,7 +24,7 @@ public sealed class TransactionExportTests : ImportsFixture
 
     private static string Field(CsvRow row, string column) => row.Fields[TransactionLayout.For(TransactionFileKind.Transactions).Columns.ToList().IndexOf(column)];
 
-    private async Task<Guid> AddAsync(Seed seed, DateOnly date, decimal amount, string details = "", AccountingMonth? month = null, Guid? card = null, Guid? final = null)
+    private async Task<Guid> AddAsync(Seed seed, DateOnly date, decimal amount, string details = "", ReferenceMonth? month = null, Guid? card = null, Guid? final = null)
     {
         var result = await Entries.CreateAsync(new(date, seed.Merchant, seed.Subcategory, seed.Account, new Money(amount), details, month, card, final));
         Assert.True(result.Succeeded, result.Error);
@@ -37,10 +37,10 @@ public sealed class TransactionExportTests : ImportsFixture
         var seed = await SeedAsync();
         var october = await AddAsync(seed, new DateOnly(2026, 10, 5), 10m);
         await AddAsync(seed, new DateOnly(2026, 11, 5), 20m);
-        var table = await ExportRowsAsync(new(Month: new AccountingMonth(2026, 10)));
+        var table = await ExportRowsAsync(new(Month: new ReferenceMonth(2026, 10)));
         var row = Assert.Single(table.Rows);
         Assert.Equal(TransactionLayout.For(TransactionFileKind.Transactions).Columns.Count, row.Fields.Count);
-        Assert.Equal((october.ToString("D"), "2026-10-05", "2026-10", "Expense", "1000"), (Field(row, "external_id"), Field(row, "date"), Field(row, "accounting_month"), Field(row, "kind"), Field(row, "amount_cents")));
+        Assert.Equal((october.ToString("D"), "2026-10-05", "2026-10", "Expense", "1000"), (Field(row, "external_id"), Field(row, "date"), Field(row, "reference_month"), Field(row, "kind"), Field(row, "amount_cents")));
         Assert.Equal((seed.Merchant.ToString("D"), seed.Subcategory.ToString("D"), seed.Account.ToString("D"), "true"),
             (Field(row, "merchant_external_id"), Field(row, "subcategory_external_id"), Field(row, "account_external_id"), Field(row, "is_effective")));
     }
@@ -49,11 +49,11 @@ public sealed class TransactionExportTests : ImportsFixture
     public async Task AutomaticCashMonthAndExactCentsArePreserved()
     {
         var seed = await SeedAsync();
-        await AddAsync(seed, new DateOnly(2026, 10, 5), 0.01m, month: new AccountingMonth(2027, 2));
+        await AddAsync(seed, new DateOnly(2026, 10, 5), 0.01m, month: new ReferenceMonth(2027, 2));
         await AddAsync(seed, new DateOnly(2026, 10, 6), 1234.56m);
         await AddAsync(seed, new DateOnly(2026, 10, 7), 92233720368547m);
         var rows = (await ExportRowsAsync(new(FromDate: new DateOnly(2026, 10, 1), ToDate: new DateOnly(2026, 10, 31)))).Rows;
-        Assert.Equal(["2026-10", "2026-10", "2026-10"], rows.OrderBy(x => x.Fields[1], StringComparer.Ordinal).Select(x => Field(x, "accounting_month")));
+        Assert.Equal(["2026-10", "2026-10", "2026-10"], rows.OrderBy(x => x.Fields[1], StringComparer.Ordinal).Select(x => Field(x, "reference_month")));
         Assert.Equal(["1", "123456", "9223372036854700"], rows.OrderBy(x => x.Fields[1], StringComparer.Ordinal).Select(x => Field(x, "amount_cents")));
     }
 
@@ -87,14 +87,14 @@ public sealed class TransactionExportTests : ImportsFixture
         Assert.True((await Entries.CreateRecurringAsync(new(new(new DateOnly(2026, 11, 5), seed.Merchant, seed.Subcategory, seed.Account, new Money(40m), IsPaid: false)))).Succeeded);
         await AddAsync(seed, new DateOnly(2026, 11, 6), 15m);
         var balance = (await Entries.GetBalanceAsync(seed.Account, new DateOnly(2026, 12, 31)))!.EffectiveBalance;
-        var rows = (await ExportRowsAsync(new(Month: new AccountingMonth(2026, 11)))).Rows;
+        var rows = (await ExportRowsAsync(new(Month: new ReferenceMonth(2026, 11)))).Rows;
         var pending = Assert.Single(rows, x => Field(x, "is_effective") == "false");
         Assert.Equal(string.Empty, Field(pending, "effective_date"));
         var effective = Assert.Single(rows, x => Field(x, "is_effective") == "true");
         Assert.Equal("2026-11-06", Field(effective, "effective_date"));
-        Assert.Single((await Entries.QueryPendingAsync(new(Month: new AccountingMonth(2026, 11)))).Entries);
+        Assert.Single((await Entries.QueryPendingAsync(new(Month: new ReferenceMonth(2026, 11)))).Entries);
         Assert.Equal(balance, (await Entries.GetBalanceAsync(seed.Account, new DateOnly(2026, 12, 31)))!.EffectiveBalance);
-        Assert.Single((await ExportRowsAsync(new(IsEffective: false, Month: new AccountingMonth(2026, 11)))).Rows);
+        Assert.Single((await ExportRowsAsync(new(IsEffective: false, Month: new ReferenceMonth(2026, 11)))).Rows);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public sealed class TransactionExportTests : ImportsFixture
         var seed = await SeedAsync();
         const string Description = "=Pão, \"café\"\nsegunda linha";
         await AddAsync(seed, new DateOnly(2026, 10, 5), 5m, Description);
-        var row = Assert.Single((await ExportRowsAsync(new(Month: new AccountingMonth(2026, 10)))).Rows);
+        var row = Assert.Single((await ExportRowsAsync(new(Month: new ReferenceMonth(2026, 10)))).Rows);
         Assert.Equal("'" + Description, Field(row, "details"));
         Assert.Equal(Description, CsvFormat.UnescapeText(Field(row, "details")));
     }
@@ -112,8 +112,8 @@ public sealed class TransactionExportTests : ImportsFixture
     public async Task EmptyResultStillProducesAValidFileWithVersionAndHeadersOnly()
     {
         await SeedAsync();
-        Assert.Empty((await ExportRowsAsync(new(Month: new AccountingMonth(2030, 1)))).Rows);
-        Assert.Empty(Read(await Export.ExportSeriesAsync(new(Month: new AccountingMonth(2030, 1))), TransactionFileKind.RecurringSeries).Rows);
+        Assert.Empty((await ExportRowsAsync(new(Month: new ReferenceMonth(2030, 1)))).Rows);
+        Assert.Empty(Read(await Export.ExportSeriesAsync(new(Month: new ReferenceMonth(2030, 1))), TransactionFileKind.RecurringSeries).Rows);
     }
 
     [Fact]
@@ -122,8 +122,8 @@ public sealed class TransactionExportTests : ImportsFixture
         var seed = await SeedAsync();
         await AddAsync(seed, new DateOnly(2026, 10, 1), 100m, card: seed.Card, final: seed.Final);
         await AddAsync(seed, new DateOnly(2026, 10, 2), 7m);
-        Assert.True((await Entries.AdjustInvoiceAsync(new(Guid.CreateVersion7(), seed.Card, new AccountingMonth(2026, 10), new Money(130m)))).Succeeded);
-        var month = new AccountingMonth(2026, 10);
+        Assert.True((await Entries.AdjustInvoiceAsync(new(Guid.CreateVersion7(), seed.Card, new ReferenceMonth(2026, 10), new Money(130m)))).Succeeded);
+        var month = new ReferenceMonth(2026, 10);
         Assert.Equal(2, (await ExportRowsAsync(new(Month: month))).Rows.Count);
         var filter = await Get<ISavedFilterCatalog>().SaveAsync(null, "Só cartão", SavedFilterCriteria.Empty with { CardExternalIds = [seed.Card] });
         var viaFilter = await ExportRowsAsync(new(Month: month, SavedFilterExternalId: filter.ExternalId));
@@ -136,7 +136,7 @@ public sealed class TransactionExportTests : ImportsFixture
         var result = await Export.ExportAsync(new(FromDate: new DateOnly(2026, 12, 31), ToDate: new DateOnly(2026, 1, 1)));
         Assert.False(result.Succeeded);
         Assert.Null(result.File);
-        Assert.False((await Export.ExportAsync(new(Month: new AccountingMonth(2026, 10), SavedFilterExternalId: Guid.NewGuid()))).Succeeded);
+        Assert.False((await Export.ExportAsync(new(Month: new ReferenceMonth(2026, 10), SavedFilterExternalId: Guid.NewGuid()))).Succeeded);
     }
 
     [Fact]

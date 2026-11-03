@@ -10,23 +10,23 @@ namespace Ags.Finance.Modules.Reports.Tests;
 /// <summary>O relógio fica em 02/10/2026; o período padrão vai de abr/26 a out/27. O cartão do fixture fecha no dia 3 e vence no dia 10.</summary>
 public sealed class PlanningTests : ReportFixture
 {
-    private static readonly AccountingMonth s_october = new(2026, 10);
+    private static readonly ReferenceMonth s_october = new(2026, 10);
     private IPlanningReports Planning => Provider.GetRequiredService<IPlanningReports>();
 
-    private static PlanningCell Cell(PlanningReport report, IReadOnlyList<PlanningCell> cells, AccountingMonth month)
+    private static PlanningCell Cell(PlanningReport report, IReadOnlyList<PlanningCell> cells, ReferenceMonth month)
         => cells[report.Months.ToList().IndexOf(month)];
 
     private CreateEntryRequest Request(DateOnly date, decimal amount, Guid? card = null, Guid? subcategory = null)
         => new(date, MerchantId, subcategory ?? ExpenseSubcategoryId, AccountId, new Money(amount), CardExternalId: card);
 
-    private async Task<Guid> RecurringAsync(DateOnly date, decimal amount, Guid? card = null, AccountingMonth? end = null, Guid? subcategory = null)
+    private async Task<Guid> RecurringAsync(DateOnly date, decimal amount, Guid? card = null, ReferenceMonth? end = null, Guid? subcategory = null)
     {
         var result = await Entries.CreateRecurringAsync(new(Request(date, amount, card, subcategory) with { IsPaid = false }, end));
         Assert.True(result.Succeeded, result.Error);
         return result.ExternalId!.Value;
     }
 
-    private async Task<long> CountFromMonthAsync(string table, AccountingMonth month)
+    private async Task<long> CountFromMonthAsync(string table, ReferenceMonth month)
     {
         await using var connection = new NpgsqlConnection(Database.ConnectionString);
         await connection.OpenAsync();
@@ -43,9 +43,9 @@ public sealed class PlanningTests : ReportFixture
         Clock.Now = new DateTimeOffset(2026, 11, 3, 12, 0, 0, TimeSpan.Zero);
         var report = await Planning.GetAsync();
         Assert.Equal(19, report.Months.Count);
-        Assert.Equal(new AccountingMonth(2026, 5), report.Months[0]);
-        Assert.Equal(new AccountingMonth(2027, 11), report.Months[^1]);
-        Assert.Equal(new AccountingMonth(2026, 11), report.CurrentMonth);
+        Assert.Equal(new ReferenceMonth(2026, 5), report.Months[0]);
+        Assert.Equal(new ReferenceMonth(2027, 11), report.Months[^1]);
+        Assert.Equal(new ReferenceMonth(2026, 11), report.CurrentMonth);
         Assert.True(report.IsEmpty);
     }
 
@@ -70,36 +70,36 @@ public sealed class PlanningTests : ReportFixture
             Assert.Equal((Money.Zero, new Money(50m)), (cell.Launched, cell.Forecast));
         }
         Assert.True(Cell(report, report.Expenses, s_october).HasForecast);
-        Assert.Equal(Money.Zero, Cell(report, report.Expenses, new AccountingMonth(2026, 9)).Amount);
+        Assert.Equal(Money.Zero, Cell(report, report.Expenses, new ReferenceMonth(2026, 9)).Amount);
     }
 
     [Fact]
     public async Task EndMonthAndExcludedMonthAreRespected()
     {
-        await RecurringAsync(new DateOnly(2026, 10, 15), 50m, end: new AccountingMonth(2027, 2));
-        var november = new AccountingMonth(2026, 11);
+        await RecurringAsync(new DateOnly(2026, 10, 15), 50m, end: new ReferenceMonth(2027, 2));
+        var november = new ReferenceMonth(2026, 11);
         Assert.True((await Entries.EnsureRecurringMonthAsync(november)).Succeeded);
         var occurrence = Assert.Single((await Entries.QueryAsync(new(Month: november))).Entries);
         Assert.True((await Entries.DeleteRecurringAsync(occurrence.ExternalId, RecurringChangeScope.OnlyThis)).Succeeded);
 
         var report = await Planning.GetAsync();
         Assert.Equal(Money.Zero, Cell(report, report.Expenses, november).Amount);
-        Assert.Equal(new Money(50m), Cell(report, report.Expenses, new AccountingMonth(2027, 2)).Amount);
-        Assert.Equal(Money.Zero, Cell(report, report.Expenses, new AccountingMonth(2027, 3)).Amount);
+        Assert.Equal(new Money(50m), Cell(report, report.Expenses, new ReferenceMonth(2027, 2)).Amount);
+        Assert.Equal(Money.Zero, Cell(report, report.Expenses, new ReferenceMonth(2027, 3)).Amount);
     }
 
     [Fact]
     public async Task AGeneratedFutureOccurrenceIsCountedOnceWithItsRecordedAmount()
     {
         await RecurringAsync(new DateOnly(2026, 10, 15), 50m);
-        var december = new AccountingMonth(2026, 12);
+        var december = new ReferenceMonth(2026, 12);
         Assert.True((await Entries.EnsureRecurringMonthAsync(december)).Succeeded);
         var occurrence = Assert.Single((await Entries.QueryAsync(new(Month: december))).Entries);
         Assert.True((await Entries.EditRecurringAsync(occurrence.ExternalId, new(Request(occurrence.Date, 80m) with { Month = december }, RecurringChangeScope.OnlyThis))).Succeeded);
 
         var report = await Planning.GetAsync();
         Assert.Equal(new Money(80m), Cell(report, report.Expenses, december).Forecast);
-        Assert.Equal(new Money(50m), Cell(report, report.Expenses, new AccountingMonth(2027, 1)).Forecast);
+        Assert.Equal(new Money(50m), Cell(report, report.Expenses, new ReferenceMonth(2027, 1)).Forecast);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public sealed class PlanningTests : ReportFixture
     public async Task AProtectedInvoiceDoesNotReceiveTheProjectedOccurrence()
     {
         var card = await CardAsync("Cartão A");
-        var protectedMonth = new AccountingMonth(2027, 1);
+        var protectedMonth = new ReferenceMonth(2027, 1);
         Assert.True((await Provider.GetRequiredService<IInvoiceLifecycle>().CloseAsync(card, protectedMonth)).Succeeded);
         await RecurringAsync(new DateOnly(2026, 10, 20), 70m, card);
 
@@ -139,7 +139,7 @@ public sealed class PlanningTests : ReportFixture
     {
         var card = await CardAsync("Cartão A");
         await RecurringAsync(new DateOnly(2026, 10, 20), 70m, card);
-        var month = new AccountingMonth(2027, 1);
+        var month = new ReferenceMonth(2027, 1);
         var open = await Planning.GetAsync();
         Assert.Equal(new Money(70m), Cell(open, open.Expenses, month).Forecast);
 
@@ -181,7 +181,7 @@ public sealed class PlanningTests : ReportFixture
     public async Task APendingOccurrenceInThePastStaysForecastUntilItIsSettled()
     {
         await RecurringAsync(new DateOnly(2026, 9, 15), 50m);
-        var september = new AccountingMonth(2026, 9);
+        var september = new ReferenceMonth(2026, 9);
         var report = await Planning.GetAsync();
         Assert.Equal(new Money(50m), Cell(report, report.Expenses, september).Forecast);
     }
@@ -193,7 +193,7 @@ public sealed class PlanningTests : ReportFixture
         var extra = await SubcategoryAsync("Trabalho", "Extra", CategoryKind.Income);
         await AddAsync(s_october, 120m);
         await AddAsync(s_october, 80m, transport);
-        await AddAsync(new AccountingMonth(2026, 9), 30m, transport);
+        await AddAsync(new ReferenceMonth(2026, 9), 30m, transport);
         await AddAsync(s_october, 1000m, income: true);
         await AddAsync(s_october, 200m, extra);
         await RecurringAsync(new DateOnly(2026, 10, 15), 40m);
@@ -206,7 +206,7 @@ public sealed class PlanningTests : ReportFixture
             Assert.Equal(report.Balance[index], report.Income[index].Amount - report.Expenses[index].Amount);
         }
         var summaries = Provider.GetRequiredService<IMonthlySummaries>();
-        foreach (var month in new[] { new AccountingMonth(2026, 9), s_october })
+        foreach (var month in new[] { new ReferenceMonth(2026, 9), s_october })
         {
             var summary = await summaries.GetAsync(month);
             Assert.Equal((summary.Income, summary.Expenses), (Cell(report, report.Income, month).Amount, Cell(report, report.Expenses, month).Amount));
@@ -288,20 +288,20 @@ public sealed class PlanningTests : ReportFixture
     public async Task AccumulatedBalanceStartsAtTheCurrentMonthEvenWhenItIsOutOfThePeriod()
     {
         Clock.Now = new DateTimeOffset(2026, 11, 3, 12, 0, 0, TimeSpan.Zero);
-        await AddAsync(new AccountingMonth(2026, 10), 999m);
-        await AddAsync(new AccountingMonth(2026, 11), 100m, income: true);
-        await AddAsync(new AccountingMonth(2026, 12), 300m);
+        await AddAsync(new ReferenceMonth(2026, 10), 999m);
+        await AddAsync(new ReferenceMonth(2026, 11), 100m, income: true);
+        await AddAsync(new ReferenceMonth(2026, 12), 300m);
 
         var report = await Planning.GetAsync();
         var months = report.Months.ToList();
-        Assert.Null(report.AccumulatedBalance[months.IndexOf(new AccountingMonth(2026, 10))]);
-        Assert.Equal(new Money(100m), report.AccumulatedBalance[months.IndexOf(new AccountingMonth(2026, 11))]);
-        Assert.Equal(new Money(-200m), report.AccumulatedBalance[months.IndexOf(new AccountingMonth(2026, 12))]);
+        Assert.Null(report.AccumulatedBalance[months.IndexOf(new ReferenceMonth(2026, 10))]);
+        Assert.Equal(new Money(100m), report.AccumulatedBalance[months.IndexOf(new ReferenceMonth(2026, 11))]);
+        Assert.Equal(new Money(-200m), report.AccumulatedBalance[months.IndexOf(new ReferenceMonth(2026, 12))]);
 
-        var moved = await Planning.GetAsync(new AccountingMonth(2027, 1));
+        var moved = await Planning.GetAsync(new ReferenceMonth(2027, 1));
         Assert.Equal(new Money(-200m), moved.AccumulatedBalance[0]);
 
-        var past = await Planning.GetAsync(new AccountingMonth(2024, 1));
+        var past = await Planning.GetAsync(new ReferenceMonth(2024, 1));
         Assert.All(past.AccumulatedBalance, Assert.Null);
     }
 }

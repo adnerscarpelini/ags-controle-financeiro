@@ -35,7 +35,7 @@ public sealed class PersistenceConventionsTests : IAsyncLifetime
     [InlineData(0, 0)]
     public async Task MoneyIsStoredAsCentsInABigintColumn(double amount, long expectedCents)
     {
-        var entry = new TestEntry(new Money((decimal)amount), new AccountingMonth(2027, 1));
+        var entry = new TestEntry(new Money((decimal)amount), new ReferenceMonth(2027, 1));
         await SaveAsync(entry);
 
         Assert.Equal(expectedCents.ToString(System.Globalization.CultureInfo.InvariantCulture), await Database.ScalarAsync("SELECT \"Amount\" FROM transactions.test_entries"));
@@ -49,23 +49,23 @@ public sealed class PersistenceConventionsTests : IAsyncLifetime
     [Theory]
     [InlineData(2027, 1, 202701)]
     [InlineData(2026, 12, 202612)]
-    public async Task AccountingMonthIsStoredAsYyyyMm(int year, int month, long expectedValue)
+    public async Task ReferenceMonthIsStoredAsYyyyMm(int year, int month, long expectedValue)
     {
-        await SaveAsync(new TestEntry(new Money(1m), new AccountingMonth(year, month)));
+        await SaveAsync(new TestEntry(new Money(1m), new ReferenceMonth(year, month)));
 
         Assert.Equal(expectedValue.ToString(System.Globalization.CultureInfo.InvariantCulture), await Database.ScalarAsync("SELECT \"Month\" FROM transactions.test_entries"));
         Assert.Equal("integer", await ColumnTypeAsync("Month"));
 
         await using var context = CreateContext();
         var loaded = await context.Entries.SingleAsync();
-        Assert.Equal(new AccountingMonth(year, month), loaded.Month);
+        Assert.Equal(new ReferenceMonth(year, month), loaded.Month);
     }
 
     [Fact]
     public async Task TimestampsComeFromTheTimeProviderOnInsertAndUpdateAndAreStoredInUtc()
     {
         var createdAt = _clock.Now;
-        var entry = new TestEntry(new Money(5m), new AccountingMonth(2027, 1));
+        var entry = new TestEntry(new Money(5m), new ReferenceMonth(2027, 1));
         await using (var context = CreateContext())
         {
             context.Entries.Add(entry);
@@ -91,7 +91,7 @@ public sealed class PersistenceConventionsTests : IAsyncLifetime
     [Fact]
     public async Task ExternalIdIsAVersion7GuidWithAUniqueIndex()
     {
-        var entry = new TestEntry(new Money(1m), new AccountingMonth(2027, 1));
+        var entry = new TestEntry(new Money(1m), new ReferenceMonth(2027, 1));
         await SaveAsync(entry);
 
         Assert.Equal(7, entry.ExternalId.Version);
@@ -138,7 +138,7 @@ public sealed class PersistenceConventionsTests : IAsyncLifetime
 
     private sealed class TestEntry : Entity
     {
-        public TestEntry(Money amount, AccountingMonth month)
+        public TestEntry(Money amount, ReferenceMonth month)
         {
             Amount = amount;
             Month = month;
@@ -146,7 +146,7 @@ public sealed class PersistenceConventionsTests : IAsyncLifetime
 
         public Money Amount { get; set; }
 
-        public AccountingMonth Month { get; set; }
+        public ReferenceMonth Month { get; set; }
     }
 
     private sealed class ConventionsDbContext : DbContext

@@ -11,7 +11,7 @@ cadastral fictícios. O contrato identifica IsInvoiceAdjustment e a classificaç
 própria Ajuste de fatura; identificadores vazios de descrição/categoria representam
 essa classificação interna, não uma referência a cadastro inexistente.
 
-A data é a confirmação no fuso do negócio; o mês contábil continua o da fatura.
+A data é a confirmação no fuso do negócio; o mês de referência continua o da fatura.
 Aumentar o total aumenta despesas; reduzi-lo reduz despesas, sem receita comum.
 Total bruto negativo é aceito. Diferença zero não gera lançamento; correções são
 novos ajustes que conservam os anteriores. A confirmação é idempotente.

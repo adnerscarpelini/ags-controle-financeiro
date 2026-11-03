@@ -29,7 +29,7 @@ internal sealed partial class EntryCatalog
             if (MonthIndex(calculatedMonth.FirstDay) + offset >= 119988) { return new(null, "A alteração ultrapassa o calendário suportado."); }
             month = calculatedMonth.AddMonths(offset);
         }
-        if (month.Year == 0) { return new(null, "Informe um mês contábil válido."); }
+        if (month.Year == 0) { return new(null, "Informe um mês de referência válido."); }
         var shift = (month.Year - selected.Month.Year) * 12 + month.Month - selected.Month.Month;
         var selectedAmount = new Money(Math.Abs(selected.Amount.Amount));
         var baseline = ToRequest(selected);
@@ -43,7 +43,7 @@ internal sealed partial class EntryCatalog
             var changed = request with
             {
                 Date = request.Date == baseline.Date ? entry.Date : request.Date,
-                Month = new AccountingMonth(monthIndex / 12 + 1, monthIndex % 12 + 1),
+                Month = new ReferenceMonth(monthIndex / 12 + 1, monthIndex % 12 + 1),
                 MerchantExternalId = request.MerchantExternalId == baseline.MerchantExternalId ? entry.MerchantExternalId : request.MerchantExternalId,
                 SubcategoryExternalId = request.SubcategoryExternalId == baseline.SubcategoryExternalId ? entry.SubcategoryExternalId : request.SubcategoryExternalId,
                 AccountExternalId = request.AccountExternalId == baseline.AccountExternalId ? entry.AccountExternalId : request.AccountExternalId,

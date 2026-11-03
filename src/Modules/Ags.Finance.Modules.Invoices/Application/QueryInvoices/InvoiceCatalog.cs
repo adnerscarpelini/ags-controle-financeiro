@@ -6,12 +6,12 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Invoices.Application.QueryInvoices;
 
-internal sealed partial class InvoiceCatalog(IEntryCatalog entries, IAccountCatalog accounts, IInvoiceStore store, IInvoicePaymentCatalog payments, IFinancialOperation operations, IPreferences preferences, TimeProvider clock, IAccountingMonthCalculator calendar) : IInvoiceCatalog
+internal sealed partial class InvoiceCatalog(IEntryCatalog entries, IAccountCatalog accounts, IInvoiceStore store, IInvoicePaymentCatalog payments, IFinancialOperation operations, IPreferences preferences, TimeProvider clock, IReferenceMonthCalculator calendar) : IInvoiceCatalog
 {
     public Task<IReadOnlyList<InvoiceDetails>> GetAsync(CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(GetCoreAsync, _ => true, cancellationToken);
 
-    public Task<IReadOnlyList<InvoiceDetails>> GetMonthAsync(AccountingMonth month, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<InvoiceDetails>> GetMonthAsync(ReferenceMonth month, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(async token =>
         {
             if (month.Year == 0) { return (IReadOnlyList<InvoiceDetails>)[]; }

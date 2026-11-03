@@ -5,7 +5,7 @@ acrescenta de 2 a 48 parcelas à entrada de compra no cartão. Informe o valor t
 e o mês da primeira parcela; 1 no formulário continua sendo uma compra avulsa.
 
 Cada compra cria um InstallmentPurchase e N lançamentos, com relação explícita,
-numeração x/N e meses contábeis consecutivos. A data original da compra permanece.
+numeração x/N e meses de referência consecutivos. A data original da compra permanece.
 Money.Split calcula as partes e põe a diferença de centavos na primeira, garantindo
 que a soma seja exatamente o total. Nenhuma descrição textual é interpretada para
 reconstruir parcelas. O vínculo próprio também é mostrado na composição da fatura.

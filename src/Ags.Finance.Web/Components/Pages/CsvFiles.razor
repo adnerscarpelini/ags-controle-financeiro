@@ -25,11 +25,11 @@
 <TransactionImportPanel />
 <section class="panel">
     <h2>Lançamentos</h2>
-    <p>Receitas e despesas (avulsas, de cartão, parceladas e recorrentes), com mês contábil, centavos, vínculos e estado Pendente/Pago ou Recebido. Ajustes de fatura, transferências e
+    <p>Receitas e despesas (avulsas, de cartão, parceladas e recorrentes), com mês de referência, centavos, vínculos e estado Pendente/Pago ou Recebido. Ajustes de fatura, transferências e
         pagamentos de fatura não fazem parte do layout. Baixe também as séries recorrentes referenciadas pelo mesmo filtro.</p>
     <form id="transaction-export" method="get" action="/csv/lancamentos" data-enhance-nav="false">
         <div class="catalog-fields">
-            <div class="field"><label for="export-month">Mês contábil</label><input id="export-month" name="month" type="month" /></div>
+            <div class="field"><label for="export-month">Mês de referência</label><input id="export-month" name="month" type="month" /></div>
             <div class="field"><label for="export-from">De</label><input id="export-from" name="from" type="date" /></div>
             <div class="field"><label for="export-to">Até</label><input id="export-to" name="to" type="date" /></div>
             <div class="field"><label for="export-saved">Filtro salvo</label><select id="export-saved" name="savedFilter">

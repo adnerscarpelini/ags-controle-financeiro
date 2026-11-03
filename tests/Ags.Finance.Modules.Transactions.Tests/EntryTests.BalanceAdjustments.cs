@@ -25,7 +25,7 @@ public sealed partial class EntryTests
         Assert.Equal(new Money(1000), (await Entries.GetBalanceAsync(_accountId, date.AddDays(-1)))?.EffectiveBalance);
         Assert.Equal(new Money(1000), Assert.Single(await Provider.GetRequiredService<IAccountCatalog>().GetAccountsAsync()).OpeningBalance);
         Assert.Empty(await Entries.GetAsync());
-        Assert.Equal(Money.Zero, (await Entries.QueryAsync(new(Month: new AccountingMonth(2026, 11)))).Expenses);
+        Assert.Equal(Money.Zero, (await Entries.QueryAsync(new(Month: new ReferenceMonth(2026, 11)))).Expenses);
     }
 
     [Fact]

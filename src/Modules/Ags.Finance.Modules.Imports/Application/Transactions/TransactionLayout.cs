@@ -21,8 +21,8 @@ internal sealed record TransactionLayout(TransactionFileKind Kind, string Type, 
 
     public static IReadOnlyList<TransactionLayout> All { get; } =
     [
-        new(TransactionFileKind.Transactions, "transactions", 2,
-            ["external_id", "date", "accounting_month", "kind", "amount_cents", "merchant_external_id", "subcategory_external_id", "account_external_id", "card_external_id",
+        new(TransactionFileKind.Transactions, "transactions", 3,
+            ["external_id", "date", "reference_month", "kind", "amount_cents", "merchant_external_id", "subcategory_external_id", "account_external_id", "card_external_id",
                 "card_digits_external_id", "details", "is_effective", "effective_date", "installment_purchase_external_id", "installment_number", "installment_count",
                 "recurring_entry_external_id", "occurrence_month", "reimbursement_person_external_id", "reimbursement_percent"],
             [
@@ -30,9 +30,9 @@ internal sealed record TransactionLayout(TransactionFileKind Kind, string Type, 
                 ["0190a000-0000-7000-8000-000000000022", "2026-10-06", "2026-11", "Expense", "10000", Merchant, Subcategory, Account, Card, Final, "Parcela fictícia", "true", "2026-10-06", Purchase, "1", "3", "", "", "", ""],
                 ["0190a000-0000-7000-8000-000000000023", "2026-11-05", "2026-11", "Expense", "9990", Merchant, Subcategory, Account, "", "", "Assinatura fictícia", "false", "", "", "", "", Series, "2026-11-01", "", ""],
             ]),
-        new(TransactionFileKind.RecurringSeries, "recurring_series", 2,
+        new(TransactionFileKind.RecurringSeries, "recurring_series", 3,
             ["external_id", "start_date", "day", "end_month", "merchant_external_id", "subcategory_external_id", "account_external_id", "card_external_id", "card_digits_external_id",
-                "amount_cents", "details", "accounting_month", "is_active", "reimbursement_person_external_id", "reimbursement_percent"],
+                "amount_cents", "details", "reference_month", "is_active", "reimbursement_person_external_id", "reimbursement_percent"],
             [[Series, "2026-10-05", "5", "", Merchant, Subcategory, Account, "", "", "9990", "Assinatura fictícia", "", "true", "", ""]]),
     ];
 }
