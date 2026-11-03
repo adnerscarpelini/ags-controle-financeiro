@@ -1,0 +1,87 @@
+@using System.Globalization
+@using Ags.Finance.Modules.Accounts.Contracts
+@inject IBankLogoCatalog Logos
+@implements IDisposable
+
+<section class="panel" role="dialog" aria-label="Editar logo do banco">
+    <h2>Logo de @Bank.Name</h2>
+    <p>PNG, JPEG ou WebP de até 5 MB e 4096 × 4096 pixels. Ajuste o recorte e confira antes de salvar.</p>
+    <p>Logo atual:</p><BankLogo Bank="Bank" />
+    @if (_error is not null) { <p role="status">@_error</p> }
+    <div class="field"><label for="bank-logo-file">Escolher imagem</label><InputFile id="bank-logo-file" OnChange="LoadAsync" accept="image/png,image/jpeg,image/webp" disabled="@(_loading || _saving)" /></div>
+    @if (_loading) { <p aria-live="polite">Lendo imagem…</p> }
+    @if (_source is not null)
+    {
+        <div class="catalog-fields">
+            <div class="field"><label for="logo-zoom">Zoom @_zoom.ToString("N1")×</label><input id="logo-zoom" type="range" min="1" max="5" step="0.1" @bind="_zoom" @bind:culture="CultureInfo.InvariantCulture" @bind:after="UpdatePreview" disabled="@_saving" /></div>
+            <div class="field"><label for="logo-horizontal">Posição horizontal</label><input id="logo-horizontal" type="range" min="-1" max="1" step="0.01" @bind="_horizontal" @bind:culture="CultureInfo.InvariantCulture" @bind:after="UpdatePreview" disabled="@_saving" /></div>
+            <div class="field"><label for="logo-vertical">Posição vertical</label><input id="logo-vertical" type="range" min="-1" max="1" step="0.01" @bind="_vertical" @bind:culture="CultureInfo.InvariantCulture" @bind:after="UpdatePreview" disabled="@_saving" /></div>
+        </div>
+    }
+    @if (_preview is { } preview)
+    {
+        <figure><img class="bank-logo-preview" src="@($"data:image/png;base64,{Convert.ToBase64String(preview)}")" alt="Prévia do recorte circular" width="256" height="256" /><figcaption>Recorte final de 256 × 256 pixels, com transparência fora do círculo.</figcaption></figure>
+    }
+    <button class="button" @onclick="SaveAsync" disabled="@(_saving || _loading || _preview is null)">Salvar recorte</button>
+    @if (Bank.LogoVersion is not null) { <button class="button" @onclick="() => _confirmRemoval = true" disabled="@_saving">Remover logo</button> }
+    <button class="button" @onclick="() => Cancelled.InvokeAsync()" disabled="@_saving">Cancelar</button>
+    @if (_confirmRemoval)
+    {
+        <section role="alertdialog" aria-label="Remover logo"><p>Remover apenas o logo de @Bank.Name? Cadastros e valores serão preservados.</p>
+            <button class="button" @onclick="RemoveAsync" disabled="@_saving">Confirmar remoção</button><button class="button" @onclick="() => _confirmRemoval = false" disabled="@_saving">Manter logo</button></section>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public BankDetails Bank { get; set; } = default!;
+    [Parameter] public EventCallback Saved { get; set; }
+    [Parameter] public EventCallback Cancelled { get; set; }
+    private readonly CancellationTokenSource _cancellation = new();
+    private byte[]? _source;
+    private byte[]? _preview;
+    private double _zoom = 1;
+    private double _horizontal;
+    private double _vertical;
+    private bool _loading;
+    private bool _saving;
+    private bool _confirmRemoval;
+    private string? _error;
+    private LogoCrop Crop => new(_zoom, _horizontal, _vertical);
+    private async Task LoadAsync(InputFileChangeEventArgs args)
+    {
+        if (_loading || _saving) { return; }
+        _loading = true; _source = null; _preview = null; _error = null;
+        try
+        {
+            if (args.File.Size > IBankLogoCatalog.MaxSourceBytes) { _error = "O arquivo excede 5 MB."; return; }
+            using var buffer = new MemoryStream();
+            await using var stream = args.File.OpenReadStream(IBankLogoCatalog.MaxSourceBytes, _cancellation.Token);
+            await stream.CopyToAsync(buffer, _cancellation.Token);
+            _source = buffer.ToArray(); _zoom = 1; _horizontal = 0; _vertical = 0;
+            UpdatePreview();
+        }
+        catch (OperationCanceledException) when (_cancellation.IsCancellationRequested) { }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException) { _error = "Não foi possível ler o arquivo selecionado."; }
+        finally { _loading = false; }
+    }
+    private void UpdatePreview()
+    {
+        if (_source is null) { return; }
+        var result = Logos.CreatePreview(_source, Crop); _preview = result.Png; _error = result.Error;
+    }
+    private async Task SaveAsync()
+    {
+        if (_saving || _loading || _source is null || _preview is null) { return; }
+        _saving = true;
+        try { var result = await Logos.SaveAsync(Bank.ExternalId, _source, Crop, _cancellation.Token); _error = result.Error; if (result.Succeeded) { await Saved.InvokeAsync(); } }
+        finally { _saving = false; }
+    }
+    private async Task RemoveAsync()
+    {
+        if (_saving) { return; }
+        _saving = true;
+        try { var result = await Logos.RemoveAsync(Bank.ExternalId, _cancellation.Token); _error = result.Error; if (result.Succeeded) { await Saved.InvokeAsync(); } }
+        finally { _saving = false; }
+    }
+    public void Dispose() { _cancellation.Cancel(); _cancellation.Dispose(); }
+}

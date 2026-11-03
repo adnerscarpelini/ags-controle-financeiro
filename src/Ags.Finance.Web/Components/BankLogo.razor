@@ -1,0 +1,16 @@
+@using System.Globalization
+@using Ags.Finance.Modules.Accounts.Contracts
+
+@if (Bank.LogoVersion is { } version)
+{
+    <img class="bank-logo" src="@($"/bank-logos/{Bank.ExternalId}?v={version:N}")" alt="Logo de @Bank.Name" width="40" height="40" />
+}
+else
+{
+    <span class="bank-logo bank-logo-initials" aria-label="@Bank.Name">@Initials</span>
+}
+
+@code {
+    [Parameter, EditorRequired] public BankDetails Bank { get; set; } = default!;
+    private string Initials => string.Concat(Bank.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(word => StringInfo.GetNextTextElement(word))).ToUpperInvariant();
+}

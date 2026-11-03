@@ -21,6 +21,8 @@ internal sealed class AccountsDbContextModelSnapshot : ModelSnapshot
             b.Property<Guid>("ExternalId").HasColumnType("uuid");
             b.Property<DateTimeOffset>("CreatedAt").HasColumnType("timestamp with time zone");
             b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("timestamp with time zone");
+            b.Property<byte[]>("LogoData").HasColumnType("bytea");
+            b.Property<Guid?>("LogoVersion").HasColumnType("uuid");
             b.HasKey("Id");
             b.HasIndex("ExternalId").IsUnique();
             b.ToTable("banks", "accounts");

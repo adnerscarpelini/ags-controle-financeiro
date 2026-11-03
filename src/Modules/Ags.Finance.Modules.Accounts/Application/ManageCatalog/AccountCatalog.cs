@@ -8,7 +8,7 @@ namespace Ags.Finance.Modules.Accounts.Application.ManageCatalog;
 internal sealed partial class AccountCatalog(IAccountsStore store, TimeProvider clock, IFinancialOperation operations) : IAccountCatalog
 {
     public async Task<IReadOnlyList<BankDetails>> GetBanksAsync(CancellationToken cancellationToken = default)
-        => (await store.GetBanksAsync(cancellationToken)).Select(x => new BankDetails(x.ExternalId, x.Name)).ToList();
+        => (await store.GetBanksAsync(cancellationToken)).Select(x => new BankDetails(x.ExternalId, x.Name, x.LogoVersion)).ToList();
 
     public async Task<IReadOnlyList<AccountDetails>> GetAccountsAsync(bool activeOnly = true, CancellationToken cancellationToken = default)
         => (await store.GetAccountsAsync(cancellationToken)).Where(x => !activeOnly || x.IsActive)

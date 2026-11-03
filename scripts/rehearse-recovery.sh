@@ -94,6 +94,12 @@ INSERT INTO accounts.credit_cards (\"AccountExternalId\", \"Name\", \"Brand\", \
 INSERT INTO accounts.card_last_digits (\"CardExternalId\", \"Digits\", \"Usage\", \"Label\", \"IsActive\", \"ExternalId\", \"CreatedAt\", \"UpdatedAt\")
   VALUES ('019e0000-0000-7000-8000-000000000003', '1234', 0, 'Titular', true, '019e0000-0000-7000-8000-000000000005', now(), now());" >/dev/null
 
+# Logo fictício gerado para o ensaio: PNG RGBA 256 × 256, círculo verde, sem marca real.
+LOGO_PNG=iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAAEXUlEQVR42u3dQQHCMBAFUSRgeWWhDkzQJs28wzOQ7p9rX+/PvDjO9yLe9jAewbhFQgAwdlEQAIxdFAQAgxcEAcDoxUAAMHoxEACMXgwEAKMXAwHA8IVAAIweMRAAw0cIBMDwEQIBMHyEQAAMHyEQAMNHCATA8BECATB8hEAAjB8READDRwgEwPgRAQEwfIRAAIwfERAAw0cIBMD4EQEBMHyEQACMHxEQAONHBATAASIE3QA4PEQgGgAHhwhEA+DQEIFoABwYIhANgMNCBKIBcFCIQDQADgkRCAbA8SAE0QA4GEQgGgCHgggIAAhALQAOBBGIBsBhIALRADgIRCAaAIeACEQD4AAgGgAfHhZHwPghHAHjh3AEBAAEwPihGAHjh3AEjB/CERAAEADjh2IEjB/CERAAEADjh2IEjB/CERAAEADjh2IEjB/CERAAEADjh2IEjB/CERAAEADjh2IEBAAEwPihGAEBAAEwfihGQABAAIwfihEQABAA44diBAQABMD4oRgBAQABMH4oRkAAQAAEAATA+CEVAQEAATB+KEZAAEAABAAEwPghFQEBAAEQABAA44dUBAQABEAAQACMH1IREAAQAAEAATB+SEVAAEAABAAEQAAgHQAPBKEICAAIgACAAHgYEACgFwAPA7EICAAIgACAAAACALQC4EEgGAEBAAHwGCAAgAAAAgAIACAAgAAAZwXAQ0CUAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAIAAAAIACAAgAMCCAIgANPkvAAiAhwABAAQAEABAAAABAAQAODAAIgCx8QsACIAAgAB4EBAAoBkAEYDQ+AUABEAAQAAEAAQA6AZABCAyfgEAARAAEAABAAEQAWiMXwBAAAQABEAEIDV+AQABEAAQABGA1PgFAARAAEAARABS4xcAEAABAAEQAUiNXwBAAEYEIDh+AQABEAAQABGA1PgFAARgRACC4xcAEIARAQiOXwBAAEYEIDh+AQABGBGA4PgFAARgRACC4xcAEIARAQiOXwBAAEYEIDj+fwdABOBB4xcAEIARAQiO/6oAiAA8YPwCAAIwIgDB8V8dABGAjccvACAAIwIQHP9dARAB2HD8AgACMCIAwfHfHQARgI3GvyIAIgCbjF8AQABGBCA4/pUBEAFYPP7VARABWDj+HQIgAhh/PAAigPHHAyACGH88ACKA8ccDIAIYvwCAAFQDIAIYfzwAIoDxxwMgBBi+AIgAxl8PgAhg/PEAiADGHw+ACGD88QCIAMYfD4AIYPzxAIgAxh8PgBBg+AIgAhh/PQAigPHHAyAEGL4AiADGXw+AEGD4AiACGH89AEKA4QuACGD89QAIAfnhC4AIEB+/AAiB4ccZvxAYvgAgBIYvAAiB4QsAQmD4AoAQGL4AIASGLwCIgdELAEJg+AKAGBi9ACAGRi8AiIHRCwBiYPQCgCAYvAAgCsYuANSi4BsJAIdGwtse5gcPBmIDbpK37QAAAABJRU5ErkJggg==
+psql_app a "UPDATE accounts.banks SET \"LogoData\" = decode('$LOGO_PNG', 'base64'), \"LogoVersion\" = '019e0000-0000-7000-8000-000000000010' WHERE \"ExternalId\" = '019e0000-0000-7000-8000-000000000001'" >/dev/null
+LOGO_SQL="SELECT md5(\"LogoData\") || '|' || \"LogoVersion\" FROM accounts.banks WHERE \"ExternalId\" = '019e0000-0000-7000-8000-000000000001'"
+LOGO_BEFORE=$(psql_app a "$LOGO_SQL")
+
 SUMMARY_SQL="SELECT (SELECT count(*) FROM identity.users) || '|' || (SELECT count(*) FROM accounts.banks) || '|' || (SELECT count(*) FROM accounts.accounts) || '|' || (SELECT count(*) FROM accounts.credit_cards) || '|' || (SELECT sum(\"CreditLimit\") FROM accounts.credit_cards) || '|' || (SELECT count(*) FROM accounts.card_last_digits) || '|' || (SELECT string_agg(c.\"Name\", ',' ORDER BY c.\"Name\") FROM accounts.credit_cards c JOIN accounts.accounts a ON a.\"ExternalId\" = c.\"AccountExternalId\")"
 BEFORE=$(psql_app a "$SUMMARY_SQL")
 FOREIGN_KEYS_SQL="SELECT coalesce(string_agg(format('%I.%I:%I:%s', n.nspname, t.relname, c.conname, pg_get_constraintdef(c.oid)), ';' ORDER BY n.nspname, t.relname, c.conname), '') FROM pg_constraint c JOIN pg_class t ON t.oid = c.conrelid JOIN pg_namespace n ON n.oid = t.relnamespace WHERE c.contype = 'f' AND n.nspname <> 'pg_catalog'"
@@ -117,6 +123,8 @@ compose a run --rm -T app backup list 2>/dev/null | grep -q ' scheduled ' || fai
 log "Instalação A: recriar só os containers mantém os backups (a pasta é persistente)"
 compose a up -d --force-recreate --wait --wait-timeout 300 app
 compose a run --rm -T app backup list 2>/dev/null | grep -q ' scheduled ' || fail "o backup agendado sumiu após recriar o container"
+
+[ "$(psql_app a "$LOGO_SQL")" = "$LOGO_BEFORE" ] || fail "logo mudou após recriar containers"
 
 log "Instalação A: backup sob demanda (dump custom + arquivos da aplicação) e conferência"
 compose a run --rm -T app backup create
@@ -143,6 +151,7 @@ compose b up -d --wait --wait-timeout 300 app
 log "Instalação B: confere registros, vínculos e totais"
 AFTER=$(psql_app b "$SUMMARY_SQL")
 echo "Resumo depois: $AFTER"
+[ "$(psql_app b "$LOGO_SQL")" = "$LOGO_BEFORE" ] || fail "logo ou versão divergente após restaurar"
 [ "$AFTER" = "$BEFORE" ] || fail "dados divergentes: antes=$BEFORE depois=$AFTER"
 [ "$(psql_app b "$FOREIGN_KEYS_SQL")" = "$FOREIGN_KEYS_BEFORE" ] || fail "chaves estrangeiras divergentes após a restauração"
 # FKs dentro do próprio módulo são permitidas; apenas vínculos entre schemas violam a fronteira.

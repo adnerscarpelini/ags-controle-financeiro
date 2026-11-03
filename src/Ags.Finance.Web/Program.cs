@@ -9,6 +9,7 @@ using Ags.Finance.Modules.Reports;
 using Ags.Finance.Modules.Transactions;
 using Ags.Finance.Web.Authentication;
 using Ags.Finance.Web.Backup;
+using Ags.Finance.Web.BankLogos;
 using Ags.Finance.Web.Commands;
 using Ags.Finance.Web.Components;
 using Ags.Finance.Web.Hosting;
@@ -115,6 +116,7 @@ app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapAccountEndpoints();
+app.MapBankLogoEndpoints();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

@@ -13,6 +13,8 @@
     <p role="status" class="@(_failed ? "form-error" : "form-success")">@_message</p>
 }
 
+@if (_logoBank is { } logoBank) { <BankLogoEditor @key="logoBank.ExternalId" Bank="logoBank" Saved="LogoSavedAsync" Cancelled="() => _logoBank = null" /> }
+
 @if (_pendingId is not null)
 {
     <section class="panel" role="alertdialog" aria-labelledby="archive-title">
@@ -35,7 +37,7 @@
     <ul>
         @foreach (var bank in _banks)
         {
-            <li>@bank.Name</li>
+            <li class="bank-list-item"><BankLogo Bank="bank" /><span>@bank.Name</span><button class="button" @onclick="() => _logoBank = bank">Adicionar / editar logo</button></li>
         }
     </ul>
 </section>
@@ -184,6 +186,8 @@
     private bool _pendingCard;
     private bool _restoring;
     private bool _showArchived;
+    private BankDetails? _logoBank;
+    private async Task LogoSavedAsync() { _logoBank = null; await RefreshAsync(); _message = "Logo atualizado."; }
     private static string AvailabilityLabel(CreditCardDetails card) => !card.IsActive ? "Arquivado individualmente" : !card.IsAccountActive ? "Indisponível: conta arquivada" : "Disponível";
 
     protected override async Task OnInitializedAsync()

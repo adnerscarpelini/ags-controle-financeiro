@@ -19,4 +19,8 @@
     <InternalsVisibleTo Include="Ags.Finance.Web.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="../../licenses/SkiaSharp/**" Link="licenses/SkiaSharp/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
