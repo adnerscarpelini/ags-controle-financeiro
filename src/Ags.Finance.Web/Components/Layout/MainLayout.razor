@@ -20,7 +20,7 @@
         <PrivacyToggle Class="icon-button privacy-toggle" />
     </MudAppBar>
 
-    <MudDrawer id="sidebar" Class="@(IsCollapsed ? "sidebar sidebar-collapsed" : "sidebar")" Elevation="0" OpenMiniOnHover="false" Breakpoint="Breakpoint.Xs"
+    <MudDrawer id="sidebar" Class="@(IsCollapsed ? "sidebar sidebar-collapsed" : "sidebar")" Elevation="0" OpenMiniOnHover="false" Breakpoint="Breakpoint.Always"
                Variant="@(Viewport.IsMobile ? DrawerVariant.Temporary : DrawerVariant.Mini)"
                Open="@(Viewport.IsMobile ? _drawerOpen : !_collapsed)" OpenChanged="DrawerOpenChanged">
         <NavMenu OnNavigate="CloseDrawer" Collapsed="IsCollapsed" CanCollapse="@(!Viewport.IsMobile)" OnToggleCollapsed="ToggleCollapsedAsync" />
@@ -28,9 +28,18 @@
 
     <MudMainContent Class="app-main">
         <main class="content">
-            @Body
+            <CascadingValue Value="Viewport.IsMobile" Name="IsMobile">
+                @Body
+            </CascadingValue>
         </main>
     </MudMainContent>
+
+    @if (Viewport.IsMobile)
+    {
+        <div class="new-entry-fab" data-new-entry-fab>
+            <NewEntryMenu />
+        </div>
+    }
 </MudLayout>
 
 @code {

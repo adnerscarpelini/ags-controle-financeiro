@@ -127,48 +127,94 @@
             <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.ContentCopy" data-duplicate-selected Disabled="@_busy" OnClick="DuplicateSelectedAsync">Duplicar selecionado (Ctrl+D)</MudButton>
         </div>
     }
-    <MudTable T="EntryDetails" Items="_entries" Elevation="0" Hover="true" Class="data-table" Breakpoint="Breakpoint.None" Loading="_queryBusy" LoadingProgressColor="Color.Primary" aria-label="Lançamentos">
-        <HeaderContent>
-            <MudTh Class="col-select"><span class="visually-hidden">Seleção</span></MudTh>
-            <MudTh>Situação</MudTh>
-            <MudTh aria-sort="@AriaSort(EntrySortColumn.Date)">@SortHeader("Data", EntrySortColumn.Date)</MudTh>
-            <MudTh aria-sort="@AriaSort(EntrySortColumn.Description)">@SortHeader("Descrição", EntrySortColumn.Description)</MudTh>
-            <MudTh aria-sort="@AriaSort(EntrySortColumn.Category)">@SortHeader("Categoria", EntrySortColumn.Category)</MudTh>
-            <MudTh>Conta ou cartão</MudTh>
-            <MudTh Class="numeric" aria-sort="@AriaSort(EntrySortColumn.Amount)">@SortHeader("Valor", EntrySortColumn.Amount)</MudTh>
-            <MudTh>Ações</MudTh>
-        </HeaderContent>
-        <RowTemplate Context="entry">
-            <MudTd Class="col-select">
-                @if (!entry.IsInvoiceAdjustment)
-                {
-                    <input type="checkbox" class="row-select" aria-label="@($"Selecionar {entry.MerchantName}")" checked="@(_selectedId == entry.ExternalId)" @onchange="() => ToggleSelection(entry)" />
-                }
-            </MudTd>
-            <MudTd DataLabel="Situação"><EntryStatusIcon Entry="entry" Today="Today" /></MudTd>
-            <MudTd DataLabel="Data">@entry.Date.ToString("dd/MM/yyyy")</MudTd>
-            <MudTd DataLabel="Descrição" Class="col-description">
-                <span class="row-title">@entry.MerchantName@(SeriesSuffix(entry))</span>
-                @if (RowNote(entry) is { Length: > 0 } note) { <span class="row-note">@note</span> }
-            </MudTd>
-            <MudTd DataLabel="Categoria">@ClassificationLabel(entry.Classification)</MudTd>
-            <MudTd DataLabel="Conta ou cartão">@SourceName(entry)</MudTd>
-            <MudTd DataLabel="Valor" Class="@(entry.Amount.IsNegative ? "numeric entry-expense" : "numeric entry-income")">@Signed(entry.Amount)</MudTd>
-            <MudTd DataLabel="Ações" Class="col-actions">
-                @if (entry.IsInvoiceAdjustment)
-                {
-                    <HelpTip Text="Ajuste de fatura: corrija por um novo ajuste no detalhe da fatura." />
-                }
-                else
-                {
-                    <RowActions Actions="ActionsFor(entry)" />
-                }
-            </MudTd>
-        </RowTemplate>
-        <NoRecordsContent>
+    @if (IsMobile)
+    {
+        <div class="field mobile-sort">
+            <label for="mobile-sort">Ordenar por</label>
+            <select id="mobile-sort" class="input" value="@MobileSortValue" @onchange="MobileSortChangedAsync">
+                <option value="">Padrão</option>
+                <option value="Date:desc">Data, mais recente</option>
+                <option value="Date:asc">Data, mais antiga</option>
+                <option value="Amount:desc">Valor, maior primeiro</option>
+                <option value="Amount:asc">Valor, menor primeiro</option>
+                <option value="Description:asc">Descrição</option>
+                <option value="Category:asc">Categoria</option>
+            </select>
+        </div>
+        @if (_entries.Count == 0)
+        {
             <EmptyState Icon="@Icons.Material.Outlined.List" Message="Nenhum lançamento neste mês ou filtro." ActionText="Novo lançamento" OnAction="() => EntryWindows.ShowNewAsync(EntryDialogType.Expense)" />
-        </NoRecordsContent>
-    </MudTable>
+        }
+        <ul class="entry-cards" aria-label="Lançamentos">
+            @foreach (var entry in _entries)
+            {
+                <li class="entry-card" data-entry-card>
+                    <EntryStatusIcon Entry="entry" Today="Today" />
+                    <div class="entry-card-text">
+                        <span class="row-title">@entry.MerchantName@(SeriesSuffix(entry))</span>
+                        <span class="row-note" data-entry-card-meta>@entry.Date.ToString("dd/MM/yyyy") · @SituationText(entry)</span>
+                        @if (RowNote(entry) is { Length: > 0 } note) { <span class="row-note">@note</span> }
+                    </div>
+                    <div class="entry-card-side">
+                        <span class="numeric @(entry.Amount.IsNegative ? "entry-expense" : "entry-income")" data-entry-card-amount>@Signed(entry.Amount)</span>
+                        @if (entry.IsInvoiceAdjustment)
+                        {
+                            <HelpTip Text="Ajuste de fatura: corrija por um novo ajuste no detalhe da fatura." />
+                        }
+                        else
+                        {
+                            <RowActions Actions="ActionsFor(entry)" />
+                        }
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+    else
+    {
+        <MudTable T="EntryDetails" Items="_entries" Elevation="0" Hover="true" Class="data-table" Breakpoint="Breakpoint.None" Loading="_queryBusy" LoadingProgressColor="Color.Primary" aria-label="Lançamentos">
+            <HeaderContent>
+                <MudTh Class="col-select"><span class="visually-hidden">Seleção</span></MudTh>
+                <MudTh>Situação</MudTh>
+                <MudTh aria-sort="@AriaSort(EntrySortColumn.Date)">@SortHeader("Data", EntrySortColumn.Date)</MudTh>
+                <MudTh aria-sort="@AriaSort(EntrySortColumn.Description)">@SortHeader("Descrição", EntrySortColumn.Description)</MudTh>
+                <MudTh aria-sort="@AriaSort(EntrySortColumn.Category)">@SortHeader("Categoria", EntrySortColumn.Category)</MudTh>
+                <MudTh>Conta ou cartão</MudTh>
+                <MudTh Class="numeric" aria-sort="@AriaSort(EntrySortColumn.Amount)">@SortHeader("Valor", EntrySortColumn.Amount)</MudTh>
+                <MudTh>Ações</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="entry">
+                <MudTd Class="col-select">
+                    @if (!entry.IsInvoiceAdjustment)
+                    {
+                        <input type="checkbox" class="row-select" aria-label="@($"Selecionar {entry.MerchantName}")" checked="@(_selectedId == entry.ExternalId)" @onchange="() => ToggleSelection(entry)" />
+                    }
+                </MudTd>
+                <MudTd DataLabel="Situação"><EntryStatusIcon Entry="entry" Today="Today" /></MudTd>
+                <MudTd DataLabel="Data">@entry.Date.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd DataLabel="Descrição" Class="col-description">
+                    <span class="row-title">@entry.MerchantName@(SeriesSuffix(entry))</span>
+                    @if (RowNote(entry) is { Length: > 0 } note) { <span class="row-note">@note</span> }
+                </MudTd>
+                <MudTd DataLabel="Categoria">@ClassificationLabel(entry.Classification)</MudTd>
+                <MudTd DataLabel="Conta ou cartão">@SourceName(entry)</MudTd>
+                <MudTd DataLabel="Valor" Class="@(entry.Amount.IsNegative ? "numeric entry-expense" : "numeric entry-income")">@Signed(entry.Amount)</MudTd>
+                <MudTd DataLabel="Ações" Class="col-actions">
+                    @if (entry.IsInvoiceAdjustment)
+                    {
+                        <HelpTip Text="Ajuste de fatura: corrija por um novo ajuste no detalhe da fatura." />
+                    }
+                    else
+                    {
+                        <RowActions Actions="ActionsFor(entry)" />
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <EmptyState Icon="@Icons.Material.Outlined.List" Message="Nenhum lançamento neste mês ou filtro." ActionText="Novo lançamento" OnAction="() => EntryWindows.ShowNewAsync(EntryDialogType.Expense)" />
+            </NoRecordsContent>
+        </MudTable>
+    }
     <footer class="table-footer" aria-label="Paginação e saldo previsto">
         <div class="field page-size">
             <label for="page-size">Linhas por página</label>
@@ -192,6 +238,9 @@
 
     [SupplyParameterFromQuery(Name = "situacao")]
     public string? Situation { get; set; }
+
+    [CascadingParameter(Name = "IsMobile")]
+    public bool IsMobile { get; set; }
 
     private IReadOnlyList<Ags.Finance.Modules.Attachments.Contracts.AttachmentDetails> _attachmentRows = [];
     private IReadOnlyList<EntryDetails> _entries = [];
@@ -320,6 +369,9 @@
         if (entry.Details.Length > 0) { notes.Add(entry.Details); }
         return string.Join(" · ", notes);
     }
+
+    private static string SituationText(EntryDetails entry) => entry.CardExternalId is not null ? "Cartão"
+        : entry.IsEffective ? entry.Kind == CategoryKind.Expense ? "Pago" : "Recebido" : "Pendente";
 
     private string PersonName(Guid externalId) => _people.FirstOrDefault(x => x.ExternalId == externalId)?.Name ?? "Pessoa";
 

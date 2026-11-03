@@ -171,6 +171,16 @@ public partial class Transactions
         await ApplyFiltersAsync();
     }
 
+    private string MobileSortValue => _sortColumn is { } column ? $"{column}:{(_sortDescending ? "desc" : "asc")}" : string.Empty;
+
+    private async Task MobileSortChangedAsync(ChangeEventArgs args)
+    {
+        var parts = (args.Value?.ToString() ?? string.Empty).Split(':');
+        _sortColumn = Enum.TryParse<EntrySortColumn>(parts[0], out var column) ? column : null;
+        _sortDescending = parts.Length < 2 || parts[1] == "desc";
+        await ApplyFiltersAsync();
+    }
+
     private string? AriaSort(EntrySortColumn column) => _sortColumn != column ? null : _sortDescending ? "descending" : "ascending";
 
     private RenderFragment SortHeader(string text, EntrySortColumn column) => builder => BuildSortHeader(builder, text, column);

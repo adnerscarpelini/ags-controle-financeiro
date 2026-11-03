@@ -395,14 +395,29 @@ public sealed partial class TransactionPageTests
         await page.Find("#filter-all-months").ChangeAsync(true);
         page.WaitForAssertion(() => Assert.Equal(3, Rows(page).Count));
 
-        IElement Row(string text) => Rows(page).Single(x => x.TextContent.Contains(text, StringComparison.Ordinal));
+        // A lista recarrega de forma assíncrona depois das janelas: a linha é localizada de novo se tiver sido redesenhada.
+        async Task ClickAsync(string text, string action)
+        {
+            for (var attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    await Rows(page).Single(x => x.TextContent.Contains(text, StringComparison.Ordinal)).QuerySelector($"[data-action={action}]")!.ClickAsync(new MouseEventArgs());
+                    return;
+                }
+                catch (Bunit.Rendering.UnknownEventHandlerIdException) when (attempt < 5)
+                {
+                    await Task.Delay(100);
+                }
+            }
+        }
 
-        await Row("(1/3)").QuerySelector("[data-action=anticipate]")!.ClickAsync(new MouseEventArgs());
+        await ClickAsync("(1/3)", "anticipate");
         ui.Dialogs.WaitForAssertion(() => Assert.False(ui.Dialogs.Find("[data-review]").HasAttribute("disabled")));
         await ui.Dialogs.Find("[data-confirm-cancel]").ClickAsync(new MouseEventArgs());
         ui.Dialogs.WaitForAssertion(() => Assert.Empty(ui.Dialogs.FindAll("#anticipation-form")));
 
-        await Row("(1/3)").QuerySelector("[data-action=anticipate]")!.ClickAsync(new MouseEventArgs());
+        await ClickAsync("(1/3)", "anticipate");
         ui.Dialogs.WaitForAssertion(() => Assert.False(ui.Dialogs.Find("[data-review]").HasAttribute("disabled")));
         await ui.Dialogs.Find("#anticipation-form").SubmitAsync(EventArgs.Empty);
         var review = ui.Dialogs.Find("[data-anticipation-review]").TextContent;
@@ -412,11 +427,11 @@ public sealed partial class TransactionPageTests
         Assert.Equal(new ReferenceMonth(2026, 9), (await ui.Entries.GetAsync()).Single(x => x.InstallmentNumber == 3).Month);
 
         page.WaitForAssertion(() => Assert.Equal(3, Rows(page).Count));
-        await Row("(2/3)").QuerySelector("[data-action=delete]")!.ClickAsync(new MouseEventArgs());
+        await ClickAsync("(2/3)", "delete");
         ui.Dialogs.WaitForAssertion(() => Assert.NotEmpty(ui.Dialogs.FindAll("#delete-scope")));
         await ui.Dialogs.Find("[data-confirm-cancel]").ClickAsync(new MouseEventArgs());
         Assert.Equal(3, (await ui.Entries.GetAsync()).Count(x => x.InstallmentNumber is not null));
-        await Row("(2/3)").QuerySelector("[data-action=delete]")!.ClickAsync(new MouseEventArgs());
+        await ClickAsync("(2/3)", "delete");
         ui.Dialogs.WaitForAssertion(() => Assert.NotEmpty(ui.Dialogs.FindAll("#delete-scope")));
         await ui.Dialogs.Find("[data-confirm-ok]").ClickAsync(new MouseEventArgs());
         Assert.Contains("Escolha o alcance", ui.Dialogs.Find("[data-entry-error]").TextContent, StringComparison.Ordinal);

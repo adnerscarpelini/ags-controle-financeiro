@@ -25,7 +25,7 @@
         <h2>Cadastros</h2>
         <p class="form-note">Layout oficial e versionado do sistema, em UTF-8 com vírgula como separador. A exportação só lê dados: não altera cadastros nem saldos.
             CSV não substitui o backup do banco de dados.</p>
-        <MudTable T="Item" Items="s_items" Elevation="0" Class="data-table" Breakpoint="Breakpoint.Sm" aria-label="Cadastros para exportar">
+        <MudTable T="Item" Items="s_items" Elevation="0" Class="data-table" Breakpoint="AppTables.Breakpoint(IsMobile)" SortLabel="@AppTables.SortLabel" aria-label="Cadastros para exportar">
             <HeaderContent>
                 <MudTh>Cadastro</MudTh>
                 <MudTh>Baixar</MudTh>
@@ -70,6 +70,9 @@
 </div>
 
 @code {
+    [CascadingParameter(Name = "IsMobile")]
+    public bool IsMobile { get; set; }
+
     private IReadOnlyList<SavedFilterDetails> _filters = [];
     private bool _export;
 

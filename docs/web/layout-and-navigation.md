@@ -9,7 +9,7 @@ Origem: [#5](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/5
 - O botão **+ Novo** fica sempre visível e abre as janelas de Despesa, Receita, Despesa cartão e Transferência, sem sair da tela atual (#97). Ctrl+N abre o menu. Ao salvar, `EntryChangeNotifier` avisa a tela aberta, que recarrega sem recarregar a página.
 - No rodapé ficam [Ocultar valores](hide-values.md) (também na barra superior do celular), Recolher menu e **Sair** (veja [login.md](../identity/login.md)). Configurações também traz a troca de senha.
 - A raiz `/` abre a tela inicial das preferências. `/cadastros` redireciona para `/cadastros/categorias`. `/pendentes` abre Lançamentos já filtrada (#98), `/transferencias` leva a Contas (#99), `/faturas`, `/compromissos` e `/cashback` levam a Cartões (#100), e `/cadastros/contas-cartoes` leva a Contas (#101).
-- Abaixo de 768 px o menu vira uma gaveta: some da tela, abre pelo botão da barra superior e fecha ao escolher um item ou tocar na película escura. O conteúdo ocupa a largura inteira e não há rolagem horizontal. Itens e botão têm pelo menos 44 px de altura.
+- Abaixo de 768 px o menu vira uma gaveta: some da tela, abre pelo botão da barra superior e fecha ao escolher um item ou tocar na película escura. O **+ Novo** continua acessível em um botão flutuante. O conteúdo ocupa a largura inteira, janelas abrem em tela cheia com as ações no rodapé, e tabelas viram cards. Alvos de toque têm pelo menos 44 px (#103).
 - A cultura da aplicação é `pt-BR` em todos os circuitos (`Program.cs`): `R$ 1.234,56` e `dd/MM/yyyy`, independentemente da cultura do sistema ou do navegador.
 - Nada vem da internet: CSS, JS e ícones do [MudBlazor](../architecture/ui-library.md), fonte Inter e demais recursos são servidos pela própria aplicação.
 - A estrutura usa `MudLayout`, `MudAppBar`, `MudDrawer` e `MudMainContent`. A barra superior só aparece abaixo de 768 px; a película da gaveta é a da biblioteca.
@@ -49,6 +49,7 @@ Origem: [#5](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/5
 ## Testes
 
 - `LayoutPagesTests` (Web): cada seção mostra o título e destaca só o próprio item; `/` redireciona; favicon declarado; nenhuma referência externa nas páginas e nos CSS; ativos estáticos servidos.
+- `MobileLayoutTests` (bUnit): opções de janela, tabelas em cards, cards e menu de Lançamentos, ordenação em seletor e + Novo no celular. O bUnit não mede layout; a verificação visual precisa de navegador.
 - `MainLayoutTests` (bUnit): a gaveta começa fechada no celular, abre pelo botão, fecha pelo botão, pela película e ao escolher um item; árvore e grupos, destaque da tela atual, + Novo com quatro opções, modo recolhido lembrado, com nomes acessíveis, tooltip e menu flutuante; provedores presentes; o tema acompanha a preferência e o sistema.
 - `CommonComponentsTests` (bUnit): `HelpTip` com teclado, toque e mouse; `EmptyState`; `ConfirmDialog` pelo `IDialogService`, confirmando e cancelando.
 - `AppThemeTests`: `AppTheme` e `tokens.css` têm os mesmos valores.
