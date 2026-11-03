@@ -10,6 +10,7 @@
 @inject IInvoicePaymentCatalog Payments
 
 <PageHeader Title="Faturas" />
+<p><a href="/compromissos">Saldos de faturas e parcelas futuras</a></p>
 <section class="panel">
     <h2>Consultar mês</h2>
     <form id="invoice-filter" @onsubmit="ReloadInvoicesAsync" @onsubmit:preventDefault>
