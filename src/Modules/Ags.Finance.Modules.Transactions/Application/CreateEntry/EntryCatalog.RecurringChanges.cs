@@ -115,6 +115,7 @@ internal sealed partial class EntryCatalog
             var reimbursementError = await RequireReimbursementChangeAsync(entry, ChangesProtectedData(entry, updated, false), cancellationToken);
             if (reimbursementError is not null) { return new(null, reimbursementError); }
             entry.ApplyChange(updated, false);
+            if (entry.ExternalId == externalId) { ApplyPaidState(entry, request.IsPaid); }
             if (following is not null) { entry.SetRecurring(following.ExternalId, entry.OccurrenceMonth!.Value); }
         }
         await store.SaveRecurringChangesAsync(series, following, affected, [], cancellationToken);

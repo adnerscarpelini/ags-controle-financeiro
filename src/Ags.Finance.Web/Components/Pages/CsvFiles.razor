@@ -25,7 +25,7 @@
 <TransactionImportPanel />
 <section class="panel">
     <h2>Lançamentos</h2>
-    <p>Receitas e despesas (avulsas, de cartão, parceladas e recorrentes), com mês contábil, centavos, vínculos e estado Pendente/Efetivado. Ajustes de fatura, transferências e
+    <p>Receitas e despesas (avulsas, de cartão, parceladas e recorrentes), com mês contábil, centavos, vínculos e estado Pendente/Pago ou Recebido. Ajustes de fatura, transferências e
         pagamentos de fatura não fazem parte do layout. Baixe também as séries recorrentes referenciadas pelo mesmo filtro.</p>
     <form id="transaction-export" method="get" action="/csv/lancamentos" data-enhance-nav="false">
         <div class="catalog-fields">
@@ -35,7 +35,7 @@
             <div class="field"><label for="export-saved">Filtro salvo</label><select id="export-saved" name="savedFilter">
                 <option value="">Nenhum</option>@foreach (var filter in _filters) { <option value="@filter.ExternalId">@filter.Name</option> }
             </select></div>
-            <div class="field"><label for="export-effective">Situação</label><select id="export-effective" name="effective"><option value="">Todas</option><option value="true">Efetivado</option><option value="false">Pendente</option></select></div>
+            <div class="field"><label for="export-effective">Situação</label><select id="export-effective" name="effective"><option value="">Todas</option><option value="true">Pago ou Recebido</option><option value="false">Pendente</option></select></div>
             <div class="field"><label for="export-text">Texto</label><input id="export-text" name="text" maxlength="200" /></div>
         </div>
         <button class="button">Exportar lançamentos</button>

@@ -78,6 +78,10 @@
                 @foreach (var account in _accounts) { <option value="@account.ExternalId">@account.Name</option> }
             </select></div>
             <div class="field"><label for="entry-month">Mês contábil</label><input id="entry-month" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" required /></div>
+            @if (_cardId == Guid.Empty)
+            {
+                <label class="checkbox"><input id="entry-paid" type="checkbox" @bind="_isPaid" />@(_isPaid ? IsExpense ? "Pago" : "Recebido" : IsExpense ? "Não foi paga" : "Não foi recebida")</label>
+            }
             <div class="field"><label for="entry-details">Detalhes</label><input id="entry-details" @bind="_details" maxlength="1000" /></div>
             @if (IsExpense)
             {
@@ -117,7 +121,7 @@
         }
         <AttachmentPicker @ref="_attachmentPicker" />
         @if (_savedAttachmentEntry is not null) { <button class="button" type="button" @onclick="RetryAttachmentsAsync" disabled="@_busy">Reenviar anexos do lançamento salvo</button> }
-        <button class="button" disabled="@(_busy || _savedAttachmentEntry is not null)">Salvar lançamento</button>
+        <button class="button" disabled="@(_busy || _savedAttachmentEntry is not null)">@(_editingId is null ? "Salvar e criar nova" : "Salvar lançamento")</button>
         <button class="button" type="button" data-new-entry @onclick="StartNew" disabled="@_busy">Novo / limpar</button>
     </form>
 </section>
@@ -158,7 +162,7 @@
                 <option value="@Guid.Empty">Todas</option>@foreach (var item in _filterSubcategories) { <option value="@item.ExternalId">@item.DisplayName</option> }
             </select></div>
             <div class="field"><label for="filter-effective">Situação</label><select id="filter-effective" value="@(_filterEffective?.ToString().ToLowerInvariant() ?? string.Empty)" @onchange="args => _filterEffective = bool.TryParse(args.Value?.ToString(), out var effective) ? effective : null">
-                <option value="">Todas</option><option value="true">Efetivado</option><option value="false">Pendente</option>
+                <option value="">Todas</option><option value="true">Pago ou Recebido</option><option value="false">Pendente</option>
             </select></div>
             <div class="field"><label for="entry-search">Buscar descrição ou detalhes (Ctrl+F)</label><input id="entry-search" data-entry-search @bind="_filterText" maxlength="200" /></div>
         </div>
@@ -173,7 +177,7 @@
             <li><span>@entry.Date.ToString("dd/MM/yyyy") · @entry.MerchantName · @entry.Classification</span>
                 <span class="numeric @(entry.Amount.IsNegative ? "entry-expense" : "entry-income")">@(entry.Amount.IsNegative ? string.Empty : "+")@entry.Amount</span>
                 <span class="@(entry.Month > _currentMonth ? "entry-month-future" : string.Empty)">Mês @entry.Month @(entry.Month > _currentMonth ? "(mês futuro)" : string.Empty)</span>
-                <span>@(entry.CardExternalId is not null ? "Compra no cartão" : entry.IsEffective ? "Efetivado" : "Pendente") · @entry.Details</span>
+                <span>@(entry.CardExternalId is not null ? "Compra no cartão" : entry.IsEffective ? entry.Kind == CategoryKind.Expense ? "Pago" : "Recebido" : "Pendente") · @entry.Details</span>
                 @if (entry.InstallmentNumber is not null) { <span>Parcela @entry.InstallmentNumber/@entry.InstallmentCount</span> }
                 @if (entry.Reimbursement is { } reimbursement) { <span>Reembolso: @PersonName(reimbursement.PersonExternalId) · @reimbursement.Percent.ToString("0.##", CultureInfo.GetCultureInfo("pt-BR"))%</span> }
                 @if (entry.RecurringEntryExternalId is not null) { <span>Recorrente @(entry.Date > DateOnly.FromDateTime(Clock.GetLocalNow().DateTime) ? "· prevista" : string.Empty)</span> }
@@ -189,9 +193,9 @@
                         <button class="button" @onclick="() => EditEntryAsync(entry)" disabled="@_busy">Editar</button>
                         <button class="button" @onclick="() => AskDelete(entry)" disabled="@_busy">Excluir</button>
                     @if (entry.InstallmentPurchaseExternalId is not null) { <button class="button" @onclick="() => _anticipating = entry" disabled="@_busy">Antecipar parcelas</button> }
-                    @if (!entry.IsEffective && entry.CardExternalId is null && entry.RecurringEntryExternalId is not null)
+                    @if (!entry.IsEffective && entry.CardExternalId is null)
                     {
-                        <button class="button" @onclick="() => _effectiveEntry = entry" disabled="@_busy">Registrar baixa manual</button>
+                        <button class="button" @onclick="() => _effectiveEntry = entry" disabled="@_busy">@(entry.Kind == CategoryKind.Expense ? "Pagar" : "Receber")</button>
                     }
                     @if (entry.IsEffective && entry.CardExternalId is null) { <span>Baixa em @entry.EffectiveDate?.ToString("dd/MM/yyyy") · Confirmada em @entry.EffectiveAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span> }
                     }
@@ -253,6 +257,7 @@
     private decimal _amount;
     private int _installments = 1;
     private string _details = string.Empty;
+    private bool _isPaid = true;
     private string _month = string.Empty;
     private string _suggestedMonth = string.Empty;
     private string? _message;
@@ -340,7 +345,7 @@
         {
             var request = new CreateEntryRequest(_date, _merchantId, _subcategoryId, _accountId, new Money(_amount), _details, AccountingMonth.FromDate(monthDate),
                 _cardId == Guid.Empty ? null : _cardId, _finalId == Guid.Empty ? null : _finalId,
-                IsExpense && _reimbursementPersonId != Guid.Empty ? new(_reimbursementPersonId, _reimbursementPercent) : null);
+                IsExpense && _reimbursementPersonId != Guid.Empty ? new(_reimbursementPersonId, _reimbursementPercent) : null, IsPaid: _isPaid);
             AccountingMonth? until = null;
             if (_repeat && _repeatUntil.Length > 0)
             {
@@ -369,7 +374,7 @@
     }
     private void Reset()
     {
-        _repeat = false; _repeatUntil = string.Empty;
+        _isPaid = true; _repeat = false; _repeatUntil = string.Empty;
         _editingId = null; _editingInstallment = false; _scope = null; _editingRecurring = false; _recurringScope = null;
         _merchantName = string.Empty; _merchantId = Guid.Empty; _subcategoryId = Guid.Empty; _amount = 0; _details = string.Empty;
         ClearReimbursement();
@@ -394,7 +399,7 @@
         _busy = true;
         try
         {
-            _editingId = entry.ExternalId; _selectedId = entry.ExternalId;
+            _isPaid = entry.IsEffective; _editingId = entry.ExternalId; _selectedId = entry.ExternalId;
             _editingRecurring = entry.RecurringEntryExternalId is not null;
             _recurringScope = null;
             _recurringDay = entry.RecurringEntryExternalId is { } seriesId ? (await Entries.GetRecurringAsync(seriesId))?.Day ?? entry.Date.Day : entry.Date.Day;

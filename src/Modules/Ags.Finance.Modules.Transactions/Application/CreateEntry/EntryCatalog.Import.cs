@@ -157,7 +157,7 @@ internal sealed partial class EntryCatalog : IEntryImport
                 || x.SubcategoryExternalId != first.SubcategoryExternalId || x.AccountExternalId != first.AccountExternalId || x.CardLastDigitsExternalId != first.CardLastDigitsExternalId
                 || x.Details.Trim() != first.Details.Trim() || !x.IsEffective || x.EffectiveDate != x.Date || x.Kind != Contracts.CategoryKind.Expense))
             {
-                foreach (var part in parts) { pass.Issue(part.ExternalId, "installment_purchase_external_id", "As parcelas de uma compra devem ter o mesmo cartão, data, descrição e classificação de despesa, e estar efetivadas na data da compra."); }
+                foreach (var part in parts) { pass.Issue(part.ExternalId, "installment_purchase_external_id", "As parcelas de uma compra devem ter o mesmo cartão, data, descrição e classificação de despesa, e ter a baixa na data da compra."); }
                 continue;
             }
             var total = new Money(parts.Sum(x => x.Amount.Amount));
@@ -231,18 +231,18 @@ internal sealed partial class EntryCatalog : IEntryImport
         return entry;
     }
 
-    /// <summary>Aplica Pendente/Efetivado exatamente como no arquivo. Só ocorrência recorrente fora do cartão pode estar pendente; nada é efetivado por conta própria.</summary>
+    /// <summary>Aplica Pendente/Pago ou Recebido exatamente como no arquivo. Qualquer lançamento fora do cartão pode estar pendente; nenhuma baixa ocorre por conta própria.</summary>
     private void ApplyImportedState(TransactionEntry entry, ImportedEntry row, ImportPass pass, bool isSeries)
     {
         if (!row.IsEffective)
         {
-            if (!isSeries || row.CardExternalId is not null) { pass.Issue(row.ExternalId, "is_effective", "Só ocorrências recorrentes fora do cartão podem estar pendentes."); return; }
-            if (row.EffectiveDate is not null) { pass.Issue(row.ExternalId, "effective_date", "Pendente não tem data de efetivação."); return; }
+            if (row.CardExternalId is not null) { pass.Issue(row.ExternalId, "is_effective", "Compras no cartão não podem estar pendentes."); return; }
+            if (row.EffectiveDate is not null) { pass.Issue(row.ExternalId, "effective_date", "Pendente não tem data de baixa."); return; }
             entry.SetPending();
             return;
         }
-        if (row.EffectiveDate is not { } effectiveDate) { pass.Issue(row.ExternalId, "effective_date", "Efetivado exige a data de efetivação."); return; }
-        if ((!isSeries || row.CardExternalId is not null) && effectiveDate != row.Date) { pass.Issue(row.ExternalId, "effective_date", "Neste tipo de lançamento a efetivação acontece na data do lançamento."); return; }
+        if (row.EffectiveDate is not { } effectiveDate) { pass.Issue(row.ExternalId, "effective_date", "Pago ou Recebido exige a data da baixa."); return; }
+        if (row.CardExternalId is not null && effectiveDate != row.Date) { pass.Issue(row.ExternalId, "effective_date", "Neste tipo de lançamento a efetivação acontece na data do lançamento."); return; }
         entry.SetEffective(effectiveDate, clock.GetUtcNow());
     }
 

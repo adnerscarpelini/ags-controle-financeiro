@@ -10,7 +10,7 @@ public sealed partial class EntryTests
     [Fact]
     public async Task FailedFinancialOperationRollsBackStateAndDerivedBalanceTogether()
     {
-        await Entries.CreateRecurringAsync(new(Request()));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false }));
         var occurrence = await OccurrenceAsync(2026, 10);
         var result = await Provider.GetRequiredService<IFinancialOperation>().ExecuteAsync(async token =>
         {
@@ -26,7 +26,7 @@ public sealed partial class EntryTests
     [InlineData(true, 1100)]
     public async Task ManualConfirmationIsPerOccurrenceUsesRecordedFieldsAndIsConcurrentIdempotent(bool income, int expectedBalance)
     {
-        await Entries.CreateRecurringAsync(new(Request() with { Amount = new Money(100), SubcategoryExternalId = income ? await IncomeSubcategoryAsync() : _subcategoryId }));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Amount = new Money(100), SubcategoryExternalId = income ? await IncomeSubcategoryAsync() : _subcategoryId }));
         var november = await OccurrenceAsync(2026, 11);
         var date = new DateOnly(2026, 11, 8);
         var results = await Task.WhenAll(Entries.ConfirmEffectiveAsync(november.ExternalId, date), Entries.ConfirmEffectiveAsync(november.ExternalId, date));
@@ -48,7 +48,7 @@ public sealed partial class EntryTests
     [Fact]
     public async Task EditingAndDeletingEffectiveOccurrenceRecalculatesBalanceAndAllPreservesConfirmedPast()
     {
-        await Entries.CreateRecurringAsync(new(Request() with { Amount = new Money(100) }));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Amount = new Money(100) }));
         var october = await OccurrenceAsync(2026, 10);
         await Entries.ConfirmEffectiveAsync(october.ExternalId, october.Date);
         var november = await OccurrenceAsync(2026, 11);
@@ -64,7 +64,7 @@ public sealed partial class EntryTests
     [Fact]
     public async Task InvalidConfirmationLeavesCashPendingAndCardConfirmationCannotDebitAccount()
     {
-        await Entries.CreateRecurringAsync(new(Request()));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false }));
         var occurrence = await OccurrenceAsync(2026, 10);
         Assert.False((await Entries.ConfirmEffectiveAsync(occurrence.ExternalId, DateOnly.MinValue)).Succeeded);
         Assert.False((await Entries.ConfirmEffectiveAsync(Guid.NewGuid(), occurrence.Date)).Succeeded);

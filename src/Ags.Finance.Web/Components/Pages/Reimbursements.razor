@@ -33,8 +33,8 @@
 </section>
 @if (_receiving)
 {
-    <section class="panel" role="dialog" aria-label="Efetivar recebimento">
-        <h2>Efetivar recebimento</h2>
+    <section class="panel" role="dialog" aria-label="Registrar recebimento">
+        <h2>Registrar recebimento</h2>
         <div class="catalog-fields">
             <div class="field"><label for="receipt-date">Data</label><input id="receipt-date" type="date" @bind="_receiptDate" required /></div>
             <div class="field"><label for="receipt-account">Conta corrente</label><select id="receipt-account" @bind="_receiptAccount">
@@ -81,7 +81,7 @@
     @if (_overview.Items.Any(x => x.Status == ReimbursementStatus.Pending))
     {
         <label class="checkbox"><input id="reimbursement-select-all" type="checkbox" checked="@AllPendingSelected" @onchange="ToggleAll" />Selecionar todos os pendentes</label>
-        <button class="button" id="reimbursement-receive" @onclick="StartReceive" disabled="@(_selected.Count == 0 || _busy)">Efetivar selecionados (@_selected.Count)</button>
+        <button class="button" id="reimbursement-receive" @onclick="StartReceive" disabled="@(_selected.Count == 0 || _busy)">Receber selecionados (@_selected.Count)</button>
     }
     <ul class="catalog-list" aria-label="Reembolsos">
         @foreach (var item in _overview.Items)
@@ -220,7 +220,7 @@
         {
             var items = SelectedItems.Select(x => new ReceiveReimbursementItem(x.EntryExternalId, x.Expected, new Money(_received[x.EntryExternalId]))).ToList();
             var result = await Receipts.ReceiveAsync(new(_receiptDate, _receiptAccount == Guid.Empty ? null : _receiptAccount, items));
-            _message = result.Error ?? "Recebimento efetivado.";
+            _message = result.Error ?? "Recebimento registrado.";
             if (!result.Succeeded) { return; }
             _selected.Clear();
         }

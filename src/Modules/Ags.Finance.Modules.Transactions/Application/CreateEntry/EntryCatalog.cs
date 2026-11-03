@@ -15,6 +15,7 @@ internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementSt
     {
         var prepared = await PrepareAsync(request, cancellationToken);
         if (prepared.Entry is not { } entry) { return new(null, prepared.Error); }
+        if (entry.CardExternalId is null && request.IsPaid == false) { entry.SetPending(); }
         return await store.AddAsync(entry, cancellationToken) ? new(entry.ExternalId, null) : new(null, "Um cadastro foi alterado durante a operação. Selecione os dados novamente.");
     }
 

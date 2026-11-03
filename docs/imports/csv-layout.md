@@ -58,7 +58,7 @@ credenciais não fazem parte do CSV.
 Dois arquivos, `lancamentos-transactions-v2.csv` e `lancamentos-recurring-series-v2.csv`, com as regras do formato acima. A versão 1 deixou de ser aceita.
 
 **Cobertura.** Receitas e despesas: avulsas, de cartão, parcelas e ocorrências recorrentes, com o estado
-Pendente/Efetivado. **Ficam de fora**, por decisão desta versão: ajustes de fatura (#52), transferências
+Pendente/Pago ou Recebido. **Ficam de fora**, por decisão desta versão: ajustes de fatura (#52), transferências
 entre contas e pagamentos/cashbacks/descontos de fatura. Eles nunca são tratados como despesa, os pagamentos
 continuam imutáveis, e a importação (#29) rejeita esses tipos em vez de interpretá-los.
 
@@ -135,9 +135,11 @@ são rejeitados pelas regras de Transactions. O `kind` do arquivo precisa coinci
 automático só sugere em outras telas. Faturas Fechadas ou Pagas continuam protegidas (a validação do cartão usa o guard de faturas) e a
 importação não reabre nem altera pagamentos.
 
-**Estado.** Receitas e despesas avulsas e de cartão são sempre Efetivadas, na data do lançamento. Somente ocorrência recorrente fora do
-cartão pode estar Pendente (sem `effective_date`) ou Efetivada (com a data). A importação nunca efetiva nada por conta própria e não cria
-pagamento de fatura.
+**Estado ([#88](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/88)).**
+Qualquer receita ou despesa fora do cartão pode ser Pendente (`is_effective=false`,
+sem `effective_date`) ou Paga/Recebida (`is_effective=true`, com a data da baixa).
+Compras no cartão continuam sempre pagas na data da compra, sem baixa manual.
+Os nomes internos e as colunas não mudam. Importar não cria pagamento de fatura.
 
 **Parcelas.** O grupo precisa estar completo: as N parcelas, numeradas de 1 a N, mesmo cartão, data, descrição e classificação de despesa,
 meses contábeis consecutivos e valores iguais à divisão oficial (a diferença de centavos fica na primeira). A compra e as parcelas mantêm os

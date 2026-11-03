@@ -8,7 +8,7 @@ public sealed partial class EntryTests
     [Fact]
     public async Task SingleExceptionKeepsItsSlotWhenDateMovesAndDeletedSlotNeverReturns()
     {
-        await Entries.CreateRecurringAsync(new(Request() with { Date = new DateOnly(2026, 10, 10), Amount = new Money(50) }));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 10, 10), Amount = new Money(50) }));
         var november = await OccurrenceAsync(2026, 11);
         var edited = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Date = new DateOnly(2026, 12, 15), Amount = new Money(60) }, RecurringChangeScope.OnlyThis));
         Assert.True(edited.Succeeded, edited.Error);
@@ -26,7 +26,7 @@ public sealed partial class EntryTests
     [Fact]
     public async Task FollowingSplitsSeriesAndCarriesDay31ThroughFebruary()
     {
-        await Entries.CreateRecurringAsync(new(Request() with { Date = new DateOnly(2026, 10, 10), Amount = new Money(50) }));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 10, 10), Amount = new Money(50) }));
         var december = await OccurrenceAsync(2026, 12);
         var november = await OccurrenceAsync(2026, 11);
         var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Amount = new Money(60) }, RecurringChangeScope.ThisAndFollowing, 31));
@@ -51,7 +51,7 @@ public sealed partial class EntryTests
     [Fact]
     public async Task AllUpdatesPendingPastAndFutureWithoutEffectivenessAndRejectsInvalidScopeAtomically()
     {
-        await Entries.CreateRecurringAsync(new(Request() with { Date = new DateOnly(2026, 10, 10), Amount = new Money(50) }));
+        await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 10, 10), Amount = new Money(50) }));
         var november = await OccurrenceAsync(2026, 11);
         Assert.False((await Entries.EditRecurringAsync(november.ExternalId, new(Change(november), (RecurringChangeScope)999))).Succeeded);
         Assert.True((await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Amount = new Money(60) }, RecurringChangeScope.All))).Succeeded);
