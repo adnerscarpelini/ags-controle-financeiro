@@ -22,12 +22,17 @@ internal sealed partial class AccountCatalog(IAccountsStore store, TimeProvider 
             .Select(x => new CreditCardDetails(x.ExternalId, x.AccountExternalId, x.Name, (Contracts.CardBrand)x.Brand, x.CreditLimit, x.ClosingDay, x.DueDay, x.IncludesClosingDay, x.Color, x.IsActive, accounts.Any(a => a.ExternalId == x.AccountExternalId && a.IsActive))).ToList();
     }
 
-    public async Task<CatalogResult> CreateBankAsync(string name, CancellationToken cancellationToken = default)
+    public async Task<CatalogResult> CreateBankAsync(string name, Guid? externalId = null, CancellationToken cancellationToken = default)
     {
         var bank = Bank.Create(name);
         if (bank is null)
         {
             return new(null, "Informe um nome com até 100 caracteres.");
+        }
+        if (externalId is { } bankId)
+        {
+            if (bankId == Guid.Empty || (await store.GetBanksAsync(cancellationToken)).Any(x => x.ExternalId == bankId)) { return new(null, "Identidade pública inválida ou já utilizada."); }
+            bank.UseExternalId(bankId);
         }
         return await PersistAsync(bank, cancellationToken);
     }
@@ -42,6 +47,11 @@ internal sealed partial class AccountCatalog(IAccountsStore store, TimeProvider 
         if (account is null)
         {
             return new(null, "Conta não encontrada.");
+        }
+        if (request.ExternalId is null && request.NewExternalId is { } accountId)
+        {
+            if (accountId == Guid.Empty || accounts.Any(x => x.ExternalId == accountId)) { return new(null, "Identidade pública inválida ou já utilizada."); }
+            account.UseExternalId(accountId);
         }
         if (!(await store.GetBanksAsync(cancellationToken)).Any(x => x.ExternalId == request.BankExternalId))
         {
@@ -80,6 +90,11 @@ internal sealed partial class AccountCatalog(IAccountsStore store, TimeProvider 
         if (card is null)
         {
             return new(null, "Cartão não encontrado.");
+        }
+        if (request.ExternalId is null && request.NewExternalId is { } cardId)
+        {
+            if (cardId == Guid.Empty || (await store.GetCreditCardsAsync(cancellationToken)).Any(x => x.ExternalId == cardId)) { return new(null, "Identidade pública inválida ou já utilizada."); }
+            card.UseExternalId(cardId);
         }
         var account = (await store.GetAccountsAsync(cancellationToken)).FirstOrDefault(x => x.ExternalId == request.AccountExternalId);
         if (account is null || account.Kind != AccountKind.Checking || !account.IsActive)

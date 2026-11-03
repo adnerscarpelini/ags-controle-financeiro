@@ -18,7 +18,7 @@ public interface IClassificationCatalog
 {
     Task<IReadOnlyList<CategoryDetails>> GetCategoriesAsync(bool activeOnly = true, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<SubcategoryDetails>> GetSubcategoriesAsync(bool activeOnly = true, CancellationToken cancellationToken = default);
-    Task<ClassificationResult> SaveCategoryAsync(Guid? externalId, string name, CategoryKind kind, CancellationToken cancellationToken = default);
-    Task<ClassificationResult> SaveSubcategoryAsync(Guid? externalId, Guid categoryExternalId, string name, CancellationToken cancellationToken = default);
+    Task<ClassificationResult> SaveCategoryAsync(Guid? externalId, string name, CategoryKind kind, Guid? newExternalId = null, CancellationToken cancellationToken = default);
+    Task<ClassificationResult> SaveSubcategoryAsync(Guid? externalId, Guid categoryExternalId, string name, Guid? newExternalId = null, CancellationToken cancellationToken = default);
     Task<ClassificationResult> DeactivateAsync(Guid externalId, bool subcategory, CancellationToken cancellationToken = default);
 }

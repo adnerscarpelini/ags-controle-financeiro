@@ -8,7 +8,7 @@ public enum CardUsage
 }
 
 public sealed record CardLastDigitsDetails(Guid ExternalId, Guid CardExternalId, string Digits, CardUsage Usage, string Label, bool IsActive);
-public sealed record SaveCardLastDigitsRequest(Guid? ExternalId, Guid CardExternalId, string Digits, CardUsage Usage, string Label);
+public sealed record SaveCardLastDigitsRequest(Guid? ExternalId, Guid CardExternalId, string Digits, CardUsage Usage, string Label, Guid? NewExternalId = null);
 
 public interface ICardLastDigitsCatalog
 {

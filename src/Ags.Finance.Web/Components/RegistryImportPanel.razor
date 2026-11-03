@@ -1,0 +1,93 @@
+@using Ags.Finance.Modules.Imports.Contracts
+@inject IRegistryImport Importer
+
+<section class="panel" aria-labelledby="registry-import-title">
+    <h2 id="registry-import-title">Importar cadastros</h2>
+    <p>Só aceita o CSV oficial gerado ou documentado pelo sistema (use o modelo vazio). Importe na ordem da lista acima: bancos, contas, cartões, finais,
+        categorias, subcategorias, descrições e pessoas. A prévia não grava nada; ao confirmar, o arquivo entra por inteiro ou não entra. O arquivo enviado não fica guardado.</p>
+    @if (_message is not null) { <p role="status">@_message</p> }
+    <div class="catalog-fields">
+        <div class="field"><label for="import-kind">Tipo de cadastro</label><select id="import-kind" @bind="_kind" disabled="@_busy">
+            @foreach (var item in s_items) { <option value="@item.Kind">@item.Label</option> }
+        </select></div>
+        <div class="field"><label for="import-file">Arquivo CSV (até 10 MB)</label><InputFile id="import-file" accept=".csv,text/csv" OnChange="FileSelectedAsync" disabled="@_busy" /></div>
+    </div>
+    @if (_report is { } report)
+    {
+        <h3>Prévia: @(report.Succeeded ? "arquivo válido" : "arquivo com problemas")</h3>
+        <dl class="metric-grid">
+            <div class="metric"><dt>Novos</dt><dd class="numeric">@report.NewCount</dd></div>
+            <div class="metric"><dt>Idênticos (ignorados)</dt><dd class="numeric">@report.IdenticalCount</dd></div>
+            <div class="metric"><dt>Problemas</dt><dd class="numeric">@report.Issues.Count</dd></div>
+        </dl>
+        @if (report.Issues.Count > 0)
+        {
+            <table>
+                <caption class="visually-hidden">Problemas encontrados no arquivo</caption>
+                <thead><tr><th scope="col">Linha</th><th scope="col">Coluna</th><th scope="col">Problema</th></tr></thead>
+                <tbody>@foreach (var issue in report.Issues.Take(200)) { <tr><td class="numeric">@(issue.Line == 0 ? "-" : issue.Line.ToString())</td><td>@issue.Field</td><td>@issue.Message</td></tr> }</tbody>
+            </table>
+            @if (report.Issues.Count > 200) { <p>Mostrando os 200 primeiros problemas.</p> }
+        }
+        @if (report.Succeeded)
+        {
+            <button class="button" @onclick="ConfirmAsync" disabled="@(_busy || report.NewCount == 0)">Confirmar importação</button>
+        }
+        <button class="button" @onclick="Cancel" disabled="@_busy">Cancelar</button>
+    }
+</section>
+
+@code {
+    private sealed record Item(RegistryKind Kind, string Label);
+
+    private static readonly Item[] s_items =
+    [
+        new(RegistryKind.Banks, "Bancos"), new(RegistryKind.Accounts, "Contas"), new(RegistryKind.Cards, "Cartões"), new(RegistryKind.CardDigits, "Finais de cartão"),
+        new(RegistryKind.Categories, "Categorias"), new(RegistryKind.Subcategories, "Subcategorias"), new(RegistryKind.Merchants, "Descrições"), new(RegistryKind.People, "Pessoas"),
+    ];
+
+    private const long MaxBytes = 10 * 1024 * 1024;
+    private RegistryKind _kind = RegistryKind.Banks;
+    private byte[]? _content;
+    private RegistryImportReport? _report;
+    private string? _message;
+    private bool _busy;
+
+    private async Task FileSelectedAsync(InputFileChangeEventArgs args)
+    {
+        _busy = true;
+        _report = null; _content = null; _message = null;
+        try
+        {
+            await using var stream = args.File.OpenReadStream(MaxBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            _content = buffer.ToArray();
+            _report = await Importer.PreviewAsync(_kind, _content);
+        }
+        catch (IOException)
+        {
+            _message = "O arquivo excede 10 MB.";
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task ConfirmAsync()
+    {
+        if (_content is null) { return; }
+        _busy = true;
+        try
+        {
+            var report = await Importer.ImportAsync(_kind, _content);
+            _message = report.Applied ? $"Importação concluída: {report.NewCount} novos, {report.IdenticalCount} já existentes." : "Nada foi gravado: o arquivo tem problemas.";
+            _report = report.Applied ? null : report;
+            if (report.Applied) { _content = null; }
+        }
+        finally { _busy = false; }
+    }
+
+    private void Cancel()
+    {
+        _content = null; _report = null; _message = "Importação cancelada. Nada foi gravado.";
+    }
+}

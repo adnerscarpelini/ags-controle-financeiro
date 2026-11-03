@@ -14,7 +14,7 @@ public sealed record SharingRuleDetails(Guid ExternalId, Guid PersonExternalId, 
 public interface IPersonCatalog
 {
     Task<IReadOnlyList<PersonDetails>> GetAsync(CancellationToken cancellationToken = default);
-    Task<ReimbursementResult> SaveAsync(Guid? externalId, string name, string payerDescription, CancellationToken cancellationToken = default);
+    Task<ReimbursementResult> SaveAsync(Guid? externalId, string name, string payerDescription, Guid? newExternalId = null, CancellationToken cancellationToken = default);
     Task<ReimbursementResult> DeleteAsync(Guid externalId, CancellationToken cancellationToken = default);
 }
 
