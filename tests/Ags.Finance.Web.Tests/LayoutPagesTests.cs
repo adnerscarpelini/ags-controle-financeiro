@@ -13,7 +13,7 @@ public sealed partial class LayoutPagesTests : IDisposable
     {
         { "lancamentos", "Lançamentos" },
         { "contas", "Contas" },
-        { "faturas", "Faturas" },
+        { "cartoes", "Cartões" },
         { "anexos", "Anexos" },
         { "reembolsos", "Reembolsos" },
         { "dashboard", "Dashboard" },
@@ -63,13 +63,17 @@ public sealed partial class LayoutPagesTests : IDisposable
     }
 
     [Theory]
-    [InlineData("/faturas", "/compromissos")]
-    [InlineData("/faturas", "/cashback")]
-    public async Task ScreensWithoutAMenuItemAreLinkedFromARelatedScreen(string page, string target)
+    [InlineData("/faturas", "/cartoes")]
+    [InlineData("/compromissos", "/cartoes?abrir=compromissos")]
+    [InlineData("/cashback", "/cartoes?abrir=cashback")]
+    public async Task TheOldInvoiceRoutesRedirectToCards(string route, string target)
     {
-        var html = await GetHtmlAsync(page);
+        using var browser = await _factory.CreateSignedInBrowserAsync();
 
-        Assert.Contains($"href=\"{target}\"", html, StringComparison.Ordinal);
+        using var response = await browser.GetAsync(route);
+
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.EndsWith(target, response.Headers.Location?.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]

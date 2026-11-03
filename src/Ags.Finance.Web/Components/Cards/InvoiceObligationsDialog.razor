@@ -1,0 +1,54 @@
+@* Saldos de faturas e parcelas futuras, por cartão e por mês. *@
+@using Ags.Finance.Modules.Invoices.Contracts
+@using Ags.Finance.SharedKernel
+@inject IInvoiceCatalog Catalog
+@inject TimeProvider Clock
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <MonthPicker Value="_month" ValueChanged="MonthChangedAsync" />
+        <p class="form-note">Inclui a fatura do mês selecionado e as seguintes que contêm parcelas lançadas, descontando pagamentos e abatimentos. Valores de cadastros arquivados permanecem incluídos.</p>
+        @if (_result.Error is not null) { <p class="form-error" role="alert">@_result.Error</p> }
+        <h3>Em aberto por cartão</h3>
+        <ul class="catalog-list" aria-label="Em aberto por cartão">
+            @foreach (var card in _result.Cards)
+            {
+                <li class="list-row"><span>@card.CardName</span><span class="numeric @(card.RemainingBalance.IsNegative ? "invoice-credit" : string.Empty)">@card.RemainingBalance @(card.RemainingBalance.IsNegative ? "(crédito)" : string.Empty)</span></li>
+            }
+        </ul>
+        <h3>Saldo restante por mês, em todos os cartões</h3>
+        <ul class="catalog-list" aria-label="Em aberto por mês">
+            @foreach (var month in _result.Months)
+            {
+                <li class="list-row"><span>@month.Month @if (month.Month == _current) { <strong>· Mês corrente</strong> }</span>
+                    <span class="numeric @(month.RemainingBalance.IsNegative ? "invoice-credit" : string.Empty)">@(month.FullyPaid ? "- (pago)" : month.RemainingBalance.ToString()) @(month.RemainingBalance.IsNegative ? "(crédito)" : string.Empty)</span></li>
+            }
+        </ul>
+        <p class="form-note">Saldo zero ou crédito sem confirmação de quitação não significa fatura Paga.</p>
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-done OnClick="() => Dialog?.Close(DialogResult.Ok(true))">Fechar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    private InvoiceObligations _result = new(default, [], []);
+    private ReferenceMonth _month;
+    private ReferenceMonth _current;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _current = ReferenceMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime));
+        _month = _current;
+        _result = await Catalog.GetObligationsAsync(_month);
+    }
+
+    private async Task MonthChangedAsync(ReferenceMonth month)
+    {
+        _month = month;
+        _result = await Catalog.GetObligationsAsync(month);
+    }
+}

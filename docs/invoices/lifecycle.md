@@ -45,3 +45,15 @@ Antes de fechar, o caso de uso materializa os planos recorrentes daquele mês.
 Planos cadastrados antes do corte podem completar uma fatura que continua Aberta
 após um período desligado; não podem modificar Fechada/Paga. Ver as
 [regras de recorrência](../transactions/recurrences.md).
+
+## Detalhe da fatura (#100)
+
+`/cartoes/{cartão}/faturas?mes=aaaa-MM` mostra o seletor de mês, a tabela de compras e o resumo com valor, saldo restante, situação, fechamento e vencimento, estes por `IInvoiceCatalog.GetDatesAsync`. As ações seguem o estado, mas quem decide o bloqueio continua sendo o caso de uso:
+
+| Situação | Compras | Botões | Menu |
+| --- | --- | --- | --- |
+| Aberta | Editar, Excluir e, em parcelas, Antecipar | Fechar, Ajustar e Pagar; Reabrir, se houver pagamento | Pagar antecipado |
+| Fechada | Protegidas, com a explicação | Reabrir, Ajustar e Pagar | Pagar parcial e, com saldo zero ou crédito, Confirmar quitação |
+| Paga | Protegidas, com a explicação | Reabrir | |
+
+O menu sempre oferece Histórico, Cashback e descontos, Compromissos, Anexos e Exportar, este por [Arquivos CSV](../web/layout-and-navigation.md). `/faturas`, `/compromissos` e `/cashback` redirecionam para Cartões, abrindo a janela correspondente.

@@ -1,0 +1,287 @@
+@page "/cartoes/{CardExternalId:guid}/faturas"
+@using System.Globalization
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Invoices.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+@using Ags.Finance.Web.Components.Cards
+@using Ags.Finance.Web.Components.Layout
+@implements IDisposable
+@inject IAccountCatalog Accounts
+@inject IInvoiceCatalog Catalog
+@inject IInvoiceLifecycle Lifecycle
+@inject IInvoicePaymentCatalog Payments
+@inject TimeProvider Clock
+@inject EntryDialogs EntryWindows
+@inject EntryChangeNotifier EntryChanges
+@inject IDialogService Dialogs
+@inject ViewportState Viewport
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<div class="page-head">
+    <MudTooltip Text="Voltar para cartões">
+        <MudIconButton Icon="@Icons.Material.Outlined.ChevronLeft" Variant="Variant.Outlined" Href="cartoes" aria-label="Voltar para cartões" />
+    </MudTooltip>
+    <PageHeader Title="@($"Fatura {_card?.Name}")" />
+    <div class="page-head-actions">
+        @if (_invoice.Status == InvoiceStatus.Open)
+        {
+            <MudButton Variant="Variant.Outlined" data-invoice-action="close" OnClick="AskCloseAsync">Fechar fatura</MudButton>
+        }
+        @if (CanReopen)
+        {
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.Undo" data-invoice-action="reopen" OnClick="AskReopenAsync">Reabrir fatura</MudButton>
+        }
+        @if (_invoice.Status != InvoiceStatus.Paid)
+        {
+            <MudButton Variant="Variant.Outlined" data-invoice-action="adjust" OnClick="OpenAdjustmentAsync">Ajustar fatura</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" data-invoice-action="pay" OnClick="OpenPaymentAsync">Pagar fatura</MudButton>
+        }
+        <div data-invoice-menu>
+            <MudMenu Icon="@Icons.Material.Outlined.MoreVert" AriaLabel="Mais ações da fatura" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                @if (_invoice.Status == InvoiceStatus.Open) { <MudMenuItem Icon="@Icons.Material.Outlined.Payments" OnClick="OpenPaymentAsync">Pagar antecipado</MudMenuItem> }
+                @if (_invoice.Status == InvoiceStatus.Closed) { <MudMenuItem Icon="@Icons.Material.Outlined.Payments" OnClick="OpenPaymentAsync">Pagar parcial</MudMenuItem> }
+                @if (CanSettle) { <MudMenuItem Icon="@Icons.Material.Outlined.TaskAlt" OnClick="AskSettleAsync">Confirmar quitação</MudMenuItem> }
+                <MudMenuItem Icon="@Icons.Material.Outlined.History" OnClick="OpenHistoryAsync">Histórico</MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Outlined.Savings" OnClick="OpenAllowanceAsync">Cashback e descontos</MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Outlined.EventNote" OnClick="OpenObligationsAsync">Compromissos</MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Outlined.AttachFile" OnClick="OpenAttachmentsAsync">Anexos</MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Outlined.Download" Href="arquivos-csv">Exportar</MudMenuItem>
+            </MudMenu>
+        </div>
+    </div>
+</div>
+
+@if (_message is not null) { <p class="form-error" role="alert">@_message</p> }
+
+<div class="split">
+    <section class="panel data-panel split-main">
+        <MonthPicker Value="_month" ValueChanged="MonthChangedAsync" PreviousLabel="Fatura anterior" NextLabel="Próxima fatura" />
+        <MudTable T="EntryDetails" Items="_invoice.Entries" Elevation="0" Hover="true" Class="data-table" Breakpoint="Breakpoint.None" aria-label="Compras da fatura">
+            <HeaderContent>
+                <MudTh>Data</MudTh>
+                <MudTh>Descrição</MudTh>
+                <MudTh>Categoria</MudTh>
+                <MudTh Class="numeric">Valor</MudTh>
+                <MudTh>Ações</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="entry">
+                <MudTd DataLabel="Data">@entry.Date.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd DataLabel="Descrição" Class="col-description">
+                    <span class="row-title">@entry.MerchantName@(entry.InstallmentNumber is { } number ? $" ({number}/{entry.InstallmentCount})" : string.Empty)</span>
+                    @if (RowNote(entry) is { Length: > 0 } note) { <span class="row-note">@note</span> }
+                </MudTd>
+                <MudTd DataLabel="Categoria">@entry.Classification.Replace(" > ", " › ", StringComparison.Ordinal)</MudTd>
+                <MudTd DataLabel="Valor" Class="@(IsForecast(entry) ? "numeric invoice-forecast" : "numeric")">@Purchase(entry)</MudTd>
+                <MudTd DataLabel="Ações" Class="col-actions">
+                    @if (entry.IsInvoiceAdjustment)
+                    {
+                        <HelpTip Text="Ajuste de fatura: corrija por um novo ajuste." />
+                    }
+                    else if (_invoice.Status == InvoiceStatus.Open)
+                    {
+                        <RowActions Actions="ActionsFor(entry)" />
+                    }
+                    else
+                    {
+                        <span data-purchase-locked><HelpTip Text="@LockText" /></span>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <EmptyState Icon="@Icons.Material.Outlined.ReceiptLong" Message="Nenhuma compra nesta fatura." />
+            </NoRecordsContent>
+        </MudTable>
+    </section>
+    <aside class="split-aside" aria-label="Resumo da fatura">
+        <StatCard Icon="@Icons.Material.Outlined.ReceiptLong" Label="Valor da fatura" Value="@_invoice.Total.ToString()" Note="@ForecastNote" Testid="invoice-total" />
+        <StatCard Icon="@Icons.Material.Outlined.Payments" Label="Saldo restante" Help="Total menos pagamentos, cashback e descontos. Saldo zero ou crédito sem confirmação de quitação não significa fatura Paga." Value="@RemainingText" Testid="invoice-remaining" />
+        <StatCard Icon="@Icons.Material.Outlined.Flag" Label="Situação" Help="Aberta recebe compras. Fechada aguarda pagamento. Paga está quitada e pode ser reaberta, o que desfaz o pagamento." Value="@StatusLabel(_invoice.Status)" Testid="invoice-status" />
+        @if (_dates is { } dates)
+        {
+            <StatCard Icon="@Icons.Material.Outlined.EventBusy" Label="Fechamento" Help="Compras depois deste dia entram na fatura seguinte." Value="@dates.ClosingDate.ToString("dd/MM/yyyy")" Testid="invoice-closing" />
+            <StatCard Icon="@Icons.Material.Outlined.Event" Label="Vencimento" Value="@dates.DueDate.ToString("dd/MM/yyyy")" Testid="invoice-due" />
+        }
+    </aside>
+</div>
+
+@code {
+    private static readonly CultureInfo s_invariant = CultureInfo.InvariantCulture;
+
+    [Parameter]
+    public Guid CardExternalId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "mes")]
+    public string? MonthQuery { get; set; }
+
+    private CreditCardDetails? _card;
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private ReferenceMonth _month;
+    private InvoiceDetails _invoice = new(Guid.Empty, string.Empty, default, Money.Zero, []);
+    private InvoiceDates? _dates;
+    private string? _message;
+
+    public static string Url(Guid card, ReferenceMonth? month) =>
+        $"cartoes/{card}/faturas" + (month is { } value ? $"?mes={value.FirstDay.ToString("yyyy-MM", s_invariant)}" : string.Empty);
+
+    private DateOnly Today => DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+
+    private bool CanReopen => _invoice.Status != InvoiceStatus.Open || _invoice.HasConfirmedPayment;
+
+    private bool CanSettle => _invoice.Status == InvoiceStatus.Closed && _invoice.RemainingBalance.Amount <= 0;
+
+    private string RemainingText => _invoice.RemainingBalance + (_invoice.RemainingBalance.IsNegative ? " (crédito)" : string.Empty);
+
+    private string? ForecastNote => _invoice.ForecastEntries.Count == 0 ? null : _invoice.ForecastIncluded
+        ? $"Inclui {_invoice.ForecastTotal} em recorrentes previstas."
+        : $"Previsto: + {_invoice.ForecastTotal} (total previsto: {_invoice.ProjectedTotal})";
+
+    private string LockText => _invoice.Status == InvoiceStatus.Paid
+        ? "Compras de fatura paga não podem ser alteradas. Reabra a fatura para editar."
+        : "Compras de fatura fechada não podem ser alteradas.";
+
+    protected override void OnInitialized()
+    {
+        EntryChanges.Changed += EntriesChangedAsync;
+        _month = ReferenceMonth.FromDate(Today);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _accounts = await Accounts.GetAccountsAsync(false);
+        _card = (await Accounts.GetCreditCardsAsync(false)).FirstOrDefault(x => x.ExternalId == CardExternalId);
+        if (DateOnly.TryParseExact((MonthQuery ?? string.Empty) + "-01", "yyyy-MM-dd", s_invariant, DateTimeStyles.None, out var date))
+        {
+            _month = ReferenceMonth.FromDate(date);
+        }
+        else if (_card is not null)
+        {
+            _month = (await Catalog.GetSelectableInvoicesAsync(CardExternalId, Today)).SuggestedMonth ?? ReferenceMonth.FromDate(Today);
+        }
+
+        await ReloadAsync();
+    }
+
+    private Task EntriesChangedAsync() => InvokeAsync(async () =>
+    {
+        await ReloadAsync();
+        StateHasChanged();
+    });
+
+    private async Task ReloadAsync()
+    {
+        if (_card is null)
+        {
+            _message = "Cartão não encontrado.";
+            return;
+        }
+
+        _invoice = (await Catalog.GetMonthAsync(_month)).FirstOrDefault(x => x.CardExternalId == CardExternalId) ?? new InvoiceDetails(CardExternalId, _card.Name, _month, Money.Zero, [])
+        {
+            Status = (await Catalog.GetSelectableInvoicesAsync(CardExternalId, Today, _month)).Invoices.FirstOrDefault(x => x.Month == _month)?.Status ?? InvoiceStatus.Open,
+        };
+        _dates = await Catalog.GetDatesAsync(CardExternalId, _month);
+    }
+
+    private Task MonthChangedAsync(ReferenceMonth month)
+    {
+        Navigation.NavigateTo(Url(CardExternalId, month), replace: true);
+        return Task.CompletedTask;
+    }
+
+    private bool IsForecast(EntryDetails entry) => _invoice.ForecastEntries.Any(x => x.ExternalId == entry.ExternalId);
+
+    private static string Purchase(EntryDetails entry) => (-entry.Amount).ToString();
+
+    private string RowNote(EntryDetails entry)
+    {
+        var notes = new List<string>();
+        if (IsForecast(entry)) { notes.Add("Recorrente · prevista"); }
+        else if (entry.RecurringEntryExternalId is not null) { notes.Add("Recorrente"); }
+        if (entry.Details.Length > 0) { notes.Add(entry.Details); }
+        return string.Join(" · ", notes);
+    }
+
+    private IReadOnlyList<RowAction> ActionsFor(EntryDetails entry)
+    {
+        var actions = new List<RowAction>();
+        if (entry.InstallmentPurchaseExternalId is not null)
+        {
+            actions.Add(new("Antecipar parcelas", Icons.Material.Outlined.Bolt, "anticipate", EventCallback.Factory.Create(this, async () => await EntryWindows.ShowAnticipationAsync(entry)), "Antecipar parcelas para a fatura atual"));
+        }
+
+        actions.Add(new("Editar", Icons.Material.Outlined.Edit, "edit", EventCallback.Factory.Create(this, async () => await EntryWindows.ShowEditAsync(entry))));
+        actions.Add(new("Excluir", Icons.Material.Outlined.Delete, "delete", EventCallback.Factory.Create(this, async () => await EntryWindows.ShowDeleteAsync(entry))));
+        return actions;
+    }
+
+    private async Task AskCloseAsync()
+    {
+        var forecast = _invoice.ForecastEntries.Count > 0 ? $" (inclui {_invoice.ForecastTotal} em recorrentes previstas)" : string.Empty;
+        var confirmed = await ConfirmDialog.AskAsync(Dialogs, "Fechar fatura", $"{_invoice.CardName} · {_invoice.Month} · Total {_invoice.ProjectedTotal}{forecast}. Fechar protege todas as compras, inclusive as recorrentes previstas, sem registrar pagamento. Saldo zero ou crédito não marca a fatura como Paga.", "Fechar fatura");
+        if (confirmed) { await ApplyAsync(() => Lifecycle.CloseAsync(CardExternalId, _month), "Fatura fechada."); }
+    }
+
+    private async Task AskReopenAsync()
+    {
+        var undone = _invoice.PaymentHistory.Where(x => x.Kind == InvoicePaymentKind.Payment && x.UndoneAt is null)
+            .Select(x => $"{x.Date:dd/MM/yyyy} · {x.Amount} · {_accounts.FirstOrDefault(a => a.ExternalId == x.AccountExternalId)?.Name ?? "Conta registrada"}").ToList();
+        var confirmed = await ConfirmDialog.AskAsync(Dialogs, "Reabrir fatura",
+            "A fatura ficará Aberta até novo fechamento manual." + (undone.Count > 0 ? " Todos os pagamentos abaixo serão desfeitos e cada valor voltará à conta debitada; cashback e descontos serão mantidos." : string.Empty),
+            "Reabrir fatura", details: undone, detailsLabel: "Pagamentos a desfazer");
+        if (!confirmed) { return; }
+        await ApplyAsync(() => _invoice.HasConfirmedPayment || _invoice.Status == InvoiceStatus.Paid ? Payments.ReopenUndoingPaymentsAsync(CardExternalId, _month) : Lifecycle.ReopenAsync(CardExternalId, _month), "Fatura reaberta.");
+    }
+
+    private async Task AskSettleAsync()
+    {
+        var confirmed = await ConfirmDialog.AskAsync(Dialogs, "Confirmar quitação sem novo débito", $"{_invoice.CardName} · {_invoice.Month} · Saldo restante {_invoice.RemainingBalance}. A fatura passará a Paga. Nenhum pagamento ou débito zero será criado.", "Confirmar quitação");
+        if (confirmed) { await ApplyAsync(() => Payments.ConfirmSettlementAsync(CardExternalId, _month), "Quitação confirmada."); }
+    }
+
+    private async Task ApplyAsync(Func<Task<InvoiceResult>> operation, string success)
+    {
+        var result = await operation();
+        _message = result.Error;
+        if (result.Succeeded) { Snackbar.Add(success, Severity.Success); }
+        await ReloadAsync();
+    }
+
+    private async Task OpenPaymentAsync()
+    {
+        var parameters = new DialogParameters<InvoicePaymentDialog> { { x => x.Invoice, _invoice } };
+        await Dialogs.ShowAsync<InvoicePaymentDialog>($"Pagar {_invoice.CardName} · {_invoice.Month}", parameters, AppDialogs.Options(Viewport));
+    }
+
+    private async Task OpenAdjustmentAsync()
+    {
+        var parameters = new DialogParameters<InvoiceTotalAdjustmentDialog> { { x => x.Invoice, _invoice } };
+        await Dialogs.ShowAsync<InvoiceTotalAdjustmentDialog>($"Ajustar valor de {_invoice.CardName} · {_invoice.Month}", parameters, AppDialogs.Options(Viewport, MaxWidth.ExtraSmall));
+    }
+
+    private async Task OpenHistoryAsync()
+    {
+        var parameters = new DialogParameters<InvoiceHistoryDialog> { { x => x.Invoice, _invoice }, { x => x.Accounts, _accounts } };
+        await Dialogs.ShowAsync<InvoiceHistoryDialog>($"Histórico da fatura {_invoice.Month}", parameters, AppDialogs.Options(Viewport, MaxWidth.Medium));
+    }
+
+    private async Task OpenAllowanceAsync()
+    {
+        var parameters = new DialogParameters<CashbackDialog> { { x => x.CardExternalId, CardExternalId }, { x => x.Month, _month } };
+        await Dialogs.ShowAsync<CashbackDialog>("Cashback e descontos", parameters, AppDialogs.Options(Viewport, MaxWidth.Medium));
+    }
+
+    private async Task OpenObligationsAsync() =>
+        await Dialogs.ShowAsync<InvoiceObligationsDialog>("Saldos de faturas e parcelas futuras", new DialogParameters(), AppDialogs.Options(Viewport, MaxWidth.Medium));
+
+    private async Task OpenAttachmentsAsync()
+    {
+        var parameters = new DialogParameters<InvoiceAttachmentsDialog> { { x => x.CardExternalId, CardExternalId }, { x => x.Month, _month } };
+        await Dialogs.ShowAsync<InvoiceAttachmentsDialog>($"Anexos da fatura {_month}", parameters, AppDialogs.Options(Viewport));
+    }
+
+    private static string StatusLabel(InvoiceStatus status) => status switch { InvoiceStatus.Closed => "Fechada", InvoiceStatus.Paid => "Paga", _ => "Aberta" };
+
+    public void Dispose() => EntryChanges.Changed -= EntriesChangedAsync;
+}

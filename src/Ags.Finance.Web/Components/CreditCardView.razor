@@ -1,41 +1,110 @@
+@* Card da carteira (#55): identificação, fatura mostrada, limite e ações. Clicar no card abre a fatura. *@
 @using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Invoices.Contracts
 
-<article class="wallet-card" aria-label="Cartão @Card.Name">
-    <div class="wallet-card-face">
-        <div class="wallet-card-heading">
-            @if (Bank is not null) { <BankLogo Bank="Bank" /> }
-            <div class="wallet-card-bank"><span>@(Bank?.Name ?? "Banco não localizado")</span><span>@(Account?.Name ?? "Conta não localizada")</span></div>
-            <span class="wallet-card-brand">@Card.Brand</span>
+<article class="entity-card wallet-card @(Card.IsAvailable ? null : "entity-card-archived")" aria-label="Cartão @Card.Name" data-card="@Card.Name" @onclick="() => Open.InvokeAsync()">
+    <header class="entity-card-head">
+        @if (Bank is not null) { <BankLogo Bank="Bank" /> }
+        <h2 class="catalog-color color-@Card.Color">@Card.Name</h2>
+        @if (Invoice is { } shown) { <span class="tag" data-invoice-status>Fatura @StatusLabel(shown.Status)</span> }
+        <div data-card-menu @onclick:stopPropagation="true">
+            <MudMenu Icon="@Icons.Material.Outlined.MoreVert" AriaLabel="@($"Ações do cartão {Card.Name}")" Size="Size.Small" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                <MudMenuItem Icon="@Icons.Material.Outlined.Edit" OnClick="() => Edit.InvokeAsync()">Editar</MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Outlined.Pin" OnClick="() => ShowFinals.InvokeAsync()">Finais do cartão</MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Outlined.History" OnClick="() => History.InvokeAsync()">Histórico de faturas</MudMenuItem>
+                <MudMenuItem Icon="@(Card.IsActive ? Icons.Material.Outlined.Archive : Icons.Material.Outlined.Unarchive)" OnClick="() => ToggleArchive.InvokeAsync()">@(Card.IsActive ? "Arquivar" : "Restaurar")</MudMenuItem>
+            </MudMenu>
         </div>
-        <h3 class="catalog-color color-@Card.Color">@Card.Name</h3>
-        <div class="wallet-card-identification">
-            @if (Finals.Count == 0) { <span>Sem final cadastrado</span> }
-            @foreach (var final in Finals) { <span>Final <strong class="numeric">@final.Digits</strong>@(string.IsNullOrWhiteSpace(final.Label) ? string.Empty : $" · {final.Label}")</span> }
-        </div>
-    </div>
-    <div class="wallet-card-details">
-        <p class="wallet-card-status">@Status</p>
-        <dl>
-            <div><dt>Limite cadastrado</dt><dd class="numeric">@Card.CreditLimit</dd></div>
-            <div><dt>Fechamento</dt><dd>Dia @Card.ClosingDay</dd></div>
-            <div><dt>Vencimento</dt><dd>Dia @Card.DueDay</dd></div>
+    </header>
+    <p class="wallet-card-identification">
+        <span>@(Bank?.Name ?? "Banco não localizado") · @(Account?.Name ?? "Conta não localizada") · @Card.Brand</span>
+        @if (Finals.Count == 0) { <span>Sem final cadastrado</span> }
+        @foreach (var final in Finals) { <span>Final <strong class="numeric">@final.Digits</strong>@(string.IsNullOrWhiteSpace(final.Label) ? string.Empty : $" · {final.Label}")</span> }
+        @if (!Card.IsAvailable) { <span class="wallet-card-status" data-card-status>@AvailabilityText</span> }
+    </p>
+    @if (Invoice is { } invoice)
+    {
+        <dl class="entity-card-values">
+            <div><dt>Total da fatura</dt><dd class="numeric" data-invoice-total>@invoice.Total</dd></div>
+            @if (DueDate is { } due) { <div><dt>Vence em</dt><dd data-invoice-due>@due.ToString("dd/MM/yyyy")</dd></div> }
         </dl>
-        <p class="wallet-card-closing">@(Card.IncludesClosingDay ? "Inclui" : "Não inclui") compras no dia do fechamento</p>
-        <div class="wallet-card-actions">
-            <button type="button" class="button" @onclick="Edit">Editar</button>
-            <button type="button" class="button" @onclick="ShowFinals">Finais do cartão</button>
-            <button type="button" class="button" @onclick="ToggleArchive">@(Card.IsActive ? "Arquivar" : "Desarquivar")</button>
+    }
+    else
+    {
+        <p class="form-note" data-no-invoice>Nenhuma fatura nesta situação.</p>
+    }
+    @if (Limit is { } limit)
+    {
+        <div class="limit-bar" data-card-limit>
+            <div class="bar-track" role="progressbar" aria-label="Limite usado" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@limit.UsedPercent"><span class="bar-fill limit-fill" style="width:@limit.UsedPercent%"></span></div>
+            <span class="row-note">Limite disponível: @limit.Available de @limit.Limit <HelpTip Text="O limite cadastrado menos o saldo restante das faturas ainda não pagas, inclusive parcelas futuras." /></span>
         </div>
-    </div>
+    }
+    @if (PendingInvoice is { } pending)
+    {
+        <p class="form-warning" data-pending-invoice>Fatura @pending.Month fechada: @pending.RemainingBalance a pagar</p>
+    }
+    <footer class="entity-card-foot wallet-card-actions" @onclick:stopPropagation="true">
+        <MudButton Variant="Variant.Outlined" Size="Size.Small" data-open-invoice OnClick="() => Open.InvokeAsync()">Ver fatura</MudButton>
+        @if (Payable is { } payable)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" data-pay-invoice OnClick="() => Pay.InvokeAsync(payable)">Pagar fatura</MudButton>
+        }
+        else if (Invoice is { Status: InvoiceStatus.Paid })
+        {
+            <span class="form-note" data-invoice-paid>Fatura paga</span>
+        }
+    </footer>
 </article>
 
 @code {
-    [Parameter, EditorRequired] public CreditCardDetails Card { get; set; } = default!;
-    [Parameter] public BankDetails? Bank { get; set; }
-    [Parameter] public AccountDetails? Account { get; set; }
-    [Parameter] public IReadOnlyList<CardLastDigitsDetails> Finals { get; set; } = [];
-    [Parameter] public EventCallback Edit { get; set; }
-    [Parameter] public EventCallback ShowFinals { get; set; }
-    [Parameter] public EventCallback ToggleArchive { get; set; }
-    private string Status => !Card.IsActive ? "Arquivado individualmente" : !Card.IsAccountActive ? "Indisponível: conta arquivada" : "Disponível";
+    [Parameter, EditorRequired]
+    public CreditCardDetails Card { get; set; } = default!;
+
+    [Parameter]
+    public BankDetails? Bank { get; set; }
+
+    [Parameter]
+    public AccountDetails? Account { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<CardLastDigitsDetails> Finals { get; set; } = [];
+
+    [Parameter]
+    public InvoiceDetails? Invoice { get; set; }
+
+    [Parameter]
+    public DateOnly? DueDate { get; set; }
+
+    /// <summary>Na aba de abertas, uma fatura já fechada e não paga deste cartão, para não ficar sem caminho até o pagamento.</summary>
+    [Parameter]
+    public InvoiceDetails? PendingInvoice { get; set; }
+
+    [Parameter]
+    public CardLimit? Limit { get; set; }
+
+    [Parameter]
+    public EventCallback Open { get; set; }
+
+    [Parameter]
+    public EventCallback<InvoiceDetails> Pay { get; set; }
+
+    [Parameter]
+    public EventCallback Edit { get; set; }
+
+    [Parameter]
+    public EventCallback ShowFinals { get; set; }
+
+    [Parameter]
+    public EventCallback History { get; set; }
+
+    [Parameter]
+    public EventCallback ToggleArchive { get; set; }
+
+    // A ação principal segue o estado: a fatura fechada a pagar, seja a mostrada ou a pendente de outro mês.
+    private InvoiceDetails? Payable => PendingInvoice ?? (Invoice is { Status: InvoiceStatus.Closed } ? Invoice : null);
+
+    private string AvailabilityText => !Card.IsActive ? "Arquivado individualmente" : "Indisponível: conta arquivada";
+
+    private static string StatusLabel(InvoiceStatus status) => status switch { InvoiceStatus.Closed => "fechada", InvoiceStatus.Paid => "paga", _ => "aberta" };
 }

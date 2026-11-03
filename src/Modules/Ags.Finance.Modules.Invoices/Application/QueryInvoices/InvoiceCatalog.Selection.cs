@@ -6,6 +6,21 @@ namespace Ags.Finance.Modules.Invoices.Application.QueryInvoices;
 
 internal sealed partial class InvoiceCatalog
 {
+    public Task<InvoiceDates?> GetDatesAsync(Guid cardExternalId, ReferenceMonth month, CancellationToken cancellationToken = default)
+        => operations.ExecuteAsync(async token =>
+        {
+            var card = (await accounts.GetCreditCardsAsync(false, token)).FirstOrDefault(x => x.ExternalId == cardExternalId);
+            return card is null || month.Year == 0 ? null : new InvoiceDates(InvoiceClosingDate.Date(month, card.ClosingDay, card.DueDay), InvoiceClosingDate.DueDate(month, card.DueDay));
+        }, _ => true, cancellationToken);
+
+    public Task<IReadOnlyList<CardLimit>> GetCardLimitsAsync(CancellationToken cancellationToken = default)
+        => operations.ExecuteAsync(async token =>
+        {
+            var invoices = await GetCoreAsync(token);
+            return (IReadOnlyList<CardLimit>)(await accounts.GetCreditCardsAsync(false, token)).Select(card => new CardLimit(card.ExternalId, card.CreditLimit,
+                new Money(invoices.Where(x => x.CardExternalId == card.ExternalId && x.Status != Contracts.InvoiceStatus.Paid).Sum(x => Math.Max(0, x.RemainingBalance.Amount))))).ToList();
+        }, _ => true, cancellationToken);
+
     public Task<InvoiceSelection> GetSelectableInvoicesAsync(Guid cardExternalId, DateOnly date, ReferenceMonth? through = null, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(async token =>
         {

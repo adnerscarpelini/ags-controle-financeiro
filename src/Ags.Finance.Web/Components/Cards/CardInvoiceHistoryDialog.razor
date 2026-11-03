@@ -1,0 +1,49 @@
+@* Todas as faturas registradas de um cartão, com o caminho até o detalhe de cada uma. *@
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Invoices.Contracts
+@using Ags.Finance.Web.Components.Pages
+@inject NavigationManager Navigation
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <MudTable T="InvoiceDetails" Items="Invoices" Elevation="0" Hover="true" Class="data-table" Breakpoint="Breakpoint.Sm" aria-label="Histórico de faturas">
+            <HeaderContent>
+                <MudTh>Mês</MudTh>
+                <MudTh>Situação</MudTh>
+                <MudTh Class="numeric">Total</MudTh>
+                <MudTh Class="numeric">Em aberto</MudTh>
+                <MudTh>Ações</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="invoice">
+                <MudTd DataLabel="Mês">@invoice.Month</MudTd>
+                <MudTd DataLabel="Situação"><span class="tag">@(invoice.Status switch { InvoiceStatus.Closed => "Fechada", InvoiceStatus.Paid => "Paga", _ => "Aberta" })</span></MudTd>
+                <MudTd DataLabel="Total" Class="numeric">@invoice.Total</MudTd>
+                <MudTd DataLabel="Em aberto" Class="@(invoice.RemainingBalance.IsNegative ? "numeric invoice-credit" : "numeric")">@invoice.RemainingBalance @(invoice.RemainingBalance.IsNegative ? "(crédito)" : string.Empty)</MudTd>
+                <MudTd DataLabel="Ações"><MudButton Variant="Variant.Text" Size="Size.Small" data-open-invoice OnClick="() => Open(invoice)">Ver fatura</MudButton></MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <EmptyState Icon="@Icons.Material.Outlined.ReceiptLong" Message="Nenhuma fatura registrada neste cartão." />
+            </NoRecordsContent>
+        </MudTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-done OnClick="() => Dialog?.Close(DialogResult.Ok(true))">Fechar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public CreditCardDetails Card { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<InvoiceDetails> Invoices { get; set; } = [];
+
+    private void Open(InvoiceDetails invoice)
+    {
+        Dialog?.Close(DialogResult.Ok(true));
+        Navigation.NavigateTo(InvoiceDetail.Url(Card.ExternalId, invoice.Month));
+    }
+}

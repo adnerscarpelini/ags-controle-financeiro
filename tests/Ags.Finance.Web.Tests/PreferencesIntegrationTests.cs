@@ -62,7 +62,7 @@ public sealed class PreferencesIntegrationTests : IDisposable
     [Theory]
     [InlineData(StartPage.Dashboard, "/dashboard")]
     [InlineData(StartPage.Transactions, "/lancamentos")]
-    [InlineData(StartPage.Invoices, "/faturas")]
+    [InlineData(StartPage.Invoices, "/cartoes")]
     public async Task TheRootRedirectsToTheChosenStartPage(StartPage start, string expected)
     {
         await SaveAsync(x => x with { StartPage = start });

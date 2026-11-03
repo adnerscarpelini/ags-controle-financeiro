@@ -17,3 +17,11 @@ O componente recebe dados e callbacks, sem acessar banco ou executar regras fina
 Conferência em navegador a 1366 × 900 e 360 × 800, com três cartões fictícios, logo/iniciais, nome longo e limite de R$ 1.234.567,89. O HTML foi renderizado pelos componentes reais `MainLayout` e `AccountsAndCards`, com PostgreSQL isolado, e servido estaticamente para avaliar CSS sem alterar a confiança do certificado local. A página não apresentou rolagem horizontal; as ações mediram 44 pixels de altura e exibiram foco ao navegar com Tab. A face cresce quando o conteúdo exige, preservando nomes e ações.
 
 Edição, atualização dos finais, callbacks e arquivamento foram exercitados em bUnit; esta conferência estática não comprova um circuito Blazor interativo no navegador nem uso em celular físico na LAN.
+
+## Tela de Cartões (#100)
+
+[#100](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/100): `/cartoes` mostra a carteira em cards, com as abas **Faturas abertas** e **Faturas fechadas**. Cada card traz situação, total, vencimento, barra de limite e a ação conforme o estado: **Pagar fatura** ou "Fatura paga". Na aba de abertas, uma fatura já fechada e não paga do cartão aparece em destaque, com o mesmo **Pagar fatura**. Clicar no card abre a fatura.
+
+O menu ⋮ do card traz Editar, Finais do cartão, Histórico de faturas e Arquivar. **Ver cartões arquivados** mostra os arquivados e os indisponíveis pela conta. O resumo lateral mostra a próxima fatura a vencer, o limite disponível e o valor total das faturas.
+
+O limite usado vem de `IInvoiceCatalog.GetCardLimitsAsync`: saldo restante das faturas ainda não pagas, inclusive parcelas futuras. Crédito de uma fatura não reduz outra.

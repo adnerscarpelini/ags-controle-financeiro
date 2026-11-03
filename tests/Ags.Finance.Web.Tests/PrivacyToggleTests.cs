@@ -44,7 +44,7 @@ public sealed class PrivacyToggleTests : IAsyncDisposable
     {
         using var browser = await _factory.CreateSignedInBrowserAsync();
 
-        foreach (var page in new[] { "/dashboard", "/lancamentos", "/faturas", "/configuracoes", "/planejamento", "/relatorios/visao-19-meses" })
+        foreach (var page in new[] { "/dashboard", "/lancamentos", "/cartoes", "/configuracoes", "/planejamento", "/relatorios/visao-19-meses" })
         {
             var html = await browser.GetHtmlAsync(page);
 

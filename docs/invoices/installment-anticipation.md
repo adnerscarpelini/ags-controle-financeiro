@@ -18,3 +18,7 @@ falha ou fatura protegida reverte tudo, mesmo se outra parcela já tiver sido
 validada. Uma confirmação estável impede repetir a antecipação em chamadas
 concorrentes. Se o mês atual mudar durante o diálogo, é preciso conferir novamente.
 Não há operação de desfazer antecipação nesta entrega.
+
+## Janela de antecipação (#100)
+
+A antecipação abre em passos: quantidade e desconto, depois o resumo com parcelas, fatura de destino, desconto e o aviso de que não dá para desfazer. A regra não muda: as últimas parcelas vão para a fatura atual.

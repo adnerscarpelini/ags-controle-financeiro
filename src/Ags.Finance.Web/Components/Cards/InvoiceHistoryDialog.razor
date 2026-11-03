@@ -1,0 +1,24 @@
+@* Pagamentos, cashback e descontos de uma fatura, com os totais. *@
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Invoices.Contracts
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <p class="form-note" data-invoice-totals>Cashback: @Invoice.CashbackTotal · Descontos: @Invoice.DiscountsTotal · Pagamentos: @Invoice.PaymentsTotal</p>
+        <InvoicePaymentHistory Invoice="Invoice" Accounts="Accounts" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-done OnClick="() => Dialog?.Close(DialogResult.Ok(true))">Fechar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public InvoiceDetails Invoice { get; set; } = default!;
+
+    [Parameter]
+    public IReadOnlyList<AccountDetails> Accounts { get; set; } = [];
+}

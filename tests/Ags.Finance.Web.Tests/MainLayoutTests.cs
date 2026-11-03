@@ -61,7 +61,7 @@ public sealed class MainLayoutTests : IAsyncDisposable
         var layout = RenderLayout(isMobile: true);
         MenuButton(layout).Click();
 
-        layout.Find("a[href='faturas']").Click();
+        layout.Find("a[href='cartoes']").Click();
 
         Assert.Contains("mud-drawer--closed", layout.Find(".sidebar").ClassList);
     }

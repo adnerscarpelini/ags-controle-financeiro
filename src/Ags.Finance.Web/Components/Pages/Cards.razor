@@ -1,0 +1,214 @@
+@page "/cartoes"
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Invoices.Contracts
+@using Ags.Finance.SharedKernel
+@using Ags.Finance.Web.Components.Cards
+@using Ags.Finance.Web.Components.Layout
+@implements IDisposable
+@inject IAccountCatalog Accounts
+@inject ICardLastDigitsCatalog CardFinals
+@inject IInvoiceCatalog Catalog
+@inject TimeProvider Clock
+@inject EntryChangeNotifier EntryChanges
+@inject IDialogService Dialogs
+@inject ViewportState Viewport
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<div class="page-head">
+    <PageHeader Title="Cartões" />
+    <div class="page-head-actions">
+        <div class="chips" role="group" aria-label="Faturas">
+            <button type="button" class="chip @(_showClosed ? null : "on")" aria-pressed="@(_showClosed ? "false" : "true")" data-tab="open" @onclick="() => _showClosed = false">Faturas abertas</button>
+            <button type="button" class="chip @(_showClosed ? "on" : null)" aria-pressed="@(_showClosed ? "true" : "false")" data-tab="closed" @onclick="() => _showClosed = true">Faturas fechadas</button>
+        </div>
+        <MudMenu Icon="@Icons.Material.Outlined.MoreVert" AriaLabel="Mais ações de cartões" Variant="Variant.Outlined" data-cards-more>
+            <MudMenuItem Icon="@Icons.Material.Outlined.EventNote" OnClick="OpenObligationsAsync">Saldos de faturas e parcelas futuras</MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Outlined.Savings" OnClick="OpenCashbackAsync">Cashback e descontos</MudMenuItem>
+        </MudMenu>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Add" data-new-card OnClick="() => OpenCardAsync(null)">Novo cartão</MudButton>
+    </div>
+</div>
+
+@if (_message is not null) { <p class="form-error" role="alert">@_message</p> }
+
+@if (_loaded && !_cards.Any(x => x.IsAvailable) && !_showArchived)
+{
+    <section class="panel">
+        <EmptyState Icon="@Icons.Material.Outlined.CreditCard" Message="Nenhum cartão ainda. Cadastre o primeiro para lançar compras e acompanhar as faturas." ActionText="Cadastrar cartão" OnAction="() => OpenCardAsync(null)" />
+    </section>
+}
+else
+{
+    <div class="split">
+        <div class="split-main card-grid" aria-label="Carteira de cartões">
+            @foreach (var card in _cards.Where(x => _showArchived || x.IsAvailable))
+            {
+                var invoice = ShownInvoice(card);
+                var account = _accounts.FirstOrDefault(x => x.ExternalId == card.AccountExternalId);
+                var pending = _showClosed ? null : ClosedUnpaid(card);
+                <CreditCardView @key="card.ExternalId" Card="card" Account="account" Bank="_banks.FirstOrDefault(x => x.ExternalId == account?.BankExternalId)"
+                                Finals="_finals.GetValueOrDefault(card.ExternalId, [])" Invoice="invoice" DueDate="DueOf(card, invoice)" PendingInvoice="pending"
+                                Limit="_limits.FirstOrDefault(x => x.CardExternalId == card.ExternalId)"
+                                Open="() => OpenInvoice(card, invoice)" Pay="payable => OpenPaymentAsync(payable)"
+                                Edit="() => OpenCardAsync(card)" ShowFinals="() => OpenFinalsAsync(card)" History="() => OpenHistoryAsync(card)"
+                                ToggleArchive="() => ToggleArchiveAsync(card)" />
+            }
+            <button type="button" class="add-card" data-add-card @onclick="() => OpenCardAsync(null)">
+                <MudIcon Icon="@Icons.Material.Outlined.Add" aria-hidden="true" />
+                Novo cartão
+            </button>
+        </div>
+        <aside class="split-aside" aria-label="Resumo dos cartões">
+            <StatCard Icon="@Icons.Material.Outlined.Event" Label="Próxima fatura vence em" Value="@NextDueText" Testid="next-due" />
+            <StatCard Icon="@Icons.Material.Outlined.CreditScore" Label="Limite disponível" Help="Limite dos cartões menos o saldo restante das faturas ainda não pagas, inclusive parcelas futuras." Value="@AvailableTotal.ToString()" Testid="available" />
+            <StatCard Icon="@Icons.Material.Outlined.ReceiptLong" Label="Valor total das faturas" Help="Soma das faturas mostradas nos cards acima." Value="@InvoicesTotal.ToString()" Testid="invoices-total" />
+            <button type="button" class="link-button" data-toggle-archived aria-pressed="@(_showArchived ? "true" : "false")" @onclick="() => _showArchived = !_showArchived">@(_showArchived ? "Ocultar cartões arquivados" : "Ver cartões arquivados")</button>
+        </aside>
+    </div>
+}
+
+@code {
+    /// <summary>Endereços antigos de /cashback e /compromissos abrem a janela correspondente.</summary>
+    [SupplyParameterFromQuery(Name = "abrir")]
+    public string? OpenOnLoad { get; set; }
+
+    private IReadOnlyList<CreditCardDetails> _cards = [];
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private IReadOnlyList<BankDetails> _banks = [];
+    private IReadOnlyList<InvoiceDetails> _invoices = [];
+    private IReadOnlyList<CardLimit> _limits = [];
+    private readonly Dictionary<Guid, IReadOnlyList<CardLastDigitsDetails>> _finals = [];
+    private readonly Dictionary<Guid, ReferenceMonth?> _currentMonths = [];
+    private readonly Dictionary<(Guid, ReferenceMonth), InvoiceDates?> _dates = [];
+    private bool _showClosed;
+    private bool _showArchived;
+    private bool _loaded;
+    private string? _message;
+
+    private DateOnly Today => DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+
+    private IEnumerable<InvoiceDetails> ShownInvoices => _cards.Where(x => x.IsAvailable).Select(ShownInvoice).OfType<InvoiceDetails>();
+
+    private Money InvoicesTotal => new(ShownInvoices.Sum(x => x.Total.Amount));
+
+    private Money AvailableTotal => new(_limits.Where(x => _cards.Any(c => c.ExternalId == x.CardExternalId && c.IsAvailable)).Sum(x => x.Available.Amount));
+
+    private string NextDueText
+    {
+        get
+        {
+            var dates = _cards.Where(x => x.IsAvailable).Select(x => DueOf(x, ShownInvoice(x))).OfType<DateOnly>().ToList();
+            return dates.Count == 0 ? "Sem faturas" : dates.Min().ToString("dd/MM/yyyy");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        EntryChanges.Changed += EntriesChangedAsync;
+        await ReloadAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) { return; }
+        if (string.Equals(OpenOnLoad, "cashback", StringComparison.OrdinalIgnoreCase)) { await OpenCashbackAsync(); }
+        if (string.Equals(OpenOnLoad, "compromissos", StringComparison.OrdinalIgnoreCase)) { await OpenObligationsAsync(); }
+    }
+
+    private Task EntriesChangedAsync() => InvokeAsync(async () =>
+    {
+        await ReloadAsync();
+        StateHasChanged();
+    });
+
+    private async Task ReloadAsync()
+    {
+        _banks = await Accounts.GetBanksAsync();
+        _accounts = await Accounts.GetAccountsAsync(activeOnly: false);
+        _cards = await Accounts.GetCreditCardsAsync(activeOnly: false);
+        _invoices = await Catalog.GetAsync();
+        _limits = await Catalog.GetCardLimitsAsync();
+        _dates.Clear();
+        foreach (var card in _cards)
+        {
+            _finals[card.ExternalId] = await CardFinals.GetAsync(card.ExternalId);
+            _currentMonths[card.ExternalId] = (await Catalog.GetSelectableInvoicesAsync(card.ExternalId, Today)).SuggestedMonth;
+            foreach (var invoice in new[] { ShownInvoice(card, closed: false), ShownInvoice(card, closed: true) }.OfType<InvoiceDetails>())
+            {
+                _dates.TryAdd((card.ExternalId, invoice.Month), await Catalog.GetDatesAsync(card.ExternalId, invoice.Month));
+            }
+        }
+
+        _loaded = true;
+    }
+
+    private InvoiceDetails? ShownInvoice(CreditCardDetails card) => ShownInvoice(card, _showClosed);
+
+    private InvoiceDetails? ShownInvoice(CreditCardDetails card, bool closed)
+    {
+        var invoices = _invoices.Where(x => x.CardExternalId == card.ExternalId).ToList();
+        if (closed)
+        {
+            return ClosedUnpaid(card) ?? invoices.Where(x => x.Status == InvoiceStatus.Paid).OrderByDescending(x => x.Month).FirstOrDefault();
+        }
+
+        // A fatura atual é a aberta que o caso de uso sugere para hoje, mesmo que ainda não tenha compras.
+        if (_currentMonths.GetValueOrDefault(card.ExternalId) is not { } month) { return null; }
+        return invoices.FirstOrDefault(x => x.Month == month) ?? new InvoiceDetails(card.ExternalId, card.Name, month, Money.Zero, []);
+    }
+
+    private InvoiceDetails? ClosedUnpaid(CreditCardDetails card) =>
+        _invoices.Where(x => x.CardExternalId == card.ExternalId && x.Status == InvoiceStatus.Closed).OrderBy(x => x.Month).FirstOrDefault();
+
+    private DateOnly? DueOf(CreditCardDetails card, InvoiceDetails? invoice) =>
+        invoice is not null ? _dates.GetValueOrDefault((card.ExternalId, invoice.Month))?.DueDate : null;
+
+    private void OpenInvoice(CreditCardDetails card, InvoiceDetails? invoice) =>
+        Navigation.NavigateTo(InvoiceDetail.Url(card.ExternalId, invoice?.Month));
+
+    private async Task OpenCardAsync(CreditCardDetails? card)
+    {
+        var parameters = new DialogParameters<CardDialog> { { x => x.Card, card } };
+        await Dialogs.ShowAsync<CardDialog>(card is null ? "Novo cartão" : "Editar cartão", parameters, AppDialogs.Options(Viewport));
+    }
+
+    private async Task OpenFinalsAsync(CreditCardDetails card)
+    {
+        var parameters = new DialogParameters<CardFinalsDialog> { { x => x.Card, card } };
+        await Dialogs.ShowAsync<CardFinalsDialog>($"Finais de {card.Name}", parameters, AppDialogs.Options(Viewport));
+    }
+
+    private async Task OpenHistoryAsync(CreditCardDetails card)
+    {
+        var parameters = new DialogParameters<CardInvoiceHistoryDialog> { { x => x.Card, card }, { x => x.Invoices, _invoices.Where(x => x.CardExternalId == card.ExternalId).OrderByDescending(x => x.Month).ToList() } };
+        await Dialogs.ShowAsync<CardInvoiceHistoryDialog>($"Histórico de faturas de {card.Name}", parameters, AppDialogs.Options(Viewport, MaxWidth.Medium));
+    }
+
+    private async Task OpenPaymentAsync(InvoiceDetails invoice)
+    {
+        var parameters = new DialogParameters<InvoicePaymentDialog> { { x => x.Invoice, invoice } };
+        await Dialogs.ShowAsync<InvoicePaymentDialog>($"Pagar {invoice.CardName} · {invoice.Month}", parameters, AppDialogs.Options(Viewport));
+    }
+
+    private async Task OpenObligationsAsync() =>
+        await Dialogs.ShowAsync<InvoiceObligationsDialog>("Saldos de faturas e parcelas futuras", new DialogParameters(), AppDialogs.Options(Viewport, MaxWidth.Medium));
+
+    private async Task OpenCashbackAsync() =>
+        await Dialogs.ShowAsync<CashbackDialog>("Cashback e descontos", new DialogParameters(), AppDialogs.Options(Viewport, MaxWidth.Medium));
+
+    private async Task ToggleArchiveAsync(CreditCardDetails card)
+    {
+        var restoring = !card.IsActive;
+        var confirmed = await ConfirmDialog.AskAsync(Dialogs, restoring ? "Restaurar cartão" : "Arquivar cartão",
+            restoring ? "O mesmo cartão será restaurado. Ele continua sujeito à disponibilidade da conta vinculada." : "O cartão será mantido, junto de histórico e faturas pendentes, e deixará de aparecer nas seleções de novos lançamentos.",
+            restoring ? "Restaurar" : "Arquivar");
+        if (!confirmed) { return; }
+        var result = restoring ? await Accounts.ReactivateCreditCardAsync(card.ExternalId) : await Accounts.DeactivateCreditCardAsync(card.ExternalId);
+        _message = result.Error;
+        if (result.Succeeded) { Snackbar.Add(restoring ? "Cartão restaurado." : "Cartão arquivado.", Severity.Success); }
+        await ReloadAsync();
+    }
+
+    public void Dispose() => EntryChanges.Changed -= EntriesChangedAsync;
+}

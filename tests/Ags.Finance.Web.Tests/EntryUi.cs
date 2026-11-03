@@ -52,13 +52,15 @@ internal sealed class EntryUi : IAsyncDisposable
 
     public IEntryCatalog Entries => Context.Services.GetRequiredService<IEntryCatalog>();
 
-    public static async Task<EntryUi> CreateAsync()
+    public string AttachmentsDirectory => _attachments;
+
+    public static async Task<EntryUi> CreateAsync(DateTimeOffset? now = null)
     {
         var database = await PostgresTestDatabase.CreateAsync();
         var context = new BunitContext().UseAppUi();
         var attachments = Path.Combine(Path.GetTempPath(), "ags-entry-ui-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(attachments);
-        context.Services.AddSingleton<TimeProvider>(new FixedClock())
+        context.Services.AddSingleton<TimeProvider>(new FixedClock(now ?? new DateTimeOffset(2026, 9, 1, 12, 0, 0, TimeSpan.Zero)))
             .AddAccountsModule(database.ConnectionString)
             .AddTransactionsModule(database.ConnectionString)
             .AddReimbursementsModule(database.ConnectionString)
@@ -140,8 +142,10 @@ internal sealed class EntryUi : IAsyncDisposable
     public async Task<Guid> AddPersonAsync(decimal percent = 50m) =>
         (await Context.Services.GetRequiredService<IPersonCatalog>().SaveAsync(null, "Pessoa Exemplo", percent)).ExternalId!.Value;
 
-    private sealed class FixedClock : TimeProvider
+    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
     {
-        public override DateTimeOffset GetUtcNow() => new(2026, 9, 1, 12, 0, 0, TimeSpan.Zero);
+        public override DateTimeOffset GetUtcNow() => now;
+
+        public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
     }
 }

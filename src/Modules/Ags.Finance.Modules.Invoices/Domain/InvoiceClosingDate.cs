@@ -6,6 +6,17 @@ internal static class InvoiceClosingDate
 {
     public static DateTimeOffset? Cutoff(ReferenceMonth month, int closingDay, int dueDay, bool includesClosingDay, TimeZoneInfo zone)
     {
+        var closingDate = Date(month, closingDay, dueDay);
+        if (includesClosingDay && closingDate == DateOnly.MaxValue) { return null; }
+        var local = (includesClosingDay ? closingDate.AddDays(1) : closingDate).ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
+        while (zone.IsInvalidTime(local)) { local = local.AddMinutes(1); }
+        return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(local, zone));
+    }
+
+    public static DateOnly DueDate(ReferenceMonth month, int dueDay) => AtDay(month, dueDay);
+
+    public static DateOnly Date(ReferenceMonth month, int closingDay, int dueDay)
+    {
         var candidates = new List<DateOnly>();
         foreach (var offset in new[] { -1, 0 })
         {
@@ -24,10 +35,7 @@ internal static class InvoiceClosingDate
             closingDate = AtDay(month, closingDay);
             if (closingDate > AtDay(month, dueDay) && !(month.Year == 1 && month.Month == 1)) { closingDate = AtDay(month.AddMonths(-1), closingDay); }
         }
-        if (includesClosingDay && closingDate == DateOnly.MaxValue) { return null; }
-        var local = (includesClosingDay ? closingDate.AddDays(1) : closingDate).ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
-        while (zone.IsInvalidTime(local)) { local = local.AddMinutes(1); }
-        return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(local, zone));
+        return closingDate;
     }
 
     private static DateOnly AtDay(ReferenceMonth month, int day) => new(month.Year, month.Month, Math.Min(day, month.LastDay.Day));

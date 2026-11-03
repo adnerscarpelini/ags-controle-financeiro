@@ -2,6 +2,12 @@
 <MudDialog Class="app-dialog">
     <DialogContent>
         <p class="confirm-message">@Message</p>
+        @if (Details is { Count: > 0 })
+        {
+            <ul class="confirm-details" aria-label="@DetailsLabel">
+                @foreach (var detail in Details) { <li>@detail</li> }
+            </ul>
+        }
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel" data-confirm-cancel>@CancelText</MudButton>
@@ -25,7 +31,13 @@
     [Parameter]
     public bool Destructive { get; set; }
 
-    public static async Task<bool> AskAsync(IDialogService dialogs, string title, string message, string confirmText = "Confirmar", bool destructive = false, string cancelText = "Cancelar")
+    [Parameter]
+    public IReadOnlyList<string>? Details { get; set; }
+
+    [Parameter]
+    public string? DetailsLabel { get; set; }
+
+    public static async Task<bool> AskAsync(IDialogService dialogs, string title, string message, string confirmText = "Confirmar", bool destructive = false, string cancelText = "Cancelar", IReadOnlyList<string>? details = null, string? detailsLabel = null)
     {
         var parameters = new DialogParameters<ConfirmDialog>
         {
@@ -33,6 +45,8 @@
             { x => x.ConfirmText, confirmText },
             { x => x.CancelText, cancelText },
             { x => x.Destructive, destructive },
+            { x => x.Details, details },
+            { x => x.DetailsLabel, detailsLabel },
         };
         var reference = await dialogs.ShowAsync<ConfirmDialog>(title, parameters, new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, BackdropClick = false });
         var result = await reference.Result;
