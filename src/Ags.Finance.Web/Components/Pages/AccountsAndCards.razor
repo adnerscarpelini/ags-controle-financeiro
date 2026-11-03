@@ -2,6 +2,7 @@
 @using Ags.Finance.Modules.Accounts.Contracts
 @using Ags.Finance.SharedKernel
 @inject IAccountCatalog Catalog
+@inject ICardLastDigitsCatalog CardFinals
 @inject TimeProvider Clock
 
 <PageHeader Title="Contas e cartões" />
@@ -134,18 +135,15 @@
         <button class="button" type="submit" disabled="@_busy">Salvar cartão</button>
         <button class="button" type="button" @onclick="ResetCard">Limpar</button>
     </form>
-    <ul class="catalog-list">
+    <ul class="catalog-list card-wallet" aria-label="Carteira de cartões">
         @foreach (var card in _cards.Where(x => _showArchived || x.IsAvailable))
         {
-            <li>
-                <span class="catalog-color color-@card.Color">@card.Name</span>
-                <span>@card.Brand · <span class="numeric">@card.CreditLimit</span> · @AvailabilityLabel(card)</span>
-                <span>Fecha dia @card.ClosingDay · vence dia @card.DueDay · @(card.IncludesClosingDay ? "Inclui" : "Não inclui") o dia do fechamento</span>
-                <div>
-                    <button class="button" @onclick="() => EditCard(card)">Editar</button>
-                    <button class="button" @onclick="() => _digitsCard = card">Finais do cartão</button>
-                    <button class="button" @onclick="() => AskArchive(card.ExternalId, true, !card.IsActive)">@(card.IsActive ? "Arquivar" : "Desarquivar")</button>
-                </div>
+            var account = _accounts.FirstOrDefault(x => x.ExternalId == card.AccountExternalId);
+            var bank = _banks.FirstOrDefault(x => x.ExternalId == account?.BankExternalId);
+            <li @key="card.ExternalId">
+                <CreditCardView Card="card" Account="account" Bank="bank" Finals="_cardFinals.GetValueOrDefault(card.ExternalId, [])"
+                                Edit="() => EditCard(card)" ShowFinals="() => _digitsCard = card"
+                                ToggleArchive="() => AskArchive(card.ExternalId, true, !card.IsActive)" />
             </li>
         }
     </ul>
@@ -153,11 +151,12 @@
 
 @if (_digitsCard is not null)
 {
-    <CardLastDigitsPanel @key="_digitsCard.ExternalId" CardExternalId="_digitsCard.ExternalId" CardName="_digitsCard.Name" />
+    <CardLastDigitsPanel @key="_digitsCard.ExternalId" CardExternalId="_digitsCard.ExternalId" CardName="_digitsCard.Name" Changed="RefreshAsync" />
 }
 
 @code {
     private CreditCardDetails? _digitsCard;
+    private readonly Dictionary<Guid, IReadOnlyList<CardLastDigitsDetails>> _cardFinals = [];
     private IReadOnlyList<BankDetails> _banks = [];
     private IReadOnlyList<AccountDetails> _accounts = [];
     private IReadOnlyList<CreditCardDetails> _cards = [];
@@ -188,7 +187,6 @@
     private bool _showArchived;
     private BankDetails? _logoBank;
     private async Task LogoSavedAsync() { _logoBank = null; await RefreshAsync(); _message = "Logo atualizado."; }
-    private static string AvailabilityLabel(CreditCardDetails card) => !card.IsActive ? "Arquivado individualmente" : !card.IsAccountActive ? "Indisponível: conta arquivada" : "Disponível";
 
     protected override async Task OnInitializedAsync()
     {
@@ -201,6 +199,8 @@
         _banks = await Catalog.GetBanksAsync();
         _accounts = await Catalog.GetAccountsAsync(activeOnly: false);
         _cards = await Catalog.GetCreditCardsAsync(activeOnly: false);
+        _cardFinals.Clear();
+        foreach (var card in _cards) { _cardFinals[card.ExternalId] = await CardFinals.GetAsync(card.ExternalId); }
     }
 
     private async Task ApplyAsync(Func<Task<CatalogResult>> operation)

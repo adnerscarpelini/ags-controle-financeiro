@@ -40,17 +40,11 @@ O arquivo `logo.png` na raiz do repositório (1254 × 1254 px, fundo transparent
 
 O favicon já está entregue; os ícones/manifesto instaláveis dependem da #38.
 
-## Evoluções aprovadas, ainda não implementadas
+## Cadastros visuais implementados
 
-- [Logo opcional de banco (#54)](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/54):
-  recorte circular com prévia, posição e zoom, saída recomendada PNG 256 × 256 com
-  transparência externa. Usar em relatórios e identificação do cartão, com alternativa textual.
-- [Carteira visual (#55)](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/55):
-  cartões desenhados em HTML/CSS com os dados do cadastro, responsivos, sem depender de hover
-  ou imagem estática do cartão. Reutilizar tokens e não introduzir gradientes ou sombras pesadas.
-- [Arquivamento (#53)](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/53):
-  ocultar contas/cartões das listas padrão e novas seleções, oferecendo consulta e desarquivamento.
-  Não ocultar os respectivos valores do histórico, relatórios e faturas pendentes.
+- [Logo opcional de banco (#54)](../accounts/bank-logos.md): recorte circular com prévia, posição e zoom, PNG 256 × 256 com transparência externa e referência local autenticada. O contrato permite reutilização futura em relatórios.
+- [Carteira visual (#55)](../accounts/card-wallet.md): componente HTML/CSS com dados atuais do cadastro, face de proporção aproximada de 1,6:1, detalhes e ações sempre visíveis. A grade se adapta ao celular, com foco e alvos de 44 pixels.
+- [Arquivamento (#53)](../accounts/archiving.md): contas/cartões saem das listas padrão e novas seleções, com consulta e restauração explícitas. Histórico, saldos e faturas continuam acessíveis.
 
 As imagens de logo enviadas pelo usuário são arquivos, não novos valores literais de cor
 nos componentes. Cores institucionais em CSS continuam restritas ao texto conforme a regra acima.

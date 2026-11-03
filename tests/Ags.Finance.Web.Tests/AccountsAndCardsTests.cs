@@ -78,6 +78,33 @@ public sealed class AccountsAndCardsTests : IAsyncLifetime, IDisposable
     }
 
     [Fact]
+    public async Task WalletRefreshesCardEditsAndFinalChangesWithoutStaticImages()
+    {
+        var catalog = _context.Services.GetRequiredService<IAccountCatalog>();
+        var bank = await catalog.CreateBankAsync("Banco Exemplo");
+        var account = await catalog.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta Exemplo", AccountKind.Checking, "green"));
+        foreach (var brand in Enum.GetValues<CardBrand>())
+        {
+            await catalog.SaveCreditCardAsync(new(null, account.ExternalId!.Value, $"Cartão {brand}", brand, new Money(1000), 3, 10, false, "green"));
+        }
+        var page = _context.Render<AccountsAndCards>();
+        page.WaitForAssertion(() => Assert.Equal(3, page.FindAll(".wallet-card").Count));
+        await page.Find(".wallet-card button").ClickAsync(new());
+        await page.InvokeAsync(() => page.Find("#card-name").Change("Cartão Atualizado"));
+        await page.InvokeAsync(() => page.Find("#card-limit").Change("4321.98"));
+        await page.FindAll("form")[2].SubmitAsync(EventArgs.Empty);
+        page.WaitForAssertion(() => Assert.Contains("R$ 4.321,98", page.Find(".card-wallet").TextContent, StringComparison.Ordinal));
+        var updated = page.FindAll(".wallet-card").Single(x => x.TextContent.Contains("Cartão Atualizado", StringComparison.Ordinal));
+        await updated.QuerySelectorAll("button")[1].ClickAsync(new());
+        page.WaitForElement("#card-digits");
+        await page.InvokeAsync(() => page.Find("#card-digits").Change("5678"));
+        await page.InvokeAsync(() => page.Find("#digits-label").Change("Assinaturas"));
+        await page.FindAll("form")[3].SubmitAsync(EventArgs.Empty);
+        page.WaitForAssertion(() => Assert.Contains("Final 5678 · Assinaturas", page.Find(".card-wallet").TextContent, StringComparison.Ordinal));
+        Assert.Empty(page.FindAll(".wallet-card img"));
+    }
+
+    [Fact]
     public async Task FinalFormCreatesSubscriptionAndConfirmsDeactivation()
     {
         var catalog = _context.Services.GetRequiredService<IAccountCatalog>();

@@ -2,16 +2,16 @@
 
 Origem: [issue #6](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/6).
 
-**Estado:** cadastro e desativação estão implementados. Arquivar/desarquivar (#53),
-[Logos de banco (#54)](bank-logos.md) estão implementados; carteira visual (#55) permanece pendente.
+**Estado:** cadastros, [arquivamento reversível (#53)](archiving.md),
+[logos de banco (#54)](bank-logos.md) e [carteira visual (#55)](card-wallet.md) estão implementados.
 A persistência usa [PostgreSQL](../architecture/persistence-postgresql.md) (#60): tabelas no schema `accounts`.
 
 Em **Cadastros > Contas e cartões**, cadastrar bancos pelo nome; cadastrar e editar contas
 Corrente, Investimento (incluindo caixinhas e CDB, sem rendimento) ou Poupança.
 Cada conta exige um banco existente, nome de até 100 caracteres e cor da paleta.
 O nome é único por banco após remover espaços nas extremidades e ignorar maiúsculas;
-contas desativadas continuam reservando seu nome. Valores iniciais, transferências e
-ajustes serão tratados nas issues #46, #47 e #48.
+contas arquivadas continuam reservando seu nome. [Saldo inicial](../architecture/account-balances.md),
+[transferências](../transactions/account-transfers.md) e [ajustes de saldo](../transactions/balance-adjustments.md) estão implementados (#46/#47/#48).
 
 Cartões exigem conta corrente ativa, nome, bandeira Visa/Mastercard/Elo, limite não
 negativo, cor, fechamento e vencimento entre 1 e 31. A opção de incluir o dia do
