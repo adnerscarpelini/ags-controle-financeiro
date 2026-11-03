@@ -7,7 +7,7 @@ O calendário de compras (#8), a abertura de contas (#47), lançamentos avulsos 
 e o ciclo de faturas (#18/#50) estão implementados. Séries mensais e ocorrências (#16)
 também estão entregues, com edição por alcance (#17), baixa manual (#56),
 transferências (#46), ajustes de saldo (#48) e consulta de pendências (#57).
-Ajustes de fatura, arquivamento reversível e outras visões financeiras
+Arquivamento reversível e outras visões financeiras
 ainda têm entregas abertas.
 Esta nota registra as fronteiras entre conceitos; os critérios de aceite permanecem nas issues.
 
@@ -86,3 +86,11 @@ O bloqueio das alterações precisa funcionar nos casos de uso, não apenas no B
 ciclo Transactions → Invoices → Transactions. A [operação financeira compartilhada](financial-operations.md)
 e o guard definido em Transactions implementam essa proteção na #50, com rollback entre
 DbContexts e conexões sequenciais na mesma transação PostgreSQL.
+
+## Ajuste específico de fatura (#52)
+
+Invoices define o guard de ajuste, que permite Aberta/Fechada e bloqueia Paga.
+Transactions conserva o registro de diferença no orçamento, sem FK entre módulos,
+sem descrição fictícia e sem modificar a compra original. O mesmo limite
+transacional protege leitura do total, validação do estado e gravação; a prévia
+pode exigir o total esperado para não confirmar uma diferença desatualizada.

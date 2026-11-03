@@ -19,6 +19,7 @@
     </form>
 </section>
 @if (_message is not null) { <p role="status">@_message</p> }
+@if (_adjusting is { } adjusting) { <InvoiceTotalAdjustmentDialog @key="adjusting" Invoice="adjusting" Confirmed="AdjustmentConfirmedAsync" Cancelled="() => _adjusting = null" /> }
 @if (_paying is { } paying) { <InvoicePaymentDialog @key="paying" Invoice="paying" Confirmed="PaymentConfirmedAsync" Cancelled="() => _paying = null" /> }
 @if (_settling is { } settling)
 {
@@ -64,6 +65,7 @@
                 @if (invoice.Status == InvoiceStatus.Open) { <button class="button" @onclick="() => Ask(invoice, false)">Fechar</button> }
                 @if (invoice.Status == InvoiceStatus.Closed && !invoice.HasConfirmedPayment) { <button class="button" @onclick="() => Ask(invoice, true)">Reabrir</button> }
                 @if (invoice.Status != InvoiceStatus.Paid) { <button class="button" @onclick="() => StartPayment(invoice)">Pagar</button> }
+                @if (invoice.Status != InvoiceStatus.Paid) { <button class="button" @onclick="() => StartAdjustment(invoice)">Ajustar valor</button> }
                 @if (invoice.Status == InvoiceStatus.Closed && invoice.RemainingBalance.Amount <= 0) { <button class="button" @onclick="() => _settling = invoice">Confirmar quitação</button> }
             </li>
         }
@@ -96,9 +98,12 @@
     private IReadOnlyList<CreditCardDetails> _cards = [];
     private IReadOnlyList<AccountDetails> _accounts = [];
     private InvoiceDetails? _pending;
+    private InvoiceDetails? _adjusting;
+    private void StartAdjustment(InvoiceDetails invoice) { _pending = null; _paying = null; _settling = null; _adjusting = invoice; }
+    private async Task AdjustmentConfirmedAsync() { _adjusting = null; await ReloadInvoicesAsync(); _message = "Total conferido e atualizado."; }
     private InvoiceDetails? _paying;
     private InvoiceDetails? _settling;
-    private void StartPayment(InvoiceDetails invoice) { _pending = null; _settling = null; _paying = invoice; }
+    private void StartPayment(InvoiceDetails invoice) { _adjusting = null; _pending = null; _settling = null; _paying = invoice; }
     private async Task PaymentConfirmedAsync() { _paying = null; await ReloadInvoicesAsync(); _message = "Pagamento confirmado."; }
     private async Task SettleAsync()
     {
@@ -127,7 +132,7 @@
         await ReloadInvoicesAsync();
     }
     private void Select(InvoiceDetails invoice) { _selectedCard = invoice.CardExternalId; _selectedMonth = invoice.Month; }
-    private void Ask(InvoiceDetails invoice, bool reopen) { _paying = null; _settling = null; _pending = invoice; _reopen = reopen; }
+    private void Ask(InvoiceDetails invoice, bool reopen) { _adjusting = null; _paying = null; _settling = null; _pending = invoice; _reopen = reopen; }
     private void AskManualClose()
     {
         var card = _cards.FirstOrDefault(x => x.ExternalId == _cardId);

@@ -63,3 +63,5 @@ Arquivamento reversível (#53), logos (#54), carteira visual (#55), faturas/paga
 - [Saldos e parcelas futuras (#20)](invoices/future-obligations.md)
 
 - [Antecipação de parcelas (#32)](invoices/installment-anticipation.md)
+
+- [Ajuste de total de fatura (#52)](invoices/total-adjustments.md)

@@ -183,5 +183,24 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
         {
             b.HasOne("Ags.Finance.Modules.Transactions.Domain.RecurringEntry", null).WithMany().HasForeignKey("RecurringEntryExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict);
         });
+        modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.InvoiceAdjustment", b =>
+        {
+            b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint").HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+            b.Property<Guid>("ExternalId").HasColumnType("uuid");
+            b.Property<DateTimeOffset>("CreatedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("timestamp with time zone");
+            b.Property<Guid>("ConfirmationId").HasColumnType("uuid");
+            b.Property<Guid>("CardExternalId").HasColumnType("uuid");
+            b.Property<Guid>("AccountExternalId").HasColumnType("uuid");
+            b.Property<int>("Month").HasColumnType("integer");
+            b.Property<DateOnly>("Date").HasColumnType("date");
+            b.Property<long>("ExpenseDifference").HasColumnType("bigint");
+            b.Property<long>("CorrectTotal").HasColumnType("bigint");
+            b.HasKey("Id");
+            b.HasIndex("ExternalId").IsUnique();
+            b.HasIndex("ConfirmationId").IsUnique();
+            b.HasIndex("CardExternalId", "Month");
+            b.ToTable("invoice_adjustments", "transactions");
+        });
     }
 }

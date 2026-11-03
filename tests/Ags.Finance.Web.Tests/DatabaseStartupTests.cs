@@ -44,7 +44,7 @@ public sealed class DatabaseStartupTests : IAsyncLifetime
         foreach (var module in s_modules)
         {
             Assert.Equal([module], await Database.QueryAsync($"SELECT schema_name FROM information_schema.schemata WHERE schema_name = '{module}'"));
-            Assert.Equal(module == "transactions" ? "12" : module == "invoices" ? "5" : module == "accounts" ? "2" : "1", await Database.ScalarAsync($"SELECT COUNT(*) FROM {module}.__ef_migrations"));
+            Assert.Equal(module == "transactions" ? "13" : module == "invoices" ? "5" : module == "accounts" ? "2" : "1", await Database.ScalarAsync($"SELECT COUNT(*) FROM {module}.__ef_migrations"));
         }
     }
 
@@ -56,7 +56,7 @@ public sealed class DatabaseStartupTests : IAsyncLifetime
 
         foreach (var module in s_modules)
         {
-            Assert.Equal(module == "transactions" ? "12" : module == "invoices" ? "5" : module == "accounts" ? "2" : "1", await Database.ScalarAsync($"SELECT COUNT(*) FROM {module}.__ef_migrations"));
+            Assert.Equal(module == "transactions" ? "13" : module == "invoices" ? "5" : module == "accounts" ? "2" : "1", await Database.ScalarAsync($"SELECT COUNT(*) FROM {module}.__ef_migrations"));
         }
     }
 

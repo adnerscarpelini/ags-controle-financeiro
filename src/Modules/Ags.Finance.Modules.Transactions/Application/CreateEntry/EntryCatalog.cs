@@ -104,7 +104,7 @@ internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementSt
     {
         var generated = await GenerateRecurringAsync(new(), cancellationToken);
         if (!generated.Succeeded) { throw new InvalidOperationException(generated.Error); }
-        return await DescribeAsync(await store.GetAsync(cancellationToken), cancellationToken);
+        return await DescribeWithAdjustmentsAsync(await store.GetAsync(cancellationToken), await store.GetInvoiceAdjustmentsAsync(cancellationToken), cancellationToken);
     }
 
     private async Task<IReadOnlyList<EntryDetails>> DescribeAsync(IReadOnlyList<TransactionEntry> rows, CancellationToken cancellationToken)

@@ -1,0 +1,48 @@
+@using Ags.Finance.Modules.Invoices.Contracts
+@using Ags.Finance.SharedKernel
+@inject IInvoiceAdjustmentCatalog Adjustments
+
+<section class="panel" role="alertdialog" aria-label="Ajustar total da fatura">
+    <h2>Ajustar valor de @Invoice.CardName · @Invoice.Month</h2>
+    <p>Total bruto atual: @Invoice.Total · Saldo restante após abatimentos: @Invoice.RemainingBalance</p>
+    <p>Informe o total bruto correto. A diferença será um ajuste de despesa no mês da fatura, sem alterar compras, pagamentos ou débitos em conta.</p>
+    @if (_error is not null) { <p role="status">@_error</p> }
+    @if (_confirmation is { } confirmation)
+    {
+        <p>Total atual: @Invoice.Total · Total informado: @confirmation.CorrectTotal · Diferença: @(confirmation.CorrectTotal - Invoice.Total)</p>
+        <p>O ajuste será registrado na data da confirmação e preservará o mês contábil da fatura. Correções são novos ajustes.</p>
+        <button class="button" @onclick="ConfirmAsync" disabled="@_busy">Confirmar ajuste de fatura</button><button class="button" @onclick="() => _confirmation = null" disabled="@_busy">Voltar</button>
+    }
+    else
+    {
+        <form id="invoice-adjustment-form" @onsubmit="Review" @onsubmit:preventDefault>
+            <div class="field"><label for="invoice-correct-total">Total bruto correto (R$)</label><input id="invoice-correct-total" type="number" step="0.01" @bind="_correctTotal" required /></div>
+            <button class="button" disabled="@_busy">Revisar ajuste</button>
+        </form>
+    }
+    <button class="button" @onclick="() => Cancelled.InvokeAsync()" disabled="@_busy">Cancelar</button>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public InvoiceDetails Invoice { get; set; } = default!;
+    [Parameter] public EventCallback Confirmed { get; set; }
+    [Parameter] public EventCallback Cancelled { get; set; }
+    private readonly Guid _confirmationId = Guid.CreateVersion7();
+    private decimal _correctTotal;
+    private bool _busy;
+    private string? _error;
+    private AdjustInvoiceTotalRequest? _confirmation;
+    protected override void OnInitialized() => _correctTotal = Invoice.Total.Amount;
+    private void Review() => _confirmation = new(_confirmationId, Invoice.CardExternalId, Invoice.Month, new Money(_correctTotal), Invoice.Total);
+    private async Task ConfirmAsync()
+    {
+        if (_busy || _confirmation is not { } request) { return; }
+        _busy = true;
+        try
+        {
+            var result = await Adjustments.AdjustTotalAsync(request); _error = result.Error;
+            if (result.Succeeded) { await Confirmed.InvokeAsync(); }
+        }
+        finally { _busy = false; }
+    }
+}

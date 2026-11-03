@@ -159,6 +159,16 @@ public sealed class TransactionPageTests
         var payable = context.Render<Ags.Finance.Web.Components.Pages.Invoices>();
         payable.WaitForAssertion(() => Assert.Contains("Pagar", payable.Markup, StringComparison.Ordinal));
         var closedRow = payable.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Fechada", StringComparison.Ordinal));
+        await closedRow.QuerySelectorAll("button").Single(x => x.TextContent == "Ajustar valor").ClickAsync(new());
+        payable.Find("#invoice-correct-total").Change("100.01");
+        await payable.FindAll("[aria-label='Ajustar total da fatura'] button").Single(x => x.TextContent == "Cancelar").ClickAsync(new());
+        closedRow = payable.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Fechada", StringComparison.Ordinal));
+        await closedRow.QuerySelectorAll("button").Single(x => x.TextContent == "Ajustar valor").ClickAsync(new());
+        payable.Find("#invoice-correct-total").Change("100.01");
+        await payable.Find("#invoice-adjustment-form").SubmitAsync(EventArgs.Empty);
+        Assert.Contains("R$ 0,01", payable.Find("[aria-label='Ajustar total da fatura']").TextContent, StringComparison.Ordinal);
+        await payable.FindAll("[aria-label='Ajustar total da fatura'] button").Single(x => x.TextContent == "Confirmar ajuste de fatura").ClickAsync(new());
+        closedRow = payable.FindAll(".catalog-list li").Single(x => x.TextContent.Contains("Fechada", StringComparison.Ordinal));
         await closedRow.QuerySelectorAll("button").Single(x => x.TextContent == "Pagar").ClickAsync(new());
         payable.WaitForAssertion(() => Assert.False(payable.Find("#invoice-payment-form button").HasAttribute("disabled")));
         Assert.Equal(account.ExternalId.Value.ToString(), payable.Find("#payment-account").GetAttribute("value"));
