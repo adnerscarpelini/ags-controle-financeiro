@@ -59,7 +59,7 @@ else
 @code {
     private IReadOnlyList<BankDetails> _banks = [];
     private IReadOnlyList<AccountDetails> _accounts = [];
-    private readonly Dictionary<Guid, BalanceForecast?> _forecasts = [];
+    private Dictionary<Guid, BalanceForecast?> _forecasts = [];
     private BalanceForecast? _total;
     private bool _showArchived;
     private bool _loaded;
@@ -84,10 +84,14 @@ else
     private async Task ReloadAsync()
     {
         var month = ReferenceMonth.FromDate(Today);
-        _banks = await Catalog.GetBanksAsync();
-        _accounts = await Catalog.GetAccountsAsync(activeOnly: false);
-        foreach (var account in _accounts) { _forecasts[account.ExternalId] = await Entries.GetBalanceForecastAsync(account.ExternalId, Today, month); }
-        _total = await Entries.GetBalanceForecastAsync(null, Today, month);
+        var banks = await Catalog.GetBanksAsync();
+        var accounts = await Catalog.GetAccountsAsync(activeOnly: false);
+        var forecasts = new Dictionary<Guid, BalanceForecast?>();
+        foreach (var account in accounts) { forecasts[account.ExternalId] = await Entries.GetBalanceForecastAsync(account.ExternalId, Today, month); }
+        var total = await Entries.GetBalanceForecastAsync(null, Today, month);
+
+        // Tudo publicado de uma vez: qualquer renderização no meio do carregamento vê um estado completo.
+        (_banks, _accounts, _forecasts, _total) = (banks, accounts, forecasts, total);
         _loaded = true;
     }
 
