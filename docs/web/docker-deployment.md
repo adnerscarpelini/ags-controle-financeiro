@@ -192,6 +192,10 @@ Voltar à imagem anterior **não desfaz** migrations do banco: para voltar atrá
 A atualização de versão principal do PostgreSQL (por exemplo 18 → 19) tem procedimento próprio: backup, nova instalação com a
 nova imagem do banco e restauração. Imagens são versionadas por tag; releases publicam em GHCR (`vX.Y.Z`).
 
+**Tela abre, mas nenhum botão funciona:** confira se a imagem serve o script do Blazor. Sem login, `curl -k https://localhost:5280/_framework/blazor.web.js`
+deve responder 200 com o JavaScript. O SDK só restaura o pacote desse arquivo se enxergar `.razor` na restauração e o `Dockerfile` restaura apenas
+com os `.csproj`; por isso `Ags.Finance.Web.csproj` declara `RequiresAspNetWebAssets`. O ensaio de recuperação verifica o script na imagem.
+
 ## Reset de desenvolvimento (restrito)
 
 Vale só para os dados descartáveis **deste projeto** em máquina de desenvolvimento, nunca para uma instalação com dados reais:

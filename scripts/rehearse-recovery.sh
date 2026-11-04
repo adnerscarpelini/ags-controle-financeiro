@@ -115,6 +115,8 @@ log "Instalação A: login e sessão"
 JAR_A="$WORK/jar-a"
 sign_in "$PORT_A" "$JAR_A" || fail "login na instalação A"
 authenticated "$JAR_A" "$PORT_A" || fail "sessão da instalação A não foi aceita"
+# Sem este script a tela abre, mas nenhum botão funciona.
+[ "$(curl -ksS -o /dev/null -w '%{http_code}' "https://localhost:$PORT_A/_framework/blazor.web.js")" = 200 ] || fail "a imagem não serve o script do Blazor"
 CERT_A=$(compose a exec -T app sh -c 'sha256sum /data/certs/ags-finance.pfx' | cut -d' ' -f1)
 
 log "Instalação A: documento PDF inteiramente fictício e metadados da fatura"

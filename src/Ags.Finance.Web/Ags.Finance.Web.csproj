@@ -1,5 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+  <PropertyGroup>
+    <!-- O SDK só restaura o pacote com blazor.web.js se enxergar arquivos .razor. O Dockerfile restaura apenas com os .csproj,
+         e sem isto a imagem sai sem o script: a tela abre, mas nenhum botão funciona. -->
+    <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Modules\Ags.Finance.Modules.Attachments\Ags.Finance.Modules.Attachments.csproj" />
     <PackageReference Include="MudBlazor" />
