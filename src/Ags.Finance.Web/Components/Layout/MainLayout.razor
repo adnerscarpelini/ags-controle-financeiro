@@ -7,7 +7,8 @@
 @inject ViewportState Viewport
 @inject IJSRuntime Js
 
-<MudThemeProvider @ref="_themeProvider" Theme="AppTheme.Instance" IsDarkMode="_isDarkMode" />
+@* Sem observar o sistema na biblioteca: ela trocaria a paleta sozinha e ignoraria a preferência. O modo automático é tratado em ApplyTheme. *@
+<MudThemeProvider Theme="AppTheme.Instance" IsDarkMode="_isDarkMode" ObserveSystemDarkModeChange="false" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -43,7 +44,6 @@
 </MudLayout>
 
 @code {
-    private MudThemeProvider? _themeProvider;
     private DotNetObjectReference<MainLayout>? _reference;
     private ThemePreference _theme;
     private bool _isDarkMode = true;
@@ -71,12 +71,7 @@
         _reference = DotNetObjectReference.Create(this);
         Viewport.Set(await Js.InvokeAsync<bool>("agsViewport.watch", _reference));
         _collapsed = await Js.InvokeAsync<bool>("agsMenu.isCollapsed");
-        if (_themeProvider is not null)
-        {
-            await _themeProvider.WatchSystemDarkModeAsync(SystemThemeChangedAsync);
-            _systemIsDark = await _themeProvider.GetSystemDarkModeAsync();
-        }
-
+        _systemIsDark = await Js.InvokeAsync<bool>("agsTheme.watchSystem", _reference);
         ApplyTheme();
     }
 
@@ -89,11 +84,11 @@
         _ = InvokeAsync(ApplyTheme);
     }
 
-    private Task SystemThemeChangedAsync(bool isDark)
+    [JSInvokable]
+    public void SystemThemeChanged(bool isDark)
     {
         _systemIsDark = isDark;
-        ApplyTheme();
-        return Task.CompletedTask;
+        _ = InvokeAsync(ApplyTheme);
     }
 
     private void ApplyTheme()
@@ -143,6 +138,7 @@
         try
         {
             await Js.InvokeVoidAsync("agsViewport.unwatch", _reference);
+            await Js.InvokeVoidAsync("agsTheme.unwatchSystem", _reference);
         }
         catch (JSDisconnectedException)
         {
