@@ -94,6 +94,7 @@ a:hover {
     height: 100%;
     padding: var(--space-4);
     overflow-y: auto;
+    scrollbar-width: thin;
 }
 
 .brand {
@@ -120,8 +121,7 @@ a:hover {
 }
 
 .nav-tree {
-    flex: 1;
-    min-height: 0;
+    flex: 1 0 auto;
 }
 
 .nav-tree .mud-nav-link {
@@ -178,6 +178,17 @@ a:hover {
 .sidebar-collapsed .nav-tree .mud-nav-link {
     justify-content: center;
     padding: 0;
+}
+
+/* O rótulo oculto continua para leitores de tela, mas não pode empurrar o ícone para fora do centro. */
+.sidebar-collapsed .nav-tree .mud-nav-link-text {
+    flex: none;
+    width: 0;
+    margin: 0;
+}
+
+.sidebar-collapsed .nav-tree .mud-nav-link-icon {
+    margin: 0;
 }
 
 .sidebar-collapsed .nav-button {
@@ -408,6 +419,7 @@ a:hover {
 }
 
 .nav-footer {
+    flex: none;
     margin-top: auto;
 }
 
@@ -425,6 +437,21 @@ a:hover {
     font: inherit;
     font-weight: 500;
     cursor: pointer;
+}
+
+.nav-footer .nav-button {
+    justify-content: flex-start;
+    text-align: left;
+}
+
+.sidebar-collapsed .nav-footer .nav-button {
+    justify-content: center;
+}
+
+/* Mesmo tamanho dos ícones do menu, para ícones e rótulos ficarem na mesma coluna. */
+.nav-footer .mud-icon-root {
+    width: 24px;
+    height: 24px;
 }
 
 .nav-button:hover {
