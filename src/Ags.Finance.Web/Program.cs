@@ -22,6 +22,7 @@ using Ags.Finance.Web.Csv;
 using Ags.Finance.Web.Hosting;
 using Ags.Finance.Web.Persistence;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Diagnostics;
 using MudBlazor.Services;
 
 // Aplicação de um único usuário no Brasil: valores e datas saem como R$ 1.234,56 e dd/MM/yyyy
@@ -139,9 +140,16 @@ if (!app.Environment.IsDevelopment())
 
 // Endereço inexistente mostra uma página da aplicação, com o menu, em vez do erro do navegador. Só em GET: um POST
 // recusado, como o sem antiforgery, precisa manter o próprio status em vez de ser reexecutado em uma página.
-app.UseWhen(
-    context => HttpMethods.IsGet(context.Request.Method),
-    branch => branch.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true));
+app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+app.Use((context, next) =>
+{
+    if (!HttpMethods.IsGet(context.Request.Method) && context.Features.Get<IStatusCodePagesFeature>() is { } statusCodePages)
+    {
+        statusCodePages.Enabled = false;
+    }
+
+    return next();
+});
 
 // Revalida a cada carga: sem isso o navegador reaproveita o CSS e o JS antigos depois de uma atualização.
 app.UseStaticFiles(new StaticFileOptions
