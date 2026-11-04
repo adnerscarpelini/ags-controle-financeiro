@@ -2,6 +2,7 @@ using System.Formats.Tar;
 using System.IO.Compression;
 using System.Text.Json;
 using Ags.Finance.Web.Attachments;
+using Ags.Finance.Web.Hosting;
 using Npgsql;
 
 namespace Ags.Finance.Web.Backup;
@@ -70,8 +71,9 @@ internal sealed partial class BackupService
         {
             (serverVersion, _) = await ReadServerStateAsync(cancellationToken);
         }
-        catch (NpgsqlException)
+        catch (NpgsqlException exception)
         {
+            OperationLog.Failed(logger, "Conexão para restaurar", exception);
             return BackupResult.Failure("Não foi possível conectar ao PostgreSQL para restaurar.");
         }
 
@@ -107,7 +109,10 @@ internal sealed partial class BackupService
             }
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or JsonException)
-        { return BackupResult.Failure("Não foi possível copiar os anexos. O banco atual não foi alterado."); }
+        {
+            OperationLog.Failed(logger, "Cópia dos anexos na restauração", exception);
+            return BackupResult.Failure("Não foi possível copiar os anexos. O banco atual não foi alterado.");
+        }
 
         NpgsqlConnection.ClearAllPools();
         string preamble;
@@ -115,8 +120,9 @@ internal sealed partial class BackupService
         {
             preamble = await BuildResetPreambleAsync(cancellationToken);
         }
-        catch (NpgsqlException)
+        catch (NpgsqlException exception)
         {
+            OperationLog.Failed(logger, "Preparação da restauração", exception);
             return BackupResult.Failure("Não foi possível preparar a restauração no PostgreSQL. Nada foi alterado.");
         }
 
@@ -134,6 +140,7 @@ internal sealed partial class BackupService
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
         {
+            OperationLog.Failed(logger, "Restauração dos arquivos da aplicação", exception);
             return BackupResult.Failure(
                 $"O banco foi restaurado, mas os arquivos da aplicação não ({exception.GetType().Name}). " +
                 $"Restaure novamente ou extraia {BackupManifest.AppFilesName} manualmente.");
@@ -172,8 +179,9 @@ internal sealed partial class BackupService
             await terminate.ExecuteNonQueryAsync(cancellationToken);
             return null;
         }
-        catch (NpgsqlException)
+        catch (NpgsqlException exception)
         {
+            OperationLog.Failed(logger, "Verificação do acesso exclusivo", exception);
             return "Não foi possível verificar o acesso exclusivo ao banco.";
         }
     }

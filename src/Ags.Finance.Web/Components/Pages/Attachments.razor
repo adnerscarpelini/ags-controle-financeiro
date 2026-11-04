@@ -7,6 +7,7 @@
 @inject IEntryAttachmentCatalog Entries
 @inject IInvoiceAttachmentCatalog Invoices
 @inject AttachmentInventory Inventory
+@inject ILogger<Attachments> Logger
 @inject TimeProvider Clock
 @inject ISnackbar Snackbar
 
@@ -135,7 +136,11 @@
     {
         _all = await Catalog.ListAsync();
         try { _diskBytes = Inventory.DiskUsageBytes(); }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { _error = "Não foi possível consultar o uso da pasta de anexos."; }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Ags.Finance.Web.Hosting.OperationLog.Failed(Logger, "Consulta do uso da pasta de anexos", exception);
+            _error = "Não foi possível consultar o uso da pasta de anexos.";
+        }
     }
 
     private async Task ChangeAsync(AttachmentDetails row, bool restore)

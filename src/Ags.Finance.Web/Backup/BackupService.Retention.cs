@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Ags.Finance.Web.Attachments;
+using Ags.Finance.Web.Hosting;
 
 namespace Ags.Finance.Web.Backup;
 
@@ -55,7 +56,7 @@ internal sealed partial class BackupService
 
             try { await PruneAttachmentPoolAsync(cancellationToken); }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or JsonException)
-            { BackupLog.AttachmentRetentionSkipped(logger); }
+            { OperationLog.Failed(logger, "Retenção dos anexos", exception); }
             return removed;
         }
         finally

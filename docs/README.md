@@ -93,6 +93,7 @@ A previsão consolidada de caixa da #58 continua pendente; efetivação e consul
 
 - [Carteira visual de cartões (#55)](accounts/card-wallet.md)
 
+- [Registro de erros inesperados (#107)](diagnostics/error-records.md)
 - [Armazenamento de anexos](architecture/attachments-storage.md)
 - [Documentos anexados](attachments/document-storage.md)
 

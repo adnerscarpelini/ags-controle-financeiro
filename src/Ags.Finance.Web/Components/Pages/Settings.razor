@@ -2,6 +2,7 @@
 @using Ags.Finance.Web.Authentication
 @using Ags.Finance.Web.Hosting
 @inject ServerCertificate ServerCertificate
+@inject ILogger<Settings> Logger
 
 <PageHeader Title="Configurações" />
 
@@ -146,6 +147,7 @@
         }
         catch (Exception exception) when (exception is IOException or System.Security.Cryptography.CryptographicException)
         {
+            Ags.Finance.Web.Hosting.OperationLog.Failed(Logger, "Leitura do certificado", exception);
             _error = exception.Message;
         }
     }

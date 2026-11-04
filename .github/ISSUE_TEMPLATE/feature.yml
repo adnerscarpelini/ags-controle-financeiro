@@ -15,6 +15,7 @@ body:
         - Invoices
         - Reimbursements
         - Preferences
+        - Diagnostics
         - Reports
         - Imports
         - Web

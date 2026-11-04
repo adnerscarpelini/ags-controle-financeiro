@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using Ags.Finance.Modules.Accounts;
 using Ags.Finance.Modules.Attachments;
+using Ags.Finance.Modules.Diagnostics;
 using Ags.Finance.Modules.Identity;
 using Ags.Finance.Modules.Imports;
 using Ags.Finance.Modules.Invoices;
@@ -92,6 +93,7 @@ builder.Services
     .AddInvoicesModule(connectionString)
     .AddReimbursementsModule(connectionString)
     .AddPreferencesModule(connectionString)
+    .AddDiagnosticsModule(connectionString)
     .AddReportsModule()
     .AddImportsModule();
 builder.Services.AddHostedService<Ags.Finance.Web.Invoices.InvoiceClosingScheduler>();
