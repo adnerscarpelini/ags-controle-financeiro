@@ -137,6 +137,9 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
 }
 
+// Endereço inexistente mostra uma página da aplicação, com o menu, em vez do erro do navegador.
+app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+
 // Revalida a cada carga: sem isso o navegador reaproveita o CSS e o JS antigos depois de uma atualização.
 app.UseStaticFiles(new StaticFileOptions
 {
