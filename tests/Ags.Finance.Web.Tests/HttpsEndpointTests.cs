@@ -5,6 +5,7 @@ using System.Text;
 using Ags.Finance.Web.Hosting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Ags.Finance.Web.Tests;
 
@@ -91,10 +92,60 @@ public sealed class HttpsEndpointTests
         await app.StopAsync();
     }
 
+    [Fact]
+    public async Task ConnectionClosedWithoutDataIsNotLoggedAsAnError()
+    {
+        using var certificate = NewCertificate();
+        var logs = new ErrorCountingLoggerProvider();
+        var builder = WebApplication.CreateSlimBuilder();
+        builder.Logging.AddProvider(logs);
+        builder.WebHost.ConfigureKestrel(kestrel =>
+            kestrel.Listen(IPAddress.Loopback, 0, listen => HttpsEndpoint.Configure(listen, () => certificate)));
+        await using var app = builder.Build();
+        await app.StartAsync();
+        var port = new Uri(app.Urls.First()).Port;
+
+        using (var tcp = new TcpClient())
+        {
+            await tcp.ConnectAsync(IPAddress.Loopback, port);
+        }
+
+        // Para o servidor depois do fechamento: a conexão vazia termina antes de StopAsync retornar.
+        await app.StopAsync();
+
+        Assert.Equal(0, logs.Errors);
+    }
+
     // O SChannel do Windows só aceita no TLS chaves persistidas, então passa pelo mesmo caminho do PFX da aplicação.
     private static X509Certificate2 NewCertificate()
     {
         using var generated = LocalCertificate.Generate(new LocalNames(["localhost"], [IPAddress.Loopback]), DateTimeOffset.UtcNow);
         return X509CertificateLoader.LoadPkcs12(generated.Export(X509ContentType.Pfx), password: null);
+    }
+
+    private sealed class ErrorCountingLoggerProvider : ILoggerProvider, ILogger
+    {
+        private int _errors;
+
+        public int Errors => Volatile.Read(ref _errors);
+
+        public ILogger CreateLogger(string categoryName) => this;
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Error;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            if (IsEnabled(logLevel))
+            {
+                Interlocked.Increment(ref _errors);
+            }
+        }
+
+        public void Dispose()
+        {
+        }
     }
 }
