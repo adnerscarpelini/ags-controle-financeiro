@@ -68,6 +68,8 @@ public sealed partial class UiTokensTests
             "--color-expense", "--color-warning", "--color-bank-itau", "--color-bank-nubank", "--color-bank-bradesco",
         ];
 
+        text = [.. text, .. palette.Keys.Where(x => x.StartsWith("--color-cat-", StringComparison.Ordinal))];
+
         var failures = new List<string>();
         foreach (var theme in new[] { "light", "dark" })
         {

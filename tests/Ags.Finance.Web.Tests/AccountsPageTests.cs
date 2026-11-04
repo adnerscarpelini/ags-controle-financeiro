@@ -175,7 +175,7 @@ public sealed class AccountsPageTests
         await page.Find(".empty-state button").ClickAsync(new MouseEventArgs());
         await scenario.Dialogs.WaitForElement("#account-bank").ChangeAsync(scenario.Bank.ToString());
         await scenario.Dialogs.Find("#account-name").InputAsync("Conta Nova");
-        await scenario.Dialogs.Find("#account-color").ChangeAsync("green");
+        await scenario.Dialogs.Find("#account-color [data-color='green']").ClickAsync(new MouseEventArgs());
         scenario.Dialogs.Find("#opening-balance").Input("1250,50");
         await scenario.Dialogs.Find("#opening-date").ChangeAsync("2026-09-01");
         scenario.Dialogs.WaitForAssertion(() => Assert.False(scenario.Dialogs.Find("[data-save]").HasAttribute("disabled")));

@@ -78,4 +78,19 @@ public sealed class DashboardSummariesTests
         Assert.Equal("R$ 70,00", section.Find("[data-invoices-total]").TextContent);
         Assert.Equal("Aberta", section.Find("[data-invoice-status]").TextContent);
     }
+
+    [Fact]
+    public async Task AnArchivedCardStaysWhileItHasAnInvoiceInTheMonth()
+    {
+        await using var ui = await EntryUi.CreateAsync();
+        Assert.True((await ui.Entries.CreateAsync(new(new DateOnly(2026, 8, 30), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(100), string.Empty, s_september, ui.Card))).Succeeded);
+        var accounts = ui.Context.Services.GetRequiredService<IAccountCatalog>();
+        Assert.Null((await accounts.DeactivateCreditCardAsync(ui.Card)).Error);
+
+        var withInvoice = ui.Context.Render<CardInvoicesSummary>(parameters => parameters.Add(x => x.Month, s_september));
+        withInvoice.WaitForAssertion(() => Assert.Contains("(arquivado)", withInvoice.Find("[data-card-invoice]").TextContent, StringComparison.Ordinal));
+
+        var withoutInvoice = ui.Context.Render<CardInvoicesSummary>(parameters => parameters.Add(x => x.Month, new ReferenceMonth(2026, 3)));
+        withoutInvoice.WaitForAssertion(() => Assert.Contains("Nenhum cartão", withoutInvoice.Markup, StringComparison.Ordinal));
+    }
 }

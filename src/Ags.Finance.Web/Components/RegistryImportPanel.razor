@@ -29,11 +29,13 @@
             </table>
             @if (report.Issues.Count > 200) { <p>Mostrando os 200 primeiros problemas.</p> }
         }
+        <div class="form-actions">
         @if (report.Succeeded)
         {
             <button class="button" @onclick="ConfirmAsync" disabled="@(_busy || report.NewCount == 0)">Confirmar importação</button>
         }
-        <button class="button" @onclick="Cancel" disabled="@_busy">Cancelar</button>
+        <button class="button button-secondary" @onclick="Cancel" disabled="@_busy">Cancelar</button>
+        </div>
     }
 </section>
 

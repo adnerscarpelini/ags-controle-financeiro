@@ -30,6 +30,70 @@
     --color-bank-nubank: light-dark(#6D28D9, #A78BFA);
     --color-bank-bradesco: light-dark(#B91C1C, #F87171);
 
+    /* Cores de conta e cartão: --swatch- é a amostra; --color-cat- é o texto, ajustado para contraste em cada tema */
+    --swatch-green: #10B981;
+    --color-cat-green: light-dark(#0B7C56, #10B981);
+    --swatch-blue: #0A9AD6;
+    --color-cat-blue: light-dark(#0874A0, #169FD8);
+    --swatch-violet: #8B5CF6;
+    --color-cat-violet: light-dark(#7A51D8, #A580F8);
+    --swatch-orange: #FF8C00;
+    --color-cat-orange: light-dark(#A35A00, #FF8C00);
+    --swatch-rose: #E11D48;
+    --color-cat-rose: light-dark(#D41B44, #EC6C88);
+    --swatch-red: #CC0000;
+    --color-cat-red: light-dark(#CC0000, #E37373);
+    --swatch-sky: #2FB4E9;
+    --color-cat-sky: light-dark(#1F7597, #2FB4E9);
+    --swatch-lilac: #C68AE6;
+    --color-cat-lilac: light-dark(#855C9A, #C68AE6);
+    --swatch-lime: #9ACD00;
+    --color-cat-lime: light-dark(#597700, #9ACD00);
+    --swatch-amber: #FFB71C;
+    --color-cat-amber: light-dark(#8C650F, #FFB71C);
+    --swatch-coral: #FF4D4D;
+    --color-cat-coral: light-dark(#C43B3B, #FF5D5D);
+    --swatch-ice: #8AD6F5;
+    --color-cat-ice: light-dark(#497182, #8AD6F5);
+    --swatch-lavender: #DDB0EE;
+    --color-cat-lavender: light-dark(#7E6488, #DDB0EE);
+    --swatch-pistachio: #C8E26B;
+    --color-cat-pistachio: light-dark(#667337, #C8E26B);
+    --swatch-sand: #FFD97F;
+    --color-cat-sand: light-dark(#7D6A3E, #FFD97F);
+    --swatch-blush: #FF9A9A;
+    --color-cat-blush: light-dark(#995C5C, #FF9A9A);
+    --swatch-charcoal: #3D3D3D;
+    --color-cat-charcoal: light-dark(#3D3D3D, #969696);
+    --swatch-graphite: #6B6B6B;
+    --color-cat-graphite: light-dark(#6B6B6B, #969696);
+    --swatch-slate: #919191;
+    --color-cat-slate: light-dark(#6D6D6D, #959595);
+    --swatch-silver: #BFBFBF;
+    --color-cat-silver: light-dark(#6D6D6D, #BFBFBF);
+    --swatch-indigo: #2B1AFF;
+    --color-cat-indigo: light-dark(#2B1AFF, #8F86FF);
+    --swatch-teal: #3D9A95;
+    --color-cat-teal: light-dark(#307874, #4DA29D);
+    --swatch-forest: #0B4D0B;
+    --color-cat-forest: light-dark(#0B4D0B, #7B9F7B);
+    --swatch-yellow: #FFFF00;
+    --color-cat-yellow: light-dark(#707000, #FFFF00);
+    --swatch-olive: #C8C800;
+    --color-cat-olive: light-dark(#707000, #C8C800);
+    --swatch-magenta: #AA00AA;
+    --color-cat-magenta: light-dark(#AA00AA, #D073D0);
+    --swatch-caramel: #B86E00;
+    --color-cat-caramel: light-dark(#9C5E00, #C58A30);
+    --swatch-wine: #8B0000;
+    --color-cat-wine: light-dark(#8B0000, #C78585);
+    --swatch-steel: #A0B4C4;
+    --color-cat-steel: light-dark(#626E78, #A0B4C4);
+    --swatch-black: #000000;
+    --color-cat-black: light-dark(#000000, #969696);
+    --swatch-pine: #1F7F72;
+    --color-cat-pine: light-dark(#1E7A6D, #5BA298);
+
     /* Preenchimentos translúcidos: campos, hover e estados ativos neutros */
     --color-fill: light-dark(rgb(0 0 0 / 0.045), rgb(255 255 255 / 0.06));
     --color-fill-strong: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.11));
@@ -38,6 +102,7 @@
     --color-warning-soft: light-dark(rgb(148 98 0 / 0.1), rgb(229 177 58 / 0.13));
     --color-segment-on: light-dark(#FFFFFF, #3A3A3D);
     --color-knob: #FFFFFF;
+    --color-crop-mask: rgb(0 0 0 / 0.5);
 
     /* Película que escurece o conteúdo atrás da gaveta e das janelas */
     --color-scrim: light-dark(rgb(0 0 0 / 0.28), rgb(0 0 0 / 0.55));

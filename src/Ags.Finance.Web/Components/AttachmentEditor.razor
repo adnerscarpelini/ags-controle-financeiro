@@ -6,7 +6,9 @@
     @if (_error is not null) { <p role="status">@_error</p> }
     @if (Kinds is { } kinds) { <AttachmentPicker @ref="_picker" Kinds="kinds" /> }
     else { <AttachmentPicker @ref="_picker" /> }
+    <div class="form-actions">
     <button class="button" type="button" @onclick="UploadAsync" disabled="@_busy">Enviar documentos</button>
+    </div>
     <ul class="catalog-list">
         @foreach (var row in _rows)
         {
