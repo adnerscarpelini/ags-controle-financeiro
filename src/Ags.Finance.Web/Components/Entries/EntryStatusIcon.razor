@@ -2,7 +2,7 @@
 @using Ags.Finance.Modules.Transactions.Contracts
 
 <MudTooltip Text="@Text">
-    <span class="status-icon status-@Tone" tabindex="0" role="img" aria-label="@Text" data-status="@Tone">
+    <span class="status-icon status-@Tone @(IsLate ? "status-late" : null)" tabindex="0" role="img" aria-label="@Text" data-status="@Tone">
         <MudIcon Icon="@IconPath" Size="Size.Small" aria-hidden="true" />
     </span>
 </MudTooltip>
@@ -13,6 +13,8 @@
 
     [Parameter, EditorRequired]
     public DateOnly Today { get; set; }
+
+    private bool IsLate => !IsCard && !Entry.IsEffective && Entry.Date < Today;
 
     private bool IsCard => Entry.CardExternalId is not null;
 

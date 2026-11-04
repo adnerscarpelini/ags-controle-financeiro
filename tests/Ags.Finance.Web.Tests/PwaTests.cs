@@ -117,7 +117,7 @@ public sealed class PwaTests
         using var anonymous = factory.CreateBrowser();
         var css = await Text(anonymous, "/css/app.css");
         Assert.Contains("--touch-target", css, StringComparison.Ordinal);
-        Assert.Contains(".field input {\n    min-height: var(--touch-target);", css.Replace("\r\n", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
+        Assert.Contains("{ min-height: var(--touch-target); font-size: 16px; }", css, StringComparison.Ordinal);
         Assert.Contains("font: inherit", css, StringComparison.Ordinal);
         Assert.Contains("@media (max-width: 767.98px)", css, StringComparison.Ordinal);
         Assert.Contains("grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr))", css, StringComparison.Ordinal);

@@ -279,7 +279,7 @@ public sealed class MainLayoutTests : IAsyncDisposable
     {
         var surface = Regex.Match(layout.Markup, @"--mud-palette-surface:\s*(?<color>[^;]+);");
         Assert.True(surface.Success, layout.Markup[..Math.Min(400, layout.Markup.Length)]);
-        return surface.Groups["color"].Value.StartsWith("#1a1a1a", StringComparison.OrdinalIgnoreCase) || surface.Groups["color"].Value.Contains("26,26,26", StringComparison.Ordinal);
+        return surface.Groups["color"].Value.StartsWith("#222224", StringComparison.OrdinalIgnoreCase) || surface.Groups["color"].Value.Contains("34,34,36", StringComparison.Ordinal);
     }
 
     private static AngleSharp.Dom.IElement GroupButton(IRenderedComponent<MainLayout> layout, string label) =>

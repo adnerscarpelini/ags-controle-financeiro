@@ -100,13 +100,13 @@
             </MudTable>
         </section>
         <aside class="split-aside" aria-label="Resumo da fatura">
-            <StatCard Icon="@Icons.Material.Outlined.ReceiptLong" Label="Valor da fatura" Value="@_invoice.Total.ToString()" Note="@ForecastNote" Testid="invoice-total" />
-            <StatCard Icon="@Icons.Material.Outlined.Payments" Label="Saldo restante" Help="Total menos pagamentos, cashback e descontos. Saldo zero ou crédito sem confirmação de quitação não significa fatura Paga." Value="@RemainingText" Testid="invoice-remaining" />
-            <StatCard Icon="@Icons.Material.Outlined.Flag" Label="Situação" Help="Aberta recebe compras. Fechada aguarda pagamento. Paga está quitada e pode ser reaberta, o que desfaz o pagamento." Value="@StatusLabel(_invoice.Status)" Testid="invoice-status" />
+            <StatCard Label="Valor da fatura" Value="@_invoice.Total.ToString()" Note="@ForecastNote" Testid="invoice-total" />
+            <StatCard Label="Saldo restante" Help="Total menos pagamentos, cashback e descontos. Saldo zero ou crédito sem confirmação de quitação não significa fatura Paga." Value="@RemainingText" Testid="invoice-remaining" />
+            <StatCard Label="Situação" Help="Aberta recebe compras. Fechada aguarda pagamento. Paga está quitada e pode ser reaberta, o que desfaz o pagamento." Value="@StatusLabel(_invoice.Status)" Testid="invoice-status" />
             @if (_dates is { } dates)
             {
-                <StatCard Icon="@Icons.Material.Outlined.EventBusy" Label="Fechamento" Help="Compras depois deste dia entram na fatura seguinte." Value="@dates.ClosingDate.ToString("dd/MM/yyyy")" Testid="invoice-closing" />
-                <StatCard Icon="@Icons.Material.Outlined.Event" Label="Vencimento" Value="@dates.DueDate.ToString("dd/MM/yyyy")" Testid="invoice-due" />
+                <StatCard Label="Fechamento" Help="Compras depois deste dia entram na fatura seguinte." Value="@dates.ClosingDate.ToString("dd/MM/yyyy")" Testid="invoice-closing" />
+                <StatCard Label="Vencimento" Value="@dates.DueDate.ToString("dd/MM/yyyy")" Testid="invoice-due" />
             }
         </aside>
     </div>

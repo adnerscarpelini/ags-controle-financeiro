@@ -21,7 +21,7 @@
 
 <form id="preferences-form" class="panel settings-panel" aria-label="Preferências" @onsubmit="SavePreferencesAsync" @onsubmit:preventDefault>
     <div hidden="@(_tab != "general")" data-settings-panel="general">
-        <fieldset class="choices">
+        <fieldset class="choices choices-segmented">
             <legend>Tema <HelpTip Text="Automático segue o tema do seu aparelho." /></legend>
             <label class="choice"><input type="radio" name="pref-theme" value="dark" checked="@(_theme == ThemePreference.Dark)" @onchange="() => _theme = ThemePreference.Dark" /> Escuro</label>
             <label class="choice"><input type="radio" name="pref-theme" value="light" checked="@(_theme == ThemePreference.Light)" @onchange="() => _theme = ThemePreference.Light" /> Claro</label>
@@ -68,11 +68,11 @@
         </div>
         <fieldset class="choices">
             <legend>Seções visíveis</legend>
-            <label class="choice"><input id="pref-section-summary" type="checkbox" @bind="_showSummary" /> Resumo do mês</label>
-            <label class="choice"><input id="pref-section-pending" type="checkbox" @bind="_showPending" /> Pendências</label>
-            <label class="choice"><input id="pref-section-categories" type="checkbox" @bind="_showCategories" /> Categorias</label>
-            <label class="choice"><input id="pref-section-invoices" type="checkbox" @bind="_showInvoices" /> Faturas</label>
-            <label class="choice"><input id="pref-section-heatmap" type="checkbox" @bind="_showHeatMap" /> Mapa de calor</label>
+            <label class="choice"><input id="pref-section-summary" class="switch" type="checkbox" role="switch" @bind="_showSummary" /> Resumo do mês</label>
+            <label class="choice"><input id="pref-section-pending" class="switch" type="checkbox" role="switch" @bind="_showPending" /> Pendências</label>
+            <label class="choice"><input id="pref-section-categories" class="switch" type="checkbox" role="switch" @bind="_showCategories" /> Categorias</label>
+            <label class="choice"><input id="pref-section-invoices" class="switch" type="checkbox" role="switch" @bind="_showInvoices" /> Faturas</label>
+            <label class="choice"><input id="pref-section-heatmap" class="switch" type="checkbox" role="switch" @bind="_showHeatMap" /> Mapa de calor</label>
         </fieldset>
     </div>
 

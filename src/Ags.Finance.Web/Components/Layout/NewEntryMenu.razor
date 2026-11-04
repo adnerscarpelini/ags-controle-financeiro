@@ -29,9 +29,9 @@
     public EventCallback OnChosen { get; set; }
 
     private RenderFragment Options => @<text>
-        <MudMenuItem Icon="@Icons.Material.Outlined.ArrowDownward" IconColor="Color.Error" OnClick="() => OpenEntryAsync(EntryDialogType.Expense)">Despesa</MudMenuItem>
-        <MudMenuItem Icon="@Icons.Material.Outlined.ArrowUpward" IconColor="Color.Success" OnClick="() => OpenEntryAsync(EntryDialogType.Income)">Receita</MudMenuItem>
-        <MudMenuItem Icon="@Icons.Material.Outlined.CreditCard" IconColor="Color.Primary" OnClick="() => OpenEntryAsync(EntryDialogType.CardExpense)">Despesa cartão</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Outlined.ArrowDownward" OnClick="() => OpenEntryAsync(EntryDialogType.Expense)">Despesa</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Outlined.ArrowUpward" OnClick="() => OpenEntryAsync(EntryDialogType.Income)">Receita</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Outlined.CreditCard" OnClick="() => OpenEntryAsync(EntryDialogType.CardExpense)">Despesa cartão</MudMenuItem>
         <MudMenuItem Icon="@Icons.Material.Outlined.SwapHoriz" OnClick="OpenTransferAsync">Transferência</MudMenuItem>
     </text>;
 
