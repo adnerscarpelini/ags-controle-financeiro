@@ -1,4 +1,5 @@
 using Ags.Finance.Modules.Attachments.Contracts;
+using Ags.Finance.Web.Hosting;
 
 namespace Ags.Finance.Web.Attachments;
 
@@ -26,7 +27,7 @@ internal static class AttachmentSetup
 
     public static IEndpointRouteBuilder MapAttachmentEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/attachments/export", async Task<IResult> (DateOnly from, DateOnly to, AttachmentKind? kind, AttachmentExport export, HttpContext context, CancellationToken cancellationToken) =>
+        app.MapGet("/attachments/export", async Task<IResult> (DateOnly from, DateOnly to, AttachmentKind? kind, AttachmentExport export, ILogger<AttachmentExport> logger, HttpContext context, CancellationToken cancellationToken) =>
         {
             var plan = await export.PlanAsync(new(from, to, kind), cancellationToken);
             if (plan.Error is { } error) { return Results.Text(error, "text/plain; charset=utf-8", statusCode: 400); }
@@ -37,7 +38,10 @@ internal static class AttachmentSetup
                 return Results.Stream(stream, "application/zip", "anexos.zip");
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException)
-            { return Results.Text("Não foi possível preparar o ZIP. Verifique a integridade dos anexos e o espaço temporário disponível.", "text/plain; charset=utf-8", statusCode: 400); }
+            {
+                OperationLog.Failed(logger, "Exportação de anexos", exception);
+                return Results.Text("Não foi possível preparar o ZIP. Verifique a integridade dos anexos e o espaço temporário disponível.", "text/plain; charset=utf-8", statusCode: 400);
+            }
         }).RequireAuthorization();
         app.MapGet("/attachments/{externalId:guid}", async Task<IResult> (Guid externalId, bool? download, IAttachmentCatalog catalog, HttpContext context, CancellationToken cancellationToken) =>
         {

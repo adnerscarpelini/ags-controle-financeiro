@@ -1,9 +1,10 @@
 using Ags.Finance.Modules.Attachments.Contracts;
 using Ags.Finance.Web.Backup;
+using Ags.Finance.Web.Hosting;
 
 namespace Ags.Finance.Web.Attachments;
 
-internal sealed class AttachmentCleanup(IServiceScopeFactory scopes, MaintenanceMode maintenance, TimeProvider clock) : BackgroundService
+internal sealed class AttachmentCleanup(IServiceScopeFactory scopes, MaintenanceMode maintenance, TimeProvider clock, ILogger<AttachmentCleanup> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -16,7 +17,10 @@ internal sealed class AttachmentCleanup(IServiceScopeFactory scopes, Maintenance
                 await using var scope = scopes.CreateAsyncScope();
                 try { await scope.ServiceProvider.GetRequiredService<IAttachmentCatalog>().PurgeAsync(stoppingToken); }
                 catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or Npgsql.NpgsqlException)
-                { /* Retry on the next daily run; do not log document data. */ }
+                {
+                    // Repete na próxima execução diária.
+                    OperationLog.Failed(logger, "Limpeza da lixeira de anexos", exception);
+                }
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }

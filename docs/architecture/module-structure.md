@@ -16,6 +16,7 @@ A aplicação é um **monólito modular**. Um único host web (`Ags.Finance.Web`
 | Transactions | `Ags.Finance.Modules.Transactions` | Categorias, descrições, lançamentos, parcelas, recorrência, efetivação, filtros salvos e planejamento mensal | Accounts, Attachments |
 | Invoices | `Ags.Finance.Modules.Invoices` | Faturas e suas situações, pagamentos, cashback, descontos, ajustes e antecipação de parcelas | Accounts, Transactions, Preferences, Attachments |
 | Preferences | `Ags.Finance.Modules.Preferences` | Parametrizações do aplicativo: tema, tela inicial, recorrentes na fatura, dashboard, paginação e duração da sessão (#69) | — |
+| Diagnostics | `Ags.Finance.Modules.Diagnostics` | Registro de erros inesperados recebidos pelo log, consultado direto no banco ([comportamento](../diagnostics/error-records.md)) | — |
 | Reimbursements | `Ags.Finance.Modules.Reimbursements` | Pessoas e percentual padrão, reembolsos a receber e recebidos ([modelo](reimbursements.md)) | Accounts, Transactions |
 | Reports | `Ags.Finance.Modules.Reports` | Dashboard e análises, somente leitura | Identity, Accounts, Transactions, Invoices, Reimbursements, Preferences |
 | Imports | `Ags.Finance.Modules.Imports` | Importação/exportação CSV no layout oficial e versionado do sistema (#28/#29/#61/#62) | Identity, Accounts, Transactions, Invoices, Reimbursements |

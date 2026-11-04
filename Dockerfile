@@ -14,6 +14,7 @@ COPY src/Modules/Ags.Finance.Modules.Accounts/Ags.Finance.Modules.Accounts.cspro
 COPY src/Modules/Ags.Finance.Modules.Identity/Ags.Finance.Modules.Identity.csproj src/Modules/Ags.Finance.Modules.Identity/
 COPY src/Modules/Ags.Finance.Modules.Imports/Ags.Finance.Modules.Imports.csproj src/Modules/Ags.Finance.Modules.Imports/
 COPY src/Modules/Ags.Finance.Modules.Invoices/Ags.Finance.Modules.Invoices.csproj src/Modules/Ags.Finance.Modules.Invoices/
+COPY src/Modules/Ags.Finance.Modules.Diagnostics/Ags.Finance.Modules.Diagnostics.csproj src/Modules/Ags.Finance.Modules.Diagnostics/
 COPY src/Modules/Ags.Finance.Modules.Preferences/Ags.Finance.Modules.Preferences.csproj src/Modules/Ags.Finance.Modules.Preferences/
 COPY src/Modules/Ags.Finance.Modules.Reimbursements/Ags.Finance.Modules.Reimbursements.csproj src/Modules/Ags.Finance.Modules.Reimbursements/
 COPY src/Modules/Ags.Finance.Modules.Reports/Ags.Finance.Modules.Reports.csproj src/Modules/Ags.Finance.Modules.Reports/

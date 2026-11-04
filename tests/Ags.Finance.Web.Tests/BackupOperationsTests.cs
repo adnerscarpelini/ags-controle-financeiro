@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Ags.Finance.Web.Tests;
@@ -230,6 +231,37 @@ public sealed class BackupOperationsTests : IAsyncLifetime
         maintenance.Exit();
         using var back = await client.GetAsync(new Uri("/", UriKind.Relative));
         Assert.Equal(System.Net.HttpStatusCode.OK, back.StatusCode);
+    }
+
+    [Fact]
+    public async Task AnUnexpectedFailureKeepsTheMessageAndLogsTheException()
+    {
+        var logger = new CapturingLogger();
+        _tools.AfterDumpAsync = _ => throw new IOException("falha simulada");
+        using var service = new BackupService(Settings(30), Environment(), _tools, _clock, logger);
+
+        var result = await service.CreateAsync(BackupService.KindManual, CancellationToken.None);
+
+        Assert.Equal("Não foi possível concluir o backup: IOException.", result.Error);
+        Assert.IsType<IOException>(Assert.Single(logger.Errors));
+    }
+
+    private sealed class CapturingLogger : ILogger<BackupService>
+    {
+        public List<Exception> Errors { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel == LogLevel.Error && exception is not null)
+            {
+                Errors.Add(exception);
+            }
+        }
     }
 
     private async Task<List<BackupPackage>> CreateDailyBackupsAsync(BackupService service, int count)

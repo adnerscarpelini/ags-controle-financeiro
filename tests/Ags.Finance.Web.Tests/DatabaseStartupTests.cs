@@ -3,6 +3,8 @@ using Ags.Finance.Web.Components;
 using Ags.Finance.Web.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 
@@ -11,7 +13,7 @@ namespace Ags.Finance.Web.Tests;
 /// <summary>Sobe a aplicação inteira sobre um PostgreSQL real e vazio e confere o banco criado.</summary>
 public sealed class DatabaseStartupTests : IAsyncLifetime
 {
-    private static readonly string[] s_modules = ["attachments", "identity", "accounts", "transactions", "invoices", "reimbursements", "preferences"];
+    private static readonly string[] s_modules = ["attachments", "identity", "accounts", "transactions", "invoices", "reimbursements", "preferences", "diagnostics"];
 
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "ags-finance-tests-" + Guid.NewGuid().ToString("N"));
     private PostgresTestDatabase? _database;
@@ -144,6 +146,27 @@ public sealed class DatabaseStartupTests : IAsyncLifetime
         return new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:Finance"] = connectionString })
             .Build();
+    }
+
+    [Fact]
+    public async Task TheRunningApplicationRecordsALoggedErrorInTheDiagnosticsTable()
+    {
+        await using var factory = new WebApplicationFactory<App>().WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("DataDirectory", _directory);
+            builder.UseSetting("ConnectionStrings:Finance", Database.ConnectionString);
+        });
+        using var client = factory.CreateClient();
+        var logger = factory.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Ags.Finance.Example");
+
+        logger.Log(LogLevel.Error, default, "falha", new InvalidOperationException("mensagem ficticia"), static (state, _) => state);
+
+        var deadline = DateTime.UtcNow.AddSeconds(15);
+        while (await Database.ScalarAsync("""SELECT COUNT(*) FROM diagnostics.error_records WHERE "Source" = 'Ags.Finance.Example'""") != "1")
+        {
+            Assert.True(DateTime.UtcNow < deadline, "O erro não chegou à tabela no prazo.");
+            await Task.Delay(50);
+        }
     }
 
     private async Task StartApplicationAsync()

@@ -1,3 +1,4 @@
+using Ags.Finance.Web.Hosting;
 using Ags.Finance.Web.Persistence;
 
 namespace Ags.Finance.Web.Backup;
@@ -44,7 +45,8 @@ internal sealed class RestoreCoordinator(
             }
             catch (Exception exception) when (exception is InvalidOperationException or Npgsql.NpgsqlException)
             {
-                // Restaurado, mas as migrations falharam: a reinicialização repete o processo e registra o erro.
+                // Restaurado, mas as migrations falharam: a reinicialização repete o processo.
+                OperationLog.Failed(logger, "Migrations após a restauração", exception);
                 status.Record(BackupResult.Failure("migrations após a restauração"), clock.GetUtcNow());
             }
 

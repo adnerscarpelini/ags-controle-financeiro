@@ -1,5 +1,6 @@
 using Ags.Finance.Modules.Invoices.Contracts;
 using Ags.Finance.Web.Backup;
+using Ags.Finance.Web.Hosting;
 
 namespace Ags.Finance.Web.Invoices;
 
@@ -19,15 +20,9 @@ internal sealed class InvoiceClosingScheduler(IServiceScopeFactory scopes, TimeP
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { return; }
             catch (Exception exception) when (exception is Npgsql.NpgsqlException or System.Transactions.TransactionException)
             {
-                InvoiceClosingLog.Failed(logger, exception.GetType().Name);
+                OperationLog.Failed(logger, "Fechamento automático de faturas", exception);
             }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }
-}
-
-internal static partial class InvoiceClosingLog
-{
-    [LoggerMessage(Level = LogLevel.Error, Message = "Não foi possível executar o fechamento automático de faturas ({ErrorType}).")]
-    public static partial void Failed(ILogger logger, string errorType);
 }
