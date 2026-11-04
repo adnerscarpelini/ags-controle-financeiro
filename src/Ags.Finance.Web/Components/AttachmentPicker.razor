@@ -10,10 +10,11 @@
     </div>
     <p class="form-note">PDF, JPEG, PNG ou WebP, até 20 MB por arquivo. O seletor do aparelho pode oferecer a câmera.</p>
     @if (_files.Count > 0) { <p class="form-note" data-attachment-count>@_files.Count documento(s) aguardando envio.</p> }
-    @if (_error is not null) { <p role="status">@_error</p> }
+    @if (_error is not null) { <p class="form-error" role="status" data-attachment-error>@_error</p> }
 </div>
 
 @code {
+    private const long MaxFileBytes = 20 * 1024 * 1024;
     private static readonly AttachmentKind[] s_entryKinds = [AttachmentKind.Bill, AttachmentKind.Receipt, AttachmentKind.Other];
     [Parameter] public IReadOnlyList<AttachmentKind> Kinds { get; set; } = s_entryKinds;
     private readonly string _id = "attachment-" + Guid.NewGuid().ToString("N");
@@ -40,9 +41,16 @@
         {
             foreach (var file in _files)
             {
+                if (file.Size > MaxFileBytes)
+                {
+                    failed.Add(file);
+                    _error = $"{file.Name} passa do limite de 20 MB. Escolha um arquivo menor.";
+                    continue;
+                }
+
                 try
                 {
-                    await using var stream = file.OpenReadStream(20 * 1024 * 1024);
+                    await using var stream = file.OpenReadStream(MaxFileBytes);
                     var result = await upload(_kind, file.Name, stream);
                     if (!result.Succeeded) { failed.Add(file); _error = result.Error; }
                 }
