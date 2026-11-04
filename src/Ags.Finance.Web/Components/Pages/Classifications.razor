@@ -81,8 +81,8 @@
 
     private async Task ReloadAsync()
     {
-        _categories = await Catalog.GetCategoriesAsync(false);
-        _subcategories = await Catalog.GetSubcategoriesAsync(false);
+        var categories = await Catalog.GetCategoriesAsync(false);
+        (_categories, _subcategories) = (categories, await Catalog.GetSubcategoriesAsync(false));
         _loaded = true;
     }
 
