@@ -4,6 +4,9 @@
 (function () {
     'use strict';
 
+    var systemDark = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    var systemListeners = new Map();
+
     function syncThemeColor() {
         if (!document.body) {
             return;
@@ -26,12 +29,32 @@
                 syncThemeColor();
             }
         },
+        // Avisa o layout quando o sistema muda, para o modo automático trocar a paleta dos componentes.
+        watchSystem: function (reference) {
+            if (!systemDark) {
+                return true;
+            }
+
+            var listener = function (event) {
+                reference.invokeMethodAsync('SystemThemeChanged', event.matches);
+            };
+            systemListeners.set(reference, listener);
+            systemDark.addEventListener('change', listener);
+            return systemDark.matches;
+        },
+        unwatchSystem: function (reference) {
+            var listener = systemListeners.get(reference);
+            if (listener) {
+                systemDark.removeEventListener('change', listener);
+                systemListeners.delete(reference);
+            }
+        },
     };
 
     syncThemeColor();
     document.addEventListener('DOMContentLoaded', syncThemeColor);
-    if (window.matchMedia) {
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncThemeColor);
+    if (systemDark) {
+        systemDark.addEventListener('change', syncThemeColor);
     }
 
     // A navegação melhorada do Blazor refaz o <head>: a cor é calculada de novo a cada página.

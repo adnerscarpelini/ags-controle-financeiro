@@ -5,6 +5,7 @@ using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor;
+using MudBlazor.Extensions;
 
 namespace Ags.Finance.Web.Tests;
 
@@ -252,12 +253,24 @@ public sealed class MainLayoutTests : IAsyncDisposable
     public void TheAutomaticThemeFollowsTheSystem(bool systemIsDark)
     {
         var layout = RenderLayout();
-        var provider = layout.FindComponent<MudThemeProvider>();
 
         layout.InvokeAsync(() => _context.Services.GetRequiredService<ThemeState>().Apply(ThemePreference.Auto));
-        layout.InvokeAsync(() => provider.Instance.SystemDarkModeChangedAsync(systemIsDark));
+        layout.Instance.SystemThemeChanged(systemIsDark);
 
         layout.WaitForAssertion(() => Assert.Equal(systemIsDark, ShowsDarkPalette(layout)));
+    }
+
+    [Fact]
+    public void TheSavedDarkThemeIgnoresALightSystem()
+    {
+        var layout = RenderLayout();
+
+        // A biblioteca, observando o sistema, trocaria a paleta sozinha e as janelas abririam brancas no tema escuro.
+        Assert.False(layout.FindComponent<MudThemeProvider>().Instance.GetState(provider => provider.ObserveSystemDarkModeChange));
+
+        layout.Instance.SystemThemeChanged(false);
+
+        layout.WaitForAssertion(() => Assert.True(ShowsDarkPalette(layout)));
     }
 
     public ValueTask DisposeAsync() => _context.DisposeAsync();
