@@ -13,6 +13,22 @@ O nome é único por banco após remover espaços nas extremidades e ignorar mai
 contas arquivadas continuam reservando seu nome. [Saldo inicial](../architecture/account-balances.md),
 [transferências](../transactions/account-transfers.md) e [ajustes de saldo](../transactions/balance-adjustments.md) estão implementados (#46/#47/#48).
 
+## Bancos
+
+O nome do banco é único, sem considerar espaços nas extremidades nem maiúsculas, e bancos arquivados
+continuam reservando o nome. O nome pode ser editado sem afetar contas e logo, que apontam para o `ExternalId`.
+
+- **Sem conta vinculada, inclusive arquivada:** o banco pode ser excluído, junto do logo. A exclusão é física.
+- **Com conta vinculada:** a exclusão é recusada e a ação oferecida é arquivar.
+- **Arquivado:** sai da lista padrão e da seleção de novas contas e pode ser desarquivado. Contas já vinculadas
+  continuam mostrando o banco e podem ser editadas; uma conta nova ou que mude de banco não pode usá-lo.
+
+A atualização acrescenta o `Id` ao nome de bancos repetidos já gravados, para o índice único não impedir a
+migration. O layout CSV de bancos não traz a situação: um banco arquivado é exportado como os demais e, importado em
+uma instalação vazia, entra ativo.
+
+## Contas e cartões
+
 Cartões exigem conta corrente ativa, nome, bandeira Visa/Mastercard/Elo, limite não
 negativo, cor, fechamento e vencimento entre 1 e 31. A opção de incluir o dia do
 fechamento é explícita; conferir os valores com o emissor ao configurar o cartão.
@@ -24,7 +40,7 @@ A paleta oferece verde, violeta, laranja, rosa e cinza, usando os tokens do tema
   Falhas esperadas retornam mensagem, sem exceção para o componente.
 - `IAccountCatalog` expõe DTOs com ExternalId, nunca entidades ou Id interno.
   Consultas trazem apenas ativos por padrão; consultas históricas aceitam inativos.
-- A ação Excluir/desativar sempre oferece confirmação de desativação. Não há exclusão
+- Em contas e cartões, a ação Excluir/desativar sempre oferece confirmação de desativação. Não há exclusão
   física, mesmo sem uso conhecido: preserva referências sem criar dependência inversa
   de Accounts para Transactions. Cancelar não altera o cadastro.
 - Desativar conta retira seus cartões das seleções, preservando os registros.

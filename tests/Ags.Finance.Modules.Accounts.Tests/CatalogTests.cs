@@ -205,8 +205,8 @@ public sealed partial class CatalogTests : IAsyncLifetime
 
     private async Task<Guid> CreateAccountAsync(AccountKind kind = AccountKind.Checking)
     {
-        var bank = await Catalog.CreateBankAsync("Banco Exemplo");
-        var result = await Catalog.SaveAccountAsync(new(null, bank.ExternalId!.Value, "Conta exemplo", kind, "green"));
+        var bank = (await Catalog.GetBanksAsync()).FirstOrDefault(x => x.Name == "Banco Exemplo")?.ExternalId ?? (await Catalog.CreateBankAsync("Banco Exemplo")).ExternalId!.Value;
+        var result = await Catalog.SaveAccountAsync(new(null, bank, kind == AccountKind.Checking ? "Conta exemplo" : $"Conta exemplo {kind}", kind, "green"));
         Assert.True(result.Succeeded, result.Error);
         return result.ExternalId!.Value;
     }

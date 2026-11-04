@@ -54,6 +54,69 @@ public sealed class BanksPageTests
     }
 
     [Fact]
+    public async Task ABankIsRenamedInTheWindow()
+    {
+        await using var ui = await RegistryUi.CreateAsync();
+        await ui.Context.Services.GetRequiredService<IAccountCatalog>().CreateBankAsync("Banco Exemplo");
+        var page = ui.Context.Render<Banks>();
+        page.WaitForAssertion(() => Assert.Single(RegistryUi.Rows(page)));
+
+        await RegistryUi.Rows(page)[0].QuerySelector("[data-action=edit]")!.ClickAsync(new MouseEventArgs());
+        var name = ui.Dialogs.WaitForElement("#registry-name");
+        Assert.Equal("Banco Exemplo", name.GetAttribute("value"));
+        Assert.Empty(ui.Dialogs.FindAll("[data-save-new]"));
+        await name.InputAsync("Banco Renomeado");
+        await ui.Dialogs.Find("#name-form").SubmitAsync(EventArgs.Empty);
+
+        page.WaitForAssertion(() => Assert.Contains("Banco Renomeado", RegistryUi.Rows(page)[0].TextContent, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task AnUnusedBankOffersDeleteAndDisappearsAfterConfirming()
+    {
+        await using var ui = await RegistryUi.CreateAsync();
+        var catalog = ui.Context.Services.GetRequiredService<IAccountCatalog>();
+        await catalog.CreateBankAsync("Banco Exemplo");
+        var page = ui.Context.Render<Banks>();
+        page.WaitForAssertion(() => Assert.Single(RegistryUi.Rows(page)));
+        Assert.Null(RegistryUi.Rows(page)[0].QuerySelector("[data-action=archive]"));
+
+        RegistryUi.Click(RegistryUi.Rows(page)[0].QuerySelector("[data-action=delete]")!);
+        await ui.Dialogs.WaitForElement("[data-confirm-ok]").ClickAsync(new MouseEventArgs());
+
+        page.WaitForAssertion(() => Assert.Contains("Cadastre o primeiro", page.Find(".empty-state").TextContent, StringComparison.Ordinal));
+        Assert.Empty(await catalog.GetBanksAsync());
+    }
+
+    [Fact]
+    public async Task ABankWithAnAccountOffersArchiveAndCanBeRestored()
+    {
+        await using var ui = await RegistryUi.CreateAsync();
+        var catalog = ui.Context.Services.GetRequiredService<IAccountCatalog>();
+        var bank = (await catalog.CreateBankAsync("Banco Exemplo")).ExternalId!.Value;
+        await catalog.CreateBankAsync("Banco Livre");
+        await catalog.SaveAccountAsync(new(null, bank, "Conta Exemplo", AccountKind.Investment, "green"));
+        var page = ui.Context.Render<Banks>();
+        page.WaitForAssertion(() => Assert.Equal(2, RegistryUi.Rows(page).Count));
+        var row = RegistryUi.Row(page, "Banco Exemplo");
+        Assert.Null(row.QuerySelector("[data-action=delete]"));
+        Assert.Empty(page.FindAll("[data-toggle-archived]"));
+
+        RegistryUi.Click(row.QuerySelector("[data-action=archive]")!);
+        await ui.Dialogs.WaitForElement("[data-confirm-ok]").ClickAsync(new MouseEventArgs());
+
+        page.WaitForAssertion(() => Assert.DoesNotContain("Banco Exemplo", Assert.Single(RegistryUi.Rows(page)).TextContent, StringComparison.Ordinal));
+        await page.Find("[data-toggle-archived]").ClickAsync(new MouseEventArgs());
+        page.WaitForAssertion(() => Assert.Contains("Arquivado", RegistryUi.Row(page, "Banco Exemplo").TextContent, StringComparison.Ordinal));
+
+        RegistryUi.Click(RegistryUi.Row(page, "Banco Exemplo").QuerySelector("[data-action=restore]")!);
+        await ui.Dialogs.WaitForElement("[data-confirm-ok]").ClickAsync(new MouseEventArgs());
+
+        page.WaitForAssertion(() => Assert.Empty(page.FindAll("[data-bank-archived]")));
+        Assert.All(await catalog.GetBanksAsync(), item => Assert.True(item.IsActive));
+    }
+
+    [Fact]
     public async Task TheLogoEditorOpensInAWindow()
     {
         await using var ui = await RegistryUi.CreateAsync();

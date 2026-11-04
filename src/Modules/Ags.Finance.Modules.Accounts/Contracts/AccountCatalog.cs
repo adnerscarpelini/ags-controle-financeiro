@@ -14,7 +14,7 @@ public enum CardBrand
     Mastercard,
     Elo
 }
-public sealed record BankDetails(Guid ExternalId, string Name, Guid? LogoVersion = null);
+public sealed record BankDetails(Guid ExternalId, string Name, Guid? LogoVersion = null, bool IsActive = true);
 public sealed record AccountDetails(Guid ExternalId, Guid BankExternalId, string Name, AccountKind Kind, string Color, bool IsActive, Money OpeningBalance = default, DateOnly? OpeningDate = null);
 public sealed record CreditCardDetails(Guid ExternalId, Guid AccountExternalId, string Name, CardBrand Brand, Money CreditLimit, int ClosingDay, int DueDay, bool IncludesClosingDay, string Color, bool IsActive, bool IsAccountActive = true)
 {
@@ -28,10 +28,15 @@ public sealed record CatalogResult(Guid? ExternalId, string? Error)
 }
 public interface IAccountCatalog
 {
+    /// <summary>Traz também os arquivados: contas antigas e relatórios continuam mostrando o banco. Novas seleções filtram por IsActive.</summary>
     Task<IReadOnlyList<BankDetails>> GetBanksAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<AccountDetails>> GetAccountsAsync(bool activeOnly = true, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CreditCardDetails>> GetCreditCardsAsync(bool activeOnly = true, CancellationToken cancellationToken = default);
     Task<CatalogResult> CreateBankAsync(string name, Guid? externalId = null, CancellationToken cancellationToken = default);
+    Task<CatalogResult> RenameBankAsync(Guid externalId, string name, CancellationToken cancellationToken = default);
+    Task<CatalogResult> DeleteBankAsync(Guid externalId, CancellationToken cancellationToken = default);
+    Task<CatalogResult> DeactivateBankAsync(Guid externalId, CancellationToken cancellationToken = default);
+    Task<CatalogResult> ReactivateBankAsync(Guid externalId, CancellationToken cancellationToken = default);
     Task<CatalogResult> SaveAccountAsync(SaveAccountRequest request, CancellationToken cancellationToken = default);
     Task<CatalogResult> SaveCreditCardAsync(SaveCreditCardRequest request, CancellationToken cancellationToken = default);
     Task<CatalogResult> DeactivateAccountAsync(Guid externalId, CancellationToken cancellationToken = default);
