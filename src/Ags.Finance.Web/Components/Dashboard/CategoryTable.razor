@@ -52,15 +52,17 @@
     [Parameter] public bool Chart { get; set; }
     [Parameter] public int TopCount { get; set; } = 10;
 
-    private decimal Width(CategoryLine line)
+    // Vai para o CSS: com a vírgula do pt-BR o navegador ignora a largura e toda barra sai cheia.
+    private string Width(CategoryLine line)
     {
         var max = Lines.Take(TopCount).Max(x => x.Amount.Amount);
-        return max <= 0 ? 0 : decimal.Round(Math.Max(0, line.Amount.Amount) / max * 100m, 1);
+        var width = max <= 0 ? 0 : decimal.Round(Math.Max(0, line.Amount.Amount) / max * 100m, 1);
+        return width.ToString("0.#", CultureInfo.InvariantCulture);
     }
 
     // Despesa acima da média é ruim (cor de despesa); abaixo, boa (cor de receita). Em receitas é o inverso.
     private string DifferenceClass(CategoryLine line)
         => line.DifferenceToAverage.IsZero ? string.Empty : line.AboveAverage == Expense ? "entry-expense" : "entry-income";
 
-    private static string Signed(Money value) => value.IsNegative ? value.ToString() : "+" + value;
+    private static string Signed(Money value) => value.IsNegative || value.IsZero ? value.ToString() : "+" + value;
 }

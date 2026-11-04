@@ -1,3 +1,4 @@
+@using System.Globalization
 @using Ags.Finance.Modules.Accounts.Contracts
 @using Ags.Finance.Modules.Reports.Contracts
 @using Ags.Finance.SharedKernel
@@ -70,9 +71,11 @@
 
     private static string ColorOf(InvoiceReport report, Guid card) => report.Series.FirstOrDefault(x => x.CardExternalId == card)?.Color ?? "slate";
 
-    private static decimal Height(InvoiceReport report, Money amount)
+    // Vai para o CSS: com a vírgula do pt-BR o navegador ignora a altura e a coluna some.
+    private static string Height(InvoiceReport report, Money amount)
     {
         var max = report.Months.Max(x => x.Cards.Where(c => c.Total.Amount > 0).Sum(c => c.Total.Amount));
-        return max <= 0 ? 0 : decimal.Round(amount.Amount / max * 100m, 1);
+        var height = max <= 0 ? 0 : decimal.Round(amount.Amount / max * 100m, 1);
+        return height.ToString("0.#", CultureInfo.InvariantCulture);
     }
 }
