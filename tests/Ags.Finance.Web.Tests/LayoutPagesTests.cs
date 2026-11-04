@@ -136,6 +136,19 @@ public sealed partial class LayoutPagesTests : IDisposable
     }
 
     [Fact]
+    public async Task AnUnknownAddressShowsTheNotFoundPageWithTheMenu()
+    {
+        using var browser = await _factory.CreateSignedInBrowserAsync();
+
+        using var response = await browser.GetAsync("/endereco-inexistente");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Contains("Página não encontrada", WebUtility.HtmlDecode(html), StringComparison.Ordinal);
+        Assert.Contains("href=\"dashboard\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task StaticAssetsAreRevalidatedSoAnUpdateReachesTheBrowser()
     {
         using var client = _factory.CreateClient();

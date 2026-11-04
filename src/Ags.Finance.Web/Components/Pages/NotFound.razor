@@ -1,0 +1,7 @@
+@page "/not-found"
+@inject NavigationManager Navigation
+
+<PageHeader Title="Página não encontrada" />
+<section class="panel">
+    <EmptyState Icon="@Icons.Material.Outlined.SearchOff" Message="Este endereço não existe. Confira o link ou volte para a tela inicial." ActionText="Ir para a tela inicial" OnAction="@(() => Navigation.NavigateTo(string.Empty))" />
+</section>
