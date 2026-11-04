@@ -88,8 +88,8 @@ printf '%s\n%s\n%s\n' "$USER_NAME" "$USER_PASSWORD" "$USER_PASSWORD" | compose a
 
 log "Instalação A: dados fictícios em vários registros e vínculos"
 psql_app a "
-INSERT INTO accounts.banks (\"Name\", \"ExternalId\", \"CreatedAt\", \"UpdatedAt\")
-  VALUES ('Banco Ensaio', '019e0000-0000-7000-8000-000000000001', now(), now());
+INSERT INTO accounts.banks (\"Name\", \"NormalizedName\", \"IsActive\", \"ExternalId\", \"CreatedAt\", \"UpdatedAt\")
+  VALUES ('Banco Ensaio', 'BANCO ENSAIO', true, '019e0000-0000-7000-8000-000000000001', now(), now());
 INSERT INTO accounts.accounts (\"BankExternalId\", \"Name\", \"NormalizedName\", \"Kind\", \"Color\", \"IsActive\", \"ExternalId\", \"CreatedAt\", \"UpdatedAt\")
   VALUES ('019e0000-0000-7000-8000-000000000001', 'Conta Ensaio', 'CONTA ENSAIO', 0, 'green', true, '019e0000-0000-7000-8000-000000000002', now(), now());
 INSERT INTO accounts.credit_cards (\"AccountExternalId\", \"Name\", \"Brand\", \"CreditLimit\", \"ClosingDay\", \"DueDay\", \"IncludesClosingDay\", \"Color\", \"IsActive\", \"ExternalId\", \"CreatedAt\", \"UpdatedAt\")
@@ -196,7 +196,7 @@ curl -ksS -b "$WORK/jar-b" "https://localhost:$PORT_B/attachments/$DOCUMENT_ID" 
 [ "$(sha256sum "$WORK/document-b.pdf" | cut -d' ' -f1)" = "$DOCUMENT_SHA" ] || fail "abertura autenticada do anexo restaurado"
 
 log "Instalação B: novas gravações funcionam (sequências continuam sem colidir)"
-psql_app b "INSERT INTO accounts.banks (\"Name\", \"ExternalId\", \"CreatedAt\", \"UpdatedAt\") VALUES ('Banco Novo', '019e0000-0000-7000-8000-000000000009', now(), now())" >/dev/null
+psql_app b "INSERT INTO accounts.banks (\"Name\", \"NormalizedName\", \"IsActive\", \"ExternalId\", \"CreatedAt\", \"UpdatedAt\") VALUES ('Banco Novo', 'BANCO NOVO', true, '019e0000-0000-7000-8000-000000000009', now(), now())" >/dev/null
 
 log "Compatibilidade v1: dump sem schema de anexos e manifesto legado sem attachments.json"
 compose b stop app
