@@ -58,6 +58,7 @@
     private MonthlyPlanDetails? _preview;
     private string? _error;
     private bool _busy;
+    private int _previewVersion;
     protected override async Task OnInitializedAsync()
     {
         _income = Plan?.Income.Amount ?? 0m;
@@ -68,13 +69,18 @@
         await PreviewAsync();
     }
     private MonthlyPlanRequest Request() => new(Month, new Money(_income), _saving, _cardView, _categories.Where(x => x.Selected).Select(x => new MonthlyPlanTarget(x.Id, new Money(x.Target))).ToList());
-    private async Task PreviewAsync()
+    private Task PreviewAsync() => RefreshPreviewAsync();
+    private async Task<bool> RefreshPreviewAsync()
     {
+        // Um cálculo antigo que termina depois não pode sobrescrever o do valor mais recente.
+        var version = ++_previewVersion;
         var preview = await Plans.PreviewAsync(Request());
+        if (version != _previewVersion) { return false; }
         _error = preview.Error;
         _preview = preview.Plan;
+        return true;
     }
-    private async Task NextAsync() { await PreviewAsync(); if (_error is null) { _step++; } }
+    private async Task NextAsync() { if (await RefreshPreviewAsync() && _error is null) { _step++; } }
     private async Task SaveAsync()
     {
         if (_busy) { return; }
