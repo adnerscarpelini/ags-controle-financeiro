@@ -44,14 +44,14 @@ public sealed class PlanningPageTests
         await using var context = new BunitContext();
         await SetUpAsync(context, database);
         var page = Render(context);
-        Assert.Contains("novembro de 2026", page.Markup, StringComparison.Ordinal);
+        Assert.Contains("Novembro de 2026", page.Markup, StringComparison.Ordinal);
         await page.Find("#copy-monthly-plan").ClickAsync(new());
         Assert.Contains("O mês anterior não tem planejamento.", page.Find("[role=status]").TextContent);
         Assert.Null(await context.Services.GetRequiredService<IMonthlyPlanCatalog>().GetAsync(s_month));
         await ClickAsync(page, "Próximo mês");
-        Assert.Contains("dezembro de 2026", page.Markup, StringComparison.Ordinal);
+        Assert.Contains("Dezembro de 2026", page.Markup, StringComparison.Ordinal);
         await ClickAsync(page, "Mês anterior");
-        Assert.Contains("novembro de 2026", page.Markup, StringComparison.Ordinal);
+        Assert.Contains("Novembro de 2026", page.Markup, StringComparison.Ordinal);
     }
 
     [Fact]

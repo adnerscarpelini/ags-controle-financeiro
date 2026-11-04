@@ -11,7 +11,7 @@
                 <td><span>@(row.Exceeded ? $"Excederam {-row.Remaining}" : $"Restam {row.Remaining}")</span>
                     <div class="monthly-plan-bar" aria-label="@($"Pagas {row.Paid}; previstas {row.Forecast}")"><span class="monthly-plan-paid" style="@Width(row.PaidProgress)"></span><span class="monthly-plan-forecast" style="@Width(row.ForecastProgress)"></span></div>
                 </td>
-                <td>@if (row.CategoryExternalId is not null) { <button class="button" @onclick="() => Edit.InvokeAsync(row)">Editar</button><button class="button" @onclick="() => Remove.InvokeAsync(row)">Remover</button> }</td>
+                <td>@if (row.CategoryExternalId is not null) { <div class="monthly-plan-row-actions"><button class="button button-secondary" @onclick="() => Edit.InvokeAsync(row)">Editar</button><button class="button button-secondary" @onclick="() => Remove.InvokeAsync(row)">Remover</button></div> }</td>
             </tr>
         }</tbody>
     </table>

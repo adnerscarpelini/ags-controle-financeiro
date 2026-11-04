@@ -373,6 +373,16 @@ a:hover {
     background: var(--color-accent-hover);
 }
 
+.button-secondary {
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text-primary);
+}
+
+.button-secondary:hover {
+    background: var(--color-surface-raised);
+}
+
 .form-error {
     color: var(--color-expense);
 }
@@ -511,7 +521,7 @@ a:hover {
 .table-scroll { max-width: 100%; overflow-x: auto; }
 .table-scroll table { width: 100%; border-collapse: collapse; }
 .table-scroll th, .table-scroll td { padding: 8px; text-align: left; border-bottom: 1px solid var(--color-border); }
-.table-scroll .numeric { text-align: right; }
+.table-scroll .numeric { text-align: right; white-space: nowrap; }
 
 .bank-logo { width: 40px; height: 40px; flex: 0 0 40px; border-radius: 50%; object-fit: contain; }
 .bank-logo-initials { display: inline-flex; align-items: center; justify-content: center; background: var(--color-surface-raised); color: var(--color-text-secondary); font-weight: 600; }
@@ -591,6 +601,10 @@ a:hover {
 .attachment-controls .button { display: inline-flex; align-items: center; justify-content: center; min-width: var(--touch-target); min-height: var(--touch-target); white-space: normal; }
 
 .monthly-plan-navigation, .monthly-plan-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.monthly-plan-navigation { justify-content: center; }
+.panel > .button + .button { margin-left: var(--space-2); }
+.monthly-plan-row-actions { display: flex; gap: var(--space-2); }
+.monthly-plan-row-actions .button { min-height: 32px; padding: 0 var(--space-3); }
 .monthly-plan-layout { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 16px; }
 .monthly-plan-main { min-width: 0; }
 .monthly-plan-cards { display: grid; gap: 12px; align-content: start; }
@@ -609,6 +623,7 @@ a:hover {
 .help-tip-button:hover { color: var(--color-text-primary); }
 .help-tip-button .mud-icon-root { font-size: 16px; }
 .mud-tooltip { max-width: 280px; white-space: normal; text-align: left; }
+.mud-tooltip.mud-tooltip-default { border: 1px solid var(--color-border); background: var(--color-surface-raised); color: var(--color-text-primary); font-weight: 400; box-shadow: var(--shadow-raised); }
 
 /* Estado vazio */
 .empty-state { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding: var(--space-8) var(--space-6); color: var(--color-text-secondary); text-align: center; }
@@ -644,6 +659,8 @@ a:hover {
 .switch:checked { background: var(--color-accent); }
 .switch:checked::before { left: 21px; background: var(--color-background); }
 .switch:disabled { opacity: .55; cursor: not-allowed; }
+.field input.switch { width: 44px; min-height: 0; height: 26px; padding: 0; border: 0; border-radius: 13px; background: var(--color-border); }
+.field input.switch:checked { background: var(--color-accent); }
 .link-button { display: inline-flex; align-items: center; gap: var(--space-1); min-height: var(--touch-target); padding: 0; border: 0; background: transparent; color: var(--color-accent-hover); font: inherit; font-weight: 600; cursor: pointer; }
 .details-toggle { text-align: right; }
 .form-note { margin: 0; color: var(--color-text-secondary); font-size: .875rem; }
