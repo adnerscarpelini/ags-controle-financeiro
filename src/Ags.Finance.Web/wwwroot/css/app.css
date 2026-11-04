@@ -603,8 +603,13 @@ a:hover {
 .monthly-plan-navigation, .monthly-plan-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .monthly-plan-navigation { justify-content: center; }
 .panel > .button + .button { margin-left: var(--space-2); }
-.monthly-plan-row-actions { display: flex; gap: var(--space-2); }
-.monthly-plan-row-actions .button { min-height: 32px; padding: 0 var(--space-3); }
+.monthly-plan-row-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+@media (min-width: 768px) {
+    .monthly-plan-row-actions .button { min-height: 32px; padding: 0 var(--space-3); }
+}
+@media (max-width: 767.98px) {
+    .monthly-plan-navigation h2 { order: -1; width: 100%; text-align: center; }
+}
 .monthly-plan-layout { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 16px; }
 .monthly-plan-main { min-width: 0; }
 .monthly-plan-cards { display: grid; gap: 12px; align-content: start; }
