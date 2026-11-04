@@ -64,7 +64,17 @@ internal static partial class HttpsEndpoint
         return async context =>
         {
             var input = context.Transport.Input;
-            var first = await input.ReadAtLeastAsync(1, context.ConnectionClosed);
+            ReadResult first;
+            try
+            {
+                first = await input.ReadAtLeastAsync(1, context.ConnectionClosed);
+            }
+            catch (OperationCanceledException)
+            {
+                // O cliente fechou sem enviar nada (teste de porta, varredura): não há o que atender nem o que registrar.
+                return;
+            }
+
             var closed = first.Buffer.IsEmpty;
             var isTls = !closed && first.Buffer.FirstSpan[0] == TlsHandshakeRecord;
 
