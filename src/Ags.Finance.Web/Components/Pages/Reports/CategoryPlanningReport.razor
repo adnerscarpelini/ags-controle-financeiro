@@ -45,32 +45,32 @@
                             <th scope="row">Receitas</th>
                             @for (var i = 0; i < report.Months.Count; i++)
                             {
-                                <PlanningCellView Cell="report.Income[i]" RowName="Receitas" MonthName="@MonthName(report.Months[i])" Class="@($"entry-income {CurrentClass(report, report.Months[i])}")" DetailRequested="ShowDetail" />
+                                <PlanningCellView Cell="report.Income[i]" RowName="Receitas" MonthName="@MonthName(report.Months[i])" IsExpense="false" Class="@CurrentClass(report, report.Months[i])" DetailRequested="ShowDetail" />
                             }
-                            <td class="numeric entry-income">@Sum(report.Income)</td>
+                            <td class="numeric @ValueColor.Income(Sum(report.Income))">@Sum(report.Income)</td>
                         </tr>
                         <tr>
                             <th scope="row">Despesas</th>
                             @for (var i = 0; i < report.Months.Count; i++)
                             {
-                                <PlanningCellView Cell="report.Expenses[i]" RowName="Despesas" MonthName="@MonthName(report.Months[i])" ShowAsNegative="true" Class="@($"entry-expense {CurrentClass(report, report.Months[i])}")" DetailRequested="ShowDetail" />
+                                <PlanningCellView Cell="report.Expenses[i]" RowName="Despesas" MonthName="@MonthName(report.Months[i])" ShowAsNegative="true" IsExpense="true" Class="@CurrentClass(report, report.Months[i])" DetailRequested="ShowDetail" />
                             }
-                            <td class="numeric entry-expense">@(-Sum(report.Expenses))</td>
+                            <td class="numeric @ValueColor.Expense(Sum(report.Expenses))">@(-Sum(report.Expenses))</td>
                         </tr>
                         <tr>
                             <th scope="row">Saldo do mês</th>
                             @for (var i = 0; i < report.Months.Count; i++)
                             {
-                                <td class="numeric @SignClass(report.Balance[i]) @CurrentClass(report, report.Months[i])">@report.Balance[i]</td>
+                                <td class="numeric @ValueColor.Balance(report.Balance[i]) @CurrentClass(report, report.Months[i])">@report.Balance[i]</td>
                             }
-                            <td class="numeric">@(new Money(report.Balance.Sum(x => x.Amount)))</td>
+                            <td class="numeric @ValueColor.Balance(new Money(report.Balance.Sum(x => x.Amount)))">@(new Money(report.Balance.Sum(x => x.Amount)))</td>
                         </tr>
                         <tr>
                             <th scope="row">Saldo acumulado <span class="planning-note">(não é saldo de conta)</span></th>
                             @for (var i = 0; i < report.Months.Count; i++)
                             {
                                 var accumulated = report.AccumulatedBalance[i];
-                                <td class="numeric @(accumulated is { } value ? SignClass(value) : string.Empty) @CurrentClass(report, report.Months[i])">@(accumulated?.ToString() ?? "-")</td>
+                                <td class="numeric @(accumulated is { } value ? ValueColor.Balance(value) : ValueColor.Neutral) @CurrentClass(report, report.Months[i])">@(accumulated?.ToString() ?? "-")</td>
                             }
                             <td class="numeric">-</td>
                         </tr>
@@ -135,8 +135,6 @@
         => $"{CultureInfo.GetCultureInfo("pt-BR").DateTimeFormat.GetAbbreviatedMonthName(month.Month).TrimEnd('.')}/{month.Year % 100:00}";
 
     private static string CurrentClass(PlanningReport report, ReferenceMonth month) => month == report.CurrentMonth ? "planning-current" : string.Empty;
-
-    private static string SignClass(Money value) => value.IsNegative ? "entry-expense" : "entry-income";
 
     private static Money Sum(IEnumerable<PlanningCell> cells) => new(cells.Sum(x => x.Amount.Amount));
 }

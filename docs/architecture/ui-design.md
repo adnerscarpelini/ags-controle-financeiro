@@ -22,9 +22,9 @@ Aprovados na [#95](https://github.com/adnerscarpelini/ags-controle-financeiro/is
 
 Aprovada na [#112](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/112), com referência em Todoist, Notion e aplicativos da Apple.
 
-- **Silêncio por padrão:** fundo neutro, seções separadas por espaço e linhas finas. Card só para entidades, como contas e cartões; métricas sem caixa e sem ícone decorativo.
+- **Separação suave:** fundo neutro, com seções, totais e entidades em cards suaves, sem borda e sem sombra. Nunca card dentro de card; dentro de um card, a separação é por espaço e linhas finas. Métricas sem ícone decorativo.
 - **Verde só onde conta:** ação principal, foco, item selecionado e receitas. Abas e filtros usam controle segmentado neutro.
-- **Valores:** despesas neutras com sinal de menos; vermelho só para atraso, excesso e erro.
+- **Valores:** no Dashboard, nos relatórios e nos saldos de conta, despesa em vermelho, receita em verde, saldo pelo sinal e zero em cor neutra (`ValueColor`). Em Lançamentos e nas demais telas, despesas ficam neutras com sinal de menos, e vermelho é só para atraso, excesso e erro.
 - **Tipografia:** Inter local, 14 px no corpo e 22 px nos títulos, sem caixa alta, com hierarquia por tamanho e peso.
 - **Controles:** 32 px no computador e 44 px no celular, campos preenchidos sem borda e botões sem sombra.
 - **Tabelas:** cabeçalho discreto, linhas finas e ações reveladas ao passar o mouse ou receber foco. Em toque, as ações ficam em menu.
@@ -42,6 +42,7 @@ A exceção é a janela de escolha de arquivos, que pertence ao sistema operacio
 | --- | --- | --- | --- |
 | `Background` | `#FFFFFF` | `#141415` | fundo da janela |
 | `Sidebar` | `#F7F7F6` | `#1A1A1C` | menu lateral |
+| `Card` | `#F7F7F6` | `#1B1B1D` | cards suaves de seções, totais e entidades |
 | `Surface` | `#FEFEFE` | `#222224` | menus e janelas |
 | `SurfaceRaised` | `#F2F2F1` | `#2C2C2F` | superfície neutra sólida |
 | `Border` | `#E8E8E7` | `#2C2C2E` | linhas finas e divisórias |

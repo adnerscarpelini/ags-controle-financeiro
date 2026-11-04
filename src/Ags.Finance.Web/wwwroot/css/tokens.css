@@ -12,6 +12,7 @@
     /* Paleta: light-dark(claro, escuro) */
     --color-background: light-dark(#FFFFFF, #141415);
     --color-sidebar: light-dark(#F7F7F6, #1A1A1C);
+    --color-card: light-dark(#F7F7F6, #1B1B1D);
     --color-surface: light-dark(#FEFEFE, #222224);
     --color-surface-raised: light-dark(#F2F2F1, #2C2C2F);
     --color-border: light-dark(#E8E8E7, #2C2C2E);

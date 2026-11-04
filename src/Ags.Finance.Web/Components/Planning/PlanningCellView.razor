@@ -2,7 +2,7 @@
 @using Ags.Finance.Modules.Reports.Contracts
 @using Ags.Finance.SharedKernel
 
-<td class="numeric @Class" style="@Style">
+<td class="numeric @ColorClass @Class" style="@Style">
     @if (Cell.HasForecast)
     {
         <button type="button" class="planning-forecast" title="@Detail" aria-label="@Detail" @onclick="() => DetailRequested.InvokeAsync(Detail)">@Text</button>
@@ -21,14 +21,18 @@
     [Parameter] public bool ShowAsNegative { get; set; }
     /// <summary>Token da cor do calor; sem ele a célula não é colorida.</summary>
     [Parameter] public string? HeatColor { get; set; }
+    /// <summary>Se o valor é despesa (vermelho) ou receita (verde); zero fica neutro.</summary>
+    [Parameter, EditorRequired] public bool IsExpense { get; set; }
     [Parameter] public string? Class { get; set; }
     [Parameter] public EventCallback<string> DetailRequested { get; set; }
+
+    private string ColorClass => ValueColor.OfKind(Cell.Amount, IsExpense);
 
     private string Text => Cell.Amount.IsZero ? "-" : (ShowAsNegative ? -Cell.Amount : Cell.Amount).ToString();
 
     private string Detail => $"{RowName} em {MonthName}: lançado {Cell.Launched} + previsto {Cell.Forecast} = {Cell.Amount}";
 
-    // A cor nunca é o único sinal: o valor sempre aparece em texto na célula.
+    // Fundo leve para o texto colorido manter o contraste. A cor nunca é o único sinal: o valor sempre aparece em texto.
     private string? Style => HeatColor is null || Cell.Intensity <= 0 ? null
-        : $"background: color-mix(in srgb, var({HeatColor}) {(Cell.Intensity * 50).ToString("0", CultureInfo.InvariantCulture)}%, transparent)";
+        : $"background: color-mix(in srgb, var({HeatColor}) {(Cell.Intensity * 8).ToString("0", CultureInfo.InvariantCulture)}%, transparent)";
 }

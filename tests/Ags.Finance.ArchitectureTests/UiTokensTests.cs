@@ -61,7 +61,7 @@ public sealed partial class UiTokensTests
     public void EveryTextColorMeetsWcagAaContrastInBothThemes()
     {
         var palette = Palette();
-        string[] surfaces = ["--color-background", "--color-sidebar", "--color-surface", "--color-surface-raised"];
+        string[] surfaces = ["--color-background", "--color-sidebar", "--color-card", "--color-surface", "--color-surface-raised"];
         string[] text =
         [
             "--color-text-primary", "--color-text-secondary", "--color-accent", "--color-accent-hover", "--color-income",

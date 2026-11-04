@@ -17,7 +17,7 @@
                 {
                     <li><span class="bar-label">@line.Name</span>
                         <span class="bar-track"><span class="bar-fill @(Expense ? "bar-expense" : "bar-income")" style="width: @Width(line)%"></span></span>
-                        <span class="numeric bar-value">@line.Amount</span></li>
+                        <span class="numeric bar-value @ValueColor.OfKind(line.Amount, Expense)">@line.Amount</span></li>
                 }
             </ol>
         }
@@ -29,14 +29,14 @@
                     @foreach (var line in Lines)
                     {
                         <tr><th scope="row">@line.Name</th>
-                            <td class="numeric">@line.Amount</td>
+                            <td class="numeric @ValueColor.OfKind(line.Amount, Expense)">@line.Amount</td>
                             <td class="numeric">@line.PercentOfMonth.ToString("0.#", CultureInfo.GetCultureInfo("pt-BR"))%</td>
-                            <td class="numeric">@line.PreviousMonth</td>
-                            <td class="numeric">@line.YearAverage</td>
+                            <td class="numeric @ValueColor.OfKind(line.PreviousMonth, Expense)">@line.PreviousMonth</td>
+                            <td class="numeric @ValueColor.OfKind(line.YearAverage, Expense)">@line.YearAverage</td>
                             <td class="numeric @DifferenceClass(line)">@Signed(line.DifferenceToAverage)</td></tr>
                     }
                 </tbody>
-                <tfoot><tr><th scope="row">Total</th><td class="numeric">@Total</td><td class="numeric">100%</td><td></td><td></td><td></td></tr></tfoot>
+                <tfoot><tr><th scope="row">Total</th><td class="numeric @ValueColor.OfKind(Total, Expense)">@Total</td><td class="numeric">100%</td><td></td><td></td><td></td></tr></tfoot>
             </table>
         </div>
     }
@@ -60,9 +60,9 @@
         return width.ToString("0.#", CultureInfo.InvariantCulture);
     }
 
-    // Despesa acima da média é ruim (cor de despesa); abaixo, boa (cor de receita). Em receitas é o inverso.
+    // Despesa acima da média é ruim (vermelho); abaixo, boa (verde). Em receitas é o inverso.
     private string DifferenceClass(CategoryLine line)
-        => line.DifferenceToAverage.IsZero ? string.Empty : line.AboveAverage == Expense ? "entry-expense" : "entry-income";
+        => line.DifferenceToAverage.IsZero ? ValueColor.Neutral : line.AboveAverage == Expense ? ValueColor.Negative : ValueColor.Positive;
 
     private static string Signed(Money value) => value.IsNegative || value.IsZero ? value.ToString() : "+" + value;
 }
