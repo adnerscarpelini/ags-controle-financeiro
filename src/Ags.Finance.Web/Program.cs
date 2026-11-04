@@ -137,8 +137,11 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
 }
 
-// Endereço inexistente mostra uma página da aplicação, com o menu, em vez do erro do navegador.
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+// Endereço inexistente mostra uma página da aplicação, com o menu, em vez do erro do navegador. Só em GET: um POST
+// recusado, como o sem antiforgery, precisa manter o próprio status em vez de ser reexecutado em uma página.
+app.UseWhen(
+    context => HttpMethods.IsGet(context.Request.Method),
+    branch => branch.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true));
 
 // Revalida a cada carga: sem isso o navegador reaproveita o CSS e o JS antigos depois de uma atualização.
 app.UseStaticFiles(new StaticFileOptions
