@@ -18,10 +18,10 @@ public sealed class CommonComponentsTests : IAsyncDisposable
     [Fact]
     public void StatCardShowsTheTotalWithoutADecorativeIcon()
     {
-        var card = _context.Render<StatCard>(parameters => parameters.Add(x => x.Label, "Receitas").Add(x => x.Value, "R$ 10,00").Add(x => x.Tone, "income").Add(x => x.Hero, true));
+        var card = _context.Render<StatCard>(parameters => parameters.Add(x => x.Label, "Receitas").Add(x => x.Value, "R$ 10,00").Add(x => x.ValueClass, ValueColor.Positive).Add(x => x.Hero, true));
 
         Assert.Equal("R$ 10,00", card.Find(".stat-value").TextContent);
-        Assert.Contains("stat-income", card.Find(".stat-card").ClassList);
+        Assert.Contains(ValueColor.Positive, card.Find(".stat-value").ClassList);
         Assert.Contains("stat-hero", card.Find(".stat-card").ClassList);
         Assert.Empty(card.FindAll(".mud-icon-root"));
     }

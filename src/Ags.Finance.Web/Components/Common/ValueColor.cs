@@ -3,7 +3,7 @@ using Ags.Finance.SharedKernel;
 namespace Ags.Finance.Web.Components.Common;
 
 /// <summary>
-/// Cor do texto de um valor no Dashboard, nos relatórios e nos saldos de conta (#112): despesa em vermelho, receita em verde,
+/// Cor do texto de um valor em toda a aplicação (#112): despesa em vermelho, receita em verde,
 /// saldo pelo sinal e zero em cor neutra. A cor reforça, mas o sinal de menos continua vindo do próprio valor.
 /// </summary>
 internal static class ValueColor
@@ -17,6 +17,9 @@ internal static class ValueColor
     public static string Income(Money value) => value.IsZero ? Neutral : Positive;
 
     public static string Balance(Money value) => value.IsZero ? Neutral : value.IsNegative ? Negative : Positive;
+
+    /// <summary>Saldo devido, como o restante de uma fatura: a dever em vermelho, crédito em verde.</summary>
+    public static string Owed(Money value) => value.IsZero ? Neutral : value.IsNegative ? Positive : Negative;
 
     public static string OfKind(Money value, bool isExpense) => isExpense ? Expense(value) : Income(value);
 

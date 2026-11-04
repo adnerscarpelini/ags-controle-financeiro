@@ -36,11 +36,11 @@
             <div class="field"><label for="cashback-year">Ano do recebimento</label><input id="cashback-year" class="input" type="number" inputmode="numeric" min="1" max="9999" @bind="_year" @bind:after="ReloadAsync" /></div>
             <div class="field"><label for="cashback-card">Cartão</label><select id="cashback-card" class="input" @bind="_filterCard" @bind:after="ReloadAsync"><option value="@Guid.Empty">Todos</option>@foreach (var card in _cards) { <option value="@card.ExternalId">@card.Name</option> }</select></div>
         </form>
-        <p data-cashback-total>Total de cashback recebido em @_year: <span class="numeric">@(new Money(_history.Where(x => x.Kind == InvoicePaymentKind.Cashback).Sum(x => x.Amount.Amount)))</span></p>
+        <p data-cashback-total>Total de cashback recebido em @_year: <span class="numeric @ValueColor.Income(new Money(_history.Where(x => x.Kind == InvoicePaymentKind.Cashback).Sum(x => x.Amount.Amount)))">@(new Money(_history.Where(x => x.Kind == InvoicePaymentKind.Cashback).Sum(x => x.Amount.Amount)))</span></p>
         <ul class="catalog-list" aria-label="Cashback por cartão">
             @foreach (var card in _history.Where(x => x.Kind == InvoicePaymentKind.Cashback).GroupBy(x => x.CardExternalId))
             {
-                <li class="list-row"><span>@CardName(card.Key)</span><span class="numeric">@(new Money(card.Sum(x => x.Amount.Amount)))</span></li>
+                <li class="list-row"><span>@CardName(card.Key)</span><span class="numeric @ValueColor.Income(new Money(card.Sum(x => x.Amount.Amount)))">@(new Money(card.Sum(x => x.Amount.Amount)))</span></li>
             }
         </ul>
         <MudTable T="InvoicePaymentDetails" Items="_history" Elevation="0" Class="data-table" Breakpoint="AppTables.Breakpoint(Viewport.IsMobile)" aria-label="Histórico de abatimentos">
@@ -55,7 +55,7 @@
                 <MudTd DataLabel="Data">@item.Date.ToString("dd/MM/yyyy")</MudTd>
                 <MudTd DataLabel="Cartão e fatura">@CardName(item.CardExternalId) · Fatura @item.Month @if (item.Details.Length > 0) { <span class="row-note">@item.Details</span> }</MudTd>
                 <MudTd DataLabel="Tipo">@TypeLabel(item.Kind)</MudTd>
-                <MudTd DataLabel="Valor" Class="numeric">@item.Amount</MudTd>
+                <MudTd DataLabel="Valor" Class="@($"numeric {ValueColor.Income(item.Amount)}")">@item.Amount</MudTd>
                 <MudTd DataLabel="Ações" Class="col-actions">
                     @if (_invoices.Any(x => x.CardExternalId == item.CardExternalId && x.Month == item.Month && x.Status == InvoiceStatus.Paid))
                     {

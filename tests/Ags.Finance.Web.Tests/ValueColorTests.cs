@@ -26,6 +26,13 @@ public sealed class ValueColorTests
     public void ABalanceFollowsItsSign(decimal amount, string expected)
         => Assert.Equal(expected, ValueColor.Balance(new Money(amount)));
 
+    [Theory]
+    [InlineData(10, ValueColor.Negative)]
+    [InlineData(-10, ValueColor.Positive)]
+    [InlineData(0, ValueColor.Neutral)]
+    public void AnAmountOwedIsRedAndACreditIsGreen(decimal amount, string expected)
+        => Assert.Equal(expected, ValueColor.Owed(new Money(amount)));
+
     [Fact]
     public void AnUnknownPercentIsNeutral()
         => Assert.Equal(ValueColor.Neutral, ValueColor.Percent(null));

@@ -24,7 +24,7 @@ Aprovada na [#112](https://github.com/adnerscarpelini/ags-controle-financeiro/is
 
 - **Separação suave:** fundo neutro, com seções, totais e entidades em cards suaves, sem borda e sem sombra. Nunca card dentro de card; dentro de um card, a separação é por espaço e linhas finas. Métricas sem ícone decorativo.
 - **Verde só onde conta:** ação principal, foco, item selecionado e receitas. Abas e filtros usam controle segmentado neutro.
-- **Valores:** no Dashboard, nos relatórios e nos saldos de conta, despesa em vermelho, receita em verde, saldo pelo sinal e zero em cor neutra (`ValueColor`). Em Lançamentos e nas demais telas, despesas ficam neutras com sinal de menos, e vermelho é só para atraso, excesso e erro.
+- **Valores:** em toda a aplicação, despesa em vermelho, receita em verde, saldo pelo sinal e zero em cor neutra (`ValueColor`). Saldo restante de fatura fica vermelho e crédito verde; pagamento de fatura e transferência são neutros. Metas de planejamento são orçamento e ficam neutras.
 - **Tipografia:** Inter local, 14 px no corpo e 22 px nos títulos, sem caixa alta, com hierarquia por tamanho e peso.
 - **Controles:** 32 px no computador e 44 px no celular, campos preenchidos sem borda e botões sem sombra.
 - **Tabelas:** cabeçalho discreto, linhas finas e ações reveladas ao passar o mouse ou receber foco. Em toque, as ações ficam em menu.

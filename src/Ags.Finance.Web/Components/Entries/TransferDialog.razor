@@ -18,7 +18,7 @@
     </TitleContent>
     <DialogContent>
         <form id="transfer-form" class="entry-column" @onsubmit="() => SaveAsync(closeAfterSave: true)" @onsubmit:preventDefault @onkeydown="KeyDownAsync">
-            <MoneyField @ref="_amountField" Id="transfer-amount" Label="Valor" @bind-Value="_amount" Class="amount-card" AutoFocus="true" />
+            <MoneyField @ref="_amountField" Id="transfer-amount" Label="Valor" @bind-Value="_amount" Class="amount-neutral" AutoFocus="true" />
             <div class="field">
                 <span class="field-label">Data</span>
                 <div class="pills">

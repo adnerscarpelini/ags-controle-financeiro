@@ -35,8 +35,8 @@
     @if (_preview is { } preview)
     {
         <dl class="monthly-plan-preview">
-            <dt>Orçamento de gastos</dt><dd>@preview.SpendingBudget</dd><dt>Valor economizado</dt><dd>@preview.SavingsAmount</dd>
-            @if (_step > 1) { <dt>Total categorizado</dt><dd>@preview.CategorizedTotal</dd><dt>Falta categorizar</dt><dd class="@(preview.UnclassifiedBudget.IsNegative ? "entry-expense" : string.Empty)">@preview.UnclassifiedBudget</dd> }
+            <dt>Orçamento de gastos</dt><dd>@preview.SpendingBudget</dd><dt>Valor economizado</dt><dd class="@ValueColor.Income(preview.SavingsAmount)">@preview.SavingsAmount</dd>
+            @if (_step > 1) { <dt>Total categorizado</dt><dd>@preview.CategorizedTotal</dd><dt>Falta categorizar</dt><dd class="@ValueColor.Balance(preview.UnclassifiedBudget)">@preview.UnclassifiedBudget</dd> }
         </dl>
     }
     @if (_step > 1) { <button class="button button-secondary" @onclick="() => _step--" disabled="@_busy">Voltar</button> }

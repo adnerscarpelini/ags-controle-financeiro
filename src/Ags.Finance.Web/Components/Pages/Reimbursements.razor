@@ -48,9 +48,9 @@
 }
 
 <section class="stat-cards" aria-label="Totais dos reembolsos">
-    <StatCard Label="Esperado" Help="Soma do que as pessoas devem devolver no filtro atual." Value="@_overview.Expected.ToString()" Testid="expected" />
-    <StatCard Tone="income" Label="Recebido" Value="@_overview.Received.ToString()" Testid="received" />
-    <StatCard Tone="warning" Label="Pendente" Value="@_overview.Pending.ToString()" Testid="pending" />
+    <StatCard ValueClass="@ValueColor.Income(_overview.Expected)" Label="Esperado" Help="Soma do que as pessoas devem devolver no filtro atual." Value="@_overview.Expected.ToString()" Testid="expected" />
+    <StatCard ValueClass="@ValueColor.Income(_overview.Received)" Label="Recebido" Value="@_overview.Received.ToString()" Testid="received" />
+    <StatCard ValueClass="@ValueColor.Income(_overview.Pending)" Label="Pendente" Value="@_overview.Pending.ToString()" Testid="pending" />
 </section>
 
 <section class="panel data-panel">
@@ -84,8 +84,8 @@
             </MudTd>
             <MudTd DataLabel="Pessoa">@item.PersonName</MudTd>
             <MudTd DataLabel="Percentual">@Percent(item.Percent)</MudTd>
-            <MudTd DataLabel="A receber" Class="numeric">@item.Expected</MudTd>
-            <MudTd DataLabel="Recebido" Class="numeric">@(item.Received is { } received ? received.ToString() : "—")</MudTd>
+            <MudTd DataLabel="A receber" Class="@($"numeric {ValueColor.Income(item.Expected)}")">@item.Expected</MudTd>
+            <MudTd DataLabel="Recebido" Class="@($"numeric {(item.Received is { } amount ? ValueColor.Income(amount) : ValueColor.Neutral)}")">@(item.Received is { } received ? received.ToString() : "—")</MudTd>
             <MudTd DataLabel="Situação"><span class="tag">@(item.ReceivedDate is { } receivedDate ? $"Recebido em {receivedDate:dd/MM/yyyy}" : "Pendente")</span></MudTd>
             <MudTd DataLabel="Ações" Class="col-actions">
                 @if (item.ReceiptExternalId is { } receipt)

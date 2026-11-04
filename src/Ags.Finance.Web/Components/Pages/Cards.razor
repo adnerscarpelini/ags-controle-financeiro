@@ -61,8 +61,8 @@ else
         </div>
         <aside class="split-aside" aria-label="Resumo dos cartões">
             <StatCard Label="Próxima fatura vence em" Value="@NextDueText" Testid="next-due" />
-            <StatCard Label="Limite disponível" Help="Limite dos cartões menos o saldo restante das faturas ainda não pagas, inclusive parcelas futuras." Value="@AvailableTotal.ToString()" Testid="available" />
-            <StatCard Label="Valor total das faturas" Help="Soma das faturas mostradas nos cards acima." Value="@InvoicesTotal.ToString()" Testid="invoices-total" />
+            <StatCard ValueClass="@ValueColor.Balance(AvailableTotal)" Label="Limite disponível" Help="Limite dos cartões menos o saldo restante das faturas ainda não pagas, inclusive parcelas futuras." Value="@AvailableTotal.ToString()" Testid="available" />
+            <StatCard ValueClass="@ValueColor.Expense(InvoicesTotal)" Label="Valor total das faturas" Help="Soma das faturas mostradas nos cards acima." Value="@InvoicesTotal.ToString()" Testid="invoices-total" />
             <button type="button" class="link-button" data-toggle-archived aria-pressed="@(_showArchived ? "true" : "false")" @onclick="() => _showArchived = !_showArchived">@(_showArchived ? "Ocultar cartões arquivados" : "Ver cartões arquivados")</button>
         </aside>
     </div>

@@ -72,10 +72,6 @@ ul {
     text-align: right;
 }
 
-.income {
-    color: var(--color-income);
-}
-
 .expense {
     color: var(--color-expense);
 }
@@ -678,7 +674,9 @@ input[type="file"]::file-selector-button {
 .money-field .mud-input-control-input-container { padding-top: 2px; }
 .money-field .mud-input.mud-input-underline::before, .money-field .mud-input.mud-input-underline::after { display: none; }
 .money-field .mud-input-adornment-text { color: var(--color-text-secondary); font-size: 15px; font-weight: 500; letter-spacing: 0; }
-.amount-income .mud-input, .amount-card .mud-input, .amount-expense .mud-input { color: var(--color-text-primary); }
+.amount-neutral .mud-input { color: var(--color-text-primary); }
+.amount-expense .mud-input { color: var(--color-expense); }
+.amount-income .mud-input { color: var(--color-income); }
 
 /* ==========================================================================
    Login
@@ -811,9 +809,6 @@ input[type="file"]::file-selector-button {
 .stat-label { display: flex; align-items: center; gap: var(--space-1); color: var(--color-text-secondary); font-size: 13px; }
 .stat-value { font-size: 22px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .stat-note { color: var(--color-text-secondary); font-size: 12.5px; }
-.stat-income .stat-value { color: var(--color-income); }
-.stat-danger .stat-value { color: var(--color-expense); }
-.stat-warning .stat-value { color: var(--color-warning); }
 .stat-hero .stat-value { font-size: 30px; letter-spacing: -.028em; line-height: 1.15; }
 .stat-value { white-space: nowrap; }
 /* Resumo: saldo e % guardado na primeira linha e os outros quatro totais na segunda. */
@@ -879,14 +874,13 @@ input[type="file"]::file-selector-button {
 .status-card { color: var(--color-text-secondary); }
 .status-pending { color: var(--color-warning); }
 .status-late { color: var(--color-expense); }
-.entry-expense { color: inherit; font-weight: 500; }
-.entry-income { color: var(--color-income); font-weight: 500; }
-.entry-late { color: var(--color-expense); font-weight: 500; }
 
-/* Dashboard, relatórios e saldos de conta: a cor segue o tipo e o sinal (ValueColor). */
+/* Toda a aplicação: a cor do valor segue o tipo e o sinal (ValueColor). */
 .value-positive { color: var(--color-income); }
 .value-negative { color: var(--color-expense); }
 .value-neutral { color: var(--color-text-primary); }
+.value-amount { font-weight: 500; }
+.kind-expense { background: var(--color-expense); }
 
 /* Com mouse, as ações aparecem na linha em foco; teclado e toque continuam alcançando todas. */
 @media (hover: hover) {
@@ -972,7 +966,6 @@ input[type="file"]::file-selector-button {
 .monthly-plan-bar { display: flex; min-width: 120px; height: 4px; margin-top: var(--space-1); border-radius: 4px; overflow: hidden; background: var(--color-fill-strong); }
 .monthly-plan-paid { background: var(--color-accent); }
 .monthly-plan-forecast { background: var(--color-income); opacity: .4; }
-.monthly-plan-exceeded td { color: var(--color-expense); }
 .monthly-plan-exceeded .monthly-plan-paid { background: var(--color-expense); }
 .monthly-plan-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); }
 .monthly-plan-preview dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
@@ -1003,8 +996,7 @@ input[type="file"]::file-selector-button {
 .bank-logo-preview { width: min(200px, 100%); height: auto; aspect-ratio: 1; background: var(--color-fill); border-radius: 50%; }
 .invoice-card-name { display: inline-flex; align-items: center; gap: var(--space-2); }
 .invoice-card-name .bank-logo { width: 22px; height: 22px; flex-basis: 22px; }
-.invoice-credit { color: var(--color-warning); }
-.invoice-forecast { color: var(--color-text-secondary); }
+.invoice-forecast { font-style: italic; }
 
 .wallet-card { overflow-wrap: anywhere; cursor: pointer; overflow: visible; }
 .wallet-card:hover { border-color: var(--color-border-strong); }
@@ -1044,7 +1036,6 @@ input[type="file"]::file-selector-button {
 .registry-tabs { align-self: flex-start; }
 .category-name { display: inline-flex; align-items: center; gap: var(--space-2); }
 .kind-mark { flex: none; width: 7px; height: 7px; border-radius: 50%; }
-.kind-expense { background: var(--color-text-secondary); }
 .kind-income { background: var(--color-income); }
 .kind-transfer { background: var(--color-border-strong); }
 .subcategory-row td { padding: 6px var(--space-2); border-bottom: 1px solid var(--color-border); color: var(--color-text-secondary); }
