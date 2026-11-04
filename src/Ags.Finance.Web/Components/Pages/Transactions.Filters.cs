@@ -131,12 +131,16 @@ public partial class Transactions
             var result = _savedFilterId != Guid.Empty
                 ? await SavedFilterCatalog.RunAsync(_savedFilterId, QueryMonth, _filterFrom, _filterTo, _page, _pageSize, _sortColumn, _sortDescending)
                 : _pendingOnly ? await Entries.QueryPendingAsync(filter) : await Entries.QueryAsync(filter);
+            var attachments = await EntryDocuments.ListAsync();
+            var forecast = await Entries.GetBalanceForecastAsync(null, Today, _month);
             if (version != _queryVersion) { return; }
+
+            // Tudo publicado de uma vez: qualquer renderização no meio do carregamento vê um estado completo.
             _query = result;
             _entries = result.Entries;
             _page = result.Page;
-            _attachmentRows = await EntryDocuments.ListAsync();
-            _forecast = await Entries.GetBalanceForecastAsync(null, Today, _month);
+            _attachmentRows = attachments;
+            _forecast = forecast;
             _message = result.Error;
         }
         finally
