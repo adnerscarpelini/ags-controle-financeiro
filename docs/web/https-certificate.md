@@ -18,7 +18,7 @@ A autodetecção interna descrita abaixo não comprova acesso HTTPS pela LAN no 
 
 ## HTTP e HTTPS na mesma porta
 
-O endpoint do Kestrel (`Hosting/HttpsEndpoint.cs`) lê o primeiro byte da conexão. Handshake TLS segue para o HTTPS; qualquer outro tráfego recebe `307 Temporary Redirect` para `https://<mesmo host e porta><caminho e query>`. Pedidos malformados (host ou caminho com caracteres fora de uma lista segura, sem linha de requisição) recebem `400`. O redirecionamento é `307`, e não `301`, para o navegador não guardar o redirecionamento em cache.
+O endpoint do Kestrel (`Hosting/HttpsEndpoint.cs`) lê o primeiro byte da conexão. Handshake TLS segue para o HTTPS; qualquer outro tráfego recebe `307 Temporary Redirect` para `https://<mesmo host e porta><caminho e query>`. Pedidos malformados (host ou caminho com caracteres fora de uma lista segura, sem linha de requisição) recebem `400`. O redirecionamento é `307`, e não `301`, para o navegador não guardar o redirecionamento em cache. Uma conexão que fecha sem enviar dados, como um teste de porta, termina em silêncio, sem erro no log.
 
 ## Página Configurações
 

@@ -11,9 +11,11 @@ Origem: [#5](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/5
 - A raiz `/` abre a tela inicial das preferências. `/cadastros` redireciona para `/cadastros/categorias`. `/pendentes` abre Lançamentos já filtrada (#98), `/transferencias` leva a Contas (#99), `/faturas`, `/compromissos` e `/cashback` levam a Cartões (#100), e `/cadastros/contas-cartoes` leva a Contas (#101).
 - Abaixo de 768 px o menu vira uma gaveta: some da tela, abre pelo botão da barra superior e fecha ao escolher um item ou tocar na película escura. O **+ Novo** continua acessível em um botão flutuante. O conteúdo ocupa a largura inteira, janelas abrem em tela cheia com as ações no rodapé, e tabelas viram cards. Alvos de toque têm pelo menos 44 px (#103).
 - A cultura da aplicação é `pt-BR` em todos os circuitos (`Program.cs`): `R$ 1.234,56` e `dd/MM/yyyy`, independentemente da cultura do sistema ou do navegador.
+- Endereço inexistente responde 404 com a página **Página não encontrada** (`Components/Pages/NotFound.razor`), dentro do layout e com o menu. Sem login, o visitante vai para a tela de login.
 - Nada vem da internet: CSS, JS e ícones do [MudBlazor](../architecture/ui-library.md), fonte Inter e demais recursos são servidos pela própria aplicação.
 - A estrutura usa `MudLayout`, `MudAppBar`, `MudDrawer` e `MudMainContent`. A barra superior só aparece abaixo de 768 px; a película da gaveta é a da biblioteca.
-- O tema do MudBlazor acompanha a preferência: `ThemeState` avisa o layout ao salvar em Configurações, e o modo automático segue o sistema (#95).
+- O tema do MudBlazor acompanha a preferência: `ThemeState` avisa o layout ao salvar em Configurações, e o modo automático segue o sistema (#95). A observação do sistema é feita por `agsTheme.watchSystem`, com `ObserveSystemDarkModeChange` desligado: ligado, a biblioteca trocaria a paleta sozinha e ignoraria o tema escolhido.
+- CSS, JS e demais arquivos estáticos saem com `Cache-Control: no-cache`: o navegador revalida a cada carga, e uma atualização da aplicação chega sem limpar o cache.
 
 ## Arquivos
 
