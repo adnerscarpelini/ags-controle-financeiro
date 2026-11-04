@@ -25,86 +25,92 @@
     </MudTooltip>
     <PageHeader Title="@($"Fatura {_card?.Name}")" />
     <div class="page-head-actions">
-        @if (_invoice.Status == InvoiceStatus.Open)
+        @if (HasInvoice)
         {
-            <MudButton Variant="Variant.Outlined" data-invoice-action="close" OnClick="AskCloseAsync">Fechar fatura</MudButton>
+            @if (_invoice.Status == InvoiceStatus.Open)
+            {
+                <MudButton Variant="Variant.Outlined" data-invoice-action="close" OnClick="AskCloseAsync">Fechar fatura</MudButton>
+            }
+            @if (CanReopen)
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.Undo" data-invoice-action="reopen" OnClick="AskReopenAsync">Reabrir fatura</MudButton>
+            }
+            @if (_invoice.Status != InvoiceStatus.Paid)
+            {
+                <MudButton Variant="Variant.Outlined" data-invoice-action="adjust" OnClick="OpenAdjustmentAsync">Ajustar fatura</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" data-invoice-action="pay" OnClick="OpenPaymentAsync">Pagar fatura</MudButton>
+            }
+            <div data-invoice-menu>
+                <MudMenu Icon="@Icons.Material.Outlined.MoreVert" AriaLabel="Mais ações da fatura" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    @if (_invoice.Status == InvoiceStatus.Open) { <MudMenuItem Icon="@Icons.Material.Outlined.Payments" OnClick="OpenPaymentAsync">Pagar antecipado</MudMenuItem> }
+                    @if (_invoice.Status == InvoiceStatus.Closed) { <MudMenuItem Icon="@Icons.Material.Outlined.Payments" OnClick="OpenPaymentAsync">Pagar parcial</MudMenuItem> }
+                    @if (CanSettle) { <MudMenuItem Icon="@Icons.Material.Outlined.TaskAlt" OnClick="AskSettleAsync">Confirmar quitação</MudMenuItem> }
+                    <MudMenuItem Icon="@Icons.Material.Outlined.History" OnClick="OpenHistoryAsync">Histórico</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Savings" OnClick="OpenAllowanceAsync">Cashback e descontos</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Outlined.EventNote" OnClick="OpenObligationsAsync">Compromissos</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Outlined.AttachFile" OnClick="OpenAttachmentsAsync">Anexos</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Download" Href="arquivos-csv">Exportar</MudMenuItem>
+                </MudMenu>
+            </div>
         }
-        @if (CanReopen)
-        {
-            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.Undo" data-invoice-action="reopen" OnClick="AskReopenAsync">Reabrir fatura</MudButton>
-        }
-        @if (_invoice.Status != InvoiceStatus.Paid)
-        {
-            <MudButton Variant="Variant.Outlined" data-invoice-action="adjust" OnClick="OpenAdjustmentAsync">Ajustar fatura</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" data-invoice-action="pay" OnClick="OpenPaymentAsync">Pagar fatura</MudButton>
-        }
-        <div data-invoice-menu>
-            <MudMenu Icon="@Icons.Material.Outlined.MoreVert" AriaLabel="Mais ações da fatura" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
-                @if (_invoice.Status == InvoiceStatus.Open) { <MudMenuItem Icon="@Icons.Material.Outlined.Payments" OnClick="OpenPaymentAsync">Pagar antecipado</MudMenuItem> }
-                @if (_invoice.Status == InvoiceStatus.Closed) { <MudMenuItem Icon="@Icons.Material.Outlined.Payments" OnClick="OpenPaymentAsync">Pagar parcial</MudMenuItem> }
-                @if (CanSettle) { <MudMenuItem Icon="@Icons.Material.Outlined.TaskAlt" OnClick="AskSettleAsync">Confirmar quitação</MudMenuItem> }
-                <MudMenuItem Icon="@Icons.Material.Outlined.History" OnClick="OpenHistoryAsync">Histórico</MudMenuItem>
-                <MudMenuItem Icon="@Icons.Material.Outlined.Savings" OnClick="OpenAllowanceAsync">Cashback e descontos</MudMenuItem>
-                <MudMenuItem Icon="@Icons.Material.Outlined.EventNote" OnClick="OpenObligationsAsync">Compromissos</MudMenuItem>
-                <MudMenuItem Icon="@Icons.Material.Outlined.AttachFile" OnClick="OpenAttachmentsAsync">Anexos</MudMenuItem>
-                <MudMenuItem Icon="@Icons.Material.Outlined.Download" Href="arquivos-csv">Exportar</MudMenuItem>
-            </MudMenu>
-        </div>
     </div>
 </div>
 
 @if (_message is not null) { <p class="form-error" role="alert">@_message</p> }
 
-<div class="split">
-    <section class="panel data-panel split-main">
-        <MonthPicker Value="_month" ValueChanged="MonthChangedAsync" PreviousLabel="Fatura anterior" NextLabel="Próxima fatura" />
-        <MudTable T="EntryDetails" Items="_invoice.Entries" Elevation="0" Hover="true" Class="data-table" Breakpoint="AppTables.Breakpoint(IsMobile)" aria-label="Compras da fatura">
-            <HeaderContent>
-                <MudTh>Data</MudTh>
-                <MudTh>Descrição</MudTh>
-                <MudTh>Categoria</MudTh>
-                <MudTh Class="numeric">Valor</MudTh>
-                <MudTh>Ações</MudTh>
-            </HeaderContent>
-            <RowTemplate Context="entry">
-                <MudTd DataLabel="Data">@entry.Date.ToString("dd/MM/yyyy")</MudTd>
-                <MudTd DataLabel="Descrição" Class="col-description">
-                    <span class="row-title">@entry.MerchantName@(entry.InstallmentNumber is { } number ? $" ({number}/{entry.InstallmentCount})" : string.Empty)</span>
-                    @if (RowNote(entry) is { Length: > 0 } note) { <span class="row-note">@note</span> }
-                </MudTd>
-                <MudTd DataLabel="Categoria">@entry.Classification.Replace(" > ", " › ", StringComparison.Ordinal)</MudTd>
-                <MudTd DataLabel="Valor" Class="@(IsForecast(entry) ? "numeric invoice-forecast" : "numeric")">@Purchase(entry)</MudTd>
-                <MudTd DataLabel="Ações" Class="col-actions">
-                    @if (entry.IsInvoiceAdjustment)
-                    {
-                        <HelpTip Text="Ajuste de fatura: corrija por um novo ajuste." />
-                    }
-                    else if (_invoice.Status == InvoiceStatus.Open)
-                    {
-                        <RowActions Actions="ActionsFor(entry)" />
-                    }
-                    else
-                    {
-                        <span data-purchase-locked><HelpTip Text="@LockText" /></span>
-                    }
-                </MudTd>
-            </RowTemplate>
-            <NoRecordsContent>
-                <EmptyState Icon="@Icons.Material.Outlined.ReceiptLong" Message="Nenhuma compra nesta fatura." />
-            </NoRecordsContent>
-        </MudTable>
-    </section>
-    <aside class="split-aside" aria-label="Resumo da fatura">
-        <StatCard Icon="@Icons.Material.Outlined.ReceiptLong" Label="Valor da fatura" Value="@_invoice.Total.ToString()" Note="@ForecastNote" Testid="invoice-total" />
-        <StatCard Icon="@Icons.Material.Outlined.Payments" Label="Saldo restante" Help="Total menos pagamentos, cashback e descontos. Saldo zero ou crédito sem confirmação de quitação não significa fatura Paga." Value="@RemainingText" Testid="invoice-remaining" />
-        <StatCard Icon="@Icons.Material.Outlined.Flag" Label="Situação" Help="Aberta recebe compras. Fechada aguarda pagamento. Paga está quitada e pode ser reaberta, o que desfaz o pagamento." Value="@StatusLabel(_invoice.Status)" Testid="invoice-status" />
-        @if (_dates is { } dates)
-        {
-            <StatCard Icon="@Icons.Material.Outlined.EventBusy" Label="Fechamento" Help="Compras depois deste dia entram na fatura seguinte." Value="@dates.ClosingDate.ToString("dd/MM/yyyy")" Testid="invoice-closing" />
-            <StatCard Icon="@Icons.Material.Outlined.Event" Label="Vencimento" Value="@dates.DueDate.ToString("dd/MM/yyyy")" Testid="invoice-due" />
-        }
-    </aside>
-</div>
+@if (HasInvoice)
+{
+    <div class="split">
+        <section class="panel data-panel split-main">
+            <MonthPicker Value="_month" ValueChanged="MonthChangedAsync" PreviousLabel="Fatura anterior" NextLabel="Próxima fatura" />
+            <MudTable T="EntryDetails" Items="_invoice.Entries" Elevation="0" Hover="true" Class="data-table" Breakpoint="AppTables.Breakpoint(IsMobile)" aria-label="Compras da fatura">
+                <HeaderContent>
+                    <MudTh>Data</MudTh>
+                    <MudTh>Descrição</MudTh>
+                    <MudTh>Categoria</MudTh>
+                    <MudTh Class="numeric">Valor</MudTh>
+                    <MudTh>Ações</MudTh>
+                </HeaderContent>
+                <RowTemplate Context="entry">
+                    <MudTd DataLabel="Data">@entry.Date.ToString("dd/MM/yyyy")</MudTd>
+                    <MudTd DataLabel="Descrição" Class="col-description">
+                        <span class="row-title">@entry.MerchantName@(entry.InstallmentNumber is { } number ? $" ({number}/{entry.InstallmentCount})" : string.Empty)</span>
+                        @if (RowNote(entry) is { Length: > 0 } note) { <span class="row-note">@note</span> }
+                    </MudTd>
+                    <MudTd DataLabel="Categoria">@entry.Classification.Replace(" > ", " › ", StringComparison.Ordinal)</MudTd>
+                    <MudTd DataLabel="Valor" Class="@(IsForecast(entry) ? "numeric invoice-forecast" : "numeric")">@Purchase(entry)</MudTd>
+                    <MudTd DataLabel="Ações" Class="col-actions">
+                        @if (entry.IsInvoiceAdjustment)
+                        {
+                            <HelpTip Text="Ajuste de fatura: corrija por um novo ajuste." />
+                        }
+                        else if (_invoice.Status == InvoiceStatus.Open)
+                        {
+                            <RowActions Actions="ActionsFor(entry)" />
+                        }
+                        else
+                        {
+                            <span data-purchase-locked><HelpTip Text="@LockText" /></span>
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <EmptyState Icon="@Icons.Material.Outlined.ReceiptLong" Message="Nenhuma compra nesta fatura." />
+                </NoRecordsContent>
+            </MudTable>
+        </section>
+        <aside class="split-aside" aria-label="Resumo da fatura">
+            <StatCard Icon="@Icons.Material.Outlined.ReceiptLong" Label="Valor da fatura" Value="@_invoice.Total.ToString()" Note="@ForecastNote" Testid="invoice-total" />
+            <StatCard Icon="@Icons.Material.Outlined.Payments" Label="Saldo restante" Help="Total menos pagamentos, cashback e descontos. Saldo zero ou crédito sem confirmação de quitação não significa fatura Paga." Value="@RemainingText" Testid="invoice-remaining" />
+            <StatCard Icon="@Icons.Material.Outlined.Flag" Label="Situação" Help="Aberta recebe compras. Fechada aguarda pagamento. Paga está quitada e pode ser reaberta, o que desfaz o pagamento." Value="@StatusLabel(_invoice.Status)" Testid="invoice-status" />
+            @if (_dates is { } dates)
+            {
+                <StatCard Icon="@Icons.Material.Outlined.EventBusy" Label="Fechamento" Help="Compras depois deste dia entram na fatura seguinte." Value="@dates.ClosingDate.ToString("dd/MM/yyyy")" Testid="invoice-closing" />
+                <StatCard Icon="@Icons.Material.Outlined.Event" Label="Vencimento" Value="@dates.DueDate.ToString("dd/MM/yyyy")" Testid="invoice-due" />
+            }
+        </aside>
+    </div>
+}
 
 @code {
     private static readonly CultureInfo s_invariant = CultureInfo.InvariantCulture;
@@ -124,11 +130,16 @@
     private InvoiceDetails _invoice = new(Guid.Empty, string.Empty, default, Money.Zero, []);
     private InvoiceDates? _dates;
     private string? _message;
+    private bool _loaded;
+    private int _loadVersion;
 
     public static string Url(Guid card, ReferenceMonth? month) =>
         $"cartoes/{card}/faturas" + (month is { } value ? $"?mes={value.FirstDay.ToString("yyyy-MM", s_invariant)}" : string.Empty);
 
     private DateOnly Today => DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+
+    // Antes de carregar, _invoice é um valor vazio: uma ação sobre ele agiria sobre a fatura errada.
+    private bool HasInvoice => _loaded && _card is not null;
 
     private bool CanReopen => _invoice.Status != InvoiceStatus.Open || _invoice.HasConfirmedPayment;
 
@@ -152,18 +163,29 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        _accounts = await Accounts.GetAccountsAsync(false);
-        _card = (await Accounts.GetCreditCardsAsync(false)).FirstOrDefault(x => x.ExternalId == CardExternalId);
+        var version = ++_loadVersion;
+        var accounts = await Accounts.GetAccountsAsync(false);
+        var card = (await Accounts.GetCreditCardsAsync(false)).FirstOrDefault(x => x.ExternalId == CardExternalId);
+        var month = _month;
         if (DateOnly.TryParseExact((MonthQuery ?? string.Empty) + "-01", "yyyy-MM-dd", s_invariant, DateTimeStyles.None, out var date))
         {
-            _month = ReferenceMonth.FromDate(date);
+            month = ReferenceMonth.FromDate(date);
         }
-        else if (_card is not null)
+        else if (card is not null)
         {
-            _month = (await Catalog.GetSelectableInvoicesAsync(CardExternalId, Today)).SuggestedMonth ?? ReferenceMonth.FromDate(Today);
+            month = (await Catalog.GetSelectableInvoicesAsync(CardExternalId, Today)).SuggestedMonth ?? ReferenceMonth.FromDate(Today);
         }
 
-        await ReloadAsync();
+        var loaded = card is null ? default : await ReadInvoiceAsync(card, month);
+        if (version != _loadVersion) { return; }
+
+        // Tudo publicado de uma vez: qualquer renderização no meio do carregamento vê um estado completo.
+        _accounts = accounts;
+        _card = card;
+        _month = month;
+        _message = card is null ? "Cartão não encontrado." : _message;
+        if (loaded.Invoice is not null) { (_invoice, _dates) = loaded; }
+        _loaded = true;
     }
 
     private Task EntriesChangedAsync() => InvokeAsync(async () =>
@@ -174,17 +196,20 @@
 
     private async Task ReloadAsync()
     {
-        if (_card is null)
-        {
-            _message = "Cartão não encontrado.";
-            return;
-        }
+        if (_card is null) { return; }
 
-        _invoice = (await Catalog.GetMonthAsync(_month)).FirstOrDefault(x => x.CardExternalId == CardExternalId) ?? new InvoiceDetails(CardExternalId, _card.Name, _month, Money.Zero, [])
+        var version = _loadVersion;
+        var loaded = await ReadInvoiceAsync(_card, _month);
+        if (version == _loadVersion) { (_invoice, _dates) = loaded; }
+    }
+
+    private async Task<(InvoiceDetails Invoice, InvoiceDates? Dates)> ReadInvoiceAsync(CreditCardDetails card, ReferenceMonth month)
+    {
+        var invoice = (await Catalog.GetMonthAsync(month)).FirstOrDefault(x => x.CardExternalId == CardExternalId) ?? new InvoiceDetails(CardExternalId, card.Name, month, Money.Zero, [])
         {
-            Status = (await Catalog.GetSelectableInvoicesAsync(CardExternalId, Today, _month)).Invoices.FirstOrDefault(x => x.Month == _month)?.Status ?? InvoiceStatus.Open,
+            Status = (await Catalog.GetSelectableInvoicesAsync(CardExternalId, Today, month)).Invoices.FirstOrDefault(x => x.Month == month)?.Status ?? InvoiceStatus.Open,
         };
-        _dates = await Catalog.GetDatesAsync(CardExternalId, _month);
+        return (invoice, await Catalog.GetDatesAsync(CardExternalId, month));
     }
 
     private Task MonthChangedAsync(ReferenceMonth month)

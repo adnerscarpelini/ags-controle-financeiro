@@ -78,9 +78,9 @@ else
     private IReadOnlyList<BankDetails> _banks = [];
     private IReadOnlyList<InvoiceDetails> _invoices = [];
     private IReadOnlyList<CardLimit> _limits = [];
-    private readonly Dictionary<Guid, IReadOnlyList<CardLastDigitsDetails>> _finals = [];
-    private readonly Dictionary<Guid, ReferenceMonth?> _currentMonths = [];
-    private readonly Dictionary<(Guid, ReferenceMonth), InvoiceDates?> _dates = [];
+    private Dictionary<Guid, IReadOnlyList<CardLastDigitsDetails>> _finals = [];
+    private Dictionary<Guid, ReferenceMonth?> _currentMonths = [];
+    private Dictionary<(Guid, ReferenceMonth), InvoiceDates?> _dates = [];
     private bool _showClosed;
     private bool _showArchived;
     private bool _loaded;
@@ -124,42 +124,49 @@ else
 
     private async Task ReloadAsync()
     {
-        _banks = await Accounts.GetBanksAsync();
-        _accounts = await Accounts.GetAccountsAsync(activeOnly: false);
-        _cards = await Accounts.GetCreditCardsAsync(activeOnly: false);
-        _invoices = await Catalog.GetAsync();
-        _limits = await Catalog.GetCardLimitsAsync();
-        _dates.Clear();
-        foreach (var card in _cards)
+        var banks = await Accounts.GetBanksAsync();
+        var accounts = await Accounts.GetAccountsAsync(activeOnly: false);
+        var cards = await Accounts.GetCreditCardsAsync(activeOnly: false);
+        var invoices = await Catalog.GetAsync();
+        var limits = await Catalog.GetCardLimitsAsync();
+        var finals = new Dictionary<Guid, IReadOnlyList<CardLastDigitsDetails>>();
+        var currentMonths = new Dictionary<Guid, ReferenceMonth?>();
+        var dates = new Dictionary<(Guid, ReferenceMonth), InvoiceDates?>();
+        foreach (var card in cards)
         {
-            _finals[card.ExternalId] = await CardFinals.GetAsync(card.ExternalId);
-            _currentMonths[card.ExternalId] = (await Catalog.GetSelectableInvoicesAsync(card.ExternalId, Today)).SuggestedMonth;
-            foreach (var invoice in new[] { ShownInvoice(card, closed: false), ShownInvoice(card, closed: true) }.OfType<InvoiceDetails>())
+            finals[card.ExternalId] = await CardFinals.GetAsync(card.ExternalId);
+            currentMonths[card.ExternalId] = (await Catalog.GetSelectableInvoicesAsync(card.ExternalId, Today)).SuggestedMonth;
+            foreach (var invoice in new[] { ShownInvoice(card, false, invoices, currentMonths), ShownInvoice(card, true, invoices, currentMonths) }.OfType<InvoiceDetails>())
             {
-                _dates.TryAdd((card.ExternalId, invoice.Month), await Catalog.GetDatesAsync(card.ExternalId, invoice.Month));
+                dates.TryAdd((card.ExternalId, invoice.Month), await Catalog.GetDatesAsync(card.ExternalId, invoice.Month));
             }
         }
 
+        // Tudo publicado de uma vez: qualquer renderização no meio do carregamento vê um estado completo.
+        (_banks, _accounts, _cards, _invoices, _limits) = (banks, accounts, cards, invoices, limits);
+        (_finals, _currentMonths, _dates) = (finals, currentMonths, dates);
         _loaded = true;
     }
 
-    private InvoiceDetails? ShownInvoice(CreditCardDetails card) => ShownInvoice(card, _showClosed);
+    private InvoiceDetails? ShownInvoice(CreditCardDetails card) => ShownInvoice(card, _showClosed, _invoices, _currentMonths);
 
-    private InvoiceDetails? ShownInvoice(CreditCardDetails card, bool closed)
+    private static InvoiceDetails? ShownInvoice(CreditCardDetails card, bool closed, IReadOnlyList<InvoiceDetails> all, Dictionary<Guid, ReferenceMonth?> currentMonths)
     {
-        var invoices = _invoices.Where(x => x.CardExternalId == card.ExternalId).ToList();
+        var invoices = all.Where(x => x.CardExternalId == card.ExternalId).ToList();
         if (closed)
         {
-            return ClosedUnpaid(card) ?? invoices.Where(x => x.Status == InvoiceStatus.Paid).OrderByDescending(x => x.Month).FirstOrDefault();
+            return ClosedUnpaid(card, all) ?? invoices.Where(x => x.Status == InvoiceStatus.Paid).OrderByDescending(x => x.Month).FirstOrDefault();
         }
 
         // A fatura atual é a aberta que o caso de uso sugere para hoje, mesmo que ainda não tenha compras.
-        if (_currentMonths.GetValueOrDefault(card.ExternalId) is not { } month) { return null; }
+        if (currentMonths.GetValueOrDefault(card.ExternalId) is not { } month) { return null; }
         return invoices.FirstOrDefault(x => x.Month == month) ?? new InvoiceDetails(card.ExternalId, card.Name, month, Money.Zero, []);
     }
 
-    private InvoiceDetails? ClosedUnpaid(CreditCardDetails card) =>
-        _invoices.Where(x => x.CardExternalId == card.ExternalId && x.Status == InvoiceStatus.Closed).OrderBy(x => x.Month).FirstOrDefault();
+    private InvoiceDetails? ClosedUnpaid(CreditCardDetails card) => ClosedUnpaid(card, _invoices);
+
+    private static InvoiceDetails? ClosedUnpaid(CreditCardDetails card, IReadOnlyList<InvoiceDetails> invoices) =>
+        invoices.Where(x => x.CardExternalId == card.ExternalId && x.Status == InvoiceStatus.Closed).OrderBy(x => x.Month).FirstOrDefault();
 
     private DateOnly? DueOf(CreditCardDetails card, InvoiceDetails? invoice) =>
         invoice is not null ? _dates.GetValueOrDefault((card.ExternalId, invoice.Month))?.DueDate : null;

@@ -54,6 +54,29 @@ internal sealed class EntryUi : IAsyncDisposable
 
     public string AttachmentsDirectory => _attachments;
 
+    /// <summary>Trava as tabelas do schema até o descarte, parando no meio do carregamento a tela que as lê.</summary>
+    public async Task<IAsyncDisposable> LockSchemaAsync(string schema)
+    {
+        var tables = await _database.QueryAsync($"SELECT quote_ident(schemaname) || '.' || quote_ident(tablename) FROM pg_tables WHERE schemaname = '{schema}' AND tablename <> '__ef_migrations'");
+        var connection = new Npgsql.NpgsqlConnection(_database.ConnectionString);
+        await connection.OpenAsync();
+        var transaction = await connection.BeginTransactionAsync();
+        await using var command = new Npgsql.NpgsqlCommand($"LOCK TABLE {string.Join(", ", tables)} IN ACCESS EXCLUSIVE MODE", connection, transaction);
+        await command.ExecuteNonQueryAsync();
+        return new SchemaLock(connection, transaction);
+    }
+
+    /// <summary>Espera até alguma consulta estar parada na trava de <see cref="LockSchemaAsync"/>.</summary>
+    public async Task WaitForBlockedQueryAsync()
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(15);
+        while (await _database.ScalarAsync("SELECT COUNT(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'") == "0")
+        {
+            Assert.True(DateTime.UtcNow < deadline, "Nenhuma consulta parou na trava.");
+            await Task.Delay(20);
+        }
+    }
+
     public static async Task<EntryUi> CreateAsync(DateTimeOffset? now = null)
     {
         var database = await PostgresTestDatabase.CreateAsync();
@@ -115,6 +138,15 @@ internal sealed class EntryUi : IAsyncDisposable
         await Context.DisposeAsync();
         await _database.DisposeAsync();
         if (Directory.Exists(_attachments)) { Directory.Delete(_attachments, true); }
+    }
+
+    private sealed class SchemaLock(Npgsql.NpgsqlConnection connection, Npgsql.NpgsqlTransaction transaction) : IAsyncDisposable
+    {
+        public async ValueTask DisposeAsync()
+        {
+            await transaction.DisposeAsync();
+            await connection.DisposeAsync();
+        }
     }
 
     private async Task OpenAsync(Func<EntryDialogs, Task<IDialogReference>> open)
