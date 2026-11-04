@@ -1,0 +1,72 @@
+@* Saldo de cada conta corrente. Poupança e investimento não aparecem nem entram no total. *@
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+@inject IAccountCatalog Accounts
+@inject IEntryCatalog Entries
+@inject TimeProvider Clock
+
+<section class="panel summary-panel" aria-labelledby="checking-accounts-title">
+    <h2 id="checking-accounts-title">Contas correntes <HelpTip Text="Só contas correntes ativas. Poupança e investimentos ficam de fora dos saldos e do total." /></h2>
+    @if (_rows is { } rows)
+    {
+        @if (rows.Count == 0)
+        {
+            <p>Nenhuma conta corrente cadastrada.</p>
+        }
+        else
+        {
+            <ul class="summary-list" aria-label="Saldo de cada conta corrente">
+                @foreach (var row in rows)
+                {
+                    <li class="summary-item" data-checking-account="@row.Account.Name">
+                        <div class="summary-head">
+                            @if (row.Bank is not null) { <BankLogo Bank="row.Bank" /> }
+                            <div class="summary-title"><span class="summary-name">@row.Account.Name</span></div>
+                        </div>
+                        <dl class="entity-card-values">
+                            <div><dt>Saldo atual</dt><dd class="numeric @ValueColor.Balance(row.Current)" data-current-balance>@row.Current</dd></div>
+                            <div><dt>Saldo previsto <HelpTip Text="Saldo atual com as pendências até o mês escolhido." /></dt><dd class="numeric @ValueColor.Balance(row.Forecast)" data-forecast-balance>@row.Forecast</dd></div>
+                        </dl>
+                    </li>
+                }
+            </ul>
+            <div class="summary-total">
+                <span>Total</span>
+                <dl class="entity-card-values">
+                    <div><dt>Saldo atual</dt><dd class="numeric @ValueColor.Balance(Sum(rows, x => x.Current))" data-current-total>@Sum(rows, x => x.Current)</dd></div>
+                    <div><dt>Saldo previsto</dt><dd class="numeric @ValueColor.Balance(Sum(rows, x => x.Forecast))" data-forecast-total>@Sum(rows, x => x.Forecast)</dd></div>
+                </dl>
+            </div>
+        }
+        <a class="summary-link" href="contas">Ver todas as contas</a>
+    }
+</section>
+
+@code {
+    private sealed record Row(AccountDetails Account, BankDetails? Bank, Money Current, Money Forecast);
+
+    private IReadOnlyList<Row>? _rows;
+    private ReferenceMonth _loaded;
+
+    [Parameter, EditorRequired] public ReferenceMonth Month { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_rows is not null && _loaded == Month) { return; }
+        _loaded = Month;
+        var today = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+        var banks = await Accounts.GetBanksAsync();
+        var accounts = await Accounts.GetAccountsAsync(activeOnly: true);
+        var rows = new List<Row>();
+        foreach (var account in accounts.Where(x => x.Kind == AccountKind.Checking))
+        {
+            var forecast = await Entries.GetBalanceForecastAsync(account.ExternalId, today, Month);
+            rows.Add(new Row(account, banks.FirstOrDefault(x => x.ExternalId == account.BankExternalId), forecast?.CurrentBalance ?? Money.Zero, forecast?.ForecastBalance ?? Money.Zero));
+        }
+
+        _rows = rows;
+    }
+
+    private static Money Sum(IEnumerable<Row> rows, Func<Row, Money> value) => new(rows.Sum(x => value(x).Amount));
+}

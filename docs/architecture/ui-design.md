@@ -30,6 +30,10 @@ Aprovada na [#112](https://github.com/adnerscarpelini/ags-controle-financeiro/is
 - **Tabelas:** cabeçalho discreto, linhas finas e ações reveladas ao passar o mouse ou receber foco. Em toque, as ações ficam em menu.
 - **Ajuda:** todas as explicações continuam em `HelpTip`, com o ícone discreto.
 
+## Dashboard
+
+Acima de "Despesas por categoria" ficam dois cards lado a lado (#112): as faturas de cada cartão no mês, com vencimento, valor a pagar, total gasto, abatimentos (pagamentos, antecipações, cashback e descontos), limite usado e total a pagar, e o saldo atual e previsto de cada conta corrente. Poupança e investimentos não aparecem nem entram no total. O detalhe por coluna das faturas continua em "Faturas por cartão". Os cards seguem as preferências de seção Faturas e Resumo do mês.
+
 ## Controles sem aparência do sistema
 
 Nenhum controle aberto pode ter a aparência do Windows ou do navegador. `wwwroot/js/pickers.js` mantém os elementos HTML e o `@bind` do Blazor, mas substitui a parte aberta: lista do select, calendário, seletor de mês, sugestões de `datalist`, mensagens de validação e dicas de `title`. Ao escolher, grava o valor no campo e dispara `input` e `change`.
