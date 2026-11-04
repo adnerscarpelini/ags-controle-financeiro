@@ -4,7 +4,7 @@
 @implements IDisposable
 
 <section class="panel" role="dialog" aria-label="Editar logo do banco">
-    <h2>Logo de @Bank.Name</h2>
+    <h2 class="visually-hidden">Logo de @Bank.Name</h2>
     <p>PNG, JPEG ou WebP de até 5 MB e 4096 × 4096 pixels. Ajuste o recorte e confira antes de salvar.</p>
     <p>Logo atual:</p><BankLogo Bank="Bank" />
     @if (_error is not null) { <p role="status">@_error</p> }
@@ -23,12 +23,12 @@
         <figure><img class="bank-logo-preview" src="@($"data:image/png;base64,{Convert.ToBase64String(preview)}")" alt="Prévia do recorte circular" width="256" height="256" /><figcaption>Recorte final de 256 × 256 pixels, com transparência fora do círculo.</figcaption></figure>
     }
     <button class="button" @onclick="SaveAsync" disabled="@(_saving || _loading || _preview is null)">Salvar recorte</button>
-    @if (Bank.LogoVersion is not null) { <button class="button" @onclick="() => _confirmRemoval = true" disabled="@_saving">Remover logo</button> }
-    <button class="button" @onclick="() => Cancelled.InvokeAsync()" disabled="@_saving">Cancelar</button>
+    @if (Bank.LogoVersion is not null) { <button class="button button-secondary" @onclick="() => _confirmRemoval = true" disabled="@_saving">Remover logo</button> }
+    <button class="button button-secondary" @onclick="() => Cancelled.InvokeAsync()" disabled="@_saving">Cancelar</button>
     @if (_confirmRemoval)
     {
         <section role="alertdialog" aria-label="Remover logo"><p>Remover apenas o logo de @Bank.Name? Cadastros e valores serão preservados.</p>
-            <button class="button" @onclick="RemoveAsync" disabled="@_saving">Confirmar remoção</button><button class="button" @onclick="() => _confirmRemoval = false" disabled="@_saving">Manter logo</button></section>
+            <button class="button" @onclick="RemoveAsync" disabled="@_saving">Confirmar remoção</button><button class="button button-secondary" @onclick="() => _confirmRemoval = false" disabled="@_saving">Manter logo</button></section>
     }
 </section>
 

@@ -33,17 +33,17 @@ public sealed partial class UiTokensTests
 
         string[] dark =
         [
-            "--color-background: #121212",
-            "--color-surface: #1A1A1A",
-            "--color-surface-raised: #242424",
-            "--color-border: #2E2E2E",
-            "--color-text-primary: #EDEDED",
-            "--color-text-secondary: #A3A3A3",
-            "--color-accent: #10B981",
-            "--color-accent-hover: #34D399",
-            "--color-income: #34D399",
-            "--color-expense: #F87171",
-            "--color-warning: #FBBF24",
+            "--color-background: #141415",
+            "--color-surface: #222224",
+            "--color-surface-raised: #2C2C2F",
+            "--color-border: #2C2C2E",
+            "--color-text-primary: #F5F5F7",
+            "--color-text-secondary: #A1A1A6",
+            "--color-accent: #30C48D",
+            "--color-accent-hover: #4AD6A1",
+            "--color-income: #4AD6A2",
+            "--color-expense: #FF8177",
+            "--color-warning: #E5B13A",
             "--color-bank-itau: #FB923C",
             "--color-bank-nubank: #A78BFA",
             "--color-bank-bradesco: #F87171",
@@ -61,7 +61,7 @@ public sealed partial class UiTokensTests
     public void EveryTextColorMeetsWcagAaContrastInBothThemes()
     {
         var palette = Palette();
-        string[] surfaces = ["--color-background", "--color-surface", "--color-surface-raised"];
+        string[] surfaces = ["--color-background", "--color-sidebar", "--color-surface", "--color-surface-raised"];
         string[] text =
         [
             "--color-text-primary", "--color-text-secondary", "--color-accent", "--color-accent-hover", "--color-income",

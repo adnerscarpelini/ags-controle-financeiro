@@ -113,10 +113,10 @@
 }
 
 <section class="stat-cards" aria-label="Totais">
-    <StatCard Icon="@Icons.Material.Outlined.AccountBalance" Tone="accent" Label="Saldo atual" Help="Soma das contas ativas considerando só o que já foi pago ou recebido." Value="@(_forecast?.CurrentBalance.ToString() ?? Money.Zero.ToString())" Testid="current" />
-    <StatCard Icon="@Icons.Material.Outlined.ArrowUpward" Tone="income" Label="Receitas" Help="Receitas do período e dos filtros escolhidos, recebidas e pendentes." Value="@Signed(_query.Income)" Testid="income" />
-    <StatCard Icon="@Icons.Material.Outlined.ArrowDownward" Tone="expense" Label="Despesas" Help="Despesas do período e dos filtros escolhidos, pagas e pendentes. No cartão, contam no mês da fatura." Value="@Signed(_query.Expenses)" Testid="expenses" />
-    <StatCard Icon="@Icons.Material.Outlined.Balance" Tone="accent" Label="Balanço mensal" Help="Receitas menos despesas do período e dos filtros escolhidos. Não é o saldo das contas." Value="@Signed(_query.Balance)" Testid="balance" />
+    <StatCard Tone="accent" Label="Saldo atual" Help="Soma das contas ativas considerando só o que já foi pago ou recebido." Value="@(_forecast?.CurrentBalance.ToString() ?? Money.Zero.ToString())" Testid="current" />
+    <StatCard Tone="income" Label="Receitas" Help="Receitas do período e dos filtros escolhidos, recebidas e pendentes." Value="@Signed(_query.Income)" Testid="income" />
+    <StatCard Tone="expense" Label="Despesas" Help="Despesas do período e dos filtros escolhidos, pagas e pendentes. No cartão, contam no mês da fatura." Value="@Signed(_query.Expenses)" Testid="expenses" />
+    <StatCard Tone="accent" Label="Balanço mensal" Help="Receitas menos despesas do período e dos filtros escolhidos. Não é o saldo das contas." Value="@Signed(_query.Balance)" Testid="balance" />
 </section>
 
 <section class="panel data-panel">
@@ -156,7 +156,7 @@
                         @if (RowNote(entry) is { Length: > 0 } note) { <span class="row-note">@note</span> }
                     </div>
                     <div class="entry-card-side">
-                        <span class="numeric @(entry.Amount.IsNegative ? "entry-expense" : "entry-income")" data-entry-card-amount>@Signed(entry.Amount)</span>
+                        <span class="numeric @AmountClass(entry)" data-entry-card-amount>@Signed(entry.Amount)</span>
                         @if (entry.IsInvoiceAdjustment)
                         {
                             <HelpTip Text="Ajuste de fatura: corrija por um novo ajuste no detalhe da fatura." />
@@ -198,7 +198,7 @@
                 </MudTd>
                 <MudTd DataLabel="Categoria">@ClassificationLabel(entry.Classification)</MudTd>
                 <MudTd DataLabel="Conta ou cartão">@SourceName(entry)</MudTd>
-                <MudTd DataLabel="Valor" Class="@(entry.Amount.IsNegative ? "numeric entry-expense" : "numeric entry-income")">@Signed(entry.Amount)</MudTd>
+                <MudTd DataLabel="Valor" Class="@($"numeric {AmountClass(entry)}")">@Signed(entry.Amount)</MudTd>
                 <MudTd DataLabel="Ações" Class="col-actions">
                     @if (entry.IsInvoiceAdjustment)
                     {
@@ -253,6 +253,12 @@
     private Guid? _selectedId;
 
     private DateOnly Today => DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+
+    // Despesa é neutra; o vermelho fica só para o que está atrasado.
+    private string AmountClass(EntryDetails entry)
+        => !entry.Amount.IsNegative ? "entry-income"
+            : entry.CardExternalId is null && !entry.IsEffective && entry.Date < Today ? "entry-late"
+            : "entry-expense";
 
     private string TypeFilter => (_pendingOnly, _filterKind) switch
     {

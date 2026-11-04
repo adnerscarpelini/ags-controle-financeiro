@@ -108,7 +108,7 @@ builder.Services.AddDataProtection()
     .SetApplicationName("ags-finance")
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(dataDirectory, "data-protection-keys")));
 
-builder.Services.AddMudServices();
+builder.Services.AddMudServices(options => options.SnackbarConfiguration.PositionClass = MudBlazor.Defaults.Classes.Position.BottomCenter);
 builder.Services.AddScoped<ThemeState>();
 builder.Services.AddScoped<ViewportState>();
 builder.Services.AddScoped<EntryChangeNotifier>();

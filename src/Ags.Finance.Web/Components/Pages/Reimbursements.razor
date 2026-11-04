@@ -48,9 +48,9 @@
 }
 
 <section class="stat-cards" aria-label="Totais dos reembolsos">
-    <StatCard Icon="@Icons.Material.Outlined.Replay" Label="Esperado" Help="Soma do que as pessoas devem devolver no filtro atual." Value="@_overview.Expected.ToString()" Testid="expected" />
-    <StatCard Icon="@Icons.Material.Outlined.Check" Tone="income" Label="Recebido" Value="@_overview.Received.ToString()" Testid="received" />
-    <StatCard Icon="@Icons.Material.Outlined.Schedule" Tone="warning" Label="Pendente" Value="@_overview.Pending.ToString()" Testid="pending" />
+    <StatCard Label="Esperado" Help="Soma do que as pessoas devem devolver no filtro atual." Value="@_overview.Expected.ToString()" Testid="expected" />
+    <StatCard Tone="income" Label="Recebido" Value="@_overview.Received.ToString()" Testid="received" />
+    <StatCard Tone="warning" Label="Pendente" Value="@_overview.Pending.ToString()" Testid="pending" />
 </section>
 
 <section class="panel data-panel">

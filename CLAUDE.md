@@ -91,27 +91,30 @@ Não invente regras de negócio. Se uma issue não define um comportamento, perg
 
 ## Design da interface
 
-Tema **escuro por padrão** (claro e automático nas preferências), com fundo cinza neutro quase preto e visual moderno e limpo; o verde "dinheiro" é a cor de destaque. Os tokens ficam como variáveis CSS num único arquivo; não use cores soltas nos componentes. A interface é responsiva: funciona no computador e no celular, e pode ser instalada como PWA. Detalhes em `docs/architecture/ui-design.md`.
+Tema **escuro por padrão** (claro e automático nas preferências), no estilo limpo de Todoist, Notion e aplicativos da Apple: fundo neutro, sem caixas em volta de tudo, com o verde "dinheiro" só na ação principal, no foco e nas receitas (#112). Os tokens ficam como variáveis CSS num único arquivo; não use cores soltas nos componentes. A interface é responsiva: funciona no computador e no celular, e pode ser instalada como PWA. Detalhes em `docs/architecture/ui-design.md`.
 
-| Token | Cor | Uso |
-| --- | --- | --- |
-| `Background` | `#121212` | fundo da janela |
-| `Surface` | `#1A1A1A` | cards, painéis, grade |
-| `SurfaceRaised` | `#242424` | linha selecionada, menus, hover |
-| `Border` | `#2E2E2E` | bordas e divisórias |
-| `TextPrimary` | `#EDEDED` | texto principal |
-| `TextSecondary` | `#A3A3A3` | rótulos e texto secundário |
-| `Accent` | `#10B981` | cor principal: botões, item ativo, foco, destaques |
-| `AccentHover` | `#34D399` | hover e estados ativos do accent |
-| `Income` | `#34D399` | receitas e valores positivos |
-| `Expense` | `#F87171` | despesas e valores negativos |
-| `Warning` | `#FBBF24` | alertas (teto estourado, fatura em aberto) |
+| Token | Claro | Escuro | Uso |
+| --- | --- | --- | --- |
+| `Background` | `#FFFFFF` | `#141415` | fundo da janela |
+| `Sidebar` | `#F7F7F6` | `#1A1A1C` | menu lateral |
+| `Surface` | `#FEFEFE` | `#222224` | menus e janelas |
+| `SurfaceRaised` | `#F2F2F1` | `#2C2C2F` | superfície neutra sólida |
+| `Border` | `#E8E8E7` | `#2C2C2E` | linhas finas e divisórias |
+| `BorderStrong` | `#D1D1CF` | `#48484A` | bordas tracejadas e controles |
+| `TextPrimary` | `#1D1D1F` | `#F5F5F7` | texto principal e despesas |
+| `TextSecondary` | `#6A6A6F` | `#A1A1A6` | rótulos e texto secundário |
+| `Accent` | `#0B7A55` | `#30C48D` | ação principal, foco e item selecionado |
+| `AccentHover` | `#09684A` | `#4AD6A1` | hover do accent |
+| `Income` | `#0A7450` | `#4AD6A2` | receitas |
+| `Expense` | `#C4372E` | `#FF8177` | atraso, excesso e erro |
+| `Warning` | `#946200` | `#E5B13A` | pendências e alertas |
 
 - Componentes do **MudBlazor** ([decisão](docs/architecture/ui-library.md)), com `AppTheme` espelhando os tokens, e CSS próprio só com os tokens. O tema é preferência do usuário (escuro, claro ou automático; ver `docs/preferences/settings.md`), mas o escuro é o padrão. Cada token é `light-dark(claro, escuro)` e todo texto mantém contraste mínimo 4,5:1 nos dois temas.
 - Nada carregado de CDN: fontes, scripts e ícones são servidos pela própria aplicação.
 - Fonte Inter (servida localmente), números com dígitos tabulares e alinhados à direita. Valores em `R$ 1.234,56`, datas em `dd/MM/yyyy` (cultura `pt-BR`).
-- Cantos mais arredondados (12 em cards e painéis, 16 em janelas), espaçamento em múltiplos de 4, sombras leves só em menus e janelas, sem gradientes.
-- O verde é a cor de marca; receitas usam o verde claro e despesas o vermelho. Não use cor como único sinal: valores negativos também levam o sinal.
+- Cantos de 8 em controles, 12 em cards e 14 em janelas, espaçamento em múltiplos de 4, sombras leves só em menus e janelas. Botões sem caixa alta e sem sombra; 32 px no computador e 44 px no celular. Métricas sem caixas; card só para entidades, como contas e cartões.
+- **Nenhum controle com aparência do sistema:** lista de select, calendário, seletor de mês, sugestões, validação e dicas abertos seguem os tokens (`wwwroot/js/pickers.js`). A única exceção é a janela de escolha de arquivos.
+- O verde é a cor de marca e das receitas. Despesas ficam em cor neutra com sinal de menos; vermelho só para atraso, excesso e erro. Não use cor como único sinal: valores negativos também levam o sinal.
 - Cores de banco só no texto, em peso normal: Itaú `#FB923C`, Nubank `#A78BFA`, Bradesco `#F87171`.
 
 ## Segurança

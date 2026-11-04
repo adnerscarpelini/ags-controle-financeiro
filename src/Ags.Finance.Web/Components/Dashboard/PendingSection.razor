@@ -6,14 +6,14 @@
     <section class="panel" aria-labelledby="pending-title">
         <h2 id="pending-title">Próximos @agenda.WindowDays dias <HelpTip Text="@($"De {agenda.Today:dd/MM/yyyy} até {agenda.WindowEnd:dd/MM/yyyy}, pela data prevista. É previsão: não altera o saldo efetivo das contas.")" /></h2>
         <div class="stat-cards">
-            <StatCard Icon="@Icons.Material.Outlined.ArrowUpward" Tone="income" Label="A receber" Value="@agenda.Upcoming.ToReceive.ToString()" Testid="to-receive" />
-            <StatCard Icon="@Icons.Material.Outlined.ArrowDownward" Tone="expense" Label="A pagar" Value="@Negative(agenda.Upcoming.ToPay).ToString()" Testid="to-pay" />
+            <StatCard Tone="income" Label="A receber" Value="@agenda.Upcoming.ToReceive.ToString()" Testid="to-receive" />
+            <StatCard Tone="expense" Label="A pagar" Value="@Negative(agenda.Upcoming.ToPay).ToString()" Testid="to-pay" />
         </div>
         <PendingList Items="agenda.Upcoming.Items" Empty="@($"Nenhuma pendência nos próximos {agenda.WindowDays} dias.")" Label="@($"Pendências dos próximos {agenda.WindowDays} dias")" />
         <h3>Atrasados <HelpTip Text="Data prevista anterior a hoje; não entram nos totais acima." /></h3>
         <div class="stat-cards">
-            <StatCard Icon="@Icons.Material.Outlined.Schedule" Tone="warning" Label="Atrasado a receber" Value="@agenda.Overdue.ToReceive.ToString()" Testid="overdue-receive" />
-            <StatCard Icon="@Icons.Material.Outlined.Schedule" Tone="warning" Label="Atrasado a pagar" Value="@Negative(agenda.Overdue.ToPay).ToString()" Testid="overdue-pay" />
+            <StatCard Tone="@(agenda.Overdue.ToReceive.IsZero ? "accent" : "warning")" Label="Atrasado a receber" Value="@agenda.Overdue.ToReceive.ToString()" Testid="overdue-receive" />
+            <StatCard Tone="@(agenda.Overdue.ToPay.IsZero ? "accent" : "danger")" Label="Atrasado a pagar" Value="@Negative(agenda.Overdue.ToPay).ToString()" Testid="overdue-pay" />
         </div>
         <PendingList Items="agenda.Overdue.Items" Empty="Nenhuma pendência atrasada." Label="Pendências atrasadas" />
         <p><a href="/pendentes">Ver todas as pendências</a></p>

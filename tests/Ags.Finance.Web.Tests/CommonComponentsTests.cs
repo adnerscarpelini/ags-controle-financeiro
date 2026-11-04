@@ -16,6 +16,17 @@ public sealed class CommonComponentsTests : IAsyncDisposable
     public ValueTask DisposeAsync() => _context.DisposeAsync();
 
     [Fact]
+    public void StatCardShowsTheTotalWithoutADecorativeIcon()
+    {
+        var card = _context.Render<StatCard>(parameters => parameters.Add(x => x.Label, "Receitas").Add(x => x.Value, "R$ 10,00").Add(x => x.Tone, "income").Add(x => x.Hero, true));
+
+        Assert.Equal("R$ 10,00", card.Find(".stat-value").TextContent);
+        Assert.Contains("stat-income", card.Find(".stat-card").ClassList);
+        Assert.Contains("stat-hero", card.Find(".stat-card").ClassList);
+        Assert.Empty(card.FindAll(".mud-icon-root"));
+    }
+
+    [Fact]
     public void HelpTipHasAKeyboardReachableButtonWithAnAccessibleName()
     {
         _context.Render<MudPopoverProvider>();

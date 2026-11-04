@@ -166,6 +166,7 @@ public sealed partial class LayoutPagesTests : IDisposable
     [InlineData("/_content/MudBlazor/MudBlazor.min.css")]
     [InlineData("/_content/MudBlazor/MudBlazor.min.js")]
     [InlineData("/js/viewport.js")]
+    [InlineData("/js/pickers.js")]
     public async Task StaticAssetsAreServedByTheApplication(string path)
     {
         using var client = _factory.CreateClient();

@@ -1,6 +1,5 @@
-@* Card de total: ícone, rótulo com ajuda opcional e valor. O valor aparece como veio do caso de uso. *@
-<div class="stat-card" data-stat="@Testid">
-    <span class="stat-icon stat-@Tone"><MudIcon Icon="@Icon" aria-hidden="true" /></span>
+@* Total sem caixa e sem ícone: rótulo com ajuda opcional e valor. O valor aparece como veio do caso de uso. *@
+<div class="stat-card stat-@Tone @(Hero ? "stat-hero" : null)" data-stat="@Testid">
     <div class="stat-text">
         <span class="stat-label">@Label @if (Help is not null) { <HelpTip Text="@Help" /> }</span>
         <span class="stat-value">@Value</span>
@@ -9,12 +8,13 @@
 </div>
 
 @code {
-    [Parameter, EditorRequired]
-    public string Icon { get; set; } = string.Empty;
-
-    /// <summary>accent, income, expense ou warning.</summary>
+    /// <summary>accent e expense ficam neutros; income é verde; warning e danger sinalizam alerta.</summary>
     [Parameter]
     public string Tone { get; set; } = "accent";
+
+    /// <summary>O total principal da tela, em tamanho maior.</summary>
+    [Parameter]
+    public bool Hero { get; set; }
 
     [Parameter, EditorRequired]
     public string Label { get; set; } = string.Empty;
