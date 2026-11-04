@@ -7,9 +7,6 @@ namespace Ags.Finance.Modules.Accounts.Application.ManageCatalog;
 
 internal sealed partial class AccountCatalog(IAccountsStore store, TimeProvider clock, IFinancialOperation operations) : IAccountCatalog
 {
-    public async Task<IReadOnlyList<BankDetails>> GetBanksAsync(CancellationToken cancellationToken = default)
-        => (await store.GetBanksAsync(cancellationToken)).Select(x => new BankDetails(x.ExternalId, x.Name, x.LogoVersion)).ToList();
-
     public async Task<IReadOnlyList<AccountDetails>> GetAccountsAsync(bool activeOnly = true, CancellationToken cancellationToken = default)
         => (await store.GetAccountsAsync(cancellationToken)).Where(x => !activeOnly || x.IsActive)
             .Select(x => new AccountDetails(x.ExternalId, x.BankExternalId, x.Name, (Contracts.AccountKind)x.Kind, x.Color, x.IsActive, x.OpeningBalance, x.OpeningDate)).ToList();
@@ -20,21 +17,6 @@ internal sealed partial class AccountCatalog(IAccountsStore store, TimeProvider 
         return (await store.GetCreditCardsAsync(cancellationToken))
             .Where(x => !activeOnly || (x.IsActive && accounts.Any(a => a.ExternalId == x.AccountExternalId && a.IsActive)))
             .Select(x => new CreditCardDetails(x.ExternalId, x.AccountExternalId, x.Name, (Contracts.CardBrand)x.Brand, x.CreditLimit, x.ClosingDay, x.DueDay, x.IncludesClosingDay, x.Color, x.IsActive, accounts.Any(a => a.ExternalId == x.AccountExternalId && a.IsActive))).ToList();
-    }
-
-    public async Task<CatalogResult> CreateBankAsync(string name, Guid? externalId = null, CancellationToken cancellationToken = default)
-    {
-        var bank = Bank.Create(name);
-        if (bank is null)
-        {
-            return new(null, "Informe um nome com até 100 caracteres.");
-        }
-        if (externalId is { } bankId)
-        {
-            if (bankId == Guid.Empty || (await store.GetBanksAsync(cancellationToken)).Any(x => x.ExternalId == bankId)) { return new(null, "Identidade pública inválida ou já utilizada."); }
-            bank.UseExternalId(bankId);
-        }
-        return await PersistAsync(bank, cancellationToken);
     }
 
     public Task<CatalogResult> SaveAccountAsync(SaveAccountRequest request, CancellationToken cancellationToken = default)
@@ -53,9 +35,14 @@ internal sealed partial class AccountCatalog(IAccountsStore store, TimeProvider 
             if (accountId == Guid.Empty || accounts.Any(x => x.ExternalId == accountId)) { return new(null, "Identidade pública inválida ou já utilizada."); }
             account.UseExternalId(accountId);
         }
-        if (!(await store.GetBanksAsync(cancellationToken)).Any(x => x.ExternalId == request.BankExternalId))
+        var bank = (await store.GetBanksAsync(cancellationToken)).FirstOrDefault(x => x.ExternalId == request.BankExternalId);
+        if (bank is null)
         {
             return new(null, "Selecione um banco cadastrado.");
+        }
+        if (!bank.IsActive && bank.ExternalId != account.BankExternalId)
+        {
+            return new(null, "Este banco está arquivado. Selecione um banco ativo ou desarquive-o.");
         }
         var error = account.Update(request.BankExternalId, request.Name, (AccountKind)request.Kind, request.Color);
         if (error is not null)

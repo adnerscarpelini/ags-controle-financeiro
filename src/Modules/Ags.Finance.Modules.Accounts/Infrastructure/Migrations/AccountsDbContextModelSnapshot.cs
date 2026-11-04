@@ -23,8 +23,11 @@ internal sealed class AccountsDbContextModelSnapshot : ModelSnapshot
             b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("timestamp with time zone");
             b.Property<byte[]>("LogoData").HasColumnType("bytea");
             b.Property<Guid?>("LogoVersion").HasColumnType("uuid");
+            b.Property<string>("NormalizedName").IsRequired().HasMaxLength(100).HasColumnType("character varying(100)");
+            b.Property<bool>("IsActive").HasColumnType("boolean");
             b.HasKey("Id");
             b.HasIndex("ExternalId").IsUnique();
+            b.HasIndex("NormalizedName").IsUnique();
             b.ToTable("banks", "accounts");
         });
         modelBuilder.Entity("Ags.Finance.Modules.Accounts.Domain.Account", b =>

@@ -18,4 +18,5 @@ repetir a operação não cria cadastros. Nomes, dados e vínculos são preserva
 
 Histórico, relatórios, pendências, faturas, pagamentos e saldos usam consultas
 históricas e permanecem visíveis, sem mudar valores ou situação de fatura.
-A regra não se estende a bancos, categorias ou finais de cartão.
+A regra não se estende a categorias ou finais de cartão. Bancos têm regra própria, descrita em
+[Bancos, contas e cartões](banks-accounts-and-cards.md).

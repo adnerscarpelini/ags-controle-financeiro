@@ -28,6 +28,13 @@ internal sealed class AccountsStore(IDbContextFactory<AccountsDbContext> factory
         return await context.Set<CardLastDigits>().AsNoTracking().OrderBy(x => x.Digits).ToListAsync(cancellationToken);
     }
 
+    public async Task DeleteAsync(Bank bank, CancellationToken cancellationToken)
+    {
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
+        context.Entry(bank).State = EntityState.Deleted;
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<bool> SaveAsync(Entity entity, CancellationToken cancellationToken)
     {
         await using var context = await factory.CreateDbContextAsync(cancellationToken);

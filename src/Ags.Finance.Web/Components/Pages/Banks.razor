@@ -9,8 +9,14 @@
 @inject ISnackbar Snackbar
 
 <RegistryPage TItem="BankDetails" Title="Bancos" Help="Cadastre os bancos para vincular contas e logos." NewLabel="Novo banco" OnNew="OpenNewAsync"
-              @bind-Search="_search" Items="Visible" Loaded="_loaded" OnExternalChange="ReloadAsync" EmptyIcon="@Icons.Material.Outlined.AccountBalance" EmptyMessage="Nenhum banco ainda. Cadastre o primeiro para vincular contas e logos.">
+              @bind-Search="_search" Items="Visible" Loaded="_loaded" OnExternalChange="ReloadAsync" EmptyIcon="@Icons.Material.Outlined.AccountBalance" EmptyMessage="@EmptyMessage" Message="@_message">
     <MoreActions><RegistryCsvMenu Kinds="s_kinds" /></MoreActions>
+    <Toolbar>
+        @if (_banks.Any(x => !x.IsActive))
+        {
+            <button type="button" class="link-button registry-toggle" data-toggle-archived aria-pressed="@(_showArchived ? "true" : "false")" @onclick="() => _showArchived = !_showArchived">@(_showArchived ? "Ocultar bancos arquivados" : "Ver bancos arquivados")</button>
+        }
+    </Toolbar>
     <Columns>
         <MudTh Class="col-logo">Logo</MudTh>
         <MudTh><MudTableSortLabel T="BankDetails" SortBy="x => x.Name" InitialDirection="SortDirection.Ascending">Nome</MudTableSortLabel></MudTh>
@@ -19,7 +25,7 @@
     </Columns>
     <Row Context="bank">
         <MudTd DataLabel="Logo"><BankLogo Bank="bank" /></MudTd>
-        <MudTd DataLabel="Nome"><span class="row-title">@bank.Name</span></MudTd>
+        <MudTd DataLabel="Nome"><span class="row-title">@bank.Name</span>@if (!bank.IsActive) { <span class="row-note" data-bank-archived>Arquivado</span> }</MudTd>
         <MudTd DataLabel="Contas vinculadas">@LinkedAccounts(bank)</MudTd>
         <MudTd DataLabel="Ações" Class="col-actions"><RowActions Actions="ActionsFor(bank)" /></MudTd>
     </Row>
@@ -31,8 +37,12 @@
     private IReadOnlyList<AccountDetails> _accounts = [];
     private string _search = string.Empty;
     private bool _loaded;
+    private bool _showArchived;
+    private string? _message;
 
-    private IReadOnlyList<BankDetails> Visible => _banks.Where(x => x.Name.Contains(_search.Trim(), StringComparison.CurrentCultureIgnoreCase)).ToList();
+    private IReadOnlyList<BankDetails> Visible => _banks.Where(x => (_showArchived || x.IsActive) && x.Name.Contains(_search.Trim(), StringComparison.CurrentCultureIgnoreCase)).ToList();
+
+    private string EmptyMessage => _banks.Count == 0 ? "Nenhum banco ainda. Cadastre o primeiro para vincular contas e logos." : "Todos os bancos estão arquivados. Cadastre um novo ou veja os arquivados.";
 
     protected override Task OnInitializedAsync() => ReloadAsync();
 
@@ -45,8 +55,70 @@
 
     private int LinkedAccounts(BankDetails bank) => _accounts.Count(x => x.BankExternalId == bank.ExternalId);
 
-    private IReadOnlyList<RowAction> ActionsFor(BankDetails bank) =>
-        [new(bank.LogoVersion is null ? "Adicionar logo" : "Editar logo", Icons.Material.Outlined.Image, "logo", EventCallback.Factory.Create(this, () => OpenLogoAsync(bank)))];
+    private IReadOnlyList<RowAction> ActionsFor(BankDetails bank)
+    {
+        List<RowAction> actions =
+        [
+            new("Editar nome", Icons.Material.Outlined.Edit, "edit", EventCallback.Factory.Create(this, () => OpenEditAsync(bank))),
+            new(bank.LogoVersion is null ? "Adicionar logo" : "Editar logo", Icons.Material.Outlined.Image, "logo", EventCallback.Factory.Create(this, () => OpenLogoAsync(bank))),
+        ];
+        if (!bank.IsActive)
+        {
+            actions.Add(new("Desarquivar", Icons.Material.Outlined.Unarchive, "restore", EventCallback.Factory.Create(this, () => ChangeArchiveAsync(bank)), "Voltar a oferecer este banco em novas contas"));
+        }
+        else if (LinkedAccounts(bank) > 0)
+        {
+            actions.Add(new("Arquivar", Icons.Material.Outlined.Archive, "archive", EventCallback.Factory.Create(this, () => ChangeArchiveAsync(bank)), "Este banco tem contas vinculadas: em vez de excluir, ele deixa de ser oferecido em novas contas"));
+        }
+
+        if (LinkedAccounts(bank) == 0)
+        {
+            actions.Add(new("Excluir", Icons.Material.Outlined.Delete, "delete", EventCallback.Factory.Create(this, () => DeleteAsync(bank)), "Excluir este banco, que não tem contas vinculadas"));
+        }
+
+        return actions;
+    }
+
+    private async Task OpenEditAsync(BankDetails bank)
+    {
+        var parameters = new DialogParameters<NameDialog>
+        {
+            { x => x.Label, "Nome do banco" },
+            { x => x.InitialName, bank.Name },
+            { x => x.AllowCreateAnother, false },
+            {
+                x => x.Save, async name =>
+                {
+                    var result = await Catalog.RenameBankAsync(bank.ExternalId, name);
+                    if (result.Succeeded) { await InvokeAsync(ReloadAndRenderAsync); }
+                    return result.Error;
+                }
+            },
+        };
+        await Dialogs.ShowAsync<NameDialog>("Editar banco", parameters, AppDialogs.Options(Viewport, MaxWidth.ExtraSmall));
+    }
+
+    private async Task ChangeArchiveAsync(BankDetails bank)
+    {
+        var restoring = !bank.IsActive;
+        var confirmed = await ConfirmDialog.AskAsync(Dialogs, restoring ? "Desarquivar banco" : "Arquivar banco",
+            restoring ? $"{bank.Name} volta a ser oferecido em novas contas." : $"{bank.Name} deixa de ser oferecido em novas contas. As contas já vinculadas, o logo e o histórico continuam como estão.",
+            restoring ? "Desarquivar" : "Arquivar");
+        if (!confirmed) { return; }
+        var result = restoring ? await Catalog.ReactivateBankAsync(bank.ExternalId) : await Catalog.DeactivateBankAsync(bank.ExternalId);
+        _message = result.Error;
+        if (result.Succeeded) { Snackbar.Add(restoring ? "Banco desarquivado." : "Banco arquivado.", Severity.Success); }
+        await ReloadAsync();
+    }
+
+    private async Task DeleteAsync(BankDetails bank)
+    {
+        if (!await ConfirmDialog.AskAsync(Dialogs, "Excluir banco", $"{bank.Name} será excluído, junto do logo. Esta ação não pode ser desfeita.", "Excluir", destructive: true)) { return; }
+        var result = await Catalog.DeleteBankAsync(bank.ExternalId);
+        _message = result.Error;
+        if (result.Succeeded) { Snackbar.Add("Banco excluído.", Severity.Success); }
+        await ReloadAsync();
+    }
 
     private async Task OpenNewAsync()
     {

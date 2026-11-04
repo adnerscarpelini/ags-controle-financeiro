@@ -9,4 +9,5 @@ internal interface IAccountsStore
     Task<IReadOnlyList<CreditCard>> GetCreditCardsAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<CardLastDigits>> GetCardLastDigitsAsync(CancellationToken cancellationToken);
     Task<bool> SaveAsync(Entity entity, CancellationToken cancellationToken);
+    Task DeleteAsync(Bank bank, CancellationToken cancellationToken);
 }

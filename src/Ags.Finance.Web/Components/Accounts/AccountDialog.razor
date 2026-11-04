@@ -80,7 +80,8 @@
             _openingLocked = account.OpeningDate is not null;
         }
 
-        _banks = await Catalog.GetBanksAsync();
+        // Banco arquivado não entra em novas seleções, mas a conta que já o usa continua mostrando o dela.
+        _banks = (await Catalog.GetBanksAsync()).Where(x => x.IsActive || x.ExternalId == _bank).ToList();
         _loaded = true;
     }
 
