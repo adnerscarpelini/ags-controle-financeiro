@@ -38,8 +38,8 @@
 
     private async Task ReloadAsync()
     {
-        _banks = await Catalog.GetBanksAsync();
-        _accounts = await Catalog.GetAccountsAsync(activeOnly: false);
+        var banks = await Catalog.GetBanksAsync();
+        (_banks, _accounts) = (banks, await Catalog.GetAccountsAsync(activeOnly: false));
         _loaded = true;
     }
 
