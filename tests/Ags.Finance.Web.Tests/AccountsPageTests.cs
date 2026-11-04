@@ -107,7 +107,7 @@ public sealed class AccountsPageTests
 
         var value = page.Find("[data-account-card='Conta Negativa'] [data-current-balance]");
         Assert.Equal("-R$ 50,00", value.TextContent);
-        Assert.Contains("entry-expense", value.ClassList);
+        Assert.Contains("value-negative", value.ClassList);
     }
 
     [Fact]

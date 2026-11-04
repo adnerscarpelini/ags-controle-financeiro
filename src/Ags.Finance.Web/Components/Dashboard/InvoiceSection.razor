@@ -25,12 +25,12 @@
                             <tr><th scope="row"><span class="invoice-card-name">
                                 @if (card.BankExternalId != Guid.Empty) { <BankLogo Bank="new BankDetails(card.BankExternalId, card.BankName, card.BankLogoVersion)" /> }
                                 <span class="catalog-color color-@card.Color">@card.CardName</span>@(card.IsArchived ? " (arquivado)" : string.Empty)</span></th>
-                                <td class="numeric">@card.Invoice</td><td class="numeric">@card.Allowances</td><td class="numeric">@card.Paid</td><td class="numeric">@card.Open</td>
-                                <td class="numeric">@card.PreviousMonth</td><td class="numeric">@card.YearAverage</td><td class="numeric">@card.OpenFromNowOn</td><td class="numeric invoice-forecast">@card.Forecast</td></tr>
+                                <td class="numeric @ValueColor.Expense(card.Invoice)">@card.Invoice</td><td class="numeric @ValueColor.Income(card.Allowances)">@card.Allowances</td><td class="numeric">@card.Paid</td><td class="numeric @ValueColor.Expense(card.Open)">@card.Open</td>
+                                <td class="numeric @ValueColor.Expense(card.PreviousMonth)">@card.PreviousMonth</td><td class="numeric @ValueColor.Expense(card.YearAverage)">@card.YearAverage</td><td class="numeric @ValueColor.Expense(card.OpenFromNowOn)">@card.OpenFromNowOn</td><td class="numeric @ValueColor.Expense(card.Forecast)">@card.Forecast</td></tr>
                         }
                     </tbody>
-                    <tfoot><tr><th scope="row">Total</th><td class="numeric">@report.Total.Invoice</td><td class="numeric">@report.Total.Allowances</td><td class="numeric">@report.Total.Paid</td><td class="numeric">@report.Total.Open</td>
-                        <td class="numeric">@report.Total.PreviousMonth</td><td class="numeric">@report.Total.YearAverage</td><td class="numeric">@report.Total.OpenFromNowOn</td><td class="numeric invoice-forecast">@report.Total.Forecast</td></tr></tfoot>
+                    <tfoot><tr><th scope="row">Total</th><td class="numeric @ValueColor.Expense(report.Total.Invoice)">@report.Total.Invoice</td><td class="numeric @ValueColor.Income(report.Total.Allowances)">@report.Total.Allowances</td><td class="numeric">@report.Total.Paid</td><td class="numeric @ValueColor.Expense(report.Total.Open)">@report.Total.Open</td>
+                        <td class="numeric @ValueColor.Expense(report.Total.PreviousMonth)">@report.Total.PreviousMonth</td><td class="numeric @ValueColor.Expense(report.Total.YearAverage)">@report.Total.YearAverage</td><td class="numeric @ValueColor.Expense(report.Total.OpenFromNowOn)">@report.Total.OpenFromNowOn</td><td class="numeric @ValueColor.Expense(report.Total.Forecast)">@report.Total.Forecast</td></tr></tfoot>
                 </table>
             </div>
         }

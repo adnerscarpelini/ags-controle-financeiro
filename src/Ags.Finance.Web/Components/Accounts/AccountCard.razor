@@ -63,5 +63,5 @@
     public EventCallback ToggleArchive { get; set; }
 
     // A cor reforça, mas o sinal de menos vem do próprio valor.
-    private static string ValueClass(Money? value) => value is { IsNegative: true } ? "entry-expense" : "entry-income";
+    private static string ValueClass(Money? value) => ValueColor.Balance(value ?? Money.Zero);
 }

@@ -22,9 +22,9 @@
             </th>
             @for (var i = 0; i < Months.Count; i++)
             {
-                <PlanningCellView Cell="category.Cells[i]" RowName="@category.Name" MonthName="@MonthName(Months[i])" HeatColor="@HeatColor" Class="@CurrentClass(Months[i])" DetailRequested="DetailRequested" />
+                <PlanningCellView Cell="category.Cells[i]" RowName="@category.Name" MonthName="@MonthName(Months[i])" HeatColor="@HeatColor" IsExpense="IsExpense" Class="@CurrentClass(Months[i])" DetailRequested="DetailRequested" />
             }
-            <td class="numeric">@category.Total</td>
+            <td class="numeric @ValueColor.OfKind(category.Total, IsExpense)">@category.Total</td>
         </tr>
         @if (open)
         {
@@ -34,9 +34,9 @@
                     <th scope="row">@sub.Name</th>
                     @for (var i = 0; i < Months.Count; i++)
                     {
-                        <PlanningCellView Cell="sub.Cells[i]" RowName="@sub.Name" MonthName="@MonthName(Months[i])" HeatColor="@HeatColor" Class="@CurrentClass(Months[i])" DetailRequested="DetailRequested" />
+                        <PlanningCellView Cell="sub.Cells[i]" RowName="@sub.Name" MonthName="@MonthName(Months[i])" HeatColor="@HeatColor" IsExpense="IsExpense" Class="@CurrentClass(Months[i])" DetailRequested="DetailRequested" />
                     }
-                    <td class="numeric">@sub.Total</td>
+                    <td class="numeric @ValueColor.OfKind(sub.Total, IsExpense)">@sub.Total</td>
                 </tr>
             }
         }
@@ -53,6 +53,8 @@
     [Parameter, EditorRequired] public IReadOnlySet<string> Expanded { get; set; } = new HashSet<string>();
     [Parameter] public EventCallback<string> Toggled { get; set; }
     [Parameter] public EventCallback<string> DetailRequested { get; set; }
+
+    private bool IsExpense => Prefix == "expense";
 
     public static string Key(string prefix, PlanningCategory category) => $"{prefix}:{category.Name}";
 

@@ -1,8 +1,8 @@
-@* Total sem caixa e sem ícone: rótulo com ajuda opcional e valor. O valor aparece como veio do caso de uso. *@
+@* Total em card suave, sem ícone: rótulo com ajuda opcional e valor. O valor aparece como veio do caso de uso. *@
 <div class="stat-card stat-@Tone @(Hero ? "stat-hero" : null)" data-stat="@Testid">
     <div class="stat-text">
         <span class="stat-label">@Label @if (Help is not null) { <HelpTip Text="@Help" /> }</span>
-        <span class="stat-value">@Value</span>
+        <span class="stat-value @ValueClass">@Value</span>
         @if (Note is not null) { <small class="stat-note">@Note</small> }
     </div>
 </div>
@@ -24,6 +24,10 @@
 
     [Parameter, EditorRequired]
     public string Value { get; set; } = string.Empty;
+
+    /// <summary>Cor do valor, vinda de ValueColor, nas telas que colorem por tipo e sinal.</summary>
+    [Parameter]
+    public string? ValueClass { get; set; }
 
     [Parameter]
     public string? Note { get; set; }

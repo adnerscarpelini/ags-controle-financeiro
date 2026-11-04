@@ -49,8 +49,8 @@ else
             </button>
         </div>
         <aside class="split-aside" aria-label="Resumo das contas">
-            <StatCard Label="Saldo atual total" Help="Soma das contas ativas considerando só o que já foi pago ou recebido." Value="@(_total?.CurrentBalance.ToString() ?? Money.Zero.ToString())" Testid="current-total" />
-            <StatCard Label="Saldo previsto total" Help="Saldo atual somado às pendências do mês das contas ativas." Value="@(_total?.ForecastBalance.ToString() ?? Money.Zero.ToString())" Testid="forecast-total" />
+            <StatCard ValueClass="@ValueColor.Balance(_total?.CurrentBalance ?? Money.Zero)" Label="Saldo atual total" Help="Soma das contas ativas considerando só o que já foi pago ou recebido." Value="@(_total?.CurrentBalance.ToString() ?? Money.Zero.ToString())" Testid="current-total" />
+            <StatCard ValueClass="@ValueColor.Balance(_total?.ForecastBalance ?? Money.Zero)" Label="Saldo previsto total" Help="Saldo atual somado às pendências do mês das contas ativas." Value="@(_total?.ForecastBalance.ToString() ?? Money.Zero.ToString())" Testid="forecast-total" />
             <button type="button" class="link-button" data-toggle-archived aria-pressed="@(_showArchived ? "true" : "false")" @onclick="() => _showArchived = !_showArchived">@(_showArchived ? "Ocultar contas arquivadas" : "Ver contas arquivadas")</button>
         </aside>
     </div>

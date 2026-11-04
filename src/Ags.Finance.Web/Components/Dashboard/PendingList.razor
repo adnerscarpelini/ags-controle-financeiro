@@ -10,7 +10,7 @@ else
         @foreach (var item in Items)
         {
             <li><span>@item.Date.ToString("dd/MM/yyyy") · @item.Description · @item.AccountName</span>
-                <span class="numeric @(item.IsIncome ? "entry-income" : "entry-expense")">@(item.IsIncome ? "+" : "-")@item.Amount</span></li>
+                <span class="numeric @(item.IsIncome ? ValueColor.Positive : ValueColor.Negative)">@(item.IsIncome ? "+" : "-")@item.Amount</span></li>
         }
     </ul>
 }
