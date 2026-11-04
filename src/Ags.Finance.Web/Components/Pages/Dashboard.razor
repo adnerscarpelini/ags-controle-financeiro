@@ -17,6 +17,13 @@
 }
 @if (_sections.Summary) { <SummaryCards Month="_month" /> }
 @if (_sections.Pending) { <PendingSection /> }
+@if (_sections.Invoices || _sections.Summary)
+{
+    <div class="dashboard-columns">
+        @if (_sections.Invoices) { <CardInvoicesSummary Month="_month" /> }
+        @if (_sections.Summary) { <CheckingAccountsSummary Month="_month" /> }
+    </div>
+}
 @if (_sections.Categories) { <CategorySection Month="_month" TopCount="_topCategories" /> }
 @if (_sections.Invoices) { <InvoiceSection Month="_month" /> }
 @if (_sections.HeatMap) { <HeatMapSection Month="_month" /> }

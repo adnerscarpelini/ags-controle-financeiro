@@ -1,0 +1,112 @@
+@* Fatura de cada cartão no mês escolhido: o que falta pagar, o total gasto, os abatimentos e o limite usado. O detalhe por coluna continua em InvoiceSection. *@
+@using System.Globalization
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Invoices.Contracts
+@using Ags.Finance.SharedKernel
+@using Ags.Finance.Web.Components.Pages
+@inject IAccountCatalog Accounts
+@inject IInvoiceCatalog Invoices
+
+<section class="panel summary-panel" aria-labelledby="card-invoices-title">
+    <h2 id="card-invoices-title">Faturas de @MonthPicker.Label(Month)</h2>
+    @if (_rows is { } rows)
+    {
+        @if (rows.Count == 0)
+        {
+            <p>Nenhum cartão cadastrado.</p>
+        }
+        else
+        {
+            <ul class="summary-list" aria-label="Fatura de cada cartão">
+                @foreach (var row in rows)
+                {
+                    <li class="summary-item" data-card-invoice="@row.Card.Name">
+                        <div class="summary-head">
+                            @if (row.Bank is not null) { <BankLogo Bank="row.Bank" /> }
+                            <div class="summary-title">
+                                <a class="summary-name" href="@InvoiceDetail.Url(row.Card.ExternalId, Month)">@row.Card.Name</a>
+                                <span class="row-note" data-invoice-due-text>@DueText(row)</span>
+                            </div>
+                            @if (row.Invoice is { Status: var status } && !row.Total.IsZero) { <span class="tag" data-invoice-status>@StatusLabel(status)</span> }
+                            <span class="numeric summary-value @ValueColor.Owed(row.Remaining)" data-invoice-remaining>@row.Remaining</span>
+                        </div>
+                        @if (!row.Total.IsZero || !row.Deductions.IsZero)
+                        {
+                            <div class="summary-breakdown">
+                                <span>Total gasto: <span class="@ValueColor.Expense(row.Total)" data-invoice-total>@row.Total</span></span>
+                                <span>Abatimentos: <span class="@ValueColor.Income(row.Deductions)" data-invoice-deductions>@row.Deductions</span> <HelpTip Text="Pagamentos, antecipações, cashback e descontos desta fatura. Reduzem o que falta pagar e liberam limite." /></span>
+                            </div>
+                        }
+                        @if (row.Limit is { } limit)
+                        {
+                            <div class="summary-limit">
+                                <div class="bar-track" role="progressbar" aria-label="Limite usado de @row.Card.Name" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@limit.UsedPercent"><span class="bar-fill limit-fill" style="width:@limit.UsedPercent%"></span></div>
+                                <div class="summary-limit-text"><span data-limit-used>@limit.UsedPercent%</span><span>Limite disponível: <span class="@ValueColor.Balance(limit.Available)" data-limit-available>@limit.Available</span> <HelpTip Text="O limite cadastrado menos o saldo restante das faturas ainda não pagas, inclusive parcelas futuras." /></span></div>
+                            </div>
+                        }
+                    </li>
+                }
+            </ul>
+            <div class="summary-total">
+                <span>Total a pagar <HelpTip Text="Total gasto menos os abatimentos de cada fatura. Crédito aparece em verde, com sinal de menos." /></span>
+                <strong class="numeric @ValueColor.Owed(Sum(rows, x => x.Remaining))" data-invoices-total>@Sum(rows, x => x.Remaining)</strong>
+            </div>
+        }
+        <a class="summary-link" href="cartoes">Ver cartões</a>
+    }
+</section>
+
+@code {
+    private static readonly CultureInfo s_culture = CultureInfo.GetCultureInfo("pt-BR");
+
+    private sealed record Row(CreditCardDetails Card, BankDetails? Bank, InvoiceDetails? Invoice, InvoiceDates? Dates, CardLimit? Limit)
+    {
+        public Money Total => Invoice?.Total ?? Money.Zero;
+
+        public Money Remaining => Invoice?.RemainingBalance ?? Money.Zero;
+
+        public Money Deductions => Total - Remaining;
+    }
+
+    private IReadOnlyList<Row>? _rows;
+    private ReferenceMonth _loaded;
+
+    [Parameter, EditorRequired] public ReferenceMonth Month { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_rows is not null && _loaded == Month) { return; }
+        _loaded = Month;
+        var banks = await Accounts.GetBanksAsync();
+        var accounts = await Accounts.GetAccountsAsync(activeOnly: false);
+        var cards = await Accounts.GetCreditCardsAsync(activeOnly: false);
+        var invoices = await Invoices.GetMonthAsync(Month);
+        var limits = await Invoices.GetCardLimitsAsync();
+        var rows = new List<Row>();
+        foreach (var card in cards.Where(x => x.IsAvailable))
+        {
+            var account = accounts.FirstOrDefault(x => x.ExternalId == card.AccountExternalId);
+            rows.Add(new Row(
+                card,
+                banks.FirstOrDefault(x => x.ExternalId == account?.BankExternalId),
+                invoices.FirstOrDefault(x => x.CardExternalId == card.ExternalId),
+                await Invoices.GetDatesAsync(card.ExternalId, Month),
+                limits.FirstOrDefault(x => x.CardExternalId == card.ExternalId)));
+        }
+
+        _rows = rows;
+    }
+
+    private static Money Sum(IEnumerable<Row> rows, Func<Row, Money> value) => new(rows.Sum(x => value(x).Amount));
+
+    private static string DueText(Row row) => row.Total.IsZero || row.Dates is null
+        ? "Fatura zerada"
+        : $"Vence em {row.Dates.DueDate.ToString("d 'de' MMMM 'de' yyyy", s_culture)}";
+
+    private static string StatusLabel(InvoiceStatus status) => status switch
+    {
+        InvoiceStatus.Open => "Aberta",
+        InvoiceStatus.Closed => "Fechada",
+        _ => "Paga",
+    };
+}

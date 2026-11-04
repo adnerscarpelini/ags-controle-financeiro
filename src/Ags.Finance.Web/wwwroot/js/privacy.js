@@ -7,6 +7,8 @@
     var STORAGE_KEY = 'ags.hide-values';
     var MONEY = /-?R\$[\s ]?\d{1,3}(?:\.\d{3})*,\d{2}/g; // R$ 1.234,56 e -R$ 50,00 (Money.ToString)
     var MASK = 'R$ ••••';
+    var PLAIN_MONEY = /-?\d{1,3}(?:\.\d{3})*,\d{2}/g; // células de tabela sem o prefixo, marcadas com data-money-cells
+    var PLAIN_MASK = '••••';
     var ATTRIBUTES = ['title', 'aria-label'];
     var SKIPPED = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, NOSCRIPT: 1 };
 
@@ -42,12 +44,14 @@
         }
 
         var value = node.data;
-        if (value.search(MONEY) < 0) {
+        var plain = parent.closest && parent.closest('[data-money-cells]');
+        var pattern = plain ? PLAIN_MONEY : MONEY;
+        if (value.search(pattern) < 0) {
             return;
         }
 
         textOriginals.set(node, value);
-        node.data = value.replace(MONEY, MASK);
+        node.data = value.replace(pattern, plain ? PLAIN_MASK : MASK);
     }
 
     function maskAttributes(element) {
