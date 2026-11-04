@@ -33,7 +33,7 @@ tests/
   Ags.Finance.ArchitectureTests/
 ```
 
-Módulos: `Attachments`, `Identity`, `Accounts`, `Transactions`, `Invoices`, `Reimbursements`, `Preferences`, `Reports` e `Imports`. Responsabilidades e dependências permitidas estão em `docs/architecture/module-structure.md`.
+Módulos: `Attachments`, `Identity`, `Accounts`, `Transactions`, `Invoices`, `Reimbursements`, `Preferences`, `Reports`, `Imports` e `Diagnostics`. Responsabilidades e dependências permitidas estão em `docs/architecture/module-structure.md`.
 
 ### Regras de fronteira
 
@@ -47,7 +47,7 @@ Módulos: `Attachments`, `Identity`, `Accounts`, `Transactions`, `Invoices`, `Re
 
 ### Persistência e recuperação (decisão PostgreSQL)
 
-- Um banco PostgreSQL, com **schema, DbContext e histórico de migrations próprios por módulo** (`identity`, `accounts`, `transactions`, `invoices`, `reimbursements`, `preferences`, `attachments`), conforme [a decisão de persistência](docs/architecture/persistence-postgresql.md). A conexão vem de `ConnectionStrings__Finance` e nunca é versionada nem registrada em log.
+- Um banco PostgreSQL, com **schema, DbContext e histórico de migrations próprios por módulo** (`identity`, `accounts`, `transactions`, `invoices`, `reimbursements`, `preferences`, `attachments`, `diagnostics`), conforme [a decisão de persistência](docs/architecture/persistence-postgresql.md). A conexão vem de `ConnectionStrings__Finance` e nunca é versionada nem registrada em log.
 - Sem FK, JOIN ou SQL que cruze tabelas de módulos diferentes. Uma referência a outro módulo guarda o `ExternalId` dele.
 - Toda entidade com tabela própria tem `Id` (`long`, chave primária), `ExternalId` (`Guid`, gerado no domínio com `Guid.CreateVersion7()`, índice único), `CreatedAt` e `UpdatedAt` (`DateTimeOffset` UTC, vindos de `TimeProvider`, preenchidos por um interceptor do módulo).
 - Mapeamentos com `IEntityTypeConfiguration<T>` na `Infrastructure`; o domínio não tem atributos de persistência.
@@ -121,6 +121,7 @@ Tema **escuro por padrão** (claro e automático nas preferências), com fundo c
 - Senhas só em hash (`PasswordHasher` do ASP.NET Core Identity). Bloqueio temporário após tentativas erradas.
 - HTTPS com certificado local gerado na primeira execução; HTTP redireciona para HTTPS.
 - Não registre senhas, cookies ou dados financeiros em logs.
+- Erros inesperados vão para `diagnostics.error_records` por `ILogger` (`Error`/`Critical` com exceção), sem a mensagem da exceção. Um `catch` que transforma falha inesperada em mensagem registra a exceção; erro esperado não é registrado (#107).
 
 ## Testes e validação
 

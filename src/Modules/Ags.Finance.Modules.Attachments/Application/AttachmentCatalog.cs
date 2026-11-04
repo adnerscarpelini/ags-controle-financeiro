@@ -1,11 +1,15 @@
 using System.Transactions;
 using Ags.Finance.Modules.Attachments.Contracts;
 using Ags.Finance.Modules.Attachments.Domain;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Ags.Finance.Modules.Attachments.Application;
 
-internal sealed class AttachmentCatalog(IAttachmentStore store, IAttachmentFiles files, AttachmentStorageOptions options, TimeProvider clock, IAttachmentAccess? access = null) : IAttachmentCatalog
+internal sealed class AttachmentCatalog(IAttachmentStore store, IAttachmentFiles files, AttachmentStorageOptions options, TimeProvider clock, IAttachmentAccess? access = null, ILogger<AttachmentCatalog>? logger = null) : IAttachmentCatalog
 {
+    private ILogger Logger => logger ?? NullLogger<AttachmentCatalog>.Instance;
+
     public async Task<IReadOnlyList<AttachmentDetails>> ListAsync(CancellationToken cancellationToken = default)
         => (await store.ListAsync(cancellationToken)).Select(Describe).ToList();
 
@@ -37,7 +41,10 @@ internal sealed class AttachmentCatalog(IAttachmentStore store, IAttachmentFiles
             return saved ? new(row.ExternalId, null) : new(null, "Este arquivo já está anexado ao mesmo dono, inclusive na lixeira.");
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        { return new(null, "Não foi possível guardar o documento. Confira a pasta de anexos, as permissões e o limite de tamanho."); }
+        {
+            AttachmentLog.Failed(Logger, "Gravação de anexo", exception);
+            return new(null, "Não foi possível guardar o documento. Confira a pasta de anexos, as permissões e o limite de tamanho.");
+        }
         finally
         {
             files.Delete(temporary);
@@ -51,7 +58,11 @@ internal sealed class AttachmentCatalog(IAttachmentStore store, IAttachmentFiles
         var row = (await store.ListAsync(cancellationToken)).FirstOrDefault(x => x.ExternalId == externalId);
         if (row is null || row.DeletedAt <= clock.GetUtcNow().AddDays(-30) || options.Error is not null) { return null; }
         try { return new(Describe(row), files.Open(row.StorageKey)); }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { return null; }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            AttachmentLog.Failed(Logger, "Leitura de anexo", exception);
+            return null;
+        }
     }
 
     public async Task<AttachmentResult> TrashAsync(AttachmentOwner owner, Guid externalId, CancellationToken cancellationToken = default)
@@ -97,4 +108,10 @@ internal sealed class AttachmentCatalog(IAttachmentStore store, IAttachmentFiles
     private static bool Owns(Attachment row, AttachmentOwner owner) => row.OwnerType == owner.Type.ToString() && row.OwnerExternalId == owner.ExternalId;
     private static AttachmentDetails Describe(Attachment row) => new(row.ExternalId, new(Enum.Parse<AttachmentOwnerType>(row.OwnerType), row.OwnerExternalId),
         Enum.Parse<AttachmentKind>(row.Kind), row.OriginalFileName, row.ContentType, row.SizeBytes, row.Sha256, row.StorageKey, row.CreatedAt, row.DeletedAt);
+}
+
+internal static partial class AttachmentLog
+{
+    [LoggerMessage(Level = LogLevel.Error, Message = "{Operation} falhou.")]
+    public static partial void Failed(ILogger logger, string operation, Exception exception);
 }

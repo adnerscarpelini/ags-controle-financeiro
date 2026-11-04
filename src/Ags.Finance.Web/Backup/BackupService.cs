@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Ags.Finance.Web.Attachments;
+using Ags.Finance.Web.Hosting;
 using Npgsql;
 
 namespace Ags.Finance.Web.Backup;
@@ -94,7 +95,10 @@ internal sealed partial class BackupService(
             return await VerifyCoreAsync(package, cancellationToken);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or JsonException)
-        { return "Não foi possível conferir o backup: arquivo ou índice de anexos ausente, inválido ou sem permissão."; }
+        {
+            OperationLog.Failed(logger, "Conferência do backup", exception);
+            return "Não foi possível conferir o backup: arquivo ou índice de anexos ausente, inválido ou sem permissão.";
+        }
     }
 
     private async Task<string?> VerifyCoreAsync(BackupPackage package, CancellationToken cancellationToken)
@@ -198,9 +202,8 @@ internal sealed partial class BackupService(
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or NpgsqlException)
         {
-            var message = $"Não foi possível concluir o backup: {exception.GetType().Name}.";
-            BackupLog.Failed(logger, kind, message);
-            return BackupResult.Failure(message);
+            OperationLog.Failed(logger, $"Backup ({kind})", exception);
+            return BackupResult.Failure($"Não foi possível concluir o backup: {exception.GetType().Name}.");
         }
         finally
         {
@@ -434,9 +437,6 @@ internal static partial class BackupLog
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Backup ({Kind}) falhou: {Reason}")]
     public static partial void Failed(ILogger logger, string kind, string reason);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Retenção dos anexos não aplicada: confira a integridade dos índices mantidos.")]
-    public static partial void AttachmentRetentionSkipped(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Retenção aplicada: {Removed} backup(s) antigo(s) removido(s) (limite {Limit}).")]
     public static partial void RetentionApplied(ILogger logger, int removed, int limit);
