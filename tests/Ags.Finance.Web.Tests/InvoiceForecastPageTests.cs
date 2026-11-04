@@ -44,23 +44,24 @@ public sealed class InvoiceForecastPageTests
 
     [Theory]
     [InlineData(RecurringInvoiceMode.SumOnDate, "R$ 100,00", "R$ 50,00")]
-    [InlineData(RecurringInvoiceMode.SumUpfront, "R$ 150,00", "R$ 0,00")]
-    public async Task DashboardInvoiceTableHasAForecastColumnThatSumsInTheTotalRow(RecurringInvoiceMode mode, string invoice, string forecast)
+    [InlineData(RecurringInvoiceMode.SumUpfront, "R$ 150,00", null)]
+    public async Task DashboardInvoiceCardShowsTheForecastLeftOutOfTheTotal(RecurringInvoiceMode mode, string invoice, string? forecast)
     {
         await using var database = await PostgresTestDatabase.CreateAsync();
-        await using var context = new BunitContext();
+        await using var context = new BunitContext().UseAppUi();
         await SetUpAsync(context, database, mode);
 
-        var section = context.Render<InvoiceSection>(parameters => parameters.Add(x => x.Month, new ReferenceMonth(2026, 10)));
+        var section = context.Render<CardInvoicesSummary>(parameters => parameters.Add(x => x.Month, new ReferenceMonth(2026, 10)));
 
-        section.WaitForAssertion(() => Assert.Contains("Cartão Exemplo", section.Find("tbody").TextContent, StringComparison.Ordinal));
-        var headers = section.FindAll("thead th").Select(x => x.TextContent).ToList();
-        Assert.Equal("Previsto", headers[^1]);
-        var row = section.Find("tbody tr").QuerySelectorAll("td").Select(x => x.TextContent.Trim()).ToList();
-        Assert.Equal(invoice, row[0]);
-        Assert.Equal(forecast, row[^1]);
-        var total = section.Find("tfoot tr").QuerySelectorAll("td").Select(x => x.TextContent.Trim()).ToList();
-        Assert.Equal(forecast, total[^1]);
+        section.WaitForAssertion(() => Assert.Equal(invoice, section.Find("[data-invoice-total]").TextContent));
+        if (forecast is null)
+        {
+            Assert.Empty(section.FindAll("[data-invoice-forecast]"));
+        }
+        else
+        {
+            Assert.Equal(forecast, section.Find("[data-invoice-forecast]").TextContent);
+        }
     }
 
     private sealed class FixedClock(DateTimeOffset now) : TimeProvider

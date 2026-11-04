@@ -28,11 +28,16 @@ Aprovada na [#112](https://github.com/adnerscarpelini/ags-controle-financeiro/is
 - **Tipografia:** Inter local, 14 px no corpo e 22 px nos títulos, sem caixa alta, com hierarquia por tamanho e peso.
 - **Controles:** 32 px no computador e 44 px no celular, campos preenchidos sem borda e botões sem sombra.
 - **Tabelas:** cabeçalho discreto, linhas finas e ações reveladas ao passar o mouse ou receber foco. Em toque, as ações ficam em menu.
+- **Botões:** sempre à direita, no topo ou no rodapé de telas, janelas e formulários (`page-head-actions`, `form-actions`, `mud-dialog-actions`). Exceções: login, estado vazio centralizado e ações de um card ou linha.
 - **Ajuda:** todas as explicações continuam em `HelpTip`, com o ícone discreto.
 
 ## Dashboard
 
-Acima de "Despesas por categoria" ficam dois cards lado a lado (#112): as faturas de cada cartão no mês, com vencimento, valor a pagar, total gasto, abatimentos (pagamentos, antecipações, cashback e descontos), limite usado e total a pagar, e o saldo atual e previsto de cada conta corrente. Poupança e investimentos não aparecem nem entram no total. O detalhe por coluna das faturas continua em "Faturas por cartão". Os cards seguem as preferências de seção Faturas e Resumo do mês.
+Acima de "Despesas por categoria" ficam dois cards lado a lado (#112): as faturas de cada cartão no mês, com vencimento, valor a pagar, total gasto, abatimentos (pagamentos, antecipações, cashback e descontos), limite usado e total a pagar, e o saldo atual e previsto de cada conta corrente. Poupança e investimentos não aparecem nem entram no total. Os cards seguem as preferências de seção Faturas e Resumo do mês.
+
+## Recorte do logo
+
+A imagem aparece numa área quadrada com o círculo final marcado: arrastar posiciona, a roda do mouse e o controle deslizante mudam o zoom, e "Preencher" ou "Ajustar" definem o enquadramento. O arquivo é lido direto no navegador só para exibir (`js/logo-crop.js`); o recorte salvo continua no servidor, com os mesmos valores de zoom e posição. Pelo teclado, a posição segue disponível em controles de intervalo.
 
 ## Controles sem aparência do sistema
 

@@ -11,7 +11,7 @@ internal sealed class LogoProcessor : ILogoProcessor
     {
         if (content is not { Length: > 0 and <= IBankLogoCatalog.MaxSourceBytes }) { return new(null, "Envie PNG, JPEG ou WebP de até 5 MB."); }
         if (!double.IsFinite(crop.Zoom) || !double.IsFinite(crop.Horizontal) || !double.IsFinite(crop.Vertical)
-            || crop.Zoom is < 1 or > 5 || crop.Horizontal is < -1 or > 1 || crop.Vertical is < -1 or > 1) { return new(null, "Ajuste zoom e posição dentro dos limites do recorte."); }
+            || crop.Zoom is < 0.2 or > 5 || crop.Horizontal is < -1 or > 1 || crop.Vertical is < -1 or > 1) { return new(null, "Ajuste zoom e posição dentro dos limites do recorte."); }
         try
         {
             using var stream = new SKMemoryStream(content);

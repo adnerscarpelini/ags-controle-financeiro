@@ -34,7 +34,7 @@
 - [Recebimento de reembolsos e como desfazê-lo (#82/#83)](reimbursements/receiving.md)
 - [Resumo do mês (#24)](reports/monthly-summary.md)
 - [Despesas e receitas por categoria (#25)](reports/category-report.md)
-- [Faturas por cartão no dashboard (#26)](reports/invoices-dashboard.md)
+- [Faturas no dashboard (#112)](reports/invoices-dashboard.md)
 - [Mapa de calor de despesas (#27)](reports/heat-map.md)
 - [Planejamento mensal com metas (#94)](reports/monthly-planning.md)
 - [Relatórios: visão de 19 meses (#77/#94)](reports/planning.md)

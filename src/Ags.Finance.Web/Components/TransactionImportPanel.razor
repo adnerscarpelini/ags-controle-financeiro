@@ -11,7 +11,9 @@
         <div class="field"><label for="import-transactions-file">Arquivo de lançamentos (até 10 MB)</label><InputFile id="import-transactions-file" accept=".csv,text/csv" OnChange="TransactionsSelectedAsync" disabled="@_busy" /></div>
         <div class="field"><label for="import-series-file">Arquivo de séries recorrentes (opcional)</label><InputFile id="import-series-file" accept=".csv,text/csv" OnChange="SeriesSelectedAsync" disabled="@_busy" /></div>
     </div>
+    <div class="form-actions">
     <button class="button" @onclick="PreviewAsync" disabled="@(_busy || _transactions is null)">Validar arquivos</button>
+    </div>
     @if (_report is { } report)
     {
         <h3>Prévia: @(report.Succeeded ? "arquivos válidos" : "arquivos com problemas")</h3>
@@ -29,11 +31,13 @@
             </table>
             @if (report.Issues.Count > 200) { <p>Mostrando os 200 primeiros problemas.</p> }
         }
+        <div class="form-actions">
         @if (report.Succeeded)
         {
             <button class="button" @onclick="ConfirmAsync" disabled="@(_busy || report.NewCount == 0)">Confirmar importação</button>
         }
-        <button class="button" @onclick="Cancel" disabled="@_busy">Cancelar</button>
+        <button class="button button-secondary" @onclick="Cancel" disabled="@_busy">Cancelar</button>
+        </div>
     }
 </section>
 

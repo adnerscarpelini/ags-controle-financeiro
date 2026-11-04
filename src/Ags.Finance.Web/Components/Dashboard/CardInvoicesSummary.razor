@@ -1,4 +1,5 @@
-@* Fatura de cada cartão no mês escolhido: o que falta pagar, o total gasto, os abatimentos e o limite usado. O detalhe por coluna continua em InvoiceSection. *@
+@* Fatura de cada cartão no mês escolhido: o que falta pagar, o total gasto, os abatimentos e o limite usado.
+   Cartão arquivado continua aqui enquanto tiver fatura no mês (#53). *@
 @using System.Globalization
 @using Ags.Finance.Modules.Accounts.Contracts
 @using Ags.Finance.Modules.Invoices.Contracts
@@ -24,7 +25,7 @@
                         <div class="summary-head">
                             @if (row.Bank is not null) { <BankLogo Bank="row.Bank" /> }
                             <div class="summary-title">
-                                <a class="summary-name" href="@InvoiceDetail.Url(row.Card.ExternalId, Month)">@row.Card.Name</a>
+                                <a class="summary-name" href="@InvoiceDetail.Url(row.Card.ExternalId, Month)">@row.Card.Name</a>@(row.Card.IsAvailable ? null : " (arquivado)")
                                 <span class="row-note" data-invoice-due-text>@DueText(row)</span>
                             </div>
                             @if (row.Invoice is { Status: var status } && !row.Total.IsZero) { <span class="tag" data-invoice-status>@StatusLabel(status)</span> }
@@ -35,6 +36,10 @@
                             <div class="summary-breakdown">
                                 <span>Total gasto: <span class="@ValueColor.Expense(row.Total)" data-invoice-total>@row.Total</span></span>
                                 <span>Abatimentos: <span class="@ValueColor.Income(row.Deductions)" data-invoice-deductions>@row.Deductions</span> <HelpTip Text="Pagamentos, antecipações, cashback e descontos desta fatura. Reduzem o que falta pagar e liberam limite." /></span>
+                                @if (row.Forecast is { } forecast)
+                                {
+                                    <span>Previsto: <span class="@ValueColor.Expense(forecast)" data-invoice-forecast>@forecast</span> <HelpTip Text="Recorrentes ainda não cobradas pelo banco, que ficam fora do total desta fatura." /></span>
+                                }
                             </div>
                         }
                         @if (row.Limit is { } limit)
@@ -66,6 +71,9 @@
         public Money Remaining => Invoice?.RemainingBalance ?? Money.Zero;
 
         public Money Deductions => Total - Remaining;
+
+        /// <summary>Recorrentes previstas que ficaram fora do total, conforme a preferência.</summary>
+        public Money? Forecast => Invoice is { ForecastIncluded: false, ForecastTotal.IsZero: false } invoice ? invoice.ForecastTotal : null;
     }
 
     private IReadOnlyList<Row>? _rows;
@@ -83,7 +91,7 @@
         var invoices = await Invoices.GetMonthAsync(Month);
         var limits = await Invoices.GetCardLimitsAsync();
         var rows = new List<Row>();
-        foreach (var card in cards.Where(x => x.IsAvailable))
+        foreach (var card in cards.Where(x => x.IsAvailable || invoices.Any(invoice => invoice.CardExternalId == x.ExternalId)))
         {
             var account = accounts.FirstOrDefault(x => x.ExternalId == card.AccountExternalId);
             rows.Add(new Row(

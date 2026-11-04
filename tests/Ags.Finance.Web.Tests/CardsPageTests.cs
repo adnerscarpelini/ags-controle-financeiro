@@ -157,7 +157,7 @@ public sealed class CardsPageTests
         await ui.Dialogs.Find("#card-account").ChangeAsync(ui.Account.ToString());
         await ui.Dialogs.Find("#card-brand").ChangeAsync(CardBrand.Mastercard.ToString());
         ui.Dialogs.Find("#card-limit").Input("10000");
-        await ui.Dialogs.Find("#card-color").ChangeAsync("violet");
+        await ui.Dialogs.Find("#card-color [data-color='violet']").ClickAsync(new MouseEventArgs());
         ui.Dialogs.WaitForAssertion(() => Assert.False(ui.Dialogs.Find("[data-save]").HasAttribute("disabled")));
         await ui.Dialogs.Find("#card-form").SubmitAsync(EventArgs.Empty);
 

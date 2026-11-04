@@ -11,8 +11,10 @@
     {
         <div class="notice" role="alertdialog" aria-label="Desativar final">
             <p>Desativar em vez de excluir preserva os lançamentos existentes. O final deixará de aparecer nas seleções.</p>
+            <div class="form-actions">
             <button class="button" @onclick="ConfirmDeactivationAsync">Desativar final</button>
             <button class="button button-secondary" @onclick="() => _pendingId = null">Cancelar</button>
+            </div>
         </div>
     }
     <form @onsubmit="SaveAsync" @onsubmit:preventDefault>
@@ -34,8 +36,10 @@
                 <input id="digits-label" @bind="_label" />
             </div>
         </div>
+        <div class="form-actions">
         <button class="button" type="submit" disabled="@_busy">Salvar final</button>
         <button class="button button-secondary" type="button" @onclick="Reset">Limpar</button>
+        </div>
     </form>
     <ul class="catalog-list">
         @foreach (var digits in _items)

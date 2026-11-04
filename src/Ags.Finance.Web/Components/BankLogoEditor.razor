@@ -3,33 +3,42 @@
 @inject IBankLogoCatalog Logos
 @implements IDisposable
 
-<section class="panel" role="dialog" aria-label="Editar logo do banco">
+<section class="panel crop-root" role="dialog" aria-label="Editar logo do banco" data-crop-root>
     <h2 class="visually-hidden">Logo de @Bank.Name</h2>
-    <p>PNG, JPEG ou WebP de até 5 MB e 4096 × 4096 pixels. Ajuste o recorte e confira antes de salvar.</p>
-    <p>Logo atual:</p><BankLogo Bank="Bank" />
-    @if (_error is not null) { <p role="status">@_error</p> }
+    <p class="form-note">PNG, JPEG ou WebP de até 5 MB e 4096 × 4096 pixels. Arraste a imagem para posicionar e use o zoom para ajustar.</p>
+    @if (_error is not null) { <p class="form-warning" role="status">@_error</p> }
     <div class="field"><label for="bank-logo-file">Escolher imagem</label><InputFile id="bank-logo-file" OnChange="LoadAsync" accept="image/png,image/jpeg,image/webp" disabled="@(_loading || _saving)" /></div>
-    @if (_loading) { <p aria-live="polite">Lendo imagem…</p> }
-    @if (_source is not null)
-    {
-        <div class="catalog-fields">
-            <div class="field"><label for="logo-zoom">Zoom @_zoom.ToString("N1")×</label><input id="logo-zoom" type="range" min="1" max="5" step="0.1" @bind="_zoom" @bind:culture="CultureInfo.InvariantCulture" @bind:after="UpdatePreview" disabled="@_saving" /></div>
-            <div class="field"><label for="logo-horizontal">Posição horizontal</label><input id="logo-horizontal" type="range" min="-1" max="1" step="0.01" @bind="_horizontal" @bind:culture="CultureInfo.InvariantCulture" @bind:after="UpdatePreview" disabled="@_saving" /></div>
-            <div class="field"><label for="logo-vertical">Posição vertical</label><input id="logo-vertical" type="range" min="-1" max="1" step="0.01" @bind="_vertical" @bind:culture="CultureInfo.InvariantCulture" @bind:after="UpdatePreview" disabled="@_saving" /></div>
+    @if (_loading) { <p class="form-note" aria-live="polite">Lendo imagem…</p> }
+    @* A área continua montada: a imagem vem direto do arquivo escolhido, sem passar pelo servidor (js/logo-crop.js). *@
+    <div class="crop-area" data-crop-area hidden="@(_source is null)">
+        <div class="crop-stage" data-crop-stage role="img" aria-label="Área de recorte. Arraste para posicionar a imagem dentro do círculo."><img alt="" draggable="false" /></div>
+        <div class="chips" role="group" aria-label="Modo do recorte">
+            <button type="button" class="chip @(_zoom >= 1 ? "on" : null)" aria-pressed="@(_zoom >= 1 ? "true" : "false")" title="A imagem cobre todo o círculo" data-crop-mode="fill" disabled="@_saving">Preencher</button>
+            <button type="button" class="chip @(_zoom < 1 ? "on" : null)" aria-pressed="@(_zoom < 1 ? "true" : "false")" title="A imagem inteira fica dentro do círculo" data-crop-mode="fit" disabled="@_saving">Ajustar</button>
         </div>
-    }
-    @if (_preview is { } preview)
-    {
-        <figure><img class="bank-logo-preview" src="@($"data:image/png;base64,{Convert.ToBase64String(preview)}")" alt="Prévia do recorte circular" width="256" height="256" /><figcaption>Recorte final de 256 × 256 pixels, com transparência fora do círculo.</figcaption></figure>
-    }
-    <button class="button" @onclick="SaveAsync" disabled="@(_saving || _loading || _preview is null)">Salvar recorte</button>
-    @if (Bank.LogoVersion is not null) { <button class="button button-secondary" @onclick="() => _confirmRemoval = true" disabled="@_saving">Remover logo</button> }
-    <button class="button button-secondary" @onclick="() => Cancelled.InvokeAsync()" disabled="@_saving">Cancelar</button>
+        <div class="field crop-zoom"><label class="visually-hidden" for="logo-zoom">Zoom</label><input id="logo-zoom" class="crop-control" type="range" min="0.2" max="5" step="0.01" @bind="_zoom" @bind:culture="CultureInfo.InvariantCulture" @bind:after="UpdatePreview" disabled="@_saving" /><span class="crop-percent" data-crop-percent>@($"{Math.Round(_zoom * 100)}%")</span></div>
+        <div class="visually-hidden">
+            <label for="logo-horizontal">Posição horizontal</label><input id="logo-horizontal" class="crop-control" type="range" min="-1" max="1" step="0.001" @bind="_horizontal" @bind:culture="CultureInfo.InvariantCulture" @bind:after="UpdatePreview" disabled="@_saving" />
+            <label for="logo-vertical">Posição vertical</label><input id="logo-vertical" class="crop-control" type="range" min="-1" max="1" step="0.001" @bind="_vertical" @bind:culture="CultureInfo.InvariantCulture" @bind:after="UpdatePreview" disabled="@_saving" />
+        </div>
+    </div>
+    <div class="crop-compare">
+        <span>Logo atual <BankLogo Bank="Bank" /></span>
+        @if (_preview is { } preview)
+        {
+            <span>Novo logo <img class="bank-logo-preview" src="@($"data:image/png;base64,{Convert.ToBase64String(preview)}")" alt="Prévia do recorte circular" width="30" height="30" /></span>
+        }
+    </div>
     @if (_confirmRemoval)
     {
-        <section role="alertdialog" aria-label="Remover logo"><p>Remover apenas o logo de @Bank.Name? Cadastros e valores serão preservados.</p>
-            <button class="button" @onclick="RemoveAsync" disabled="@_saving">Confirmar remoção</button><button class="button button-secondary" @onclick="() => _confirmRemoval = false" disabled="@_saving">Manter logo</button></section>
+        <section class="crop-confirm" role="alertdialog" aria-label="Remover logo"><p>Remover apenas o logo de @Bank.Name? Cadastros e valores serão preservados.</p>
+            <div class="form-actions"><button class="button" @onclick="RemoveAsync" disabled="@_saving">Confirmar remoção</button><button class="button button-secondary" @onclick="() => _confirmRemoval = false" disabled="@_saving">Manter logo</button></div></section>
     }
+    <div class="form-actions">
+        @if (Bank.LogoVersion is not null) { <button class="button button-secondary" @onclick="() => _confirmRemoval = true" disabled="@_saving">Remover logo</button> }
+        <button class="button button-secondary" @onclick="() => Cancelled.InvokeAsync()" disabled="@_saving">Cancelar</button>
+        <button class="button" @onclick="SaveAsync" disabled="@(_saving || _loading || _preview is null)">Salvar recorte</button>
+    </div>
 </section>
 
 @code {

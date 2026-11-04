@@ -114,6 +114,7 @@ Tema **escuro por padrão** (claro e automático nas preferências), no estilo l
 - Nada carregado de CDN: fontes, scripts e ícones são servidos pela própria aplicação.
 - Fonte Inter (servida localmente), números com dígitos tabulares e alinhados à direita. Valores em `R$ 1.234,56`, datas em `dd/MM/yyyy` (cultura `pt-BR`).
 - Cantos de 8 em controles, 12 em cards e 14 em janelas, espaçamento em múltiplos de 4, sombras leves só em menus e janelas. Botões sem caixa alta e sem sombra; 32 px no computador e 44 px no celular. Seções, totais e entidades ficam em cards suaves (`Card`), sem borda e sem sombra; nunca card dentro de card.
+- **Botões sempre à direita:** em telas, janelas e formulários, no topo ou no rodapé, as ações ficam alinhadas à direita (`page-head-actions`, `form-actions`, `mud-dialog-actions`).
 - **Nenhum controle com aparência do sistema:** lista de select, calendário, seletor de mês, sugestões, validação e dicas abertos seguem os tokens (`wwwroot/js/pickers.js`). A única exceção é a janela de escolha de arquivos.
 - O verde é a cor de marca e das receitas. Em toda a aplicação, a cor do valor vem de `ValueColor`: despesa em vermelho, receita em verde, saldo pelo sinal e zero em cor neutra. Saldo restante de fatura fica vermelho e crédito verde; pagamento de fatura e transferência são neutros. Não use cor como único sinal: valores negativos também levam o sinal.
 - Cores de banco só no texto, em peso normal: Itaú `#FB923C`, Nubank `#A78BFA`, Bradesco `#F87171`.

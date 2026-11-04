@@ -29,7 +29,9 @@
             @foreach (var category in AvailableCategories) { <option value="@category.ExternalId">@category.Name</option> }
         </select></div>
         <div class="field"><label for="monthly-plan-target">Meta planejada (R$)</label><input id="monthly-plan-target" type="number" step="0.01" min="0" @bind="_target" /></div>
+        <div class="form-actions">
         <button class="button" @onclick="SaveCategoryAsync" disabled="@_busy">Salvar meta</button><button class="button button-secondary" @onclick="() => _categoryDialog = false" disabled="@_busy">Cancelar</button>
+        </div>
     </section>
 }
 @if (_deletePlan || _removingCategory is not null)
@@ -37,14 +39,18 @@
     <section class="panel" role="alertdialog" aria-label="Excluir planejamento ou meta">
         <h2>@(_deletePlan ? "Excluir planejamento" : "Remover orçamento de categoria")</h2>
         <p>@_month @(_removingCategory?.Name)</p>
+        <div class="form-actions">
         <button class="button" @onclick="ConfirmDeleteAsync" disabled="@_busy">Confirmar exclusão</button><button class="button button-secondary" @onclick="CancelDelete" disabled="@_busy">Cancelar</button>
+        </div>
     </section>
 }
 @if (_report is { Plan: null } && !_showEditor && !_busy)
 {
     <section class="panel" aria-label="Mês sem planejamento"><h2>Defina o planejamento deste mês</h2>
+        <div class="form-actions">
         <button class="button" id="define-monthly-plan" @onclick="() => _showEditor = true">Definir novo planejamento</button>
         <button class="button button-secondary" id="copy-monthly-plan" @onclick="CopyAsync">Copiar planejamento do mês anterior</button>
+        </div>
     </section>
 }
 @if (_report is { Plan: { } plan, Error: null } report)

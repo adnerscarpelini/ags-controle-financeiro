@@ -32,7 +32,7 @@ uma instalação vazia, entra ativo.
 Cartões exigem conta corrente ativa, nome, bandeira Visa/Mastercard/Elo, limite não
 negativo, cor, fechamento e vencimento entre 1 e 31. A opção de incluir o dia do
 fechamento é explícita; conferir os valores com o emissor ao configurar o cartão.
-A paleta oferece verde, violeta, laranja, rosa e cinza, usando os tokens do tema.
+A cor é escolhida por amostra: cinco principais e "Outras cores" com a paleta completa, usando os tokens do tema (#112).
 
 ## Decisões de design
 

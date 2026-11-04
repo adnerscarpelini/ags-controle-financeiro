@@ -1,18 +1,42 @@
-<div class="field">
-    <label for="@Id">Cor</label>
-    <select id="@Id" value="@Value" @onchange="ChangeAsync" required>
-        <option value="">Selecione</option>
-        <option value="green">Verde</option>
-        <option value="violet">Violeta</option>
-        <option value="orange">Laranja</option>
-        <option value="rose">Rosa</option>
-        <option value="slate">Cinza</option>
-    </select>
+@* Escolha de cor por amostra, não por nome. A lista curta traz as principais; "Outras cores" abre a paleta inteira.
+   As chaves são as de CatalogRules (Accounts) e as cores ficam em tokens.css: CatalogColorTests falha se divergirem. *@
+<div class="field color-field">
+    <span class="field-label" id="@($"{Id}-label")">Cor</span>
+    <div class="color-swatches" id="@Id" role="radiogroup" aria-labelledby="@($"{Id}-label")">
+        @foreach (var option in Visible)
+        {
+            var selected = option.Key == Value;
+            <button type="button" class="color-swatch swatch-@option.Key @(selected ? "on" : null)" role="radio" aria-checked="@(selected ? "true" : "false")" aria-label="@option.Label" title="@option.Label" data-color="@option.Key" @onclick="() => ValueChanged.InvokeAsync(option.Key)">
+                @if (selected) { <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" aria-hidden="true" /> }
+            </button>
+        }
+        <button type="button" class="pill color-more" aria-expanded="@(_showAll ? "true" : "false")" data-more-colors @onclick="() => _showAll = !_showAll">@(_showAll ? "Menos cores" : "Outras cores")</button>
+    </div>
 </div>
 
 @code {
+    public sealed record Option(string Key, string Label);
+
+    public static readonly IReadOnlyList<Option> Options =
+    [
+        new("green", "Verde"), new("blue", "Azul"), new("violet", "Violeta"), new("orange", "Laranja"), new("rose", "Rosa"),
+        new("red", "Vermelho"), new("sky", "Azul-claro"), new("lilac", "Lilás"), new("lime", "Verde-limão"), new("amber", "Âmbar"),
+        new("coral", "Coral"), new("ice", "Azul-gelo"), new("lavender", "Lavanda"), new("pistachio", "Pistache"), new("sand", "Areia"),
+        new("blush", "Rosa-claro"), new("charcoal", "Carvão"), new("graphite", "Grafite"), new("slate", "Cinza"), new("silver", "Prata"),
+        new("indigo", "Anil"), new("teal", "Verde-azulado"), new("forest", "Verde-escuro"), new("yellow", "Amarelo"), new("olive", "Oliva"),
+        new("magenta", "Magenta"), new("caramel", "Caramelo"), new("wine", "Vinho"), new("steel", "Azul-aço"), new("black", "Preto"), new("pine", "Pinho"),
+    ];
+
+    private const int MainCount = 5;
+
+    private bool _showAll;
+
     [Parameter, EditorRequired] public string Id { get; set; } = string.Empty;
     [Parameter] public string Value { get; set; } = string.Empty;
     [Parameter] public EventCallback<string> ValueChanged { get; set; }
-    private Task ChangeAsync(ChangeEventArgs args) => ValueChanged.InvokeAsync(args.Value?.ToString() ?? string.Empty);
+
+    // A cor escolhida continua à vista mesmo quando não é uma das principais.
+    private IEnumerable<Option> Visible => _showAll
+        ? Options
+        : Options.Take(MainCount).Concat(Options.Skip(MainCount).Where(x => x.Key == Value));
 }
