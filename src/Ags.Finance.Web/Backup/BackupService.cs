@@ -39,6 +39,10 @@ internal sealed partial class BackupService(
     public const string KindPreUpdate = "pre-update";
 
     private const string PartialPrefix = ".partial-";
+    private const int PublishAttempts = 20;
+    private const int ClosingConnectionChecks = 30;
+    private static readonly TimeSpan s_publishRetryDelay = TimeSpan.FromMilliseconds(250);
+    private static readonly TimeSpan s_closingConnectionDelay = TimeSpan.FromMilliseconds(100);
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     /// <summary>Cria um backup novo. Falhas esperadas (pasta ausente, pg_dump com erro) voltam no resultado.</summary>
@@ -272,8 +276,28 @@ internal sealed partial class BackupService(
 
         var name2 = UniqueName(directory, $"ags-finance-{startedAt.UtcDateTime:yyyyMMdd'T'HHmmss'Z'}-{kind}");
         var finalPath = Path.Combine(directory, name2);
-        Directory.Move(partial, finalPath);
+        await PublishAsync(partial, finalPath, cancellationToken);
         return new BackupPackage(name2, finalPath, manifest);
+    }
+
+    /// <summary>
+    /// Torna o pacote visível renomeando a pasta temporária. No Windows, outro processo (antivírus, indexador) pode estar
+    /// lendo os arquivos recém-escritos e recusar a renomeação por instantes; só depois de insistir a falha é real.
+    /// </summary>
+    internal static async Task PublishAsync(string partial, string finalPath, CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                Directory.Move(partial, finalPath);
+                return;
+            }
+            catch (Exception exception) when (attempt < PublishAttempts && exception is IOException or UnauthorizedAccessException)
+            {
+                await Task.Delay(s_publishRetryDelay, cancellationToken);
+            }
+        }
     }
 
     private string? CheckDirectory()
