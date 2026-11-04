@@ -15,7 +15,6 @@
                 <MudTh>Data</MudTh>
                 <MudTh>Tipo</MudTh>
                 <MudTh Class="numeric">Valor</MudTh>
-                <MudTh>Operação</MudTh>
             </HeaderContent>
             <RowTemplate Context="movement">
                 <MudTd DataLabel="Data">@movement.Date.ToString("dd/MM/yyyy")</MudTd>
@@ -24,7 +23,6 @@
                     @if (movement.AdjustmentTarget is { } target) { <span class="row-note">Saldo informado: @target</span> }
                 </MudTd>
                 <MudTd DataLabel="Valor" Class="@(movement.Amount.IsNegative ? "numeric entry-expense" : "numeric entry-income")">@(movement.Amount.IsNegative || movement.Amount.IsZero ? string.Empty : "+")@movement.Amount</MudTd>
-                <MudTd DataLabel="Operação"><span class="row-note">@movement.OperationExternalId</span></MudTd>
             </RowTemplate>
             <NoRecordsContent>
                 <EmptyState Icon="@Icons.Material.Outlined.SwapHoriz" Message="Nenhum movimento nesta conta." />
