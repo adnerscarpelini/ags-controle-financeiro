@@ -137,7 +137,11 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
 }
 
-app.UseStaticFiles();
+// Revalida a cada carga: sem isso o navegador reaproveita o CSS e o JS antigos depois de uma atualização.
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = context => context.Context.Response.Headers.CacheControl = "no-cache",
+});
 app.UseMaintenanceMode();
 app.UseNoStore();
 app.UseAuthentication();

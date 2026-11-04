@@ -135,6 +135,16 @@ public sealed partial class LayoutPagesTests : IDisposable
         Assert.DoesNotContain("MudBlazor", login, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task StaticAssetsAreRevalidatedSoAnUpdateReachesTheBrowser()
+    {
+        using var client = _factory.CreateClient();
+
+        using var response = await client.GetAsync(new Uri("/css/app.css", UriKind.Relative));
+
+        Assert.True(response.Headers.CacheControl?.NoCache);
+    }
+
     [Theory]
     [InlineData("/css/tokens.css")]
     [InlineData("/css/app.css")]
