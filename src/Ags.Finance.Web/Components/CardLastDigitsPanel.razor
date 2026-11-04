@@ -12,7 +12,7 @@
         <div class="notice" role="alertdialog" aria-label="Desativar final">
             <p>Desativar em vez de excluir preserva os lançamentos existentes. O final deixará de aparecer nas seleções.</p>
             <button class="button" @onclick="ConfirmDeactivationAsync">Desativar final</button>
-            <button class="button" @onclick="() => _pendingId = null">Cancelar</button>
+            <button class="button button-secondary" @onclick="() => _pendingId = null">Cancelar</button>
         </div>
     }
     <form @onsubmit="SaveAsync" @onsubmit:preventDefault>
@@ -35,7 +35,7 @@
             </div>
         </div>
         <button class="button" type="submit" disabled="@_busy">Salvar final</button>
-        <button class="button" type="button" @onclick="Reset">Limpar</button>
+        <button class="button button-secondary" type="button" @onclick="Reset">Limpar</button>
     </form>
     <ul class="catalog-list">
         @foreach (var digits in _items)
@@ -43,10 +43,10 @@
             <li>
                 <span>@digits.Digits · @UsageLabel(digits.Usage) · @digits.Label · @(digits.IsActive ? "Ativo" : "Desativado")</span>
                 <div>
-                    <button class="button" @onclick="() => Edit(digits)">Editar final</button>
+                    <button class="button button-secondary" type="button" @onclick="() => Edit(digits)">Editar final</button>
                     @if (digits.IsActive)
                     {
-                        <button class="button" @onclick="() => _pendingId = digits.ExternalId">Excluir / desativar final</button>
+                        <button class="button button-secondary" type="button" @onclick="() => _pendingId = digits.ExternalId">Excluir / desativar final</button>
                     }
                 </div>
             </li>
