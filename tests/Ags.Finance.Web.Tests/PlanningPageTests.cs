@@ -64,8 +64,11 @@ public sealed class PlanningPageTests
         await page.Find("#define-monthly-plan").ClickAsync(new());
         Assert.Equal("20", page.Find("#plan-saving").GetAttribute("value"));
         await page.Find("#plan-income").ChangeAsync(new() { Value = "1000" });
-        Assert.Contains("R$ 800,00", page.Find(".monthly-plan-preview").TextContent);
-        Assert.Contains("R$ 200,00", page.Find(".monthly-plan-preview").TextContent);
+        page.WaitForAssertion(() =>
+        {
+            Assert.Contains("R$ 800,00", page.Find(".monthly-plan-preview").TextContent);
+            Assert.Contains("R$ 200,00", page.Find(".monthly-plan-preview").TextContent);
+        });
         await page.Find("#plan-saving").ChangeAsync(new() { Value = "101" });
         await page.Find("#plan-next").ClickAsync(new());
         Assert.NotEmpty(page.FindAll("[role=alert]"));
@@ -77,7 +80,7 @@ public sealed class PlanningPageTests
         await page.Find("#plan-next").ClickAsync(new());
         Assert.NotEmpty(page.FindAll("[role=alert]"));
         await page.Find($"#plan-target-{category}").ChangeAsync(new() { Value = "200" });
-        Assert.Contains("R$ 600,00", page.Find(".monthly-plan-preview").TextContent);
+        page.WaitForAssertion(() => Assert.Contains("R$ 600,00", page.Find(".monthly-plan-preview").TextContent));
         await page.Find("#plan-next").ClickAsync(new());
         Assert.Equal("InvoiceDate", page.Find("#plan-card-view").GetAttribute("value"));
         await page.Find("#plan-save").ClickAsync(new());
