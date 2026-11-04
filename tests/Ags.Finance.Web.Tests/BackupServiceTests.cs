@@ -184,6 +184,58 @@ public sealed class BackupServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task RestoreWaitsForAConnectionThatIsStillClosing()
+    {
+        using var service = CreateService();
+        var package = (await service.CreateAsync(BackupService.KindManual, CancellationToken.None)).Package!;
+        var unpooled = new NpgsqlConnectionStringBuilder(Database.ConnectionString) { Pooling = false }.ToString();
+        var closing = new NpgsqlConnection(unpooled);
+        await closing.OpenAsync();
+
+        var restore = service.RestoreAsync(package.Name, forceDisconnect: false, CancellationToken.None);
+        await Task.Delay(TimeSpan.FromMilliseconds(500));
+        await closing.DisposeAsync();
+        var result = await restore;
+
+        Assert.True(result.Succeeded, result.Error);
+        Assert.Equal(1, _tools.RestoreCalls);
+    }
+
+    [Fact]
+    public async Task PublishingWaitsForAnotherProcessToReleaseTheNewFiles()
+    {
+        var partial = Path.Combine(BackupDirectory, ".partial-locked");
+        var final = Path.Combine(BackupDirectory, "published");
+        Directory.CreateDirectory(partial);
+        var locker = new FileStream(Path.Combine(partial, "dump"), FileMode.CreateNew, FileAccess.Write, FileShare.None);
+
+        var publish = BackupService.PublishAsync(partial, final, CancellationToken.None);
+        await Task.Delay(TimeSpan.FromMilliseconds(300));
+        await locker.DisposeAsync();
+        await publish;
+
+        Assert.True(File.Exists(Path.Combine(final, "dump")));
+        Assert.False(Directory.Exists(partial));
+    }
+
+    [Fact]
+    public async Task PublishingGivesUpWhenTheFilesStayLocked()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return; // Só o Windows recusa renomear uma pasta com arquivo aberto.
+        }
+
+        var partial = Path.Combine(BackupDirectory, ".partial-locked");
+        Directory.CreateDirectory(partial);
+        await using var locker = new FileStream(Path.Combine(partial, "dump"), FileMode.CreateNew, FileAccess.Write, FileShare.None);
+
+        await Assert.ThrowsAsync<IOException>(() => BackupService.PublishAsync(partial, Path.Combine(BackupDirectory, "published"), CancellationToken.None));
+
+        Assert.True(Directory.Exists(partial));
+    }
+
+    [Fact]
     public async Task RestoreTakesASafetyBackupFirstAndRestoresTheAppFiles()
     {
         await Database.ExecuteAsync("CREATE SCHEMA identity");

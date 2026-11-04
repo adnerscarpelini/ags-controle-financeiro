@@ -161,7 +161,15 @@ internal sealed partial class BackupService
             await using var count = new NpgsqlCommand(
                 "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid()",
                 connection);
-            var others = Convert.ToInt64(await count.ExecuteScalarAsync(cancellationToken), System.Globalization.CultureInfo.InvariantCulture);
+            var others = await CountAsync(count, cancellationToken);
+
+            // Fechar uma conexão do pool não encerra o processo dela no servidor na mesma hora: só insiste antes de recusar.
+            for (var check = 1; others > 0 && !force && check < ClosingConnectionChecks; check++)
+            {
+                await Task.Delay(s_closingConnectionDelay, cancellationToken);
+                others = await CountAsync(count, cancellationToken);
+            }
+
             if (others == 0)
             {
                 return null;
@@ -184,6 +192,11 @@ internal sealed partial class BackupService
             OperationLog.Failed(logger, "Verificação do acesso exclusivo", exception);
             return "Não foi possível verificar o acesso exclusivo ao banco.";
         }
+    }
+
+    private static async Task<long> CountAsync(NpgsqlCommand count, CancellationToken cancellationToken)
+    {
+        return Convert.ToInt64(await count.ExecuteScalarAsync(cancellationToken), System.Globalization.CultureInfo.InvariantCulture);
     }
 
     /// <summary>
