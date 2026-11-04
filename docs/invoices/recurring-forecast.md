@@ -27,10 +27,10 @@ Exemplo com hoje em 10/11, R$ 100,00 em compras e uma assinatura de R$ 50,00 no 
 ## O que acompanha a preferência
 
 Total e saldo em `/faturas`, valor sugerido em "Pagar", saldos de `/compromissos` e os valores de fatura
-do dashboard (tabela e gráfico). A composição da fatura mostra as previstas num grupo próprio, nas duas
+do dashboard. A composição da fatura mostra as previstas num grupo próprio, nas duas
 opções. A confirmação de fechamento mostra o total com as previstas, porque fechar protege todas elas.
 
-A tabela de faturas do dashboard tem a coluna **Previsto** (#71) com `ForecastTotal` quando as previstas ficam fora do total, e zero quando já estão somadas. A "Média no ano" do dashboard não conta um mês cuja fatura só tem previstas fora do total.
+O card de faturas do dashboard mostra **Previsto** (#112) com `ForecastTotal` quando as previstas ficam fora do total; quando já estão somadas, a linha não aparece.
 
 ## O que não muda
 
@@ -52,4 +52,4 @@ A prévia mostra o total usado na comparação.
 ## Testes
 
 `InvoiceTests.RecurringForecast.cs` (modos, virada de data no fuso de negócio, Fechada, fatura só com
-previstas, saldos, ajuste), `InvoiceReportTests` (média do ano) e `InvoiceForecastPageTests` (tela).
+previstas, saldos, ajuste), e `InvoiceForecastPageTests` (tela).
