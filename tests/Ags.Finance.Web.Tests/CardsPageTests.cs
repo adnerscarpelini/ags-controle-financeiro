@@ -323,6 +323,48 @@ public sealed class CardsPageTests
     }
 
     [Fact]
+    public async Task TheInvoiceActionsAndValuesOnlyAppearAfterTheInvoiceLoads()
+    {
+        await using var ui = await EntryUi.CreateAsync();
+        await BuyAsync(ui, 100);
+        await CloseAsync(ui);
+        await PayAsync(ui, 100);
+        ui.Context.Services.GetRequiredService<NavigationManager>().NavigateTo($"/cartoes/{ui.Card}/faturas?mes=2026-09");
+
+        var hold = await ui.LockSchemaAsync("invoices");
+        var page = ui.Context.Render<InvoiceDetail>(parameters => parameters.Add(x => x.CardExternalId, ui.Card));
+        await ui.WaitForBlockedQueryAsync();
+
+        Assert.Empty(page.FindAll("[data-invoice-action]"));
+        Assert.Empty(page.FindAll("[data-invoice-menu]"));
+        Assert.Empty(page.FindAll("[data-stat='invoice-status']"));
+        Assert.DoesNotContain("Cartão Exemplo", page.Find("h1").TextContent, StringComparison.Ordinal);
+
+        await hold.DisposeAsync();
+        page.WaitForAssertion(() => Assert.Equal("Paga", Stat(page, "invoice-status")));
+        Assert.Contains("Cartão Exemplo", page.Find("h1").TextContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task TheWalletOnlyShowsACardAfterEverythingAboutItLoads()
+    {
+        await using var ui = await EntryUi.CreateAsync();
+        await BuyAsync(ui, 2500);
+
+        var hold = await ui.LockSchemaAsync("invoices");
+        var page = ui.Context.Render<Cards>();
+        await ui.WaitForBlockedQueryAsync();
+        page.Render();
+
+        Assert.Empty(page.FindAll("[data-card]"));
+
+        await hold.DisposeAsync();
+        page.WaitForAssertion(() => Assert.NotEmpty(page.FindAll("[data-card]")));
+        Assert.Contains("Limite disponível: R$ 7.500,00 de R$ 10.000,00", page.Find("[data-card-limit]").TextContent, StringComparison.Ordinal);
+        Assert.Equal("Fatura aberta", page.Find("[data-invoice-status]").TextContent);
+    }
+
+    [Fact]
     public async Task TheMonthSelectorMovesBetweenInvoices()
     {
         await using var ui = await EntryUi.CreateAsync();
