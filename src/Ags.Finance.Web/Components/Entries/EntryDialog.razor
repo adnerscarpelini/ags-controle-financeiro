@@ -69,6 +69,7 @@
                             </optgroup>
                         }
                     </select>
+                    @if (_loaded && !SubcategoryGroups.Any()) { <p class="form-note" data-no-subcategories>Nenhuma subcategoria disponível. Cadastre uma em Cadastros › Categorias.</p> }
                 </div>
 
                 @if (ShowCardField)
