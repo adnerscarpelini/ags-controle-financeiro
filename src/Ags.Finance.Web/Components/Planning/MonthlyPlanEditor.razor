@@ -39,10 +39,10 @@
             @if (_step > 1) { <dt>Total categorizado</dt><dd>@preview.CategorizedTotal</dd><dt>Falta categorizar</dt><dd class="@(preview.UnclassifiedBudget.IsNegative ? "entry-expense" : string.Empty)">@preview.UnclassifiedBudget</dd> }
         </dl>
     }
-    @if (_step > 1) { <button class="button" @onclick="() => _step--" disabled="@_busy">Voltar</button> }
+    @if (_step > 1) { <button class="button button-secondary" @onclick="() => _step--" disabled="@_busy">Voltar</button> }
     @if (_step < 3) { <button class="button" id="plan-next" @onclick="NextAsync" disabled="@_busy">Avançar</button> }
     else { <button class="button" id="plan-save" @onclick="SaveAsync" disabled="@_busy">Salvar planejamento</button> }
-    <button class="button" @onclick="() => Cancelled.InvokeAsync()" disabled="@_busy">Cancelar</button>
+    <button class="button button-secondary" @onclick="() => Cancelled.InvokeAsync()" disabled="@_busy">Cancelar</button>
 </section>
 
 @code {

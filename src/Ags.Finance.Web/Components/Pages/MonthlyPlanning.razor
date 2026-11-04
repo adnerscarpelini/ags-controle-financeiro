@@ -11,9 +11,9 @@
 
 <PageHeader Title="Planejamento mensal" />
 <section class="panel monthly-plan-navigation">
-    <button class="button" @onclick="() => MoveAsync(-1)" disabled="@(_busy || _month == new ReferenceMonth(1, 1))">Mês anterior</button>
-    <h2>@_month.FirstDay.ToString("MMMM 'de' yyyy", CultureInfo.GetCultureInfo("pt-BR"))</h2>
-    <button class="button" @onclick="() => MoveAsync(1)" disabled="@(_busy || _month == new ReferenceMonth(9999, 12))">Próximo mês</button>
+    <button class="button button-secondary" @onclick="() => MoveAsync(-1)" disabled="@(_busy || _month == new ReferenceMonth(1, 1))">Mês anterior</button>
+    <h2>@MonthPicker.Label(_month)</h2>
+    <button class="button button-secondary" @onclick="() => MoveAsync(1)" disabled="@(_busy || _month == new ReferenceMonth(9999, 12))">Próximo mês</button>
 </section>
 @if (_message is not null) { <p role="status">@_message</p> }
 @if (_report?.Error is { } error) { <p role="alert">@error</p> }
@@ -29,7 +29,7 @@
             @foreach (var category in AvailableCategories) { <option value="@category.ExternalId">@category.Name</option> }
         </select></div>
         <div class="field"><label for="monthly-plan-target">Meta planejada (R$)</label><input id="monthly-plan-target" type="number" step="0.01" min="0" @bind="_target" /></div>
-        <button class="button" @onclick="SaveCategoryAsync" disabled="@_busy">Salvar meta</button><button class="button" @onclick="() => _categoryDialog = false" disabled="@_busy">Cancelar</button>
+        <button class="button" @onclick="SaveCategoryAsync" disabled="@_busy">Salvar meta</button><button class="button button-secondary" @onclick="() => _categoryDialog = false" disabled="@_busy">Cancelar</button>
     </section>
 }
 @if (_deletePlan || _removingCategory is not null)
@@ -37,22 +37,22 @@
     <section class="panel" role="alertdialog" aria-label="Excluir planejamento ou meta">
         <h2>@(_deletePlan ? "Excluir planejamento" : "Remover orçamento de categoria")</h2>
         <p>@_month @(_removingCategory?.Name)</p>
-        <button class="button" @onclick="ConfirmDeleteAsync" disabled="@_busy">Confirmar exclusão</button><button class="button" @onclick="CancelDelete" disabled="@_busy">Cancelar</button>
+        <button class="button" @onclick="ConfirmDeleteAsync" disabled="@_busy">Confirmar exclusão</button><button class="button button-secondary" @onclick="CancelDelete" disabled="@_busy">Cancelar</button>
     </section>
 }
 @if (_report is { Plan: null } && !_showEditor && !_busy)
 {
     <section class="panel" aria-label="Mês sem planejamento"><h2>Defina o planejamento deste mês</h2>
         <button class="button" id="define-monthly-plan" @onclick="() => _showEditor = true">Definir novo planejamento</button>
-        <button class="button" id="copy-monthly-plan" @onclick="CopyAsync">Copiar planejamento do mês anterior</button>
+        <button class="button button-secondary" id="copy-monthly-plan" @onclick="CopyAsync">Copiar planejamento do mês anterior</button>
     </section>
 }
 @if (_report is { Plan: { } plan, Error: null } report)
 {
     <div class="monthly-plan-actions">
-        <button class="button" @onclick="() => _showEditor = true" disabled="@_busy">Editar planejamento</button>
+        <button class="button button-secondary" @onclick="() => _showEditor = true" disabled="@_busy">Editar planejamento</button>
         <button class="button" @onclick="AddCategory" disabled="@_busy">Novo orçamento de categoria</button>
-        <button class="button" @onclick="() => _deletePlan = true" disabled="@_busy">Excluir planejamento</button>
+        <button class="button button-secondary" @onclick="() => _deletePlan = true" disabled="@_busy">Excluir planejamento</button>
         <div class="field"><label for="monthly-plan-card-view">Visualização do cartão</label><select id="monthly-plan-card-view" @bind="_cardView" @bind:after="ChangeCardViewAsync" disabled="@_busy"><option value="@MonthlyPlanCardView.InvoiceDate">Pela data da fatura</option><option value="@MonthlyPlanCardView.PurchaseDate">Pela data da compra</option></select></div>
         <div class="field"><label for="monthly-plan-search">Buscar categoria</label><input id="monthly-plan-search" @bind="_search" @bind:event="oninput" /></div>
     </div>

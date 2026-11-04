@@ -9,12 +9,12 @@
 <section class="panel" aria-labelledby="planning-period">
     <h2 id="planning-period">@PeriodName</h2>
     <div class="planning-actions">
-        <button type="button" class="button" disabled="@_busy" @onclick="() => MoveAsync(-1)">Mês anterior</button>
-        <button type="button" class="button" disabled="@_busy" @onclick="() => MoveAsync(1)">Próximo mês</button>
+        <button type="button" class="button button-secondary" disabled="@_busy" @onclick="() => MoveAsync(-1)">Mês anterior</button>
+        <button type="button" class="button button-secondary" disabled="@_busy" @onclick="() => MoveAsync(1)">Próximo mês</button>
         @if (_report is { IsEmpty: false })
         {
-            <button type="button" class="button" @onclick="ExpandAll">Expandir tudo</button>
-            <button type="button" class="button" @onclick="CollapseAll">Recolher tudo</button>
+            <button type="button" class="button button-secondary" @onclick="ExpandAll">Expandir tudo</button>
+            <button type="button" class="button button-secondary" @onclick="CollapseAll">Recolher tudo</button>
         }
     </div>
     @if (_report?.ProjectionError is { } error) { <p role="alert">As recorrentes futuras não puderam ser calculadas: @error</p> }
