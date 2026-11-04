@@ -391,18 +391,15 @@ public sealed partial class TransactionPageTests
         await using var ui = await EntryUi.CreateAsync();
         await ui.Entries.CreateInstallmentsAsync(new(new DateOnly(2026, 10, 2), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(1000), string.Empty, new ReferenceMonth(2026, 12), ui.Card, UseSelectedInvoice: true), 3);
         var page = ui.Context.Render<Transactions>();
-        await page.WaitForElement("[data-toggle-filters]").ClickAsync(new MouseEventArgs());
-        await page.Find("#filter-all-months").ChangeAsync(true);
-        page.WaitForAssertion(() => Assert.Equal(3, Rows(page).Count));
 
-        // A lista recarrega de forma assíncrona depois das janelas: a linha é localizada de novo se tiver sido redesenhada.
-        async Task ClickAsync(string text, string action)
+        // A tela recarrega de forma assíncrona na abertura e depois das janelas: o elemento é localizado de novo se tiver sido redesenhado.
+        static async Task RetryWhenRedrawnAsync(Func<Task> action)
         {
             for (var attempt = 0; ; attempt++)
             {
                 try
                 {
-                    await Rows(page).Single(x => x.TextContent.Contains(text, StringComparison.Ordinal)).QuerySelector($"[data-action={action}]")!.ClickAsync(new MouseEventArgs());
+                    await action();
                     return;
                 }
                 catch (Bunit.Rendering.UnknownEventHandlerIdException) when (attempt < 5)
@@ -411,6 +408,13 @@ public sealed partial class TransactionPageTests
                 }
             }
         }
+
+        Task ClickAsync(string text, string action) => RetryWhenRedrawnAsync(() =>
+            Rows(page).Single(x => x.TextContent.Contains(text, StringComparison.Ordinal)).QuerySelector($"[data-action={action}]")!.ClickAsync(new MouseEventArgs()));
+
+        await RetryWhenRedrawnAsync(() => page.WaitForElement("[data-toggle-filters]").ClickAsync(new MouseEventArgs()));
+        await RetryWhenRedrawnAsync(() => page.Find("#filter-all-months").ChangeAsync(true));
+        page.WaitForAssertion(() => Assert.Equal(3, Rows(page).Count));
 
         await ClickAsync("(1/3)", "anticipate");
         ui.Dialogs.WaitForAssertion(() => Assert.False(ui.Dialogs.Find("[data-review]").HasAttribute("disabled")));
