@@ -13,7 +13,7 @@
         <ul class="catalog-list" aria-label="Em aberto por cartão">
             @foreach (var card in _result.Cards)
             {
-                <li class="list-row"><span>@card.CardName</span><span class="numeric @(card.RemainingBalance.IsNegative ? "invoice-credit" : string.Empty)">@card.RemainingBalance @(card.RemainingBalance.IsNegative ? "(crédito)" : string.Empty)</span></li>
+                <li class="list-row"><span>@card.CardName</span><span class="numeric @ValueColor.Owed(card.RemainingBalance)">@card.RemainingBalance @(card.RemainingBalance.IsNegative ? "(crédito)" : string.Empty)</span></li>
             }
         </ul>
         <h3>Saldo restante por mês, em todos os cartões</h3>
@@ -21,7 +21,7 @@
             @foreach (var month in _result.Months)
             {
                 <li class="list-row"><span>@month.Month @if (month.Month == _current) { <strong>· Mês corrente</strong> }</span>
-                    <span class="numeric @(month.RemainingBalance.IsNegative ? "invoice-credit" : string.Empty)">@(month.FullyPaid ? "- (pago)" : month.RemainingBalance.ToString()) @(month.RemainingBalance.IsNegative ? "(crédito)" : string.Empty)</span></li>
+                    <span class="numeric @ValueColor.Owed(month.RemainingBalance)">@(month.FullyPaid ? "- (pago)" : month.RemainingBalance.ToString()) @(month.RemainingBalance.IsNegative ? "(crédito)" : string.Empty)</span></li>
             }
         </ul>
         <p class="form-note">Saldo zero ou crédito sem confirmação de quitação não significa fatura Paga.</p>

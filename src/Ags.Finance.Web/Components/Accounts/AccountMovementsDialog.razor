@@ -22,7 +22,7 @@
                     @KindLabel(movement.Kind)
                     @if (movement.AdjustmentTarget is { } target) { <span class="row-note">Saldo informado: @target</span> }
                 </MudTd>
-                <MudTd DataLabel="Valor" Class="@(movement.Amount.IsNegative ? "numeric entry-expense" : "numeric entry-income")">@(movement.Amount.IsNegative || movement.Amount.IsZero ? string.Empty : "+")@movement.Amount</MudTd>
+                <MudTd DataLabel="Valor" Class="@($"numeric value-amount {ValueColor.Balance(movement.Amount)}")">@(movement.Amount.IsNegative || movement.Amount.IsZero ? string.Empty : "+")@movement.Amount</MudTd>
             </RowTemplate>
             <NoRecordsContent>
                 <EmptyState Icon="@Icons.Material.Outlined.SwapHoriz" Message="Nenhum movimento nesta conta." />

@@ -78,7 +78,7 @@
                         @if (RowNote(entry) is { Length: > 0 } note) { <span class="row-note">@note</span> }
                     </MudTd>
                     <MudTd DataLabel="Categoria">@entry.Classification.Replace(" > ", " › ", StringComparison.Ordinal)</MudTd>
-                    <MudTd DataLabel="Valor" Class="@(IsForecast(entry) ? "numeric invoice-forecast" : "numeric")">@Purchase(entry)</MudTd>
+                    <MudTd DataLabel="Valor" Class="@($"numeric {ValueColor.Balance(entry.Amount)} {(IsForecast(entry) ? "invoice-forecast" : null)}")">@Purchase(entry)</MudTd>
                     <MudTd DataLabel="Ações" Class="col-actions">
                         @if (entry.IsInvoiceAdjustment)
                         {
@@ -100,8 +100,8 @@
             </MudTable>
         </section>
         <aside class="split-aside" aria-label="Resumo da fatura">
-            <StatCard Label="Valor da fatura" Value="@_invoice.Total.ToString()" Note="@ForecastNote" Testid="invoice-total" />
-            <StatCard Label="Saldo restante" Help="Total menos pagamentos, cashback e descontos. Saldo zero ou crédito sem confirmação de quitação não significa fatura Paga." Value="@RemainingText" Testid="invoice-remaining" />
+            <StatCard ValueClass="@ValueColor.Expense(_invoice.Total)" Label="Valor da fatura" Value="@_invoice.Total.ToString()" Note="@ForecastNote" Testid="invoice-total" />
+            <StatCard ValueClass="@ValueColor.Owed(_invoice.RemainingBalance)" Label="Saldo restante" Help="Total menos pagamentos, cashback e descontos. Saldo zero ou crédito sem confirmação de quitação não significa fatura Paga." Value="@RemainingText" Testid="invoice-remaining" />
             <StatCard Label="Situação" Help="Aberta recebe compras. Fechada aguarda pagamento. Paga está quitada e pode ser reaberta, o que desfaz o pagamento." Value="@StatusLabel(_invoice.Status)" Testid="invoice-status" />
             @if (_dates is { } dates)
             {

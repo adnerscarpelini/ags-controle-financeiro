@@ -46,7 +46,7 @@
                     {
                         <label class="checkbox"><input id="payment-settle" type="checkbox" @bind="_settle" />Confirmo também a quitação, se o saldo após este pagamento for zero ou crédito</label>
                     }
-                    @if (_amount > Invoice.RemainingBalance.Amount) { <p class="form-warning invoice-credit">O pagamento excede o saldo restante e gera crédito.</p> }
+                    @if (_amount > Invoice.RemainingBalance.Amount) { <p class="form-warning">O pagamento excede o saldo restante e gera crédito.</p> }
                 </form>
             }
             <AttachmentPicker @ref="_picker" Kinds="s_kinds" />

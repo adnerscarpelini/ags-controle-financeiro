@@ -7,8 +7,8 @@
         <tbody>@foreach (var row in Rows)
         {
             <tr @key="row.CategoryExternalId" class="@(row.Exceeded ? "monthly-plan-exceeded" : string.Empty)">
-                <th>@row.Name</th><td class="numeric">@row.Target</td><td class="numeric">@row.Paid</td><td class="numeric">@row.Forecast</td><td class="numeric">@row.Total</td>
-                <td><span>@(row.Exceeded ? $"Excederam {-row.Remaining}" : $"Restam {row.Remaining}")</span>
+                <th>@row.Name</th><td class="numeric">@row.Target</td><td class="numeric @ValueColor.Expense(row.Paid)">@row.Paid</td><td class="numeric @ValueColor.Expense(row.Forecast)">@row.Forecast</td><td class="numeric @ValueColor.Expense(row.Total)">@row.Total</td>
+                <td><span class="@ValueColor.Balance(row.Remaining)">@(row.Exceeded ? $"Excederam {-row.Remaining}" : $"Restam {row.Remaining}")</span>
                     <div class="monthly-plan-bar" aria-label="@($"Pagas {row.Paid}; previstas {row.Forecast}")"><span class="monthly-plan-paid" style="@Width(row.PaidProgress)"></span><span class="monthly-plan-forecast" style="@Width(row.ForecastProgress)"></span></div>
                 </td>
                 <td>@if (row.CategoryExternalId is not null) { <div class="monthly-plan-row-actions"><button class="button button-secondary" @onclick="() => Edit.InvokeAsync(row)">Editar</button><button class="button button-secondary" @onclick="() => Remove.InvokeAsync(row)">Remover</button></div> }</td>

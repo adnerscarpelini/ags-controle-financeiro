@@ -301,7 +301,7 @@
     private bool HasInstallments => _installments > 1;
     private DateOnly Today => DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
     private string PaidLabel => _isPaid ? IsExpense ? "Pago" : "Recebido" : IsExpense ? "Não foi pago" : "Não foi recebido";
-    private string AmountClass => IsCard ? "amount-card" : IsExpense ? "amount-expense" : "amount-income";
+    private string AmountClass => _amount == 0 ? "amount-neutral" : IsCard || IsExpense ? "amount-expense" : "amount-income";
 
     private string Title => (IsEditing, IsCard, IsExpense) switch
     {

@@ -22,7 +22,7 @@
             <ul class="catalog-list" aria-label="Valores recebidos">
                 @foreach (var item in Items)
                 {
-                    <li><span>@item.PersonName · @item.Description · Esperado: <span class="numeric">@item.Expected</span></span>
+                    <li><span>@item.PersonName · @item.Description · Esperado: <span class="numeric @ValueColor.Income(item.Expected)">@item.Expected</span></span>
                         <div class="field"><label for="received-@item.EntryExternalId">Valor recebido (R$) <HelpTip Text="Receber menos que o esperado encerra o item." /></label><input id="received-@item.EntryExternalId" class="input" type="number" inputmode="decimal" step="0.01" min="0" @bind="_received[item.EntryExternalId]" /></div></li>
                 }
             </ul>
@@ -30,7 +30,7 @@
                 @foreach (var person in Items.GroupBy(x => x.PersonName).OrderBy(x => x.Key, StringComparer.CurrentCultureIgnoreCase))
                 {
                     var total = new Money(person.Sum(x => _received[x.EntryExternalId]));
-                    <li><span>@person.Key: <span class="numeric">@total</span> · @(total.IsZero ? "sem lançamento" : "uma receita na conta escolhida")</span></li>
+                    <li><span>@person.Key: <span class="numeric @ValueColor.Income(total)">@total</span> · @(total.IsZero ? "sem lançamento" : "uma receita na conta escolhida")</span></li>
                 }
             </ul>
             @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }

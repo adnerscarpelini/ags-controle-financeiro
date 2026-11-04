@@ -15,8 +15,8 @@
             <div class="entry-column" aria-label="Confirmar ajuste de saldo">
                 <p class="form-note">@Account.Name · @review.Date.ToString("dd/MM/yyyy")</p>
                 <dl class="review-list" data-adjustment-review>
-                    <div><dt>Saldo calculado</dt><dd>@review.ExpectedBalance</dd></div>
-                    <div><dt>Saldo correto</dt><dd>@review.CorrectBalance</dd></div>
+                    <div><dt>Saldo calculado</dt><dd class="@ValueColor.Balance(review.ExpectedBalance ?? Money.Zero)">@review.ExpectedBalance</dd></div>
+                    <div><dt>Saldo correto</dt><dd class="@ValueColor.Balance(review.CorrectBalance)">@review.CorrectBalance</dd></div>
                     <div><dt>Diferença</dt><dd>@(review.CorrectBalance - (review.ExpectedBalance ?? Money.Zero))</dd></div>
                 </dl>
                 <p class="form-note">O ajuste preserva a abertura e os movimentos anteriores. Correções são feitas por um novo ajuste.</p>

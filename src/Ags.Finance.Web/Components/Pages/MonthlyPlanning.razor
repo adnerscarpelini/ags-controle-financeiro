@@ -58,17 +58,17 @@
     </div>
     <div class="monthly-plan-layout">
         <section class="panel monthly-plan-main">
-            <div class="monthly-plan-summary"><h2>@(report.Remaining.IsNegative ? $"Excederam {-report.Remaining}" : $"Restam {report.Remaining}")</h2><p>@report.Total de @report.PlannedExpenses gastos</p>
+            <div class="monthly-plan-summary"><h2 class="@ValueColor.Balance(report.Remaining)">@(report.Remaining.IsNegative ? $"Excederam {-report.Remaining}" : $"Restam {report.Remaining}")</h2><p>@report.Total de @report.PlannedExpenses gastos</p>
                 <div class="monthly-plan-bar" aria-label="@($"Pagas {report.Paid}; previstas {report.Forecast}")"><span class="monthly-plan-paid" style="@Width(report.PaidProgress)"></span><span class="monthly-plan-forecast" style="@Width(report.ForecastProgress)"></span></div>
                 <p>Pagas: @report.Paid · Previstas: @report.Forecast</p>
             </div>
             <MonthlyPlanTable Rows="VisibleRows" Edit="EditCategory" Remove="row => _removingCategory = row" />
         </section>
         <aside aria-label="Resumo do planejamento" class="monthly-plan-cards">
-            <section class="panel"><h3>Receitas do mês</h3><p class="numeric">@report.ReceivedIncome</p><small>Somente Recebidas</small></section>
-            <section class="panel"><h3>Gastos planejados</h3><p class="numeric">@report.PlannedExpenses</p></section>
-            <section class="panel"><h3>Balanço planejado</h3><p class="numeric @(report.PlannedBalance.IsNegative ? "entry-expense" : "entry-income")">@report.PlannedBalance</p></section>
-            <section class="panel"><h3>Economia planejada</h3><p class="numeric">@report.PlannedSavingsPercent.ToString("N2", CultureInfo.GetCultureInfo("pt-BR"))%</p></section>
+            <section class="panel"><h3>Receitas do mês</h3><p class="numeric @ValueColor.Income(report.ReceivedIncome)">@report.ReceivedIncome</p><small>Somente Recebidas</small></section>
+            <section class="panel"><h3>Gastos planejados</h3><p class="numeric @ValueColor.Expense(report.PlannedExpenses)">@report.PlannedExpenses</p></section>
+            <section class="panel"><h3>Balanço planejado</h3><p class="numeric @ValueColor.Balance(report.PlannedBalance)">@report.PlannedBalance</p></section>
+            <section class="panel"><h3>Economia planejada</h3><p class="numeric @ValueColor.Percent(report.PlannedSavingsPercent)">@report.PlannedSavingsPercent.ToString("N2", CultureInfo.GetCultureInfo("pt-BR"))%</p></section>
         </aside>
     </div>
 }

@@ -6,7 +6,7 @@
         <thead><tr><th>Data</th><th>Tipo</th><th>Valor</th><th>Conta debitada</th><th>Detalhes</th><th>Documentos</th></tr></thead>
         <tbody>@foreach (var payment in Invoice.PaymentHistory)
         {
-            <tr><td>@payment.Date.ToString("dd/MM/yyyy")</td><td>@(payment.UndoneAt is { } undone ? $"Pagamento desfeito em {undone.ToLocalTime():dd/MM/yyyy HH:mm}" : TypeLabel(payment.Kind))</td><td class="numeric">@payment.Amount</td>
+            <tr><td>@payment.Date.ToString("dd/MM/yyyy")</td><td>@(payment.UndoneAt is { } undone ? $"Pagamento desfeito em {undone.ToLocalTime():dd/MM/yyyy HH:mm}" : TypeLabel(payment.Kind))</td><td class="numeric @(payment.UndoneAt is not null || payment.Kind == InvoicePaymentKind.Payment ? ValueColor.Neutral : ValueColor.Income(payment.Amount))">@payment.Amount</td>
                 <td>@(payment.AccountExternalId is { } account ? Accounts.FirstOrDefault(x => x.ExternalId == account)?.Name ?? "Conta registrada" : "Sem débito em conta")</td><td>@payment.Details</td><td>@if (payment.Kind == InvoicePaymentKind.Payment) { <button class="button" @onclick="() => _payment = payment.ExternalId">Anexos do pagamento</button> }</td></tr>
         }</tbody>
     </table>
