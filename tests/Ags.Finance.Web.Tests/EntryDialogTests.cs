@@ -317,6 +317,27 @@ public sealed class EntryDialogTests
     }
 
     [Fact]
+    public async Task OnlyTheLatestProtectedInvoiceIsListedWithTheOpenOnes()
+    {
+        await using var ui = await EntryUi.CreateAsync();
+        var lifecycle = ui.Context.Services.GetRequiredService<IInvoiceLifecycle>();
+        foreach (var month in new[] { new ReferenceMonth(2026, 10), new ReferenceMonth(2026, 11) })
+        {
+            await ui.Entries.CreateAsync(new(new DateOnly(2026, 8, 20), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(100), string.Empty, month, ui.Card, UseSelectedInvoice: true));
+            await lifecycle.CloseAsync(ui.Card, month);
+        }
+
+        await ui.OpenNewAsync(EntryDialogType.CardExpense);
+        await ui.Dialogs.Find("#entry-date").ChangeAsync("2026-10-05");
+        await ui.Dialogs.Find("#entry-card").ChangeAsync(ui.Card.ToString());
+
+        Assert.Empty(ui.Dialogs.FindAll("[data-invoice='2026-10']"));
+        Assert.True(ui.Dialogs.Find("[data-invoice='2026-11']").HasAttribute("disabled"));
+        Assert.Contains("on", ui.Dialogs.Find("[data-invoice='2026-12']").ClassList);
+        Assert.False(ui.Dialogs.Find("[data-invoice='2027-01']").HasAttribute("disabled"));
+    }
+
+    [Fact]
     public async Task InstallmentsAreOfferedOnTheCardAndSplitTheTotal()
     {
         await using var ui = await EntryUi.CreateAsync();

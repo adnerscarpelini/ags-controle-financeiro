@@ -96,9 +96,9 @@
                 else if (_cardId != Guid.Empty)
                 {
                     <div class="field">
-                        <span class="field-label">Fatura <HelpTip Text="Calculada pela data e pelo dia de fechamento do cartão. Se o banco lançar em outro mês, escolha outra fatura aberta." /></span>
+                        <span class="field-label">Fatura <HelpTip Text="Calculada pela data e pelo dia de fechamento do cartão. Se o banco lançar em outro mês, escolha outra fatura aberta. Fatura fechada não recebe compras: para lançar nela, reabra a fatura." /></span>
                         <div class="pills" role="group" aria-label="Fatura">
-                            @foreach (var invoice in _selectableInvoices)
+                            @foreach (var invoice in VisibleInvoices)
                             {
                                 var value = MonthValue(invoice.Month);
                                 <button type="button" class="pill @(_month == value ? "on" : null)" aria-pressed="@(_month == value ? "true" : "false")" data-invoice="@value" disabled="@(invoice.Status != InvoiceStatus.Open)" @onclick="() => _month = value">@invoice.Month · @InvoiceStatusText(invoice.Status)</button>
@@ -316,6 +316,17 @@
     private IEnumerable<IGrouping<string, SubcategoryDetails>> SubcategoryGroups => _subcategories
         .Where(x => x.Kind == (IsExpense ? CategoryKind.Expense : CategoryKind.Income))
         .GroupBy(x => _categories.FirstOrDefault(c => c.ExternalId == x.CategoryExternalId)?.Name ?? x.DisplayName);
+
+    /// <summary>As faturas Abertas, a protegida mais recente, para mostrar que ela já fechou, e a fatura selecionada.</summary>
+    private IEnumerable<SelectableInvoice> VisibleInvoices
+    {
+        get
+        {
+            var protectedMonths = _selectableInvoices.Where(x => x.Status != InvoiceStatus.Open).Select(x => x.Month).ToList();
+            var latestProtected = protectedMonths.Count == 0 ? (ReferenceMonth?)null : protectedMonths.Max();
+            return _selectableInvoices.Where(x => x.Status == InvoiceStatus.Open || x.Month == latestProtected || MonthValue(x.Month) == _month);
+        }
+    }
 
     /// <summary>O preenchimento mínimo que falta, em linguagem simples. As demais regras vêm do caso de uso ao salvar.</summary>
     private string? MissingReason
