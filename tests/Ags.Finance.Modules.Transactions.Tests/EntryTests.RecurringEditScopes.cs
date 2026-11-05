@@ -6,14 +6,14 @@ namespace Ags.Finance.Modules.Transactions.Tests;
 public sealed partial class EntryTests
 {
     [Fact]
-    public async Task AllPendingPreservesPaidFutureAndPastWhileAllChangesThemAndUpdatesTheSeries()
+    public async Task ThisAndFutureOpenPreservesPaidFutureAndPastWhileAllChangesThemAndUpdatesTheSeries()
     {
         var series = await Entries.CreateRecurringAsync(new(Request() with { Date = new DateOnly(2026, 11, 5), Amount = new Money(100) }));
         var november = await OccurrenceAsync(2026, 11);
         var december = await OccurrenceAsync(2026, 12);
         var january = await OccurrenceAsync(2027, 1);
         Assert.True((await Entries.ConfirmEffectiveAsync(january.ExternalId, january.Date)).Succeeded);
-        Assert.True((await Entries.EditRecurringAsync(december.ExternalId, new(Change(december) with { Amount = new Money(200) }, RecurringEditScope.AllPending))).Succeeded);
+        Assert.True((await Entries.EditRecurringAsync(december.ExternalId, new(Change(december) with { Amount = new Money(200) }, RecurringEditScope.ThisAndFutureOpen))).Succeeded);
         Assert.Equal(new Money(-100), (await OccurrenceAsync(2026, 11)).Amount);
         Assert.Equal(new Money(-100), (await OccurrenceAsync(2027, 1)).Amount);
         Assert.Equal(new Money(-200), (await OccurrenceAsync(2027, 2)).Amount);
@@ -27,6 +27,24 @@ public sealed partial class EntryTests
         Assert.Equal(new Money(-300), (await OccurrenceAsync(2027, 3)).Amount);
         Assert.Equal(new Money(400), (await Entries.GetBalanceAsync(_accountId, new DateOnly(2027, 3, 31)))?.EffectiveBalance);
         Assert.Equal(november.ExternalId, (await OccurrenceAsync(2026, 11)).ExternalId);
+    }
+
+    [Fact]
+    public async Task ThisAndFutureOpenChangesTheSelectedOneEvenWhenPaidButKeepsEarlierPendingOnes()
+    {
+        await Entries.CreateRecurringAsync(new(Request() with { Date = new DateOnly(2026, 11, 5), Amount = new Money(100), IsPaid = false }));
+        var november = await OccurrenceAsync(2026, 11);
+        var december = await OccurrenceAsync(2026, 12);
+        Assert.True((await Entries.ConfirmEffectiveAsync(december.ExternalId, december.Date)).Succeeded);
+
+        Assert.True((await Entries.EditRecurringAsync(december.ExternalId, new(Change(december) with { Amount = new Money(200) }, RecurringEditScope.ThisAndFutureOpen))).Succeeded);
+
+        Assert.Equal(new Money(-100), (await OccurrenceAsync(2026, 11)).Amount);
+        Assert.False((await OccurrenceAsync(2026, 11)).IsEffective);
+        Assert.Equal(november.ExternalId, (await OccurrenceAsync(2026, 11)).ExternalId);
+        Assert.Equal(new Money(-200), (await OccurrenceAsync(2026, 12)).Amount);
+        Assert.Equal(new Money(-200), (await OccurrenceAsync(2027, 1)).Amount);
+        Assert.Equal(new Money(800), (await Entries.GetBalanceAsync(_accountId, new DateOnly(2027, 1, 31)))?.EffectiveBalance);
     }
 
     [Fact]

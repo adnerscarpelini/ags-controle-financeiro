@@ -30,7 +30,7 @@ internal sealed partial class EntryCatalog
         var affected = all.Where(x => x.RecurringEntryExternalId == seriesId && (change is not null ? change.Scope switch
         {
             RecurringEditScope.OnlyThis => x.ExternalId == externalId,
-            RecurringEditScope.AllPending => !x.IsEffective,
+            RecurringEditScope.ThisAndFutureOpen => x.ExternalId == externalId || (x.OccurrenceMonth > period && (x.CardExternalId is not null || !x.IsEffective)),
             _ => true
         } : scope switch
         {
@@ -38,6 +38,18 @@ internal sealed partial class EntryCatalog
             RecurringChangeScope.ThisAndFollowing => x.OccurrenceMonth >= period,
             _ => !(x.IsEffective && x.Date < today)
         })).ToList();
+        if (change?.Scope == RecurringEditScope.ThisAndFutureOpen)
+        {
+            // Em aberto, no cartão, é a fatura Aberta: uma fatura protegida fica de fora em vez de impedir a alteração.
+            var open = new List<TransactionEntry>();
+            foreach (var entry in affected)
+            {
+                if (entry.ExternalId == externalId || await RequireSourceOpenAsync(entry, cancellationToken) is null) { open.Add(entry); }
+            }
+
+            affected = open;
+        }
+
         foreach (var entry in affected)
         {
             var error = await RequireSourceOpenAsync(entry, cancellationToken);

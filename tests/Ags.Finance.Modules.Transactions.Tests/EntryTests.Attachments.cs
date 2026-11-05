@@ -30,7 +30,7 @@ public sealed partial class EntryTests
     }
     [Theory]
     [InlineData(RecurringEditScope.OnlyThis)]
-    [InlineData(RecurringEditScope.AllPending)]
+    [InlineData(RecurringEditScope.ThisAndFutureOpen)]
     [InlineData(RecurringEditScope.All)]
     public async Task RecurringEditsPreserveOccurrenceAttachmentsAndDoNotShareThemWithDecember(RecurringEditScope scope)
     {

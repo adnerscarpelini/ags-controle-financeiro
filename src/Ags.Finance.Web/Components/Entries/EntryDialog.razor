@@ -109,22 +109,7 @@
                     </div>
                 }
 
-                @if (_editingRecurring)
-                {
-                    <div class="field">
-                        <label for="entry-recurring-scope">Alcance da alteração</label>
-                        <select id="entry-recurring-scope" class="input" @bind="_recurringScope">
-                            <option value="@RecurringEditScope.OnlyThis">Editar somente esta</option>
-                            <option value="@RecurringEditScope.AllPending">Editar todas as pendentes</option>
-                            <option value="@RecurringEditScope.All">Editar todas (incluindo @(IsExpense ? "Pagas" : "Recebidas"))</option>
-                        </select>
-                    </div>
-                    @if (_recurringScope is RecurringEditScope.AllPending or RecurringEditScope.All)
-                    {
-                        <div class="field"><label for="entry-recurring-day">Dia das próximas ocorrências</label><input id="entry-recurring-day" class="input" type="number" inputmode="numeric" min="1" max="31" @bind="_recurringDay" /></div>
-                    }
-                }
-                else if (_editingInstallment || _editingRepetition)
+                @if (_editingInstallment || _editingRepetition)
                 {
                     <div class="field">
                         <label for="entry-scope">Alcance da alteração</label>
@@ -520,6 +505,14 @@
     private async Task SaveAsync(bool closeAfterSave)
     {
         if (!CanSave) { return; }
+        if (_editingRecurring)
+        {
+            var choice = await RecurringEditScopeDialog.AskAsync(Dialogs, IsExpense, _recurringDay);
+            if (choice is null) { return; }
+            _recurringScope = choice.Scope;
+            _recurringDay = choice.Day;
+        }
+
         var monthDate = _date;
         if (_cardId != Guid.Empty && !DateOnly.TryParseExact(_month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out monthDate))
         {

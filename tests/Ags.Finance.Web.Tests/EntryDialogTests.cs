@@ -511,24 +511,34 @@ public sealed class EntryDialogTests
     }
 
     [Fact]
-    public async Task EditingARecurringEntryOffersTheThreeScopesWithOnlyThisAsTheDefault()
+    public async Task SavingARecurringEntryAsksTheScopeInAWindowWithOnlyThisAsTheDefault()
     {
         await using var ui = await EntryUi.CreateAsync();
         await ui.Entries.CreateRecurringAsync(new(new(new DateOnly(2026, 9, 10), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(50), IsPaid: false), new ReferenceMonth(2026, 12)));
-        var occurrence = (await ui.Entries.GetAsync()).First(x => x.RecurringEntryExternalId is not null);
+        var occurrences = (await ui.Entries.QueryAsync(new(FromDate: new DateOnly(2026, 9, 1), ToDate: new DateOnly(2026, 11, 30), PageSize: 10))).Entries;
+        var september = occurrences.Single(x => x.Date.Month == 9);
 
-        await ui.OpenEditAsync(occurrence);
-
-        Assert.Equal(RecurringEditScope.OnlyThis.ToString(), ui.Dialogs.Find("#entry-recurring-scope").GetAttribute("value"));
-        Assert.Equal(3, ui.Dialogs.FindAll("#entry-recurring-scope option").Count);
-        Assert.Empty(ui.Dialogs.FindAll("#entry-recurring-day"));
-        await ui.Dialogs.Find("#entry-recurring-scope").ChangeAsync(RecurringEditScope.AllPending.ToString());
-        Assert.NotEmpty(ui.Dialogs.FindAll("#entry-recurring-day"));
-        await ui.Dialogs.Find("#entry-recurring-scope").ChangeAsync(RecurringEditScope.OnlyThis.ToString());
+        await ui.OpenEditAsync(september);
+        Assert.Empty(ui.Dialogs.FindAll("#entry-recurring-scope"));
         ui.SetAmount("60");
-        await ui.SubmitAsync();
+        _ = ui.SubmitAsync();
 
-        Assert.Equal(new Money(-60), (await ui.Entries.GetAsync()).Single(x => x.ExternalId == occurrence.ExternalId).Amount);
+        ui.Dialogs.WaitForAssertion(() => Assert.Equal(3, ui.Dialogs.FindAll("input[name=recurring-scope]").Count));
+        Assert.True(ui.Dialogs.Find($"input[data-scope={RecurringEditScope.OnlyThis}]").HasAttribute("checked"));
+        Assert.Empty(ui.Dialogs.FindAll("#entry-recurring-day"));
+        await ui.Dialogs.Find("[data-confirm-cancel]").ClickAsync(new MouseEventArgs());
+        Assert.Equal(new Money(-50), (await ui.Entries.GetAsync()).Single(x => x.ExternalId == september.ExternalId).Amount);
+        Assert.NotEmpty(ui.Dialogs.FindAll("#entry-form"));
+
+        _ = ui.SubmitAsync();
+        ui.Dialogs.WaitForAssertion(() => Assert.NotEmpty(ui.Dialogs.FindAll("input[name=recurring-scope]")));
+        await ui.Dialogs.Find($"input[data-scope={RecurringEditScope.ThisAndFutureOpen}]").ChangeAsync(true);
+        Assert.NotEmpty(ui.Dialogs.FindAll("#entry-recurring-day"));
+        await ui.Dialogs.Find("[data-confirm-ok]").ClickAsync(new MouseEventArgs());
+
+        ui.Dialogs.WaitForAssertion(() => Assert.Empty(ui.Dialogs.FindAll("#entry-form")));
+        var saved = (await ui.Entries.QueryAsync(new(FromDate: new DateOnly(2026, 9, 1), ToDate: new DateOnly(2026, 11, 30), PageSize: 10))).Entries;
+        Assert.All(saved, x => Assert.Equal(new Money(-60), x.Amount));
     }
 
     [Fact]
