@@ -1,7 +1,7 @@
 @* Campo de valor em reais: formato pt-BR enquanto se digita (wwwroot/js/money-mask.js) e teclado numérico no celular. *@
 @using System.Globalization
 
-<div class="money-field @Class" data-money-allow-negative="@(Min < 0)">
+<div class="money-field @Class" data-money-allow-negative="@(Min < 0)" data-money-autofocus="@AutoFocus">
     <label for="@Id">@Label</label>
     <MudTextField @ref="_field" T="string" InputId="@Id" Value="_text" ValueChanged="TextChangedAsync" Immediate="true" InputMode="DecimalMode" Variant="Variant.Text"
                   Adornment="Adornment.Start" AdornmentText="R$" AutoFocus="AutoFocus" Disabled="Disabled" />

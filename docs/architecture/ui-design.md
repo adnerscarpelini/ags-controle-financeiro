@@ -45,7 +45,7 @@ Nenhum controle aberto pode ter a aparência do Windows ou do navegador. `wwwroo
 
 A exceção é a janela de escolha de arquivos, que pertence ao sistema operacional. O campo em si segue os tokens.
 
-Os campos de valor formatam em reais enquanto se digita, com os dígitos entrando pela direita: 123456 vira `1.234,56` (`wwwroot/js/money-mask.js`, [#121](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/121)). Ao entrar no campo, o valor fica selecionado. Onde o campo aceita negativo, o sinal de menos inverte o sinal.
+Os campos de valor formatam em reais enquanto se digita, com os dígitos entrando pela direita: 123456 vira `1.234,56` (`wwwroot/js/money-mask.js`, [#121](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/121)). Ao entrar no campo, o valor fica selecionado, e os dígitos entram sempre pelo fim, mesmo depois de clicar no meio ou usar as setas. Onde o campo aceita negativo, o sinal de menos inverte o sinal. O script também devolve o foco ao campo em AutoFocus, porque a janela da biblioteca e o menu que a abriu o tiram dele.
 
 ## Paleta
 
