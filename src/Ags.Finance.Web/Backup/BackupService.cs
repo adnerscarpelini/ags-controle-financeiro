@@ -1,7 +1,6 @@
 using System.Formats.Tar;
 using System.Globalization;
 using System.IO.Compression;
-using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -15,9 +14,7 @@ namespace Ags.Finance.Web.Backup;
 internal sealed record BackupEnvironment(string ConnectionString, string DataDirectory, string AppVersion)
 {
     /// <summary>A versão da aplicação em execução (a do assembly), gravada no manifesto de cada backup.</summary>
-    public static string CurrentAppVersion =>
-        typeof(BackupEnvironment).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
-        ?? "desconhecida";
+    public static string CurrentAppVersion => Hosting.AppVersion.Current;
 }
 
 /// <summary>
