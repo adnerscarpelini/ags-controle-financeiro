@@ -1,3 +1,4 @@
+using System.Globalization;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.Modules.Transactions.Domain;
 using CategoryKind = Ags.Finance.Modules.Transactions.Contracts.CategoryKind;
@@ -6,8 +7,11 @@ namespace Ags.Finance.Modules.Transactions.Application.ManageClassifications;
 
 internal sealed class ClassificationCatalog(IClassificationStore store) : IClassificationCatalog
 {
+    private static readonly StringComparer s_alphabetical = StringComparer.Create(CultureInfo.GetCultureInfo("pt-BR"), ignoreCase: true);
+
     public async Task<IReadOnlyList<CategoryDetails>> GetCategoriesAsync(bool activeOnly = true, CancellationToken cancellationToken = default)
         => (await store.GetCategoriesAsync(cancellationToken)).Where(x => !activeOnly || x.IsActive)
+            .OrderBy(x => x.Name, s_alphabetical)
             .Select(x => new CategoryDetails(x.ExternalId, x.Name, (CategoryKind)x.Kind, x.IsActive)).ToList();
 
     public async Task<IReadOnlyList<SubcategoryDetails>> GetSubcategoriesAsync(bool activeOnly = true, CancellationToken cancellationToken = default)
@@ -16,6 +20,7 @@ internal sealed class ClassificationCatalog(IClassificationStore store) : IClass
         return (await store.GetSubcategoriesAsync(cancellationToken))
             .Select(x => (Subcategory: x, Category: categories.First(c => c.ExternalId == x.CategoryExternalId)))
             .Where(x => !activeOnly || (x.Subcategory.IsActive && x.Category.IsActive))
+            .OrderBy(x => x.Category.Name, s_alphabetical).ThenBy(x => x.Subcategory.Name, s_alphabetical)
             .Select(x => new SubcategoryDetails(x.Subcategory.ExternalId, x.Category.ExternalId, x.Subcategory.Name,
                 $"{x.Category.Name} > {x.Subcategory.Name}", (CategoryKind)x.Category.Kind, x.Subcategory.IsActive && x.Category.IsActive)).ToList();
     }
