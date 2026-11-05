@@ -21,6 +21,9 @@ conta de cada item, e totais separados de a receber e a pagar. Efetivar uma ocor
 (baixa manual) a tira da lista e dos totais. Sem pendências, a seção mostra estado vazio e
 totais zerados.
 
+**Lista ([#130](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/130)).** Cada card mostra 10 itens por vez, com navegação para frente e para trás quando
+há mais que isso. Os totais continuam somando todos os itens da janela.
+
 **Saldo.** São projeções; pendências não movimentam o saldo efetivo da conta (coberto por
 teste). Saldo efetivo, previsão de caixa e orçamento mensal continuam rótulos distintos. A
 seção liga à visão completa em `/pendentes`.

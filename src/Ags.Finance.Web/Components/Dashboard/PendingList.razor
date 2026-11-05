@@ -7,7 +7,7 @@
 else
 {
     <ul class="catalog-list" aria-label="@Label">
-        @foreach (var item in Items)
+        @foreach (var item in Items.Skip((_page - 1) * PageSize).Take(PageSize))
         {
             <li><span>@item.Date.ToString("dd/MM/yyyy") · @item.Description · @item.AccountName</span>
                 @if (item.IsTransfer)
@@ -21,10 +21,29 @@ else
                 </li>
         }
     </ul>
+    @if (TotalPages > 1)
+    {
+        <footer class="table-footer list-pager" aria-label="@($"Paginação de {Label}")">
+            <span data-pending-position>@((_page - 1) * PageSize + 1)–@Math.Min(_page * PageSize, Items.Count) de @Items.Count</span>
+            <MudIconButton Icon="@Icons.Material.Outlined.ChevronLeft" aria-label="Página anterior" data-pending-previous Disabled="@(_page <= 1)" OnClick="() => Move(-1)" />
+            <MudIconButton Icon="@Icons.Material.Outlined.ChevronRight" aria-label="Próxima página" data-pending-next Disabled="@(_page >= TotalPages)" OnClick="() => Move(1)" />
+        </footer>
+    }
 }
 
 @code {
+    private const int PageSize = 10;
+
+    private int _page = 1;
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling(Items.Count / (decimal)PageSize));
+
     [Parameter, EditorRequired] public IReadOnlyList<PendingItem> Items { get; set; } = [];
     [Parameter, EditorRequired] public string Empty { get; set; } = string.Empty;
     [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+
+    // A lista pode encolher depois de uma baixa: a página atual nunca passa da última.
+    protected override void OnParametersSet() => _page = Math.Min(_page, TotalPages);
+
+    private void Move(int delta) => _page = Math.Clamp(_page + delta, 1, TotalPages);
 }
