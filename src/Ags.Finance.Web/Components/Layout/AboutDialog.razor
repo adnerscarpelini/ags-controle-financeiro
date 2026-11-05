@@ -1,0 +1,29 @@
+@* Janela "Sobre": mostra a versão em execução, para saber se a instalação está atualizada. *@
+@using Ags.Finance.Web.Hosting
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <dl class="about-details">
+            <dt>Versão</dt>
+            <dd data-about-version>@AppVersion.Current</dd>
+            <dt>Desenvolvedor</dt>
+            <dd>@Developer</dd>
+            <dt>Página no GitHub</dt>
+            <dd><a href="@RepositoryUrl" target="_blank" rel="noopener noreferrer" data-about-repository>@RepositoryName</a></dd>
+        </dl>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Close" data-about-close>Fechar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private const string Developer = "Adner Scarpelini";
+    private const string RepositoryName = "adnerscarpelini/ags-controle-financeiro";
+    private const string RepositoryUrl = "https://github.com/" + RepositoryName;
+
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    private void Close() => Dialog?.Close();
+}

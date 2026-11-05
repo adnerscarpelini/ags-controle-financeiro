@@ -1,6 +1,7 @@
 @* Os links não usam o OnClick do MudNavLink: com ele a biblioteca troca o <a href> por uma div, e o item deixa de ser um link. *@
 @implements IDisposable
 @inject NavigationManager Navigation
+@inject IDialogService Dialogs
 
 <a class="brand" href="" @onclick="OnNavigate" aria-label="AGS Finanças">
     <img src="img/favicon.png" alt="" width="32" height="32" />
@@ -72,6 +73,15 @@
             </button>
         </MudTooltip>
     }
+    <MudTooltip Text="Sobre" Placement="Placement.Right" Disabled="@(!Collapsed)" RootClass="nav-tooltip">
+        <button type="button" class="nav-button" data-open-about aria-label="Sobre" @onclick="OpenAboutAsync">
+            <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" aria-hidden="true" />
+            @if (!Collapsed)
+            {
+                <span>Sobre</span>
+            }
+        </button>
+    </MudTooltip>
     <MudTooltip Text="Sair" Placement="Placement.Right" Disabled="@(!Collapsed)" RootClass="nav-tooltip">
         <button type="submit" class="nav-button" aria-label="Sair">
             <MudIcon Icon="@Icons.Material.Outlined.Logout" Size="Size.Small" aria-hidden="true" />
@@ -161,6 +171,12 @@
     {
         var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0].TrimEnd('/');
         return group.Children!.Any(child => string.Equals(child.Href, path, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task OpenAboutAsync()
+    {
+        await OnNavigate.InvokeAsync();
+        await Dialogs.ShowAsync<AboutDialog>("AGS Finanças", new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true });
     }
 
     private bool IsExpanded(MenuItem group) => _expanded.GetValueOrDefault(group.Label);

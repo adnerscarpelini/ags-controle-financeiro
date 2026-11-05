@@ -1075,6 +1075,10 @@ input[type="file"]::file-selector-button {
 .mud-dialog .mud-dialog-content { padding: var(--space-2) var(--space-5) var(--space-4); }
 .mud-dialog .mud-dialog-actions { gap: 6px; padding: 10px var(--space-3) var(--space-3) var(--space-5); border-top: 1px solid var(--color-border); }
 .confirm-message { margin: 0; }
+.about-details { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-2) var(--space-4); margin: 0; }
+.about-details dt { color: var(--color-text-secondary); }
+.about-details dd { margin: 0; overflow-wrap: anywhere; }
+.about-details a { color: var(--color-accent); }
 .dialog-title { display: flex; align-items: center; gap: var(--space-2); }
 .dialog-title h2 { flex: 1; margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -.012em; }
 
