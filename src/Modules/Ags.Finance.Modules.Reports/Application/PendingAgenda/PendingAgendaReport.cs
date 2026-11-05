@@ -6,7 +6,7 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Reports.Application.PendingAgenda;
 
-internal sealed class PendingAgendaReport(IEntryCatalog entries, IAccountCatalog accounts, IPreferences preferences, TimeProvider clock) : IPendingAgenda
+internal sealed class PendingAgendaReport(IEntryCatalog entries, IRecurringTransferCatalog transfers, IAccountCatalog accounts, IPreferences preferences, TimeProvider clock) : IPendingAgenda
 {
     private const int PageSize = 200;
 
@@ -20,7 +20,17 @@ internal sealed class PendingAgendaReport(IEntryCatalog entries, IAccountCatalog
         var names = (await accounts.GetAccountsAsync(false, cancellationToken)).ToDictionary(x => x.ExternalId, x => x.Name);
         var upcoming = await LoadAsync(new EntryFilter(FromDate: today, ToDate: end), names, cancellationToken);
         var overdue = await LoadAsync(new EntryFilter(ToDate: today.AddDays(-1)), names, cancellationToken);
-        return new(today, end, upcoming, overdue);
+        return new(today, end, WithTransfers(upcoming, await transfers.GetPendingAsync(today, end, cancellationToken), names),
+            WithTransfers(overdue, await transfers.GetPendingAsync(null, today.AddDays(-1), cancellationToken), names));
+    }
+
+    // Transferência aparece na lista, mas não é a receber nem a pagar: os totais continuam só com lançamentos.
+    private static PendingGroup WithTransfers(PendingGroup group, IReadOnlyList<RecurringTransferOccurrence> pending, IReadOnlyDictionary<Guid, string> names)
+    {
+        if (pending.Count == 0) { return group; }
+        var items = pending.Select(x => new PendingItem(x.ExternalId, x.Date, $"Transferência para {names.GetValueOrDefault(x.DestinationAccountExternalId, "Conta removida")}", x.Amount, false,
+            x.SourceAccountExternalId, names.GetValueOrDefault(x.SourceAccountExternalId, "Conta removida"), IsTransfer: true));
+        return group with { Items = group.Items.Concat(items).OrderBy(x => x.Date).ToList() };
     }
 
     private async Task<PendingGroup> LoadAsync(EntryFilter filter, IReadOnlyDictionary<Guid, string> names, CancellationToken cancellationToken)

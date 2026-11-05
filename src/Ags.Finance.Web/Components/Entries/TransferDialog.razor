@@ -4,6 +4,7 @@
 @using Ags.Finance.SharedKernel
 @inject IAccountCatalog Accounts
 @inject IAccountMovementCatalog Movements
+@inject IRecurringTransferCatalog RecurringTransfers
 @inject TimeProvider Clock
 @inject EntryChangeNotifier Notifier
 @inject IDialogService Dialogs
@@ -35,12 +36,24 @@
                 </select>
             </div>
             <div class="field">
-                <label for="transfer-destination">Conta de destino <HelpTip Text="O valor entra nesta conta de investimento ou poupança. Transferência não é receita nem despesa." /></label>
+                <label for="transfer-destination">Conta de destino <HelpTip Text="O valor entra nesta conta, que pode ser outra conta corrente, poupança ou investimento. Transferência não é receita nem despesa." /></label>
                 <select id="transfer-destination" class="input" @bind="_destination">
                     <option value="@Guid.Empty">Selecione</option>
-                    @foreach (var account in _accounts.Where(x => x.IsActive && x.Kind is AccountKind.Investment or AccountKind.Savings)) { <option value="@account.ExternalId">@account.Name</option> }
+                    @foreach (var account in _accounts.Where(x => x.IsActive && x.ExternalId != _source)) { <option value="@account.ExternalId">@account.Name</option> }
                 </select>
             </div>
+            <div class="switch-row">
+                <label for="transfer-repeat">Repetir todo mês <HelpTip Text="Repete no mesmo dia, todo mês. Cada mês fica pendente até você confirmar na tela de Contas, como um PIX automático." /></label>
+                <input id="transfer-repeat" class="switch" type="checkbox" role="switch" @bind="_repeat" />
+            </div>
+            @if (_repeat)
+            {
+                <div class="field"><label for="transfer-repeat-until">Até o mês (vazio para sem fim)</label><input id="transfer-repeat-until" class="input" type="month" value="@_repeatUntil" @onchange="args => _repeatUntil = args.Value?.ToString() ?? string.Empty" /></div>
+                <div class="switch-row">
+                    <label for="transfer-done">@(_isDone ? "Transferido" : "Não foi transferido") <HelpTip Text="Ligado: a primeira já movimentou as contas. Desligado: ela também fica pendente. Os próximos meses sempre nascem pendentes." /></label>
+                    <input id="transfer-done" class="switch" type="checkbox" role="switch" @bind="_isDone" />
+                </div>
+            }
         </form>
         @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
         @if (_success is not null) { <p class="form-success" role="status" data-entry-success>@_success</p> }
@@ -66,6 +79,9 @@
     private Guid _destination;
     private DateOnly _date;
     private decimal _amount;
+    private bool _repeat;
+    private string _repeatUntil = string.Empty;
+    private bool _isDone = true;
     private bool _busy;
     private bool _loaded;
     private string? _error;
@@ -106,9 +122,23 @@
         try
         {
             var request = new TransferRequest(Guid.CreateVersion7(), _source, _destination, _date, new Money(_amount));
-            var question = $"{Name(_source)} → {Name(_destination)} · {request.Date:dd/MM/yyyy} · {request.Amount}";
+            ReferenceMonth? until = null;
+            if (_repeat && _repeatUntil.Length > 0)
+            {
+                if (!DateOnly.TryParseExact(_repeatUntil + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var end))
+                {
+                    _error = "Informe um término válido para a recorrência.";
+                    return;
+                }
+
+                until = ReferenceMonth.FromDate(end);
+            }
+
+            var question = $"{Name(_source)} → {Name(_destination)} · {request.Date:dd/MM/yyyy} · {request.Amount}{(_repeat ? $" · todo dia {request.Date.Day}" : string.Empty)}";
             if (!await ConfirmDialog.AskAsync(Dialogs, "Confirmar transferência", question, "Confirmar transferência")) { return; }
-            var result = await Movements.TransferAsync(request);
+            var result = _repeat
+                ? await RecurringTransfers.CreateAsync(new(_source, _destination, _date, request.Amount, until, _isDone))
+                : await Movements.TransferAsync(request);
             if (!result.Succeeded)
             {
                 _error = result.Error;
@@ -124,6 +154,9 @@
             }
 
             _amount = 0;
+            _repeat = false;
+            _repeatUntil = string.Empty;
+            _isDone = true;
             _success = "Transferência registrada. Preencha a próxima.";
             if (_amountField is not null) { await _amountField.FocusAsync(); }
         }

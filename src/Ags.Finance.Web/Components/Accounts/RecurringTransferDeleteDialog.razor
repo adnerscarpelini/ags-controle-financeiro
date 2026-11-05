@@ -1,0 +1,49 @@
+@* Exclui um mês ou a série de uma transferência recorrente. Confirmadas continuam no histórico. *@
+@using Ags.Finance.Modules.Transactions.Contracts
+@inject IRecurringTransferCatalog Transfers
+@inject EntryChangeNotifier EntryChanges
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <p class="confirm-message">@Occurrence.Date.ToString("dd/MM/yyyy") · @Occurrence.Amount</p>
+        <fieldset class="choices">
+            <legend>Quais transferências você quer excluir?</legend>
+            <label class="choice"><input type="radio" name="recurring-transfer-delete" data-scope="@RecurringChangeScope.OnlyThis" checked="@(_scope == RecurringChangeScope.OnlyThis)" @onchange="() => _scope = RecurringChangeScope.OnlyThis" /><span>Somente esta</span></label>
+            <label class="choice"><input type="radio" name="recurring-transfer-delete" data-scope="@RecurringChangeScope.ThisAndFollowing" checked="@(_scope == RecurringChangeScope.ThisAndFollowing)" @onchange="() => _scope = RecurringChangeScope.ThisAndFollowing" /><span>Esta e as seguintes<small class="form-note">As já confirmadas continuam no histórico.</small></span></label>
+            <label class="choice"><input type="radio" name="recurring-transfer-delete" data-scope="@RecurringChangeScope.All" checked="@(_scope == RecurringChangeScope.All)" @onchange="() => _scope = RecurringChangeScope.All" /><span>Todas<small class="form-note">As já confirmadas continuam no histórico.</small></span></label>
+        </fieldset>
+        @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-confirm-cancel Disabled="@_busy" OnClick="() => Dialog?.Cancel()">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" data-confirm-ok Disabled="@_busy" OnClick="ConfirmAsync">Confirmar exclusão</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private RecurringChangeScope _scope = RecurringChangeScope.OnlyThis;
+    private bool _busy;
+    private string? _error;
+
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public RecurringTransferOccurrence Occurrence { get; set; } = default!;
+
+    private async Task ConfirmAsync()
+    {
+        if (_busy) { return; }
+        _busy = true;
+        var result = await Transfers.DeleteAsync(Occurrence.ExternalId, _scope);
+        _busy = false;
+        _error = result.Error;
+        if (result.Succeeded)
+        {
+            Snackbar.Add("Transferência excluída.", Severity.Success);
+            EntryChanges.Notify();
+            Dialog?.Close(DialogResult.Ok(true));
+        }
+    }
+}

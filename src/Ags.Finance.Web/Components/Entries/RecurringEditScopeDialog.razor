@@ -7,7 +7,10 @@
             <legend>Quais lançamentos você quer alterar?</legend>
             <label class="choice"><input type="radio" name="recurring-scope" data-scope="@RecurringEditScope.OnlyThis" checked="@(_scope == RecurringEditScope.OnlyThis)" @onchange="() => _scope = RecurringEditScope.OnlyThis" /><span>Somente esta<small class="form-note">Só o lançamento deste mês. Os demais não mudam.</small></span></label>
             <label class="choice"><input type="radio" name="recurring-scope" data-scope="@RecurringEditScope.ThisAndFutureOpen" checked="@(_scope == RecurringEditScope.ThisAndFutureOpen)" @onchange="() => _scope = RecurringEditScope.ThisAndFutureOpen" /><span>Esta e as futuras em aberto<small class="form-note">Este lançamento e os próximos meses ainda em aberto. Meses anteriores não mudam.</small></span></label>
-            <label class="choice"><input type="radio" name="recurring-scope" data-scope="@RecurringEditScope.All" checked="@(_scope == RecurringEditScope.All)" @onchange="() => _scope = RecurringEditScope.All" /><span>Todas (incluindo @(IsExpense ? "Pagas" : "Recebidas"))<small class="form-note">Todos os meses da série, inclusive os já @(IsExpense ? "pagos" : "recebidos").</small></span></label>
+            @if (!IsTransfer)
+            {
+                <label class="choice"><input type="radio" name="recurring-scope" data-scope="@RecurringEditScope.All" checked="@(_scope == RecurringEditScope.All)" @onchange="() => _scope = RecurringEditScope.All" /><span>Todas (incluindo @(IsExpense ? "Pagas" : "Recebidas"))<small class="form-note">Todos os meses da série, inclusive os já @(IsExpense ? "pagos" : "recebidos").</small></span></label>
+            }
         </fieldset>
         @if (_scope != RecurringEditScope.OnlyThis)
         {
@@ -33,14 +36,18 @@
     [Parameter]
     public int Day { get; set; }
 
+    /// <summary>Transferência não oferece "Todas": a confirmada precisa ser desfeita antes de mudar.</summary>
+    [Parameter]
+    public bool IsTransfer { get; set; }
+
     protected override void OnInitialized() => _day = Day;
 
     public sealed record RecurringEditChoice(RecurringEditScope Scope, int Day);
 
-    public static async Task<RecurringEditChoice?> AskAsync(IDialogService dialogs, bool isExpense, int day)
+    public static async Task<RecurringEditChoice?> AskAsync(IDialogService dialogs, bool isExpense, int day, bool isTransfer = false)
     {
-        var parameters = new DialogParameters<RecurringEditScopeDialog> { { x => x.IsExpense, isExpense }, { x => x.Day, day } };
-        var reference = await dialogs.ShowAsync<RecurringEditScopeDialog>("Alterar lançamento recorrente", parameters, new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, BackdropClick = false });
+        var parameters = new DialogParameters<RecurringEditScopeDialog> { { x => x.IsExpense, isExpense }, { x => x.Day, day }, { x => x.IsTransfer, isTransfer } };
+        var reference = await dialogs.ShowAsync<RecurringEditScopeDialog>(isTransfer ? "Alterar transferência recorrente" : "Alterar lançamento recorrente", parameters, new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, BackdropClick = false });
         var result = await reference.Result;
         return result is { Canceled: false, Data: RecurringEditChoice choice } ? choice : null;
     }

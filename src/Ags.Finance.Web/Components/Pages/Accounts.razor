@@ -54,6 +54,7 @@ else
             <button type="button" class="link-button" data-toggle-archived aria-pressed="@(_showArchived ? "true" : "false")" @onclick="() => _showArchived = !_showArchived">@(_showArchived ? "Ocultar contas arquivadas" : "Ver contas arquivadas")</button>
         </aside>
     </div>
+    <RecurringTransfersSection />
 }
 
 @code {

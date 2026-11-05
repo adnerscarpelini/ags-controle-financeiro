@@ -17,13 +17,8 @@ internal sealed partial class AccountMovementCatalog(IAccountMovementStore store
                 var matches = previous.Count == 2 && pair.All(x => previous.Any(y => y.AccountExternalId == x.AccountExternalId && y.Date == x.Date && y.Amount == x.Amount && y.Kind == x.Kind));
                 return matches ? new ClassificationResult(request.ConfirmationId, null) : new ClassificationResult(null, "Esta confirmação já foi utilizada em outra operação.");
             }
-            var available = await accounts.GetAccountsAsync(cancellationToken: token);
-            var source = available.FirstOrDefault(x => x.ExternalId == request.SourceAccountExternalId);
-            var destination = available.FirstOrDefault(x => x.ExternalId == request.DestinationAccountExternalId);
-            if (source?.Kind != AccountKind.Checking || destination?.Kind is not (AccountKind.Investment or AccountKind.Savings))
-            {
-                return new ClassificationResult(null, "Selecione corrente ativa na origem e investimento ou poupança ativa no destino.");
-            }
+            var error = await TransferRules.CheckAsync(accounts, request.SourceAccountExternalId, request.DestinationAccountExternalId, request.Date, request.Amount, token);
+            if (error is not null) { return new ClassificationResult(null, error); }
             await store.AddAsync(pair, token);
             return new ClassificationResult(request.ConfirmationId, null);
         }, x => x.Succeeded, cancellationToken);

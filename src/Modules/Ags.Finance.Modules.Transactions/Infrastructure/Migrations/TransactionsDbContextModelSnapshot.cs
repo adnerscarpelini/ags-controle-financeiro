@@ -279,6 +279,44 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.HasIndex("CategoryExternalId");
             b.ToTable("monthly_plan_categories", "transactions");
         });
+        modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.RecurringTransfer", b =>
+        {
+            b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint").HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+            b.Property<Guid>("ExternalId").HasColumnType("uuid");
+            b.Property<DateTimeOffset>("CreatedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateOnly>("StartDate").HasColumnType("date");
+            b.Property<int>("Day").HasColumnType("integer");
+            b.Property<DateOnly?>("EndMonth").HasColumnType("date");
+            b.Property<Guid>("SourceAccountExternalId").HasColumnType("uuid");
+            b.Property<Guid>("DestinationAccountExternalId").HasColumnType("uuid");
+            b.Property<long>("Amount").HasColumnType("bigint");
+            b.Property<bool>("IsActive").HasColumnType("boolean");
+            b.Property<DateOnly[]>("ExcludedMonths").IsRequired().HasColumnType("date[]");
+            b.HasKey("Id");
+            b.HasAlternateKey("ExternalId");
+            b.HasIndex("ExternalId").IsUnique();
+            b.ToTable("recurring_transfers", "transactions");
+        });
+        modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.TransferOccurrence", b =>
+        {
+            b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint").HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+            b.Property<Guid>("ExternalId").HasColumnType("uuid");
+            b.Property<DateTimeOffset>("CreatedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("timestamp with time zone");
+            b.Property<Guid>("RecurringTransferExternalId").HasColumnType("uuid");
+            b.Property<DateOnly>("OccurrenceMonth").HasColumnType("date");
+            b.Property<DateOnly>("Date").HasColumnType("date");
+            b.Property<Guid>("SourceAccountExternalId").HasColumnType("uuid");
+            b.Property<Guid>("DestinationAccountExternalId").HasColumnType("uuid");
+            b.Property<long>("Amount").HasColumnType("bigint");
+            b.Property<Guid?>("OperationExternalId").HasColumnType("uuid");
+            b.HasKey("Id");
+            b.HasIndex("ExternalId").IsUnique();
+            b.HasIndex("RecurringTransferExternalId", "OccurrenceMonth").IsUnique();
+            b.ToTable("transfer_occurrences", "transactions");
+            b.HasOne("Ags.Finance.Modules.Transactions.Domain.RecurringTransfer", null).WithMany().HasForeignKey("RecurringTransferExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+        });
         modelBuilder.Entity("Ags.Finance.Modules.Transactions.Domain.MonthlyPlanCategory", b =>
         {
             b.HasOne("Ags.Finance.Modules.Transactions.Domain.MonthlyPlan", null).WithMany().HasForeignKey("MonthlyPlanExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Cascade).IsRequired();

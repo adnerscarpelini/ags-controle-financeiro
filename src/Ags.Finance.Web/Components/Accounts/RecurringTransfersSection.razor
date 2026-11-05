@@ -1,0 +1,128 @@
+@* Transferências recorrentes do mês na tela de Contas. Só aparece quando existe alguma série. *@
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+@using Ags.Finance.Web.Components.Layout
+@implements IDisposable
+@inject IRecurringTransferCatalog Transfers
+@inject IAccountCatalog Accounts
+@inject EntryChangeNotifier EntryChanges
+@inject IDialogService Dialogs
+@inject ViewportState Viewport
+@inject ISnackbar Snackbar
+@inject TimeProvider Clock
+
+@if (_hasSeries)
+{
+    <section class="panel recurring-transfers" aria-labelledby="recurring-transfers-title" data-recurring-transfers>
+        <div class="panel-head">
+            <h2 id="recurring-transfers-title">Transferências recorrentes <HelpTip Text="Cada mês fica pendente até você confirmar: só então as duas contas são movimentadas. Pendentes entram no saldo previsto." /></h2>
+            <MonthPicker Value="_month" ValueChanged="MonthChangedAsync" />
+        </div>
+        @if (_error is not null) { <p class="form-error" role="alert">@_error</p> }
+        @if (_occurrences.Count == 0)
+        {
+            <p>Nenhuma transferência recorrente neste mês.</p>
+        }
+        else
+        {
+            <ul class="recurring-transfer-list" aria-label="Transferências recorrentes do mês">
+                @foreach (var occurrence in _occurrences)
+                {
+                    <li data-recurring-transfer="@occurrence.ExternalId">
+                        <div class="recurring-transfer-text">
+                            <span class="recurring-transfer-accounts">@Name(occurrence.SourceAccountExternalId) → @Name(occurrence.DestinationAccountExternalId)</span>
+                            <small class="form-note">@occurrence.Date.ToString("dd/MM/yyyy") · @(occurrence.IsConfirmed ? "Confirmada" : Overdue(occurrence) ? "Atrasada" : "Pendente")</small>
+                        </div>
+                        <span class="numeric value-neutral" data-recurring-transfer-amount>@occurrence.Amount</span>
+                        <RowActions Actions="ActionsFor(occurrence)" />
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+}
+
+@code {
+    private IReadOnlyList<RecurringTransferOccurrence> _occurrences = [];
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private ReferenceMonth _month;
+    private bool _hasSeries;
+    private string? _error;
+
+    private DateOnly Today => DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+
+    protected override async Task OnInitializedAsync()
+    {
+        EntryChanges.Changed += EntriesChangedAsync;
+        _month = ReferenceMonth.FromDate(Today);
+        await ReloadAsync();
+    }
+
+    private Task EntriesChangedAsync() => InvokeAsync(async () =>
+    {
+        await ReloadAsync();
+        StateHasChanged();
+    });
+
+    private async Task MonthChangedAsync(ReferenceMonth month)
+    {
+        _month = month;
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _hasSeries = await Transfers.HasSeriesAsync();
+        _accounts = await Accounts.GetAccountsAsync(false);
+        _occurrences = _hasSeries ? await Transfers.GetMonthAsync(_month) : [];
+    }
+
+    private string Name(Guid id) => _accounts.FirstOrDefault(x => x.ExternalId == id)?.Name ?? "Conta registrada";
+
+    private bool Overdue(RecurringTransferOccurrence occurrence) => occurrence.Date < Today;
+
+    private IReadOnlyList<RowAction> ActionsFor(RecurringTransferOccurrence occurrence)
+    {
+        var actions = new List<RowAction>();
+        if (occurrence.IsConfirmed)
+        {
+            actions.Add(new("Desfazer", Icons.Material.Outlined.Undo, "undo", EventCallback.Factory.Create(this, () => UndoAsync(occurrence)), "Desfazer a transferência e restaurar os saldos"));
+        }
+        else
+        {
+            actions.Add(new("Confirmar", Icons.Material.Outlined.Check, "confirm", EventCallback.Factory.Create(this, () => OpenAsync(occurrence, confirm: true)), "Confirmar esta transferência"));
+            actions.Add(new("Editar", Icons.Material.Outlined.Edit, "edit", EventCallback.Factory.Create(this, () => OpenAsync(occurrence, confirm: false))));
+        }
+
+        actions.Add(new("Excluir", Icons.Material.Outlined.Delete, "delete", EventCallback.Factory.Create(this, () => DeleteAsync(occurrence))));
+        return actions;
+    }
+
+    private async Task OpenAsync(RecurringTransferOccurrence occurrence, bool confirm)
+    {
+        var parameters = new DialogParameters<RecurringTransferDialog> { { x => x.Occurrence, occurrence }, { x => x.Confirming, confirm } };
+        await Dialogs.ShowAsync<RecurringTransferDialog>(confirm ? "Confirmar transferência" : "Editar transferência", parameters, AppDialogs.Options(Viewport, MaxWidth.ExtraSmall));
+    }
+
+    private async Task UndoAsync(RecurringTransferOccurrence occurrence)
+    {
+        var message = $"{Name(occurrence.SourceAccountExternalId)} → {Name(occurrence.DestinationAccountExternalId)} · {occurrence.Date:dd/MM/yyyy} · {occurrence.Amount}. Os saldos voltam ao que eram, e ela fica pendente.";
+        if (!await ConfirmDialog.AskAsync(Dialogs, "Desfazer transferência", message, "Desfazer")) { return; }
+        var result = await Transfers.UndoAsync(occurrence.ExternalId);
+        _error = result.Error;
+        if (result.Succeeded)
+        {
+            Snackbar.Add("Transferência desfeita.", Severity.Success);
+            EntryChanges.Notify();
+        }
+    }
+
+    private async Task DeleteAsync(RecurringTransferOccurrence occurrence)
+    {
+        var parameters = new DialogParameters<RecurringTransferDeleteDialog> { { x => x.Occurrence, occurrence } };
+        await Dialogs.ShowAsync<RecurringTransferDeleteDialog>("Excluir transferência", parameters, AppDialogs.Options(Viewport, MaxWidth.ExtraSmall));
+    }
+
+    public void Dispose() => EntryChanges.Changed -= EntriesChangedAsync;
+}
