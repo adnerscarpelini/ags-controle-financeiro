@@ -28,7 +28,8 @@ internal sealed class PreferencesCatalog(IPreferencesStore store) : IPreferences
             preferences.Sections.Categories,
             preferences.Sections.Invoices,
             preferences.PageSize,
-            preferences.SessionHours));
+            preferences.SessionHours,
+            preferences.GroupCardEntries));
         if (error is not null) { return new(error); }
 
         await store.SaveAsync(entity, cancellationToken);
@@ -43,5 +44,6 @@ internal sealed class PreferencesCatalog(IPreferencesStore store) : IPreferences
         x.TopCategories,
         new(x.ShowSummary, x.ShowPending, x.ShowCategories, x.ShowInvoices),
         x.PageSize,
-        x.SessionHours);
+        x.SessionHours,
+        x.GroupCardEntries);
 }

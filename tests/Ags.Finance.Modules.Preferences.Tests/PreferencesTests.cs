@@ -47,7 +47,7 @@ public sealed class PreferencesTests : IAsyncLifetime
     public async Task SavedPreferencesAreReadBackByAnotherScope()
     {
         var chosen = new AppPreferences(ThemePreference.Auto, StartPage.Invoices, RecurringInvoiceMode.SumUpfront, 30, 5,
-            new(true, false, true, false), 25, 168);
+            new(true, false, true, false), 25, 168, GroupCardEntries: true);
 
         var result = await Preferences.SaveAsync(chosen);
 

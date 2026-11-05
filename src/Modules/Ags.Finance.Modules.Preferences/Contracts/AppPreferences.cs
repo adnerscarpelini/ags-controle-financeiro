@@ -43,7 +43,8 @@ public sealed record AppPreferences(
     int TopCategories,
     DashboardSections Sections,
     int PageSize,
-    int SessionHours)
+    int SessionHours,
+    bool GroupCardEntries = false)
 {
     public static AppPreferences Default { get; } = new(
         ThemePreference.Dark,

@@ -45,6 +45,10 @@
             </select>
         </div>
         <fieldset class="choices">
+            <legend>Lançamentos do cartão <HelpTip Text="Mostra uma linha por cartão e fatura na tabela de Lançamentos, com a soma das compras. Também dá para trocar na própria tela." /></legend>
+            <label class="choice"><input id="pref-group-card-entries" class="switch" type="checkbox" role="switch" @bind="_groupCardEntries" /> Agrupar por cartão</label>
+        </fieldset>
+        <fieldset class="choices">
             <legend>Recorrentes do cartão na fatura aberta <HelpTip Text="Como as despesas fixas do cartão entram no total da fatura antes de o banco cobrar." /></legend>
             <label class="choice"><input type="radio" name="pref-recurring" value="on-date" checked="@(_recurring == RecurringInvoiceMode.SumOnDate)" @onchange="() => _recurring = RecurringInvoiceMode.SumOnDate" />
                 <span>Somar só na data da cobrança<small class="hint">O total fica igual ao do banco; o valor ainda não cobrado aparece como previsto.</small></span></label>
@@ -120,11 +124,12 @@
     private bool _showInvoices;
     private int _pageSize;
     private int _sessionHours;
+    private bool _groupCardEntries;
     private string? _preferencesMessage;
     private bool _preferencesSaved;
     private bool _savingPreferences;
 
-    private string Snapshot() => string.Join('|', _theme, _startPage, _recurring, _pendingWindowDays, _topCategories, _showSummary, _showPending, _showCategories, _showInvoices, _pageSize, _sessionHours);
+    private string Snapshot() => string.Join('|', _theme, _startPage, _recurring, _pendingWindowDays, _topCategories, _showSummary, _showPending, _showCategories, _showInvoices, _pageSize, _sessionHours, _groupCardEntries);
 
     protected override async Task OnInitializedAsync()
     {
@@ -139,6 +144,7 @@
             (saved.Sections.Summary, saved.Sections.Pending, saved.Sections.Categories, saved.Sections.Invoices);
         _pageSize = saved.PageSize;
         _sessionHours = saved.SessionHours;
+        _groupCardEntries = saved.GroupCardEntries;
         _savedSnapshot = Snapshot();
     }
 
@@ -160,7 +166,7 @@
         try
         {
             var result = await Preferences.SaveAsync(new AppPreferences(_theme, _startPage, _recurring, _pendingWindowDays, _topCategories,
-                new DashboardSections(_showSummary, _showPending, _showCategories, _showInvoices), _pageSize, _sessionHours));
+                new DashboardSections(_showSummary, _showPending, _showCategories, _showInvoices), _pageSize, _sessionHours, _groupCardEntries));
             _preferencesSaved = result.Succeeded;
             _preferencesMessage = result.Error ?? "Preferências salvas.";
             if (result.Succeeded)

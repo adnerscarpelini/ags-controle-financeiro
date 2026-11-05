@@ -39,3 +39,15 @@ totais e composição dos DTOs, exigindo menos de um segundo.
 - **Ações por linha:** Pagar/Receber (só pendente fora do cartão), Editar, Anexar, Duplicar, Antecipar (só em parcelas) e Excluir, em janelas.
 - **Rodapé:** linhas por página, posição e **Saldo previsto do mês**, de `IEntryCatalog.GetBalanceForecastAsync`: saldo atual somado às pendências do mês, fora do cartão. A tela não recalcula saldos.
 - **Atalhos:** Ctrl+N abre o menu Novo, Ctrl+F abre a busca e Ctrl+D duplica o selecionado.
+
+## Agrupar cartões
+
+A opção **Agrupar cartões** ([#129](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/129)) troca os lançamentos de cada cartão por uma linha por cartão e fatura. A escolha fica nas [preferências](../preferences/settings.md) e vale ao abrir a tela de novo.
+
+- **A linha:** nome do cartão, mês da fatura, quantidade de lançamentos e a soma. A ação **Ver fatura** abre a fatura daquele mês, onde ficam os itens.
+- **Cartão e mês separados:** com Todos os meses ou um período, o mesmo cartão tem uma linha por mês de fatura.
+- **Filtros primeiro:** a soma considera só o que passou pelos filtros. Com uma categoria ou uma busca, ela pode ser menor que o total da fatura.
+- **Ajustes de fatura** entram na soma do cartão.
+- **Cards e totais não mudam:** o agrupamento altera só as linhas. O rodapé passa a contar linhas em vez de lançamentos.
+- **Ordem e páginas:** o agrupamento vale para o resultado inteiro, antes da paginação, então a soma não depende da página. Nesse modo a consulta carrega todos os lançamentos do filtro e monta a página em memória. Na ordem por data, a linha usa a data do lançamento mais recente; na ordem por categoria, ela não tem categoria própria.
+- **Pendentes** não muda: lançamentos de cartão não têm baixa e não aparecem nessa visão.

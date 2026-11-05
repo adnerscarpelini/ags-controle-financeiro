@@ -28,6 +28,7 @@ mensagem e o que estava salvo é mantido.
 | Dashboard | Maiores categorias no gráfico | 5, 10 ou 20 | 10 |
 | Dashboard | Seções visíveis | Resumo, Pendências, Categorias, Faturas | Todas |
 | Lançamentos | Itens por página | 25, 50, 100 ou 200 | 50 |
+| Lançamentos | Agrupar por cartão | Ligado, desligado | Desligado |
 | Segurança | Duração da sessão sem "Manter conectado" | 12 h, 24 h ou 7 dias | 12 h |
 
 ## Tema
@@ -56,6 +57,8 @@ Ver [Recorrentes previstas na fatura](../invoices/recurring-forecast.md).
   link para `/configuracoes`.
 - **Itens por página:** tamanho da consulta de `/lancamentos` (também ao aplicar filtros salvos) e de `/pendentes` (#71). Os
   totais continuam somando todos os lançamentos do filtro.
+- **Agrupar por cartão:** também muda na própria tela de Lançamentos e é gravada na hora. Ver
+  [Agrupar cartões](../transactions/entry-filters.md#agrupar-cartões).
 - **Duração da sessão:** gravada no ticket do cookie no login, então vale a partir do próximo login e não
   altera sessões abertas. "Manter conectado" continua com 30 dias.
 
@@ -72,7 +75,7 @@ As preferências ficam em abas no topo de Configurações, com uma única ação
 | Aba | Preferências |
 | --- | --- |
 | Geral | Tema e tela inicial |
-| Lançamentos e faturas | Itens por página e recorrentes do cartão na fatura aberta |
+| Lançamentos e faturas | Itens por página, agrupar por cartão e recorrentes do cartão na fatura aberta |
 | Dashboard | Janela de pendências, maiores categorias e seções visíveis |
 | Segurança | Duração da sessão, além de trocar senha, backup e certificado, que têm ação própria |
 
