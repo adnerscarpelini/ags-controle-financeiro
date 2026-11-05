@@ -1,0 +1,227 @@
+@page "/lancamentos-fixos"
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Reimbursements.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+@using Ags.Finance.Web.Components.Entries
+@using Ags.Finance.Web.Components.Layout
+@implements IDisposable
+@inject IEntryCatalog Entries
+@inject IRecurringTransferCatalog Transfers
+@inject IAccountCatalog Accounts
+@inject IPersonCatalog People
+@inject EntryChangeNotifier EntryChanges
+@inject IDialogService Dialogs
+@inject ViewportState Viewport
+@inject ISnackbar Snackbar
+
+<div class="page-head">
+    <PageHeader Title="Lançamentos fixos" />
+    <div class="page-head-actions">
+        @if (_selected.Count > 0)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Outlined.Delete" data-delete-selected Disabled="@_busy" OnClick="DeleteSelectedAsync">Excluir selecionados (@_selected.Count)</MudButton>
+        }
+        <div class="chips" role="group" aria-label="Tipo de lançamento fixo">
+            @foreach (var (key, label) in s_filters)
+            {
+                <button type="button" class="chip @(_filter == key ? "on" : null)" aria-pressed="@(_filter == key ? "true" : "false")" data-filter="@key" @onclick="() => SetFilter(key)">@label</button>
+            }
+        </div>
+    </div>
+</div>
+
+@if (_error is not null) { <p class="form-error" role="alert" data-fixed-error>@_error</p> }
+
+<section class="stat-cards" aria-label="Totais dos lançamentos fixos">
+    <StatCard ValueClass="@ValueColor.Expense(ExpenseTotal)" Label="Despesas fixas" Help="Soma por mês das despesas fixas do filtro escolhido." Value="@(ExpenseTotal.IsZero ? ExpenseTotal.ToString() : (-ExpenseTotal).ToString())" Testid="fixed-expenses" />
+    <StatCard ValueClass="@ValueColor.Income(IncomeTotal)" Label="Receitas fixas" Help="Soma por mês das receitas fixas do filtro escolhido." Value="@IncomeTotal.ToString()" Testid="fixed-income" />
+</section>
+
+<section class="panel data-panel">
+    <p class="form-note">As alterações valem só para o que está pendente ou em fatura aberta e para os próximos meses. O que já passou não muda.</p>
+    @if (_loaded && Visible.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Outlined.EventRepeat" Message="Nenhum lançamento fixo aqui. Ligue a repetição ao criar um lançamento ou uma transferência." />
+    }
+    else
+    {
+        <MudTable T="FixedRow" Items="Visible" Elevation="0" Hover="true" Class="data-table" Breakpoint="AppTables.Breakpoint(Viewport.IsMobile)" SortLabel="@AppTables.SortLabel" aria-label="Lançamentos fixos">
+            <HeaderContent>
+                <MudTh Class="col-select"><input id="fixed-select-all" type="checkbox" class="row-select" aria-label="Selecionar todos" checked="@AllSelected" @onchange="ToggleAll" /></MudTh>
+                <MudTh>Dia</MudTh>
+                <MudTh>Descrição</MudTh>
+                <MudTh>Categoria</MudTh>
+                <MudTh>Conta ou cartão</MudTh>
+                <MudTh Class="numeric">Valor</MudTh>
+                <MudTh>Ações</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="row">
+                <MudTd Class="col-select"><input type="checkbox" class="row-select" aria-label="Selecionar @row.Title" checked="@_selected.Contains(row.Id)" @onchange="args => Toggle(row, args)" /></MudTd>
+                <MudTd DataLabel="Dia" data-fixed-day>@row.Day</MudTd>
+                <MudTd DataLabel="Descrição" Class="col-description">
+                    <span class="row-title">@row.Title</span>
+                    @if (row.Note.Length > 0) { <span class="row-note">@row.Note</span> }
+                </MudTd>
+                <MudTd DataLabel="Categoria">@row.Category</MudTd>
+                <MudTd DataLabel="Conta ou cartão" data-fixed-source>@row.Source</MudTd>
+                <MudTd DataLabel="Valor" Class="@($"numeric {row.ValueClass}")" data-fixed-amount>@row.Value</MudTd>
+                <MudTd DataLabel="Ações" Class="col-actions">
+                    <RowActions Actions="ActionsFor(row)" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</section>
+
+@code {
+    private sealed record FixedRow(Guid Id, int Day, string Title, string Note, string Category, string Source, Money Value, string ValueClass, RecurringSeriesDetails? Entry, RecurringTransferSeriesDetails? Transfer);
+
+    private static readonly (string Key, string Label)[] s_filters = [("all", "Todos"), ("card", "Cartão"), ("account", "Conta"), ("income", "Receitas"), ("transfer", "Transferências")];
+
+    private IReadOnlyList<FixedRow> _rows = [];
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private IReadOnlyList<CreditCardDetails> _cards = [];
+    private IReadOnlyList<PersonDetails> _people = [];
+    private readonly HashSet<Guid> _selected = [];
+    private string _filter = "all";
+    private bool _loaded;
+    private bool _busy;
+    private string? _error;
+
+    private IReadOnlyList<FixedRow> Visible => _rows.Where(x => _filter switch
+    {
+        "card" => x.Entry?.CardExternalId is not null,
+        "account" => x.Entry is { CardExternalId: null, Kind: CategoryKind.Expense },
+        "income" => x.Entry?.Kind == CategoryKind.Income,
+        "transfer" => x.Transfer is not null,
+        _ => true,
+    }).ToList();
+
+    private Money ExpenseTotal => new(Visible.Where(x => x.Entry?.Kind == CategoryKind.Expense).Sum(x => x.Entry!.Amount.Amount));
+
+    private Money IncomeTotal => new(Visible.Where(x => x.Entry?.Kind == CategoryKind.Income).Sum(x => x.Entry!.Amount.Amount));
+
+    private bool AllSelected => Visible.Count > 0 && Visible.All(x => _selected.Contains(x.Id));
+
+    protected override async Task OnInitializedAsync()
+    {
+        EntryChanges.Changed += EntriesChangedAsync;
+        await ReloadAsync();
+    }
+
+    private Task EntriesChangedAsync() => InvokeAsync(async () =>
+    {
+        await ReloadAsync();
+        StateHasChanged();
+    });
+
+    private async Task ReloadAsync()
+    {
+        _accounts = await Accounts.GetAccountsAsync(false);
+        _cards = await Accounts.GetCreditCardsAsync(false);
+        _people = await People.GetAsync();
+        var entries = (await Entries.GetRecurringSeriesAsync()).Select(RowOf);
+        var transfers = (await Transfers.GetSeriesAsync()).Select(RowOf);
+        _rows = entries.Concat(transfers).OrderBy(x => x.Day).ThenBy(x => x.Title, StringComparer.CurrentCultureIgnoreCase).ToList();
+        _selected.IntersectWith(_rows.Select(x => x.Id));
+        _loaded = true;
+    }
+
+    private FixedRow RowOf(RecurringSeriesDetails item)
+    {
+        var income = item.Kind == CategoryKind.Income;
+        return new(item.ExternalId, item.Day, item.MerchantName, Note(item), item.Classification.Replace(" > ", " › ", StringComparison.Ordinal), SourceName(item),
+            income ? item.Amount : -item.Amount, income ? ValueColor.Income(item.Amount) : ValueColor.Expense(item.Amount), item, null);
+    }
+
+    private FixedRow RowOf(RecurringTransferSeriesDetails item) => new(item.ExternalId, item.Day, $"Transferência para {AccountName(item.DestinationAccountExternalId)}",
+        item.EndMonth is { } end ? $"Até {end}" : string.Empty, "Transferência", AccountName(item.SourceAccountExternalId), item.Amount, ValueColor.Neutral, null, item);
+
+    private string AccountName(Guid id) => _accounts.FirstOrDefault(x => x.ExternalId == id)?.Name ?? "Conta registrada";
+
+    private string SourceName(RecurringSeriesDetails item) => item.CardExternalId is { } card
+        ? _cards.FirstOrDefault(x => x.ExternalId == card)?.Name ?? "Cartão registrado"
+        : AccountName(item.AccountExternalId);
+
+    private string Note(RecurringSeriesDetails item)
+    {
+        var parts = new List<string>();
+        if (item.Details.Length > 0) { parts.Add(item.Details); }
+        if (item.Reimbursement is { } reimbursement)
+        {
+            parts.Add($"Reembolso: {_people.FirstOrDefault(x => x.ExternalId == reimbursement.PersonExternalId)?.Name ?? "Pessoa registrada"} · {reimbursement.Percent:0.##}%");
+        }
+
+        if (item.EndMonth is { } end) { parts.Add($"Até {end}"); }
+        return string.Join(" · ", parts);
+    }
+
+    private void SetFilter(string key)
+    {
+        _filter = key;
+        _selected.Clear();
+    }
+
+    private void Toggle(FixedRow row, ChangeEventArgs args)
+    {
+        if (args.Value is true) { _selected.Add(row.Id); }
+        else { _selected.Remove(row.Id); }
+    }
+
+    private void ToggleAll(ChangeEventArgs args)
+    {
+        _selected.Clear();
+        if (args.Value is true) { _selected.UnionWith(Visible.Select(x => x.Id)); }
+    }
+
+    private IReadOnlyList<RowAction> ActionsFor(FixedRow row) =>
+    [
+        new("Editar", Icons.Material.Outlined.Edit, "edit", EventCallback.Factory.Create(this, () => EditAsync(row))),
+        new("Excluir", Icons.Material.Outlined.Delete, "delete", EventCallback.Factory.Create(this, () => DeleteAsync([row]))),
+    ];
+
+    private async Task EditAsync(FixedRow row)
+    {
+        if (row.Transfer is { } transfer)
+        {
+            var parameters = new DialogParameters<RecurringTransferSeriesDialog> { { x => x.Series, transfer } };
+            await Dialogs.ShowAsync<RecurringTransferSeriesDialog>("Editar transferência fixa", parameters, AppDialogs.Options(Viewport, MaxWidth.ExtraSmall));
+            return;
+        }
+
+        var entryParameters = new DialogParameters<RecurringSeriesDialog> { { x => x.Series, row.Entry! } };
+        await Dialogs.ShowAsync<RecurringSeriesDialog>($"Editar {row.Title}", entryParameters, AppDialogs.Options(Viewport, MaxWidth.ExtraSmall));
+    }
+
+    private Task DeleteSelectedAsync() => DeleteAsync(_rows.Where(x => _selected.Contains(x.Id)).ToList());
+
+    private async Task DeleteAsync(IReadOnlyList<FixedRow> rows)
+    {
+        if (_busy || rows.Count == 0) { return; }
+        var confirmed = await ConfirmDialog.AskAsync(Dialogs, rows.Count == 1 ? "Excluir lançamento fixo" : "Excluir lançamentos fixos",
+            "Saem o que está em aberto e os próximos meses. O que já foi pago, recebido, confirmado ou está em fatura fechada não muda.", "Excluir", destructive: true,
+            details: rows.Select(x => x.Title).ToList(), detailsLabel: "Lançamentos fixos que serão excluídos");
+        if (!confirmed) { return; }
+        _busy = true;
+        _error = null;
+        try
+        {
+            foreach (var row in rows)
+            {
+                var result = row.Transfer is not null ? await Transfers.DeleteSeriesAsync(row.Id) : await Entries.DeleteRecurringSeriesAsync(row.Id);
+                if (!result.Succeeded)
+                {
+                    _error = $"{row.Title}: {result.Error}";
+                    break;
+                }
+            }
+
+            if (_error is null) { Snackbar.Add(rows.Count == 1 ? "Lançamento fixo excluído." : "Lançamentos fixos excluídos.", Severity.Success); }
+            EntryChanges.Notify();
+        }
+        finally { _busy = false; }
+    }
+
+    public void Dispose() => EntryChanges.Changed -= EntriesChangedAsync;
+}

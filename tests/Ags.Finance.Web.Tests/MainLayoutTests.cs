@@ -95,7 +95,7 @@ public sealed class MainLayoutTests : IAsyncDisposable
         var labels = layout.FindAll(".nav-tree .mud-nav-link-text, .nav-tree .mud-nav-link-text span").Select(x => x.TextContent.Trim()).Where(x => x.Length > 0).Distinct().ToList();
 
         Assert.Equal(
-            ["Dashboard", "Lançamentos", "Contas", "Cartões", "Planejamento", "Relatórios", "Reembolsos", "Cadastros", "Bancos", "Categorias", "Descrições", "Pessoas", "Mais opções", "Anexos", "Arquivos CSV", "Backups", "Configurações"],
+            ["Dashboard", "Lançamentos", "Lançamentos fixos", "Contas", "Cartões", "Planejamento", "Relatórios", "Reembolsos", "Cadastros", "Bancos", "Categorias", "Descrições", "Pessoas", "Mais opções", "Anexos", "Arquivos CSV", "Backups", "Configurações"],
             labels);
     }
 

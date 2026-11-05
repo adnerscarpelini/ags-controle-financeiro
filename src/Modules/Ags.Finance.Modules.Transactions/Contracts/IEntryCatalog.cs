@@ -35,6 +35,15 @@ public interface IEntryCatalog
     Task<ClassificationResult> EditRecurringAsync(Guid externalId, EditRecurringEntryRequest request, CancellationToken cancellationToken = default);
     Task<ClassificationResult> DeleteRecurringAsync(Guid externalId, RecurringChangeScope scope, CancellationToken cancellationToken = default);
     Task<RecurringEntryDetails?> GetRecurringAsync(Guid externalId, CancellationToken cancellationToken = default);
+
+    /// <summary>As séries ativas e ainda não encerradas, de cartão, conta e receita.</summary>
+    Task<IReadOnlyList<RecurringSeriesDetails>> GetRecurringSeriesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Altera a série a partir da primeira ocorrência em aberto. O que já passou, foi pago ou está em fatura protegida não muda.</summary>
+    Task<ClassificationResult> EditRecurringSeriesAsync(Guid seriesExternalId, EditRecurringSeriesRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>Encerra a série e remove as ocorrências em aberto. O que já passou, foi pago ou está em fatura protegida continua.</summary>
+    Task<ClassificationResult> DeleteRecurringSeriesAsync(Guid seriesExternalId, CancellationToken cancellationToken = default);
     Task<OccurrenceGenerationResult> EnsureRecurringMonthAsync(ReferenceMonth month, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EntryDetails>> GetAsync(CancellationToken cancellationToken = default);
     Task<EntryQueryResult> QueryAsync(EntryFilter filter, CancellationToken cancellationToken = default);

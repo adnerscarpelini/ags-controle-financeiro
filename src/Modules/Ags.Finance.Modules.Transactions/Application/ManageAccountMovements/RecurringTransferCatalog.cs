@@ -161,6 +161,62 @@ internal sealed class RecurringTransferCatalog(IRecurringTransferStore store, IA
         return new(selected.ExternalId, null);
     }
 
+    public Task<IReadOnlyList<RecurringTransferSeriesDetails>> GetSeriesAsync(CancellationToken cancellationToken = default)
+        => operations.ExecuteAsync<IReadOnlyList<RecurringTransferSeriesDetails>>(async token =>
+        {
+            var current = CurrentMonth();
+            return (await store.GetSeriesAsync(token)).Where(x => x.IsActive && (x.EndMonth is null || x.EndMonth >= current))
+                .Select(x => new RecurringTransferSeriesDetails(x.ExternalId, x.Day, x.SourceAccountExternalId, x.DestinationAccountExternalId, x.Amount, x.EndMonth is { } end ? ReferenceMonth.FromDate(end) : null))
+                .ToList();
+        }, _ => true, cancellationToken);
+
+    public Task<ClassificationResult> EditSeriesAsync(Guid seriesExternalId, EditRecurringTransferSeriesRequest request, CancellationToken cancellationToken = default)
+        => operations.ExecuteAsync(async token =>
+        {
+            var series = (await store.GetSeriesAsync(token)).FirstOrDefault(x => x.ExternalId == seriesExternalId);
+            if (series is null) { return new ClassificationResult(null, NotFound); }
+            if (request.Day is < 1 or > 31) { return new ClassificationResult(null, "Informe um dia de 1 a 31."); }
+            var current = CurrentMonth();
+            var error = await TransferRules.CheckAsync(accounts, request.SourceAccountExternalId, request.DestinationAccountExternalId, current, request.Amount, token);
+            if (error is not null) { return new ClassificationResult(null, error); }
+
+            // Só o que mudou se propaga: uma exceção feita antes em outro mês continua valendo nos demais campos.
+            var sourceChanged = request.SourceAccountExternalId != series.SourceAccountExternalId;
+            var destinationChanged = request.DestinationAccountExternalId != series.DestinationAccountExternalId;
+            var amountChanged = request.Amount != series.Amount;
+            var dayChanged = request.Day != series.Day;
+            var pending = (await EnsureThroughAsync(current, token)).Where(x => x.RecurringTransferExternalId == seriesExternalId && !x.IsConfirmed && x.OccurrenceMonth >= current).ToList();
+            foreach (var occurrence in pending)
+            {
+                occurrence.Change(sourceChanged ? request.SourceAccountExternalId : occurrence.SourceAccountExternalId,
+                    destinationChanged ? request.DestinationAccountExternalId : occurrence.DestinationAccountExternalId,
+                    dayChanged ? EntryCatalog.OccurrenceDate(occurrence.OccurrenceMonth, request.Day) : occurrence.Date,
+                    amountChanged ? request.Amount : occurrence.Amount);
+            }
+
+            series.Configure(request.SourceAccountExternalId, request.DestinationAccountExternalId, request.Amount, request.Day);
+            await store.SaveAsync(series, pending, [], token);
+            return new ClassificationResult(seriesExternalId, null);
+        }, x => x.Succeeded, cancellationToken);
+
+    public Task<ClassificationResult> DeleteSeriesAsync(Guid seriesExternalId, CancellationToken cancellationToken = default)
+        => operations.ExecuteAsync(async token =>
+        {
+            var series = (await store.GetSeriesAsync(token)).FirstOrDefault(x => x.ExternalId == seriesExternalId);
+            if (series is null) { return new ClassificationResult(null, NotFound); }
+            var current = CurrentMonth();
+            var pending = (await store.GetOccurrencesAsync(token)).Where(x => x.RecurringTransferExternalId == seriesExternalId && !x.IsConfirmed && x.OccurrenceMonth >= current).ToList();
+            series.Deactivate();
+            await store.SaveAsync(series, [], pending, token);
+            return new ClassificationResult(seriesExternalId, null);
+        }, x => x.Succeeded, cancellationToken);
+
+    private DateOnly CurrentMonth()
+    {
+        var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
+        return new DateOnly(today.Year, today.Month, 1);
+    }
+
     private static IReadOnlyList<AccountMovement> ConfirmCore(TransferOccurrence occurrence, DateOnly date, Money amount)
     {
         var operation = Guid.CreateVersion7();
@@ -171,8 +227,7 @@ internal sealed class RecurringTransferCatalog(IRecurringTransferStore store, IA
     /// <summary>Gera os meses que faltam até o mês atual ou até <paramref name="month"/>, o que vier depois, e devolve todas as ocorrências.</summary>
     private async Task<IReadOnlyList<TransferOccurrence>> EnsureThroughAsync(DateOnly month, CancellationToken cancellationToken)
     {
-        var today = DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
-        var current = new DateOnly(today.Year, today.Month, 1);
+        var current = CurrentMonth();
         var through = month > current ? month : current;
         var existing = await store.GetOccurrencesAsync(cancellationToken);
         var known = existing.Select(x => (x.RecurringTransferExternalId, x.OccurrenceMonth)).ToHashSet();

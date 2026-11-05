@@ -1,0 +1,79 @@
+@* Altera uma transferência fixa: valor, dia e contas. Vale para os meses pendentes a partir do atual e para os próximos. *@
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+@inject IRecurringTransferCatalog Transfers
+@inject IAccountCatalog Accounts
+@inject EntryChangeNotifier EntryChanges
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <form id="recurring-transfer-series-form" class="entry-column" @onsubmit="SaveAsync" @onsubmit:preventDefault>
+            <MoneyField Id="recurring-transfer-series-amount" Label="Valor" @bind-Value="_amount" Class="amount-neutral" AutoFocus="true" />
+            <div class="field"><label for="recurring-transfer-series-day">Dia <HelpTip Text="Em meses mais curtos, a transferência cai no último dia." /></label><input id="recurring-transfer-series-day" class="input" type="number" inputmode="numeric" min="1" max="31" @bind="_day" /></div>
+            <div class="field">
+                <label for="recurring-transfer-series-source">Conta de origem</label>
+                <select id="recurring-transfer-series-source" class="input" @bind="_source">
+                    @foreach (var account in _accounts.Where(x => (x.IsActive && x.Kind == AccountKind.Checking) || x.ExternalId == Series.SourceAccountExternalId)) { <option value="@account.ExternalId">@account.Name</option> }
+                </select>
+            </div>
+            <div class="field">
+                <label for="recurring-transfer-series-destination">Conta de destino</label>
+                <select id="recurring-transfer-series-destination" class="input" @bind="_destination">
+                    @foreach (var account in _accounts.Where(x => x.ExternalId != _source && (x.IsActive || x.ExternalId == Series.DestinationAccountExternalId))) { <option value="@account.ExternalId">@account.Name</option> }
+                </select>
+            </div>
+            <p class="form-note" data-series-note>Vale para os meses pendentes a partir do atual e para os próximos. O que já foi confirmado ou é de mês anterior não muda.</p>
+        </form>
+        @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-confirm-cancel Disabled="@_busy" OnClick="() => Dialog?.Cancel()">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" form="recurring-transfer-series-form" data-save Disabled="@(_busy || _amount <= 0)">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private decimal _amount;
+    private int _day;
+    private Guid _source;
+    private Guid _destination;
+    private bool _busy;
+    private string? _error;
+
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public RecurringTransferSeriesDetails Series { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _amount = Series.Amount.Amount;
+        _day = Series.Day;
+        _source = Series.SourceAccountExternalId;
+        _destination = Series.DestinationAccountExternalId;
+        _accounts = await Accounts.GetAccountsAsync(false);
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_busy || _amount <= 0) { return; }
+        _busy = true;
+        _error = null;
+        try
+        {
+            var result = await Transfers.EditSeriesAsync(Series.ExternalId, new(_source, _destination, new Money(_amount), _day));
+            _error = result.Error;
+            if (result.Succeeded)
+            {
+                Snackbar.Add("Transferência fixa alterada.", Severity.Success);
+                EntryChanges.Notify();
+                Dialog?.Close(DialogResult.Ok(true));
+            }
+        }
+        finally { _busy = false; }
+    }
+}
