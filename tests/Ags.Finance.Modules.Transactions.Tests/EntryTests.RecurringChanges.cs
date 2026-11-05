@@ -24,12 +24,12 @@ public sealed partial class EntryTests
     }
 
     [Fact]
-    public async Task AllPendingKeepsSeriesAndCarriesDay31ThroughFebruary()
+    public async Task ThisAndFutureOpenKeepsSeriesAndCarriesDay31ThroughFebruary()
     {
         await Entries.CreateRecurringAsync(new(Request() with { IsPaid = false, Date = new DateOnly(2026, 10, 10), Amount = new Money(50) }));
         var december = await OccurrenceAsync(2026, 12);
         var november = await OccurrenceAsync(2026, 11);
-        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Amount = new Money(60) }, RecurringEditScope.AllPending, 31));
+        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Amount = new Money(60) }, RecurringEditScope.ThisAndFutureOpen, 31));
         Assert.True(result.Succeeded, result.Error);
         var changed = await OccurrenceAsync(2026, 11);
         Assert.Equal(november.RecurringEntryExternalId, changed.RecurringEntryExternalId);

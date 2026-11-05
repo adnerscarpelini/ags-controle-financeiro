@@ -1,0 +1,47 @@
+@* Pergunta o alcance ao salvar a edição de um lançamento recorrente. Use AskAsync: devolve null quando o usuário cancela. *@
+@using Ags.Finance.Modules.Transactions.Contracts
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <fieldset class="choices">
+            <legend>Quais lançamentos você quer alterar?</legend>
+            <label class="choice"><input type="radio" name="recurring-scope" data-scope="@RecurringEditScope.OnlyThis" checked="@(_scope == RecurringEditScope.OnlyThis)" @onchange="() => _scope = RecurringEditScope.OnlyThis" /><span>Somente esta<small class="form-note">Só o lançamento deste mês. Os demais não mudam.</small></span></label>
+            <label class="choice"><input type="radio" name="recurring-scope" data-scope="@RecurringEditScope.ThisAndFutureOpen" checked="@(_scope == RecurringEditScope.ThisAndFutureOpen)" @onchange="() => _scope = RecurringEditScope.ThisAndFutureOpen" /><span>Esta e as futuras em aberto<small class="form-note">Este lançamento e os próximos meses ainda em aberto. Meses anteriores não mudam.</small></span></label>
+            <label class="choice"><input type="radio" name="recurring-scope" data-scope="@RecurringEditScope.All" checked="@(_scope == RecurringEditScope.All)" @onchange="() => _scope = RecurringEditScope.All" /><span>Todas (incluindo @(IsExpense ? "Pagas" : "Recebidas"))<small class="form-note">Todos os meses da série, inclusive os já @(IsExpense ? "pagos" : "recebidos").</small></span></label>
+        </fieldset>
+        @if (_scope != RecurringEditScope.OnlyThis)
+        {
+            <div class="field"><label for="entry-recurring-day">Dia das próximas ocorrências</label><input id="entry-recurring-day" class="input" type="number" inputmode="numeric" min="1" max="31" @bind="_day" /></div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog?.Cancel()" data-confirm-cancel>Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => Dialog?.Close(DialogResult.Ok(new RecurringEditChoice(_scope, _day)))" data-confirm-ok>Salvar alteração</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private RecurringEditScope _scope = RecurringEditScope.OnlyThis;
+    private int _day;
+
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public bool IsExpense { get; set; }
+
+    [Parameter]
+    public int Day { get; set; }
+
+    protected override void OnInitialized() => _day = Day;
+
+    public sealed record RecurringEditChoice(RecurringEditScope Scope, int Day);
+
+    public static async Task<RecurringEditChoice?> AskAsync(IDialogService dialogs, bool isExpense, int day)
+    {
+        var parameters = new DialogParameters<RecurringEditScopeDialog> { { x => x.IsExpense, isExpense }, { x => x.Day, day } };
+        var reference = await dialogs.ShowAsync<RecurringEditScopeDialog>("Alterar lançamento recorrente", parameters, new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, BackdropClick = false });
+        var result = await reference.Result;
+        return result is { Canceled: false, Data: RecurringEditChoice choice } ? choice : null;
+    }
+}

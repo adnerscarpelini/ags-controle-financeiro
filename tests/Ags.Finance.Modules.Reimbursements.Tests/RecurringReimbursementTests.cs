@@ -60,13 +60,13 @@ public sealed class RecurringReimbursementTests : ReimbursementFixture
     }
 
     [Fact]
-    public async Task AllPendingChangesOnlyUnpaidOccurrencesIncludingMonthsNotGeneratedYet()
+    public async Task ThisAndFutureOpenChangesOnlyUnpaidOccurrencesIncludingMonthsNotGeneratedYet()
     {
         var person = await PersonAsync();
         await SeriesAsync(new(person, 50m));
         var november = await OccurrenceAsync(s_november);
 
-        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Reimbursement = new(person, 30m) }, RecurringEditScope.AllPending));
+        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Reimbursement = new(person, 30m) }, RecurringEditScope.ThisAndFutureOpen));
         Assert.True(result.Succeeded, result.Error);
 
         Assert.Equal(50m, (await OccurrenceAsync(s_october)).Reimbursement!.Percent);
@@ -117,7 +117,7 @@ public sealed class RecurringReimbursementTests : ReimbursementFixture
         await SeriesAsync(new(person, 50m));
         var november = await OccurrenceAsync(s_november);
 
-        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Reimbursement = null }, RecurringEditScope.AllPending));
+        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Reimbursement = null }, RecurringEditScope.ThisAndFutureOpen));
         Assert.True(result.Succeeded, result.Error);
 
         Assert.NotNull((await OccurrenceAsync(s_october)).Reimbursement);
@@ -132,7 +132,7 @@ public sealed class RecurringReimbursementTests : ReimbursementFixture
         await SeriesAsync(null);
         var november = await OccurrenceAsync(s_november);
 
-        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Reimbursement = new(person, 50m) }, RecurringEditScope.AllPending));
+        var result = await Entries.EditRecurringAsync(november.ExternalId, new(Change(november) with { Reimbursement = new(person, 50m) }, RecurringEditScope.ThisAndFutureOpen));
         Assert.True(result.Succeeded, result.Error);
 
         Assert.Null((await OccurrenceAsync(s_october)).Reimbursement);

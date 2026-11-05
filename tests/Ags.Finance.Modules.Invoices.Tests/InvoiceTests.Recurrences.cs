@@ -9,7 +9,7 @@ public sealed partial class InvoiceTests
 {
     [Theory]
     [InlineData(RecurringEditScope.OnlyThis)]
-    [InlineData(RecurringEditScope.AllPending)]
+    [InlineData(RecurringEditScope.ThisAndFutureOpen)]
     [InlineData(RecurringEditScope.All)]
     public async Task ProtectedOccurrenceRejectsEveryScopeWithoutChangingSeries(RecurringEditScope scope)
     {
@@ -36,6 +36,25 @@ public sealed partial class InvoiceTests
         Assert.False((await entries.EditRecurringAsync(selected.ExternalId, new(Change(selected) with { Amount = new Money(60) }, RecurringEditScope.All))).Succeeded);
         Assert.Equal(new Money(50), Assert.Single(await Catalog.GetMonthAsync(october.Month)).Total);
         Assert.Equal(new Money(50), Assert.Single(await Catalog.GetMonthAsync(new ReferenceMonth(2026, 12))).Total);
+    }
+
+    [Fact]
+    public async Task ThisAndFutureOpenChangesOpenInvoicesAndSkipsAProtectedOne()
+    {
+        var entries = Provider.GetRequiredService<IEntryCatalog>();
+        await entries.CreateRecurringAsync(new(Purchase(50)));
+        var october = Assert.Single(await Catalog.GetMonthAsync(new ReferenceMonth(2026, 10)));
+        await Catalog.GetMonthAsync(new ReferenceMonth(2026, 11));
+        await Catalog.GetMonthAsync(new ReferenceMonth(2026, 12));
+        await Lifecycle.CloseAsync(_cardId, new ReferenceMonth(2026, 11));
+        var selected = Assert.Single(october.Entries);
+
+        var result = await entries.EditRecurringAsync(selected.ExternalId, new(Change(selected) with { Amount = new Money(60) }, RecurringEditScope.ThisAndFutureOpen));
+
+        Assert.True(result.Succeeded, result.Error);
+        Assert.Equal(new Money(60), Assert.Single(await Catalog.GetMonthAsync(october.Month)).Total);
+        Assert.Equal(new Money(50), Assert.Single(await Catalog.GetMonthAsync(new ReferenceMonth(2026, 11))).Total);
+        Assert.Equal(new Money(60), Assert.Single(await Catalog.GetMonthAsync(new ReferenceMonth(2026, 12))).Total);
     }
 
     [Fact]

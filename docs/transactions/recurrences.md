@@ -45,13 +45,15 @@ nunca o permite. As verificações e gravações usam a mesma transação da #50
 ## Edição e exclusão com alcance
 
 A [#92](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/92) separa
-edição e exclusão. Editar oferece três opções explícitas, com Somente esta selecionada:
+edição e exclusão. Ao salvar a edição, uma janela pergunta o alcance, com Somente esta
+selecionada ([#123](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/123)):
 
-- Editar somente esta: altera a ocorrência, preservando a definição da série.
-- Editar todas as pendentes: altera as ocorrências com baixa ainda não registrada,
-  em qualquer mês, e a definição para os meses ainda não gerados. Pagas/Recebidas,
-  inclusive futuras, são preservadas.
-- Editar todas (incluindo Pagas ou Recebidas): altera todas e a definição; o saldo
+- Somente esta: altera a ocorrência, preservando a definição da série.
+- Esta e as futuras em aberto: altera a ocorrência aberta, mesmo que já paga, as seguintes
+  em aberto e a definição para os meses ainda não gerados. Em aberto é pendente, fora do
+  cartão, ou de fatura Aberta, no cartão. Meses anteriores e as seguintes já pagas ou
+  recebidas são preservados.
+- Todas (incluindo Pagas ou Recebidas): altera todas e a definição; o saldo
   derivado reflete a diferença das pagas uma única vez.
 
 A edição mantém a identidade da série e das ocorrências, sem dividir o plano.

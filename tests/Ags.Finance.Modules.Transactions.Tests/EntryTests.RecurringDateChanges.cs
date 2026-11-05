@@ -17,8 +17,8 @@ public sealed partial class EntryTests
         }
     }
     [Theory]
-    [InlineData(RecurringEditScope.AllPending, false)]
-    [InlineData(RecurringEditScope.AllPending, true)]
+    [InlineData(RecurringEditScope.ThisAndFutureOpen, false)]
+    [InlineData(RecurringEditScope.ThisAndFutureOpen, true)]
     [InlineData(RecurringEditScope.All, false)]
     [InlineData(RecurringEditScope.All, true)]
     public async Task MovingDateAcrossMonthsKeepsMaterializedAndFutureOccurrencesConsistent(RecurringEditScope scope, bool materialized)

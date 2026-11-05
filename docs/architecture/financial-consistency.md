@@ -88,7 +88,7 @@ Detalhes em [recorrentes previstas na fatura](../invoices/recurring-forecast.md)
 
 ## Recorrência, histórico e arquivamento
 
-Editar uma recorrência usa Somente esta (padrão), Todas as pendentes ou Todas,
+Editar uma recorrência pergunta o alcance ao salvar: Somente esta (padrão), Esta e as futuras em aberto ou Todas,
 incluindo Pagas/Recebidas (#92). Os alcances coletivos atualizam a definição sem
 dividir a série. Excluir conserva os alcances da #17: Somente esta, Esta e as
 seguintes ou Todas, preservando o histórico confirmado conforme essa operação.

@@ -3,7 +3,7 @@ using Ags.Finance.SharedKernel;
 namespace Ags.Finance.Modules.Transactions.Contracts;
 
 public enum RecurringChangeScope { OnlyThis, ThisAndFollowing, All }
-public enum RecurringEditScope { OnlyThis, AllPending, All }
+public enum RecurringEditScope { OnlyThis, ThisAndFutureOpen, All }
 public sealed record EditRecurringEntryRequest(CreateEntryRequest Entry, RecurringEditScope Scope, int? Day = null);
 
 public sealed record CreateRecurringEntryRequest(CreateEntryRequest Entry, ReferenceMonth? EndMonth = null);
