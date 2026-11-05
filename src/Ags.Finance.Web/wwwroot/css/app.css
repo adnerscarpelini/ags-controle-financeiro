@@ -975,7 +975,9 @@ input[type="file"]::file-selector-button {
 .entity-card { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border: 1px solid transparent; border-radius: var(--radius); background: var(--color-card); min-width: 0; }
 .entity-card-archived { border: 1px dashed var(--color-border-strong); background: transparent; }
 .entity-card-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.entity-card-head h2 { flex: 1; min-width: 0; margin: 0; font-size: 14px; font-weight: 500; letter-spacing: -.006em; overflow-wrap: anywhere; }
+/* Nome e selo dividem a linha quando cabem; senão o selo desce. O nome só quebra entre palavras (issue 137). */
+.entity-card-title { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); min-width: 0; }
+.entity-card-head h2 { flex: 0 1 auto; min-width: 0; margin: 0; font-size: 14px; font-weight: 500; letter-spacing: -.006em; overflow-wrap: break-word; }
 .entity-card-values { display: grid; gap: 6px; margin: 0; }
 .entity-card-values > div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
 .entity-card-values dt { display: flex; align-items: center; gap: var(--space-1); color: var(--color-text-secondary); font-size: 13px; }

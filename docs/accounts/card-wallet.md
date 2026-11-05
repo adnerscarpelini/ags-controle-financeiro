@@ -22,6 +22,8 @@ Edição, atualização dos finais, callbacks e arquivamento foram exercitados e
 
 [#100](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/100): `/cartoes` mostra a carteira em cards, com as abas **Faturas abertas** e **Faturas fechadas**. Cada card traz situação, total, vencimento, barra de limite e a ação conforme o estado: **Pagar fatura** ou "Fatura paga". Na aba de abertas, uma fatura já fechada e não paga do cartão aparece em destaque, com o mesmo **Pagar fatura**. Clicar no card abre a fatura.
 
+No cabeçalho, o nome do cartão quebra somente entre palavras. O selo da fatura fica ao lado do nome quando cabe e, senão, desce para a linha de baixo; o card de conta segue a mesma regra com o selo "Arquivada" ([#137](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/137)).
+
 O menu ⋮ do card traz Editar, Finais do cartão, Histórico de faturas e Arquivar. **Ver cartões arquivados** mostra os arquivados e os indisponíveis pela conta. O resumo lateral mostra a próxima fatura a vencer, o limite disponível e o valor total das faturas.
 
 O limite usado vem de `IInvoiceCatalog.GetCardLimitsAsync`: saldo restante das faturas ainda não pagas, inclusive parcelas futuras. Crédito de uma fatura não reduz outra.

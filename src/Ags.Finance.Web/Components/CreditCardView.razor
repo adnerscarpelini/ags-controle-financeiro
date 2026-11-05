@@ -5,8 +5,10 @@
 <article class="entity-card wallet-card @(Card.IsAvailable ? null : "entity-card-archived")" aria-label="Cartão @Card.Name" data-card="@Card.Name" @onclick="() => Open.InvokeAsync()">
     <header class="entity-card-head">
         @if (Bank is not null) { <BankLogo Bank="Bank" /> }
-        <h2 class="catalog-color color-@Card.Color">@Card.Name</h2>
-        @if (Invoice is { } shown) { <span class="tag" data-invoice-status>Fatura @StatusLabel(shown.Status)</span> }
+        <div class="entity-card-title">
+            <h2 class="catalog-color color-@Card.Color">@Card.Name</h2>
+            @if (Invoice is { } shown) { <span class="tag" data-invoice-status>Fatura @StatusLabel(shown.Status)</span> }
+        </div>
         <div data-card-menu @onclick:stopPropagation="true">
             <MudMenu Icon="@Icons.Material.Outlined.MoreVert" AriaLabel="@($"Ações do cartão {Card.Name}")" Size="Size.Small" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
                 <MudMenuItem Icon="@Icons.Material.Outlined.Edit" OnClick="() => Edit.InvokeAsync()">Editar</MudMenuItem>
