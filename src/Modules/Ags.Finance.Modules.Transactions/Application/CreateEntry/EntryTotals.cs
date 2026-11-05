@@ -18,6 +18,17 @@ internal sealed class EntryTotals(IEntryStore store, IReferenceMonthCalculator c
         return entries.Concat(adjustments).OrderBy(x => x.Month).ThenBy(x => x.Kind).ToList();
     }
 
+    public async Task<IReadOnlyList<MonthlyTotal>> GetSpendingByDateAsync(ReferenceMonth from, ReferenceMonth to, CancellationToken cancellationToken = default)
+    {
+        if (from.Year == 0 || to.Year == 0 || from > to) { return []; }
+        var rows = await store.GetExpenseAmountsByDateAsync(from.FirstDay, to.LastDay, cancellationToken);
+        var entries = rows.GroupBy(x => (Month: ReferenceMonth.FromDate(x.Date), x.SubcategoryExternalId))
+            .Select(group => new MonthlyTotal(group.Key.Month, Contracts.CategoryKind.Expense, group.Key.SubcategoryExternalId, false, new Money(group.Sum(x => x.Amount.Amount)), group.Count()));
+        var adjustments = (await store.GetInvoiceAdjustmentsAsync(cancellationToken)).Where(x => x.Month >= from && x.Month <= to).GroupBy(x => x.Month)
+            .Select(group => new MonthlyTotal(group.Key, Contracts.CategoryKind.Expense, Guid.Empty, true, new Money(-group.Sum(x => x.ExpenseDifference.Amount)), group.Count()));
+        return entries.Concat(adjustments).OrderBy(x => x.Month).ToList();
+    }
+
     public async Task<PlannedTotals> GetPlannedAsync(ReferenceMonth from, ReferenceMonth to, CancellationToken cancellationToken = default)
     {
         if (from.Year == 0 || to.Year == 0 || from > to) { return new([]); }

@@ -12,8 +12,8 @@ public sealed record CategoryLine(string Name, bool IsInvoiceAdjustment, Money A
 }
 
 /// <summary>
-/// <see cref="TotalExpenses"/> e <see cref="TotalIncome"/> são os mesmos do <see cref="MonthlySummary"/>; o ajuste de fatura (#52) aparece como linha própria,
-/// uma vez, para a soma das linhas coincidir com o total.
+/// As despesas mostram onde se gastou no mês, pela data da despesa: <see cref="TotalExpenses"/> é o gasto do <see cref="MonthlyBehavior"/>. As receitas seguem o mês de referência:
+/// <see cref="TotalIncome"/> é a receita do <see cref="MonthlySummary"/>. O ajuste de fatura (#52) aparece como linha própria, uma vez, para a soma das linhas coincidir com o total.
 /// </summary>
 public sealed record CategoryReport(ReferenceMonth Month, Money TotalExpenses, IReadOnlyList<CategoryLine> Expenses, Money TotalIncome, IReadOnlyList<CategoryLine> Income);
 

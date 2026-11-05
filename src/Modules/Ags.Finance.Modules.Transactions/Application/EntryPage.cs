@@ -7,4 +7,6 @@ internal sealed record EntryPage(IReadOnlyList<TransactionEntry> Entries, Money 
 
 internal sealed record EntryAmount(ReferenceMonth Month, CategoryKind Kind, Guid SubcategoryExternalId, Money Amount);
 
+internal sealed record DatedAmount(DateOnly Date, Guid SubcategoryExternalId, Money Amount);
+
 internal sealed record EntryPlanningAmount(ReferenceMonth Month, CategoryKind Kind, Guid SubcategoryExternalId, Money Amount, bool IsEffective, DateOnly Date, Guid? CardExternalId, Guid? RecurringEntryExternalId);

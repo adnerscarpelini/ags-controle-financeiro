@@ -28,6 +28,14 @@ internal sealed partial class EntryStore
         return rows.Select(x => new EntryPlanningAmount(x.Month, x.Kind, x.SubcategoryExternalId, x.Amount, x.IsEffective, x.Date, x.CardExternalId, x.RecurringEntryExternalId)).ToList();
     }
 
+    public async Task<IReadOnlyList<DatedAmount>> GetExpenseAmountsByDateAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken)
+    {
+        await using var context = await factory.CreateDbContextAsync(cancellationToken);
+        var rows = await context.Set<TransactionEntry>().AsNoTracking().Where(x => x.Kind == Domain.CategoryKind.Expense && x.Date >= from && x.Date <= to)
+            .Select(x => new { x.Date, x.SubcategoryExternalId, x.Amount }).ToListAsync(cancellationToken);
+        return rows.Select(x => new DatedAmount(x.Date, x.SubcategoryExternalId, x.Amount)).ToList();
+    }
+
     private static IOrderedQueryable<TransactionEntry> Sort(TransactionsDbContext context, IQueryable<TransactionEntry> query, EntryFilter filter)
     {
         var descending = filter.SortDescending;

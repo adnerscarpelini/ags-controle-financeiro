@@ -20,6 +20,13 @@ internal sealed class LedgerSource(IEntryCatalog entries, IEntryTotals totals)
             : x.CardExternalId is null || cardView == MonthlyPlanCardView.PurchaseDate ? ReferenceMonth.FromDate(x.Date) == month : x.Month == month).ToList());
     }
 
+    /// <summary>Razão das despesas pelo mês da data. Antes, garante as ocorrências recorrentes com data no intervalo, inclusive as que caem na fatura do mês seguinte.</summary>
+    public async Task<Ledger> LoadSpendingAsync(ReferenceMonth from, ReferenceMonth to, CancellationToken cancellationToken)
+    {
+        await entries.QueryAsync(new(FromDate: from.FirstDay, ToDate: to.LastDay, PageSize: 1), cancellationToken);
+        return new(await totals.GetSpendingByDateAsync(from, to, cancellationToken));
+    }
+
     /// <summary>
     /// Carrega o razão de <paramref name="from"/> a <paramref name="to"/>. Antes, garante as ocorrências recorrentes dos meses
     /// do intervalo que não passam de <paramref name="generateUntil"/>, como a tela de Lançamentos faz ao consultar um mês.

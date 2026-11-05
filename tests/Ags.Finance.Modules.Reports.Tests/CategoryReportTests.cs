@@ -39,15 +39,35 @@ public sealed class CategoryReportTests : ReportFixture
     }
 
     [Fact]
-    public async Task CategoryTotalsMatchTheMonthlySummaryIncludingInvoiceAdjustmentsOnce()
+    public async Task ExpensesCountInTheMonthOfTheirDateWhileTheBudgetKeepsTheInvoiceMonth()
+    {
+        var transport = await SubcategoryAsync("Transporte", "Combustível");
+        var card = await CardAsync("Cartão Exemplo");
+        var november = new ReferenceMonth(2026, 11);
+        var purchase = await Entries.CreateAsync(new(new DateOnly(2026, 10, 20), MerchantId, transport, AccountId, new Money(100m), CardExternalId: card));
+        Assert.True(purchase.Succeeded, purchase.Error);
+        Assert.True((await Entries.CreateInstallmentsAsync(new(new DateOnly(2026, 10, 20), MerchantId, ExpenseSubcategoryId, AccountId, new Money(300m), CardExternalId: card), 3)).Succeeded);
+
+        var october = await Reports.GetAsync(s_october);
+
+        Assert.Equal(new Money(400m), october.TotalExpenses);
+        Assert.Equal([("Mercado", new Money(300m)), ("Transporte", new Money(100m))], october.Expenses.Select(x => (x.Name, x.Amount)));
+        var next = await Reports.GetAsync(november);
+        Assert.Empty(next.Expenses);
+        Assert.Equal(Money.Zero, next.TotalExpenses);
+        Assert.Equal(Money.Zero, (await Provider.GetRequiredService<IMonthlySummaries>().GetAsync(s_october)).Expenses);
+    }
+
+    [Fact]
+    public async Task CategoryTotalsMatchTheMonthBehaviorIncludingInvoiceAdjustmentsOnce()
     {
         var card = (await Provider.GetRequiredService<IAccountCatalog>().SaveCreditCardAsync(new(null, AccountId, "Cartão Exemplo", CardBrand.Visa, new Money(10000), 3, 10, true, "green"))).ExternalId!.Value;
         await AddAsync(s_october, 250m);
         Assert.True((await Entries.CreateAsync(new(new DateOnly(2026, 10, 1), MerchantId, ExpenseSubcategoryId, AccountId, new Money(100m), CardExternalId: card))).Succeeded);
         Assert.True((await Entries.AdjustInvoiceAsync(new(Guid.CreateVersion7(), card, s_october, new Money(130m)))).Succeeded);
         var report = await Reports.GetAsync(s_october);
-        var summary = await Provider.GetRequiredService<IMonthlySummaries>().GetAsync(s_october);
-        Assert.Equal(summary.Expenses, report.TotalExpenses);
+        var behavior = await Provider.GetRequiredService<IMonthlyBehaviors>().GetAsync(s_october);
+        Assert.Equal(behavior.Spent, report.TotalExpenses);
         Assert.Equal(report.TotalExpenses, new Money(report.Expenses.Sum(x => x.Amount.Amount)));
         var adjustment = Assert.Single(report.Expenses, x => x.IsInvoiceAdjustment);
         Assert.Equal(("Ajuste de fatura", new Money(30m)), (adjustment.Name, adjustment.Amount));

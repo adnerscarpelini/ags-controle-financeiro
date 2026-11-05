@@ -10,6 +10,7 @@ internal interface IEntryStore
     Task<EntryPage> QueryAsync(EntryFilter filter, CancellationToken cancellationToken, int? offset = null, int? limit = null);
     Task<IReadOnlyList<EntryAmount>> GetMonthlyAmountsAsync(ReferenceMonth from, ReferenceMonth to, CancellationToken cancellationToken);
     Task<IReadOnlyList<EntryPlanningAmount>> GetPlanningAmountsAsync(ReferenceMonth from, ReferenceMonth to, CancellationToken cancellationToken);
+    Task<IReadOnlyList<DatedAmount>> GetExpenseAmountsByDateAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken);
     Task<IReadOnlyList<InvoiceAdjustment>> GetInvoiceAdjustmentsAsync(CancellationToken cancellationToken);
     Task AddInvoiceAdjustmentAsync(InvoiceAdjustment adjustment, CancellationToken cancellationToken);
     Task<IReadOnlyList<EntryRepetition>> GetRepetitionsAsync(CancellationToken cancellationToken);

@@ -13,10 +13,11 @@ internal sealed class CategoryReports(LedgerSource source, IClassificationCatalo
         var previous = month.AddMonths(-1);
         var from = previous.Year < month.Year ? previous : new ReferenceMonth(month.Year, 1);
         var ledger = await source.LoadAsync(from, month, month, cancellationToken);
+        var spending = await source.LoadSpendingAsync(from, month, cancellationToken);
         var categories = (await classifications.GetCategoriesAsync(false, cancellationToken)).ToDictionary(x => x.ExternalId, x => x.Name);
         var subcategories = (await classifications.GetSubcategoriesAsync(false, cancellationToken)).ToDictionary(x => x.ExternalId);
-        return new(month, ledger.Expenses(month),
-            Lines(ledger, month, previous, CategoryKind.Expense, row => row.IsInvoiceAdjustment ? AdjustmentName : subcategories.TryGetValue(row.SubcategoryExternalId, out var s) ? categories.GetValueOrDefault(s.CategoryExternalId, s.DisplayName) : "Sem categoria"),
+        return new(month, spending.Expenses(month),
+            Lines(spending, month, previous, CategoryKind.Expense, row => row.IsInvoiceAdjustment ? AdjustmentName : subcategories.TryGetValue(row.SubcategoryExternalId, out var s) ? categories.GetValueOrDefault(s.CategoryExternalId, s.DisplayName) : "Sem categoria"),
             ledger.Income(month),
             Lines(ledger, month, previous, CategoryKind.Income, row => subcategories.TryGetValue(row.SubcategoryExternalId, out var s) ? s.DisplayName : "Sem categoria"));
     }
