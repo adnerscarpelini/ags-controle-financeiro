@@ -47,6 +47,18 @@ public sealed class MoneyFieldTests
     }
 
     [Fact]
+    public async Task TheAutoFocusFieldIsMarkedForTheMaskToGiveTheFocusBack()
+    {
+        await using var context = new BunitContext().UseAppUi();
+
+        var marked = context.Render<MoneyField>(parameters => parameters.Add(x => x.Id, "first").Add(x => x.AutoFocus, true));
+        var plain = context.Render<MoneyField>(parameters => parameters.Add(x => x.Id, "second"));
+
+        Assert.NotNull(marked.Find(".money-field").GetAttribute("data-money-autofocus"));
+        Assert.Null(plain.Find(".money-field").GetAttribute("data-money-autofocus"));
+    }
+
+    [Fact]
     public async Task ANegativeValueIsIgnoredUnlessTheFieldAcceptsIt()
     {
         var (positiveContext, positive, positiveValue) = await RenderAsync();
