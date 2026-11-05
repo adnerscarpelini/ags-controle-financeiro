@@ -18,3 +18,5 @@ evitar compartilhar um contexto entre ações de um circuito Blazor.
 `/cadastros/categorias` abre na tabela, com busca, **Nova categoria** e alternância entre despesas e receitas. Transferências só aparecem como terceira opção quando existe uma categoria desse tipo. Cada linha expande as subcategorias e oferece **Nova subcategoria**, que abre a janela com a categoria selecionada. Criar e editar abrem em janela, com **Salvar** e **Salvar e criar novo**; os erros do caso de uso aparecem nela, sem perder o que foi digitado.
 
 O marcador colorido da linha indica o tipo da categoria. Categoria não tem campo de cor, e a #101 não acrescenta campos.
+
+**Ordem.** Categorias e subcategorias saem em ordem alfabética do português, sem separar acentos e maiúsculas, em todas as telas ([#119](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/119)).

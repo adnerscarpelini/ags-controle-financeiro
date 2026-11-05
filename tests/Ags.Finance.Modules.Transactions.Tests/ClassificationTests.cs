@@ -24,6 +24,21 @@ public sealed class ClassificationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task CategoriesAndSubcategoriesAreInAlphabeticalOrderIgnoringAccentsAndCase()
+    {
+        var transport = await Catalog.SaveCategoryAsync(null, "Transporte", CategoryKind.Expense);
+        var water = await Catalog.SaveCategoryAsync(null, "Água", CategoryKind.Expense);
+        var market = await Catalog.SaveCategoryAsync(null, "mercado", CategoryKind.Expense);
+        await Catalog.SaveSubcategoryAsync(null, market.ExternalId!.Value, "Feira");
+        await Catalog.SaveSubcategoryAsync(null, market.ExternalId.Value, "Açougue");
+        await Catalog.SaveSubcategoryAsync(null, transport.ExternalId!.Value, "Metrô");
+        await Catalog.SaveSubcategoryAsync(null, water.ExternalId!.Value, "Conta");
+
+        Assert.Equal(["Água", "mercado", "Transporte"], (await Catalog.GetCategoriesAsync()).Select(x => x.Name));
+        Assert.Equal(["Conta", "Açougue", "Feira", "Metrô"], (await Catalog.GetSubcategoriesAsync()).Select(x => x.Name));
+    }
+
+    [Fact]
     public async Task SavesEditsAndFormatsClassificationWithoutChangingIdentity()
     {
         var category = await Catalog.SaveCategoryAsync(null, "Mercado", CategoryKind.Expense);
