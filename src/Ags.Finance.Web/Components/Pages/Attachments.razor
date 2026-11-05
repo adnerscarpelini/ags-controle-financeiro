@@ -48,8 +48,8 @@
         <p class="form-note">Use a data do lançamento; faturas e pagamentos usam o mês da fatura. Na compra parcelada, vale a primeira parcela ainda existente, na ordem das parcelas. A lixeira fica de fora.</p>
         <p class="form-note">O ZIP contém indice.csv e SHA256SUMS, não é criptografado e não substitui o backup.</p>
         <div class="catalog-fields">
-            <div class="field"><label for="attachment-export-from">Período de</label><input id="attachment-export-from" class="input" type="date" @bind="_exportFrom" /></div>
-            <div class="field"><label for="attachment-export-to">Período até</label><input id="attachment-export-to" class="input" type="date" @bind="_exportTo" /></div>
+            <div class="field"><label for="attachment-export-from">Período de</label><input id="attachment-export-from" class="input" type="date" @bind="_exportFrom" required /></div>
+            <div class="field"><label for="attachment-export-to">Período até</label><input id="attachment-export-to" class="input" type="date" @bind="_exportTo" required /></div>
         </div>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="@ExportUrl" data-export-zip>Exportar documentos do período e tipo selecionados</MudButton>
     </section>
