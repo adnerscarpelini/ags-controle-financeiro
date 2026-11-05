@@ -112,6 +112,12 @@
             return;
         }
 
+        if (_amount <= 0)
+        {
+            _error = "Informe um valor maior que zero. Fatura fechada sem saldo a pagar é quitada em Confirmar quitação.";
+            return;
+        }
+
         _error = null;
         _confirmation = new(_confirmationId, Invoice.CardExternalId, Invoice.Month, _account, _date, new Money(_amount), _settle, _details);
     }

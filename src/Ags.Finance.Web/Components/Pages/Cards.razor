@@ -8,6 +8,7 @@
 @inject IAccountCatalog Accounts
 @inject ICardLastDigitsCatalog CardFinals
 @inject IInvoiceCatalog Catalog
+@inject IInvoicePaymentCatalog Payments
 @inject TimeProvider Clock
 @inject EntryChangeNotifier EntryChanges
 @inject IDialogService Dialogs
@@ -50,7 +51,7 @@ else
                 <CreditCardView @key="card.ExternalId" Card="card" Account="account" Bank="_banks.FirstOrDefault(x => x.ExternalId == account?.BankExternalId)"
                                 Finals="_finals.GetValueOrDefault(card.ExternalId, [])" Invoice="invoice" DueDate="DueOf(card, invoice)" PendingInvoice="pending"
                                 Limit="_limits.FirstOrDefault(x => x.CardExternalId == card.ExternalId)"
-                                Open="() => OpenInvoice(card, invoice)" Pay="payable => OpenPaymentAsync(payable)"
+                                Open="() => OpenInvoice(card, invoice)" Pay="payable => OpenPaymentAsync(payable)" Settle="settleable => AskSettleAsync(settleable)"
                                 Edit="() => OpenCardAsync(card)" ShowFinals="() => OpenFinalsAsync(card)" History="() => OpenHistoryAsync(card)"
                                 ToggleArchive="() => ToggleArchiveAsync(card)" />
             }
@@ -196,6 +197,16 @@ else
     {
         var parameters = new DialogParameters<InvoicePaymentDialog> { { x => x.Invoice, invoice } };
         await Dialogs.ShowAsync<InvoicePaymentDialog>($"Pagar {invoice.CardName} · {invoice.Month}", parameters, AppDialogs.Options(Viewport));
+    }
+
+    private async Task AskSettleAsync(InvoiceDetails invoice)
+    {
+        var confirmed = await ConfirmDialog.AskAsync(Dialogs, "Confirmar quitação sem novo débito", $"{invoice.CardName} · {invoice.Month} · Saldo restante {invoice.RemainingBalance}. A fatura passará a Paga. Nenhum pagamento ou débito zero será criado.", "Confirmar quitação");
+        if (!confirmed) { return; }
+        var result = await Payments.ConfirmSettlementAsync(invoice.CardExternalId, invoice.Month);
+        _message = result.Error;
+        if (result.Succeeded) { Snackbar.Add("Quitação confirmada.", Severity.Success); }
+        await ReloadAsync();
     }
 
     private async Task OpenObligationsAsync() =>

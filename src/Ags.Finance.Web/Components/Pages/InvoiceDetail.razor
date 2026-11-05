@@ -38,13 +38,19 @@
             @if (_invoice.Status != InvoiceStatus.Paid)
             {
                 <MudButton Variant="Variant.Outlined" data-invoice-action="adjust" OnClick="OpenAdjustmentAsync">Ajustar fatura</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" data-invoice-action="pay" OnClick="OpenPaymentAsync">Pagar fatura</MudButton>
+                @if (CanSettle)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" data-invoice-action="settle" OnClick="AskSettleAsync">Confirmar quitação</MudButton>
+                }
+                else
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" data-invoice-action="pay" OnClick="OpenPaymentAsync">Pagar fatura</MudButton>
+                }
             }
             <div data-invoice-menu>
                 <MudMenu Icon="@Icons.Material.Outlined.MoreVert" AriaLabel="Mais ações da fatura" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
                     @if (_invoice.Status == InvoiceStatus.Open) { <MudMenuItem Icon="@Icons.Material.Outlined.Payments" OnClick="OpenPaymentAsync">Pagar antecipado</MudMenuItem> }
                     @if (_invoice.Status == InvoiceStatus.Closed) { <MudMenuItem Icon="@Icons.Material.Outlined.Payments" OnClick="OpenPaymentAsync">Pagar parcial</MudMenuItem> }
-                    @if (CanSettle) { <MudMenuItem Icon="@Icons.Material.Outlined.TaskAlt" OnClick="AskSettleAsync">Confirmar quitação</MudMenuItem> }
                     <MudMenuItem Icon="@Icons.Material.Outlined.History" OnClick="OpenHistoryAsync">Histórico</MudMenuItem>
                     <MudMenuItem Icon="@Icons.Material.Outlined.Savings" OnClick="OpenAllowanceAsync">Cashback e descontos</MudMenuItem>
                     <MudMenuItem Icon="@Icons.Material.Outlined.EventNote" OnClick="OpenObligationsAsync">Compromissos</MudMenuItem>

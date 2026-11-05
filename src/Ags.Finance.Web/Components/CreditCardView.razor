@@ -42,11 +42,17 @@
     }
     @if (PendingInvoice is { } pending)
     {
-        <p class="form-warning" data-pending-invoice>Fatura @pending.Month fechada: @pending.RemainingBalance a pagar</p>
+        <p class="form-warning" data-pending-invoice>@(CanSettle(pending) ? $"Fatura {pending.Month} fechada, sem saldo a pagar: falta confirmar a quitação" : $"Fatura {pending.Month} fechada: {pending.RemainingBalance} a pagar")</p>
     }
     <footer class="entity-card-foot wallet-card-actions" @onclick:stopPropagation="true">
         <MudButton Variant="Variant.Outlined" Size="Size.Small" data-open-invoice OnClick="() => Open.InvokeAsync()">Ver fatura</MudButton>
-        @if (Payable is { } payable)
+        @if (Payable is { } settleable && CanSettle(settleable))
+        {
+            <MudTooltip Text="Sem saldo a pagar: a fatura passa a Paga, sem pagamento nem débito na conta.">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" data-settle-invoice OnClick="() => Settle.InvokeAsync(settleable)">Confirmar quitação</MudButton>
+            </MudTooltip>
+        }
+        else if (Payable is { } payable)
         {
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" data-pay-invoice OnClick="() => Pay.InvokeAsync(payable)">Pagar fatura</MudButton>
         }
@@ -90,6 +96,9 @@
     public EventCallback<InvoiceDetails> Pay { get; set; }
 
     [Parameter]
+    public EventCallback<InvoiceDetails> Settle { get; set; }
+
+    [Parameter]
     public EventCallback Edit { get; set; }
 
     [Parameter]
@@ -103,6 +112,9 @@
 
     // A ação principal segue o estado: a fatura fechada a pagar, seja a mostrada ou a pendente de outro mês.
     private InvoiceDetails? Payable => PendingInvoice ?? (Invoice is { Status: InvoiceStatus.Closed } ? Invoice : null);
+
+    // Fatura fechada com saldo zero ou crédito não tem o que pagar: o caminho é a quitação, sem pagamento nem débito.
+    private static bool CanSettle(InvoiceDetails invoice) => invoice.RemainingBalance.Amount <= 0;
 
     private string AvailabilityText => !Card.IsActive ? "Arquivado individualmente" : "Indisponível: conta arquivada";
 
