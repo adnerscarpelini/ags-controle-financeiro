@@ -43,8 +43,15 @@ public sealed partial class EntryTests
         Assert.Empty((await Entries.QueryAsync(new(Month: new ReferenceMonth(2027, 2)))).Entries);
         var series = await Entries.GetRecurringAsync(moved.RecurringEntryExternalId!.Value);
         Assert.Equal(new ReferenceMonth(2027, 1), series?.EndMonth);
-        var shiftedOctober = await OccurrenceAsync(2026, 11);
-        Assert.Equal(october.ExternalId, shiftedOctober.ExternalId);
-        Assert.Equal(new DateOnly(2026, 11, 15), shiftedOctober.Date);
+        if (scope == RecurringEditScope.All)
+        {
+            var shiftedOctober = await OccurrenceAsync(2026, 11);
+            Assert.Equal(october.ExternalId, shiftedOctober.ExternalId);
+            Assert.Equal(new DateOnly(2026, 11, 15), shiftedOctober.Date);
+        }
+        else
+        {
+            Assert.Equal((october.ExternalId, october.Date), ((await OccurrenceAsync(2026, 10)).ExternalId, (await OccurrenceAsync(2026, 10)).Date));
+        }
     }
 }
