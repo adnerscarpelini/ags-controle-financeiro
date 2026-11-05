@@ -63,3 +63,5 @@ Origem: [#5](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/5
 - A gaveta depende do circuito Blazor estar conectado; antes disso (primeiros instantes) o botão ainda não responde.
 - Login (#36), PWA (#38) e tema claro/automático (#69) estão entregues.
 - Carteira visual (#55), arquivamento reversível (#53), pendentes (#57) e dashboard de pendências (#58) estão entregues.
+
+O Dashboard recarrega as seções quando uma janela grava algo, mantendo o mês escolhido, como Lançamentos, Contas e Cartões já faziam ([#122](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/122)).

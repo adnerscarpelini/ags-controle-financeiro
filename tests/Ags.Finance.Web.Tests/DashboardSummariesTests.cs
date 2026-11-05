@@ -2,6 +2,8 @@ using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Invoices.Contracts;
 using Ags.Finance.SharedKernel;
 using Ags.Finance.Web.Components.Dashboard;
+using Ags.Finance.Web.Components.Entries;
+using Ags.Finance.Web.Components.Pages;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,6 +13,24 @@ namespace Ags.Finance.Web.Tests;
 public sealed class DashboardSummariesTests
 {
     private static readonly ReferenceMonth s_september = new(2026, 9);
+
+    [Fact]
+    public async Task SavingAnEntryRefreshesTheOpenDashboardAndKeepsTheChosenMonth()
+    {
+        await using var ui = await EntryUi.CreateAsync();
+        var page = ui.Context.Render<Dashboard>();
+        page.WaitForAssertion(() => Assert.Equal("R$ 0,00", page.Find("[data-stat=behavior-spent] .stat-value").TextContent));
+        page.Find("[data-month-next]").Click();
+        page.Find("[data-month-previous]").Click();
+        page.WaitForAssertion(() => Assert.Contains("Setembro de 2026", page.Find("#behavior-title").TextContent, StringComparison.Ordinal));
+        Assert.True((await ui.Entries.CreateAsync(new(new DateOnly(2026, 9, 1), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(100)))).Succeeded);
+
+        await page.InvokeAsync(() => ui.Context.Services.GetRequiredService<EntryChangeNotifier>().Notify());
+
+        page.WaitForAssertion(() => Assert.Equal("-R$ 100,00", page.Find("[data-stat=behavior-spent] .stat-value").TextContent));
+        page.WaitForAssertion(() => Assert.Equal("-R$ 100,00", page.Find("[data-stat=expenses] .stat-value").TextContent));
+        Assert.Contains("Setembro de 2026", page.Find("#behavior-title").TextContent, StringComparison.Ordinal);
+    }
 
     [Fact]
     public async Task OnlyCheckingAccountsAppearAndEnterTheTotal()

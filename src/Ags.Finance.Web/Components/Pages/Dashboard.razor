@@ -2,8 +2,10 @@
 @using Ags.Finance.Modules.Preferences.Contracts
 @using Ags.Finance.SharedKernel
 @using Ags.Finance.Web.Components.Dashboard
+@implements IDisposable
 @inject TimeProvider Clock
 @inject IPreferences Preferences
+@inject EntryChangeNotifier EntryChanges
 
 <div class="page-head">
     <PageHeader Title="Dashboard" />
@@ -17,29 +19,41 @@
 }
 @if (_sections.Summary)
 {
-    <BehaviorCards Month="_month" />
-    <SummaryCards Month="_month" />
+    <BehaviorCards @key="@($"behavior-{_version}")" Month="_month" />
+    <SummaryCards @key="@($"summary-{_version}")" Month="_month" />
 }
-@if (_sections.Pending) { <PendingSection /> }
+@if (_sections.Pending) { <PendingSection @key="@($"pending-{_version}")" /> }
 @if (_sections.Invoices || _sections.Summary)
 {
     <div class="dashboard-columns">
-        @if (_sections.Invoices) { <CardInvoicesSummary Month="_month" /> }
-        @if (_sections.Summary) { <CheckingAccountsSummary Month="_month" /> }
+        @if (_sections.Invoices) { <CardInvoicesSummary @key="@($"invoices-{_version}")" Month="_month" /> }
+        @if (_sections.Summary) { <CheckingAccountsSummary @key="@($"accounts-{_version}")" Month="_month" /> }
     </div>
 }
-@if (_sections.Categories) { <CategorySection Month="_month" TopCount="_topCategories" /> }
+@if (_sections.Categories) { <CategorySection @key="@($"categories-{_version}")" Month="_month" TopCount="_topCategories" /> }
 
 @code {
     private ReferenceMonth _month;
     private DashboardSections _sections = DashboardSections.All;
     private int _topCategories = AppPreferences.Default.TopCategories;
 
+    // Cada seção carrega os próprios dados: trocar a chave as recria quando uma janela grava algo, mantendo o mês escolhido.
+    private int _version;
+
     protected override async Task OnInitializedAsync()
     {
+        EntryChanges.Changed += EntriesChangedAsync;
         _month = ReferenceMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime));
         var preferences = await Preferences.GetAsync();
         _sections = preferences.Sections;
         _topCategories = preferences.TopCategories;
     }
+
+    private Task EntriesChangedAsync() => InvokeAsync(() =>
+    {
+        _version++;
+        StateHasChanged();
+    });
+
+    public void Dispose() => EntryChanges.Changed -= EntriesChangedAsync;
 }
