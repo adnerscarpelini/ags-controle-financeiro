@@ -80,6 +80,12 @@ Uma fatura protegida faz a operação inteira falhar, com rollback, sem reabertu
 ou atualização parcial. Editar a configuração preserva a situação e a confirmação
 de cada ocorrência; nunca registra uma baixa.
 
+## Tela de lançamentos fixos
+
+A [#125](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/125) acrescenta `/lancamentos-fixos`, um painel com as séries ativas de cartão, conta, receita e transferência e filtros por tipo. Permite alterar valor e dia e, fora do cartão, a conta, além de excluir uma série ou várias selecionadas.
+
+Aqui não há pergunta de alcance: tudo vale a partir da primeira ocorrência em aberto. Em aberto é, a partir do mês atual, a ocorrência pendente fora do cartão; no cartão, a de fatura Aberta. Meses anteriores, ocorrências pagas ou recebidas e faturas Fechadas ou Pagas não mudam. Excluir encerra a série e remove só as ocorrências em aberto. Nas [transferências](account-transfers.md), em aberto é o mês pendente a partir do atual; confirmar e desfazer continuam na tela de Contas.
+
 ## Baixa manual por ocorrência
 
 A #88 amplia a baixa manual da #56 a qualquer lançamento fora do cartão. A confirmação

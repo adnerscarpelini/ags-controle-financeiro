@@ -1,0 +1,74 @@
+@* Altera um lançamento fixo: valor, dia e, fora do cartão, a conta. Vale para o que está em aberto e para os próximos meses. *@
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+@inject IEntryCatalog Entries
+@inject IAccountCatalog Accounts
+@inject EntryChangeNotifier EntryChanges
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <form id="recurring-series-form" class="entry-column" @onsubmit="SaveAsync" @onsubmit:preventDefault>
+            <MoneyField Id="recurring-series-amount" Label="Valor" @bind-Value="_amount" Class="@(Series.Kind == CategoryKind.Income ? "amount-income" : "amount-expense")" AutoFocus="true" />
+            <div class="field"><label for="recurring-series-day">Dia <HelpTip Text="Em meses mais curtos, o lançamento cai no último dia." /></label><input id="recurring-series-day" class="input" type="number" inputmode="numeric" min="1" max="31" @bind="_day" /></div>
+            @if (Series.CardExternalId is null)
+            {
+                <div class="field">
+                    <label for="recurring-series-account">Conta</label>
+                    <select id="recurring-series-account" class="input" @bind="_accountId">
+                        @foreach (var account in _accounts.Where(x => x.IsActive || x.ExternalId == Series.AccountExternalId)) { <option value="@account.ExternalId">@account.Name</option> }
+                    </select>
+                </div>
+            }
+            <p class="form-note" data-series-note>Vale para o que está em aberto e para os próximos meses. O que já foi @(Series.Kind == CategoryKind.Income ? "recebido" : "pago") ou está em fatura fechada não muda.</p>
+        </form>
+        @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-confirm-cancel Disabled="@_busy" OnClick="() => Dialog?.Cancel()">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" form="recurring-series-form" data-save Disabled="@(_busy || _amount <= 0)">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private decimal _amount;
+    private int _day;
+    private Guid _accountId;
+    private bool _busy;
+    private string? _error;
+
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public RecurringSeriesDetails Series { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _amount = Series.Amount.Amount;
+        _day = Series.Day;
+        _accountId = Series.AccountExternalId;
+        _accounts = await Accounts.GetAccountsAsync(false);
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_busy || _amount <= 0) { return; }
+        _busy = true;
+        _error = null;
+        try
+        {
+            var result = await Entries.EditRecurringSeriesAsync(Series.ExternalId, new(new Money(_amount), _day, Series.CardExternalId is null ? _accountId : null));
+            _error = result.Error;
+            if (result.Succeeded)
+            {
+                Snackbar.Add("Lançamento fixo alterado.", Severity.Success);
+                EntryChanges.Notify();
+                Dialog?.Close(DialogResult.Ok(true));
+            }
+        }
+        finally { _busy = false; }
+    }
+}

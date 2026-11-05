@@ -10,6 +10,11 @@ public sealed record RecurringTransferOccurrence(Guid ExternalId, Guid SeriesExt
 /// <summary>Aceita <see cref="RecurringEditScope.OnlyThis"/> e <see cref="RecurringEditScope.ThisAndFutureOpen"/>. <see cref="Day"/> é o dia das próximas ocorrências.</summary>
 public sealed record EditRecurringTransferRequest(Guid SourceAccountExternalId, Guid DestinationAccountExternalId, DateOnly Date, Money Amount, RecurringEditScope Scope, int? Day = null);
 
+/// <summary>Uma série ativa, para a tela de lançamentos fixos.</summary>
+public sealed record RecurringTransferSeriesDetails(Guid ExternalId, int Day, Guid SourceAccountExternalId, Guid DestinationAccountExternalId, Money Amount, ReferenceMonth? EndMonth);
+
+public sealed record EditRecurringTransferSeriesRequest(Guid SourceAccountExternalId, Guid DestinationAccountExternalId, Money Amount, int Day);
+
 public interface IRecurringTransferCatalog
 {
     Task<ClassificationResult> CreateAsync(CreateRecurringTransferRequest request, CancellationToken cancellationToken = default);
@@ -31,4 +36,13 @@ public interface IRecurringTransferCatalog
 
     /// <summary>Ocorrências confirmadas continuam no histórico.</summary>
     Task<ClassificationResult> DeleteAsync(Guid occurrenceExternalId, RecurringChangeScope scope, CancellationToken cancellationToken = default);
+
+    /// <summary>As séries ativas e ainda não encerradas.</summary>
+    Task<IReadOnlyList<RecurringTransferSeriesDetails>> GetSeriesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Altera a série e os meses pendentes a partir do atual. Confirmados e meses anteriores não mudam.</summary>
+    Task<ClassificationResult> EditSeriesAsync(Guid seriesExternalId, EditRecurringTransferSeriesRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>Encerra a série e remove os meses pendentes a partir do atual. Confirmados e meses anteriores continuam.</summary>
+    Task<ClassificationResult> DeleteSeriesAsync(Guid seriesExternalId, CancellationToken cancellationToken = default);
 }
