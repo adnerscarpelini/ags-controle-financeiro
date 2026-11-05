@@ -37,6 +37,7 @@ public partial class Transactions
     private int _page = 1;
     private int _queryVersion;
     private bool _queryBusy;
+    private bool _groupCardEntries;
 
     private ReferenceMonth? QueryMonth => _allMonths || _filterFrom is not null || _filterTo is not null ? null : _month;
 
@@ -127,9 +128,9 @@ public partial class Transactions
         {
             var filter = new EntryFilter(QueryMonth, _filterFrom, _filterTo, Optional(_filterAccount), Optional(_filterCard), Optional(_filterFinal),
                 Optional(_filterCategory), Optional(_filterSubcategory), _filterText, _filterEffective, _filterKind, _page, _pageSize,
-                SortColumn: _sortColumn, SortDescending: _sortDescending);
+                SortColumn: _sortColumn, SortDescending: _sortDescending, GroupCardEntries: _groupCardEntries);
             var result = _savedFilterId != Guid.Empty
-                ? await SavedFilterCatalog.RunAsync(_savedFilterId, QueryMonth, _filterFrom, _filterTo, _page, _pageSize, _sortColumn, _sortDescending)
+                ? await SavedFilterCatalog.RunAsync(_savedFilterId, QueryMonth, _filterFrom, _filterTo, _page, _pageSize, _sortColumn, _sortDescending, groupCardEntries: _groupCardEntries)
                 : _pendingOnly ? await Entries.QueryPendingAsync(filter) : await Entries.QueryAsync(filter);
             var attachments = await EntryDocuments.ListAsync();
             var forecast = await Entries.GetBalanceForecastAsync(null, Today, _month);
@@ -137,7 +138,7 @@ public partial class Transactions
 
             // Tudo publicado de uma vez: qualquer renderização no meio do carregamento vê um estado completo.
             _query = result;
-            _entries = result.Entries;
+            _rows = result.Rows;
             _page = result.Page;
             _attachmentRows = attachments;
             _forecast = forecast;
@@ -166,6 +167,16 @@ public partial class Transactions
         _filterFinals = [];
         _savedFilterId = Guid.Empty;
         await ApplyFiltersAsync();
+    }
+
+    // A escolha fica nas preferências: a tela abre do mesmo jeito na próxima visita.
+    private async Task ToggleCardGroupingAsync()
+    {
+        _groupCardEntries = !_groupCardEntries;
+        _selectedId = null;
+        var saved = await Preferences.SaveAsync(await Preferences.GetAsync() with { GroupCardEntries = _groupCardEntries });
+        await ApplyFiltersAsync();
+        _message = saved.Error ?? _message;
     }
 
     private async Task SortByAsync(EntrySortColumn column)

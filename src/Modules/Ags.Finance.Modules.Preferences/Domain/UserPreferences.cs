@@ -31,7 +31,8 @@ internal readonly record struct PreferenceValues(
     bool ShowCategories,
     bool ShowInvoices,
     int PageSize,
-    int SessionHours);
+    int SessionHours,
+    bool GroupCardEntries);
 
 /// <summary>As preferências do único usuário. Existe no máximo um registro.</summary>
 internal sealed class UserPreferences : Entity
@@ -63,6 +64,8 @@ internal sealed class UserPreferences : Entity
 
     public int SessionHours { get; private set; }
 
+    public bool GroupCardEntries { get; private set; }
+
     /// <summary>Valida todos os campos antes de aplicar qualquer um: em caso de erro nada muda.</summary>
     public string? Apply(PreferenceValues values)
     {
@@ -85,6 +88,7 @@ internal sealed class UserPreferences : Entity
         ShowInvoices = values.ShowInvoices;
         PageSize = values.PageSize;
         SessionHours = values.SessionHours;
+        GroupCardEntries = values.GroupCardEntries;
         return null;
     }
 }

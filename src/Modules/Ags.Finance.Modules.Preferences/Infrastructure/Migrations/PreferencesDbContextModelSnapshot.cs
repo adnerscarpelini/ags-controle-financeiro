@@ -30,6 +30,7 @@ internal sealed class PreferencesDbContextModelSnapshot : ModelSnapshot
             b.Property<bool>("ShowInvoices").HasColumnType("boolean");
             b.Property<int>("PageSize").HasColumnType("integer");
             b.Property<int>("SessionHours").HasColumnType("integer");
+            b.Property<bool>("GroupCardEntries").HasColumnType("boolean");
             b.HasKey("Id");
             b.HasIndex("ExternalId").IsUnique();
             b.ToTable("user_preferences", "preferences");

@@ -17,6 +17,7 @@
 @inject EntryDialogs EntryWindows
 @inject EntryChangeNotifier EntryChanges
 @inject ISnackbar Snackbar
+@inject NavigationManager Navigation
 
 <div class="page-head">
     <PageHeader Title="Lançamentos" />
@@ -27,6 +28,9 @@
                 <button type="button" class="chip @(TypeFilter == option.Value ? "on" : null)" aria-pressed="@(TypeFilter == option.Value ? "true" : "false")" data-type-filter="@option.Value" @onclick="() => SetTypeFilterAsync(option.Value)">@option.Label</button>
             }
         </div>
+        <MudTooltip Text="Mostra uma linha por cartão e fatura, com a soma dos lançamentos. Os totais não mudam.">
+            <button type="button" class="chip @(_groupCardEntries ? "on" : null)" aria-pressed="@(_groupCardEntries ? "true" : "false")" data-group-cards disabled="@_queryBusy" @onclick="ToggleCardGroupingAsync">Agrupar cartões</button>
+        </MudTooltip>
         <MudTooltip Text="Buscar por descrição ou observação (Ctrl+F)">
             <MudIconButton Icon="@Icons.Material.Outlined.Search" Variant="Variant.Outlined" aria-label="Buscar" aria-expanded="@(_searchOpen ? "true" : "false")" data-entry-search-toggle OnClick="() => _searchOpen = !_searchOpen" />
         </MudTooltip>
@@ -141,38 +145,55 @@
                 <option value="Category:asc">Categoria</option>
             </select>
         </div>
-        @if (_entries.Count == 0)
+        @if (_rows.Count == 0)
         {
             <EmptyState Icon="@Icons.Material.Outlined.List" Message="Nenhum lançamento neste mês ou filtro." ActionText="Novo lançamento" OnAction="() => EntryWindows.ShowNewAsync(EntryDialogType.Expense)" />
         }
         <ul class="entry-cards" aria-label="Lançamentos">
-            @foreach (var entry in _entries)
+            @foreach (var row in _rows)
             {
-                <li class="entry-card" data-entry-card>
-                    <EntryStatusIcon Entry="entry" Today="Today" />
-                    <div class="entry-card-text">
-                        <span class="row-title">@entry.MerchantName@(SeriesSuffix(entry))</span>
-                        <span class="row-note" data-entry-card-meta>@entry.Date.ToString("dd/MM/yyyy") · @SituationText(entry)</span>
-                        @if (RowNote(entry) is { Length: > 0 } note) { <span class="row-note">@note</span> }
-                    </div>
-                    <div class="entry-card-side">
-                        <span class="numeric value-amount @ValueColor.Balance(entry.Amount)" data-entry-card-amount>@Signed(entry.Amount)</span>
-                        @if (entry.IsInvoiceAdjustment)
-                        {
-                            <HelpTip Text="Ajuste de fatura: corrija por um novo ajuste no detalhe da fatura." />
-                        }
-                        else
-                        {
-                            <RowActions Actions="ActionsFor(entry)" />
-                        }
-                    </div>
-                </li>
+                @if (row.CardGroup is { } group)
+                {
+                    <li class="entry-card" data-entry-card data-card-group>
+                        <CardGroupIcon Group="group" />
+                        <div class="entry-card-text">
+                            <span class="row-title">@group.CardName</span>
+                            <span class="row-note" data-entry-card-meta>@GroupNote(group)</span>
+                        </div>
+                        <div class="entry-card-side">
+                            <span class="numeric value-amount @ValueColor.Balance(group.Amount)" data-entry-card-amount>@Signed(group.Amount)</span>
+                            <RowActions Actions="GroupActions(group)" />
+                        </div>
+                    </li>
+                }
+                else if (row.Entry is { } entry)
+                {
+                    <li class="entry-card" data-entry-card>
+                        <EntryStatusIcon Entry="entry" Today="Today" />
+                        <div class="entry-card-text">
+                            <span class="row-title">@entry.MerchantName@(SeriesSuffix(entry))</span>
+                            <span class="row-note" data-entry-card-meta>@entry.Date.ToString("dd/MM/yyyy") · @SituationText(entry)</span>
+                            @if (RowNote(entry) is { Length: > 0 } note) { <span class="row-note">@note</span> }
+                        </div>
+                        <div class="entry-card-side">
+                            <span class="numeric value-amount @ValueColor.Balance(entry.Amount)" data-entry-card-amount>@Signed(entry.Amount)</span>
+                            @if (entry.IsInvoiceAdjustment)
+                            {
+                                <HelpTip Text="Ajuste de fatura: corrija por um novo ajuste no detalhe da fatura." />
+                            }
+                            else
+                            {
+                                <RowActions Actions="ActionsFor(entry)" />
+                            }
+                        </div>
+                    </li>
+                }
             }
         </ul>
     }
     else
     {
-        <MudTable T="EntryDetails" Items="_entries" Elevation="0" Hover="true" Class="data-table" Breakpoint="Breakpoint.None" Loading="_queryBusy" LoadingProgressColor="Color.Primary" aria-label="Lançamentos">
+        <MudTable T="EntryRow" Items="_rows" Elevation="0" Hover="true" Class="data-table" Breakpoint="Breakpoint.None" Loading="_queryBusy" LoadingProgressColor="Color.Primary" aria-label="Lançamentos">
             <HeaderContent>
                 <MudTh Class="col-select"><span class="visually-hidden">Seleção</span></MudTh>
                 <MudTh>Situação</MudTh>
@@ -183,32 +204,49 @@
                 <MudTh Class="numeric" aria-sort="@AriaSort(EntrySortColumn.Amount)">@SortHeader("Valor", EntrySortColumn.Amount)</MudTh>
                 <MudTh>Ações</MudTh>
             </HeaderContent>
-            <RowTemplate Context="entry">
-                <MudTd Class="col-select">
-                    @if (!entry.IsInvoiceAdjustment)
-                    {
-                        <input type="checkbox" class="row-select" aria-label="@($"Selecionar {entry.MerchantName}")" checked="@(_selectedId == entry.ExternalId)" @onchange="() => ToggleSelection(entry)" />
-                    }
-                </MudTd>
-                <MudTd DataLabel="Situação"><EntryStatusIcon Entry="entry" Today="Today" /></MudTd>
-                <MudTd DataLabel="Data">@entry.Date.ToString("dd/MM/yyyy")</MudTd>
-                <MudTd DataLabel="Descrição" Class="col-description">
-                    <span class="row-title">@entry.MerchantName@(SeriesSuffix(entry))</span>
-                    @if (RowNote(entry) is { Length: > 0 } note) { <span class="row-note">@note</span> }
-                </MudTd>
-                <MudTd DataLabel="Categoria">@ClassificationLabel(entry.Classification)</MudTd>
-                <MudTd DataLabel="Conta ou cartão">@SourceName(entry)</MudTd>
-                <MudTd DataLabel="Valor" Class="@($"numeric value-amount {ValueColor.Balance(entry.Amount)}")">@Signed(entry.Amount)</MudTd>
-                <MudTd DataLabel="Ações" Class="col-actions">
-                    @if (entry.IsInvoiceAdjustment)
-                    {
-                        <HelpTip Text="Ajuste de fatura: corrija por um novo ajuste no detalhe da fatura." />
-                    }
-                    else
-                    {
-                        <RowActions Actions="ActionsFor(entry)" />
-                    }
-                </MudTd>
+            <RowTemplate Context="row">
+                @if (row.CardGroup is { } group)
+                {
+                    <MudTd Class="col-select"></MudTd>
+                    <MudTd DataLabel="Situação"><CardGroupIcon Group="group" /></MudTd>
+                    <MudTd DataLabel="Data">@group.Month</MudTd>
+                    <MudTd DataLabel="Descrição" Class="col-description">
+                        <span class="row-title">@group.CardName</span>
+                        <span class="row-note">@GroupNote(group)</span>
+                    </MudTd>
+                    <MudTd DataLabel="Categoria">Várias</MudTd>
+                    <MudTd DataLabel="Conta ou cartão">@group.CardName</MudTd>
+                    <MudTd DataLabel="Valor" Class="@($"numeric value-amount {ValueColor.Balance(group.Amount)}")">@Signed(group.Amount)</MudTd>
+                    <MudTd DataLabel="Ações" Class="col-actions"><RowActions Actions="GroupActions(group)" /></MudTd>
+                }
+                else if (row.Entry is { } entry)
+                {
+                    <MudTd Class="col-select">
+                        @if (!entry.IsInvoiceAdjustment)
+                        {
+                            <input type="checkbox" class="row-select" aria-label="@($"Selecionar {entry.MerchantName}")" checked="@(_selectedId == entry.ExternalId)" @onchange="() => ToggleSelection(entry)" />
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Situação"><EntryStatusIcon Entry="entry" Today="Today" /></MudTd>
+                    <MudTd DataLabel="Data">@entry.Date.ToString("dd/MM/yyyy")</MudTd>
+                    <MudTd DataLabel="Descrição" Class="col-description">
+                        <span class="row-title">@entry.MerchantName@(SeriesSuffix(entry))</span>
+                        @if (RowNote(entry) is { Length: > 0 } note) { <span class="row-note">@note</span> }
+                    </MudTd>
+                    <MudTd DataLabel="Categoria">@ClassificationLabel(entry.Classification)</MudTd>
+                    <MudTd DataLabel="Conta ou cartão">@SourceName(entry)</MudTd>
+                    <MudTd DataLabel="Valor" Class="@($"numeric value-amount {ValueColor.Balance(entry.Amount)}")">@Signed(entry.Amount)</MudTd>
+                    <MudTd DataLabel="Ações" Class="col-actions">
+                        @if (entry.IsInvoiceAdjustment)
+                        {
+                            <HelpTip Text="Ajuste de fatura: corrija por um novo ajuste no detalhe da fatura." />
+                        }
+                        else
+                        {
+                            <RowActions Actions="ActionsFor(entry)" />
+                        }
+                    </MudTd>
+                }
             </RowTemplate>
             <NoRecordsContent>
                 <EmptyState Icon="@Icons.Material.Outlined.List" Message="Nenhum lançamento neste mês ou filtro." ActionText="Novo lançamento" OnAction="() => EntryWindows.ShowNewAsync(EntryDialogType.Expense)" />
@@ -222,7 +260,7 @@
                 @foreach (var size in PreferenceOptions.PageSizes) { <option value="@size">@size</option> }
             </select>
         </div>
-        <span data-page-summary>@_query.TotalCount lançamentos · Página @_query.Page de @_query.TotalPages</span>
+        <span data-page-summary>@_query.TotalCount @(_query.GroupedRows is null ? "lançamentos" : "linhas") · Página @_query.Page de @_query.TotalPages</span>
         <MudIconButton Icon="@Icons.Material.Outlined.ChevronLeft" aria-label="Página anterior" data-page-previous Disabled="@(_query.Page <= 1 || _queryBusy || _busy)" OnClick="() => ChangePageAsync(_query.Page - 1)" />
         <MudIconButton Icon="@Icons.Material.Outlined.ChevronRight" aria-label="Próxima página" data-page-next Disabled="@(_query.Page >= _query.TotalPages || _queryBusy || _busy)" OnClick="() => ChangePageAsync(_query.Page + 1)" />
         <span class="spacer"></span>
@@ -243,7 +281,7 @@
     public bool IsMobile { get; set; }
 
     private IReadOnlyList<Ags.Finance.Modules.Attachments.Contracts.AttachmentDetails> _attachmentRows = [];
-    private IReadOnlyList<EntryDetails> _entries = [];
+    private IReadOnlyList<EntryRow> _rows = [];
     private IReadOnlyList<PersonDetails> _people = [];
     private BalanceForecast? _forecast;
     private string? _message;
@@ -274,7 +312,9 @@
         }
 
         _people = await People.GetAsync();
-        _pageSize = (await Preferences.GetAsync()).PageSize;
+        var preferences = await Preferences.GetAsync();
+        _pageSize = preferences.PageSize;
+        _groupCardEntries = preferences.GroupCardEntries;
         await InitializeFiltersAsync();
         await ReloadQueryAsync();
     }
@@ -321,6 +361,14 @@
         actions.Add(new("Excluir", Icons.Material.Outlined.Delete, "delete", Run(() => EntryWindows.ShowDeleteAsync(entry))));
         return actions;
     }
+
+    private IReadOnlyList<RowAction> GroupActions(EntryCardGroup group) =>
+    [
+        new("Ver fatura", Icons.Material.Outlined.ReceiptLong, "open-invoice", EventCallback.Factory.Create(this, () => Navigation.NavigateTo($"cartoes/{group.CardExternalId}/faturas?mes={group.Month.Year:0000}-{group.Month.Month:00}")), "Abrir a fatura com os lançamentos deste grupo"),
+    ];
+
+    private static string GroupNote(EntryCardGroup group)
+        => $"Agrupado · {group.EntryCount} {(group.EntryCount == 1 ? "lançamento" : "lançamentos")} · fatura {group.Month}";
 
     private string AttachmentLabel(EntryDetails entry)
     {

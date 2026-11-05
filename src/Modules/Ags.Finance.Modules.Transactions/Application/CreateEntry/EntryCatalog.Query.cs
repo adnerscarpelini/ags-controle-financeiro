@@ -1,4 +1,6 @@
 using Ags.Finance.Modules.Transactions.Contracts;
+using Ags.Finance.Modules.Transactions.Domain;
+using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Transactions.Application.CreateEntry;
 
@@ -36,8 +38,9 @@ internal sealed partial class EntryCatalog
         }
         var generated = await GenerateRecurringAsync(filter, cancellationToken);
         if (!generated.Succeeded) { return new([], default, default, default, 0, 1, filter.PageSize, generated.Error); }
-        var page = await store.QueryAsync(filter, cancellationToken);
         var adjustments = (await store.GetInvoiceAdjustmentsAsync(cancellationToken)).Where(x => MatchesAdjustment(x, filter)).ToList();
+        if (filter.GroupCardEntries && !filter.PendingRecurringOnly) { return await QueryGroupedAsync(filter, adjustments, cancellationToken); }
+        var page = await store.QueryAsync(filter, cancellationToken);
         if (adjustments.Count > 0)
         {
             var totalCount = page.TotalCount + adjustments.Count;
@@ -52,5 +55,48 @@ internal sealed partial class EntryCatalog
         }
         var described = await DescribeAsync(page.Entries, cancellationToken);
         return new(described, page.Income, page.Expenses, page.Income + page.Expenses, page.TotalCount, page.Page, filter.PageSize);
+    }
+
+    // O agrupamento vale para o resultado inteiro, não para uma página: a soma de um cartão não pode depender de onde a página corta.
+    private async Task<EntryQueryResult> QueryGroupedAsync(EntryFilter filter, IReadOnlyList<InvoiceAdjustment> adjustments, CancellationToken cancellationToken)
+    {
+        var all = await store.QueryAsync(filter, cancellationToken, 0, int.MaxValue);
+        var described = SortMerged(await DescribeWithAdjustmentsAsync(all.Entries, adjustments, cancellationToken), filter);
+        var cards = (await accounts.GetCreditCardsAsync(false, cancellationToken)).ToDictionary(x => x.ExternalId, x => x.Name);
+        var rows = SortGrouped(GroupByCard(described, cards), filter);
+        var number = Math.Min(filter.Page, Math.Max(1, (int)Math.Ceiling(rows.Count / (decimal)filter.PageSize)));
+        var pageRows = rows.Skip((number - 1) * filter.PageSize).Take(filter.PageSize).ToList();
+        var expenses = all.Expenses - new Money(adjustments.Sum(x => x.ExpenseDifference.Amount));
+        return new(pageRows.Select(x => x.Entry).OfType<EntryDetails>().ToList(), all.Income, expenses, all.Income + expenses,
+            rows.Count, number, filter.PageSize, GroupedRows: pageRows);
+    }
+
+    private static List<EntryRow> GroupByCard(IReadOnlyList<EntryDetails> entries, Dictionary<Guid, string> cards)
+    {
+        var groups = entries.Where(x => x.CardExternalId is not null)
+            .ToLookup(x => (Card: x.CardExternalId.GetValueOrDefault(), x.Month));
+        var rows = entries.Where(x => x.CardExternalId is null).Select(x => new EntryRow(x)).ToList();
+        rows.AddRange(groups.Select(group => new EntryRow(null, new EntryCardGroup(group.Key.Card, cards.GetValueOrDefault(group.Key.Card, "Cartão registrado"),
+            group.Key.Month, group.Max(x => x.Date), new Money(group.Sum(x => x.Amount.Amount)), group.Count()))));
+        return rows;
+    }
+
+    private static List<EntryRow> SortGrouped(List<EntryRow> rows, EntryFilter filter)
+    {
+        static DateOnly DateOf(EntryRow row) => row.CardGroup?.LastDate ?? row.Entry?.Date ?? default;
+        static decimal AmountOf(EntryRow row) => (row.CardGroup?.Amount ?? row.Entry?.Amount ?? default).Amount;
+        static string NameOf(EntryRow row) => row.CardGroup?.CardName ?? row.Entry?.MerchantName ?? string.Empty;
+        static string CategoryOf(EntryRow row) => row.Entry?.Classification ?? string.Empty;
+        return (filter.SortColumn, filter.SortDescending) switch
+        {
+            (EntrySortColumn.Description, true) => rows.OrderByDescending(NameOf, StringComparer.CurrentCulture).ToList(),
+            (EntrySortColumn.Description, false) => rows.OrderBy(NameOf, StringComparer.CurrentCulture).ToList(),
+            (EntrySortColumn.Category, true) => rows.OrderByDescending(CategoryOf, StringComparer.CurrentCulture).ToList(),
+            (EntrySortColumn.Category, false) => rows.OrderBy(CategoryOf, StringComparer.CurrentCulture).ToList(),
+            (EntrySortColumn.Amount, true) => rows.OrderByDescending(AmountOf).ToList(),
+            (EntrySortColumn.Amount, false) => rows.OrderBy(AmountOf).ToList(),
+            (EntrySortColumn.Date, false) => rows.OrderBy(DateOf).ToList(),
+            _ => rows.OrderByDescending(DateOf).ToList(),
+        };
     }
 }

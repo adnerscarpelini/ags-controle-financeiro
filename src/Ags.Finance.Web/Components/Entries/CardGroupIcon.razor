@@ -1,0 +1,15 @@
+@* Situação da linha que soma os lançamentos de um cartão: ícone com tooltip, disponível também ao leitor de tela. *@
+@using Ags.Finance.Modules.Transactions.Contracts
+
+<MudTooltip Text="@Text">
+    <span class="status-icon status-card" tabindex="0" role="img" aria-label="@Text" data-status="card-group">
+        <MudIcon Icon="@Icons.Material.Outlined.CreditCard" Size="Size.Small" aria-hidden="true" />
+    </span>
+</MudTooltip>
+
+@code {
+    [Parameter, EditorRequired]
+    public EntryCardGroup Group { get; set; } = default!;
+
+    private string Text => $"Lançamentos agrupados do cartão {Group.CardName}, na fatura {Group.Month}";
+}

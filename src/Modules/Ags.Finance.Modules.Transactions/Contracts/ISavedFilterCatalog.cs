@@ -19,5 +19,5 @@ public interface ISavedFilterCatalog
     Task<ClassificationResult> DeleteAsync(Guid externalId, CancellationToken cancellationToken = default);
 
     /// <summary>Executa o filtro sobre o mês de referência ou, se informado, sobre o intervalo de datas.</summary>
-    Task<EntryQueryResult> RunAsync(Guid externalId, ReferenceMonth? month = null, DateOnly? fromDate = null, DateOnly? toDate = null, int page = 1, int pageSize = 100, EntrySortColumn? sortColumn = null, bool sortDescending = true, CancellationToken cancellationToken = default);
+    Task<EntryQueryResult> RunAsync(Guid externalId, ReferenceMonth? month = null, DateOnly? fromDate = null, DateOnly? toDate = null, int page = 1, int pageSize = 100, EntrySortColumn? sortColumn = null, bool sortDescending = true, bool groupCardEntries = false, CancellationToken cancellationToken = default);
 }
