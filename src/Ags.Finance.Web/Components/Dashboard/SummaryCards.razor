@@ -4,16 +4,16 @@
 @inject IMonthlySummaries Summaries
 
 <section class="dashboard-section" aria-labelledby="summary-title">
-    <h2 id="summary-title" class="section-title">Resumo de @MonthPicker.Label(Month)</h2>
+    <h2 id="summary-title" class="section-title">Orçamento de @MonthPicker.Label(Month)</h2>
     @if (_summary is { } summary)
     {
         <div class="stat-cards stat-cards-summary">
-            <StatCard Hero="true" ValueClass="@ValueColor.Balance(summary.Balance)" Label="Saldo do orçamento mensal" Help="Receitas menos despesas lançadas no mês de referência. Não é o saldo efetivo das contas." Value="@summary.Balance.ToString()" Testid="balance" />
+            <StatCard Hero="true" ValueClass="@ValueColor.Balance(summary.Balance)" Label="Saldo do orçamento" Help="Receitas menos o que cai neste mês. Não é o saldo efetivo das contas." Value="@summary.Balance.ToString()" Testid="balance" />
             <StatCard ValueClass="@ValueColor.Percent(summary.SavedPercent)" Label="% guardado" Help="Saldo dividido pelas receitas." Value="@(summary.SavedPercent is { } percent ? percent.ToString("0.##", CultureInfo.GetCultureInfo("pt-BR")) + "%" : "-")" Testid="saved" />
-            <StatCard ValueClass="@ValueColor.Income(summary.Income)" Label="Receitas do mês" Help="Receitas com mês de referência no mês escolhido." Value="@summary.Income.ToString()" Testid="income" />
-            <StatCard ValueClass="@ValueColor.Expense(summary.Expenses)" Label="Despesas do mês" Help="Despesas com mês de referência no mês escolhido. No cartão, contam no mês da fatura." Value="@Negative(summary.Expenses).ToString()" Testid="expenses" />
-            <StatCard ValueClass="@ValueColor.Expense(summary.PreviousMonthExpenses)" Label="Despesas do mês anterior" Value="@Negative(summary.PreviousMonthExpenses).ToString()" Testid="previous" />
-            <StatCard ValueClass="@ValueColor.Expense(summary.YearAverageExpenses)" Label="Média mensal de despesas no ano" Help="@($"Considera {summary.MonthsWithExpenses} {(summary.MonthsWithExpenses == 1 ? "mês" : "meses")} com lançamentos até {Month}.")" Value="@Negative(summary.YearAverageExpenses).ToString()" Testid="average" />
+            <StatCard ValueClass="@ValueColor.Income(summary.Income)" Label="Receitas" Help="Receitas com mês de referência no mês escolhido." Value="@summary.Income.ToString()" Testid="income" />
+            <StatCard ValueClass="@ValueColor.Expense(summary.Expenses)" Label="A pagar no mês" Help="Tudo o que cai neste mês: contas fora do cartão e as faturas do mês. No cartão, a compra conta no mês da fatura." Value="@Negative(summary.Expenses).ToString()" Testid="expenses" />
+            <StatCard ValueClass="@ValueColor.Expense(summary.PreviousMonthExpenses)" Label="Mês anterior" Help="O que caiu no mês anterior, com a mesma regra." Value="@Negative(summary.PreviousMonthExpenses).ToString()" Testid="previous" />
+            <StatCard ValueClass="@ValueColor.Expense(summary.YearAverageExpenses)" Label="Média no ano" Help="@($"Considera {summary.MonthsWithExpenses} {(summary.MonthsWithExpenses == 1 ? "mês" : "meses")} com lançamentos até {Month}.")" Value="@Negative(summary.YearAverageExpenses).ToString()" Testid="average" />
         </div>
     }
 </section>

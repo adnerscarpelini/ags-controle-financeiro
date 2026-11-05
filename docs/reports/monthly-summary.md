@@ -1,4 +1,4 @@
-# Resumo do mês
+# Orçamento do mês
 
 A [#24](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/24) abre o
 dashboard com o resumo de um mês de referência (`IMonthlySummaries`, em
@@ -7,11 +7,12 @@ dashboard com o resumo de um mês de referência (`IMonthlySummaries`, em
 **Base de apuração.** Reports lê os totais pelo contrato `IEntryTotals` de
 Transactions: soma por mês de referência, tipo e subcategoria, em uma consulta, sem acessar
 tabelas de outro módulo. É a mesma base usada pelos demais relatórios do dashboard
-(`Ledger`). Antes de ler, as ocorrências recorrentes dos meses de janeiro até o mês
+(`Ledger`), menos as despesas por categoria, que seguem o
+[comportamento do mês](monthly-behavior.md). Antes de ler, as ocorrências recorrentes dos meses de janeiro até o mês
 selecionado são garantidas, como a tela de Lançamentos faz ao consultar um mês;
 meses futuros não são gerados por causa do relatório.
 
-**Cards.** Receitas do mês; despesas do mês; saldo; % guardado (saldo ÷ receitas, `-`
+**Cards.** Receitas; a pagar no mês (as despesas do mês de referência); saldo do orçamento; % guardado (saldo ÷ receitas, `-`
 quando não há receitas); despesas do mês anterior (dezembro do ano anterior para
 janeiro) e média mensal de despesas no ano até o mês — soma das despesas dividida
 pelo número de meses de janeiro até o mês selecionado que têm ao menos um lançamento

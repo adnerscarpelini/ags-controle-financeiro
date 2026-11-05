@@ -15,7 +15,11 @@
 {
     <section class="panel" data-testid="no-sections"><EmptyState Icon="@Icons.Material.Outlined.Home" Message="Nenhuma seção do dashboard está visível." /><p class="form-note center">Escolha o que exibir em <a href="configuracoes">Configurações</a>.</p></section>
 }
-@if (_sections.Summary) { <SummaryCards Month="_month" /> }
+@if (_sections.Summary)
+{
+    <BehaviorCards Month="_month" />
+    <SummaryCards Month="_month" />
+}
 @if (_sections.Pending) { <PendingSection /> }
 @if (_sections.Invoices || _sections.Summary)
 {

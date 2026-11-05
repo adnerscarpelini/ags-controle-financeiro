@@ -1,0 +1,31 @@
+@using Ags.Finance.Modules.Reports.Contracts
+@using Ags.Finance.SharedKernel
+@inject IMonthlyBehaviors Behaviors
+
+<section class="dashboard-section" aria-labelledby="behavior-title">
+    <h2 id="behavior-title" class="section-title">Comportamento de @MonthPicker.Label(Month)</h2>
+    @if (_behavior is { } behavior)
+    {
+        <div class="stat-cards stat-cards-behavior">
+            <StatCard Hero="true" ValueClass="@ValueColor.Expense(behavior.Spent)" Label="Gasto no mês" Help="O que você comprou neste mês, em qualquer forma de pagamento. A fatura não importa, e a compra parcelada conta inteira no mês da compra." Value="@Negative(behavior.Spent).ToString()" Testid="behavior-spent" />
+            <StatCard ValueClass="@ValueColor.Expense(behavior.PreviousMonthSpent)" Label="Mês anterior" Help="O que você comprou no mês anterior, com a mesma regra." Value="@Negative(behavior.PreviousMonthSpent).ToString()" Testid="behavior-previous" />
+            <StatCard ValueClass="@ValueColor.Expense(behavior.YearAverageSpent)" Label="Média no ano" Help="@($"Considera {behavior.MonthsWithSpending} {(behavior.MonthsWithSpending == 1 ? "mês" : "meses")} com compras até {Month}.")" Value="@Negative(behavior.YearAverageSpent).ToString()" Testid="behavior-average" />
+        </div>
+    }
+</section>
+
+@code {
+    private MonthlyBehavior? _behavior;
+    private ReferenceMonth _loaded;
+
+    [Parameter, EditorRequired] public ReferenceMonth Month { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_behavior is not null && _loaded == Month) { return; }
+        _loaded = Month;
+        _behavior = await Behaviors.GetAsync(Month);
+    }
+
+    private static Money Negative(Money amount) => amount.IsZero ? amount : -amount;
+}

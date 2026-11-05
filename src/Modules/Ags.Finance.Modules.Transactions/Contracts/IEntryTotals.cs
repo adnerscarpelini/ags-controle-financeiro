@@ -23,6 +23,12 @@ public interface IEntryTotals
     /// <summary>Totais por mês, tipo e subcategoria no intervalo fechado de meses de referência, contando efetivados e pendentes uma única vez.</summary>
     Task<IReadOnlyList<MonthlyTotal>> GetMonthlyAsync(ReferenceMonth from, ReferenceMonth to, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Despesas por mês da data e subcategoria, sem olhar o mês de referência: <see cref="MonthlyTotal.Month"/> é o mês da data. Compra no cartão conta no mês da compra
+    /// e todas as parcelas, que guardam a data da compra, contam nele. Ajustes de fatura (#52) não têm compra e contam no mês de referência deles.
+    /// </summary>
+    Task<IReadOnlyList<MonthlyTotal>> GetSpendingByDateAsync(ReferenceMonth from, ReferenceMonth to, CancellationToken cancellationToken = default);
+
     /// <summary>Totais gravados do intervalo mais as recorrentes dos meses posteriores ao atual, calculadas sem gravar nem registrar fatura.</summary>
     Task<PlannedTotals> GetPlannedAsync(ReferenceMonth from, ReferenceMonth to, CancellationToken cancellationToken = default);
 }

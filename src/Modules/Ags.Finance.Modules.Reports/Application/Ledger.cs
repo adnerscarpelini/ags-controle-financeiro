@@ -3,7 +3,7 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Reports.Application;
 
-/// <summary>Base única de apuração dos relatórios (#24/#25/#27): totais por mês de referência de receitas e despesas, com ajustes de fatura uma vez.</summary>
+/// <summary>Soma totais mensais de receitas e despesas, com ajustes de fatura uma vez. O mês das linhas é o de referência ou, no comportamento do mês, o da data (<see cref="LedgerSource"/>).</summary>
 internal sealed class Ledger(IReadOnlyList<MonthlyTotal> rows)
 {
     public IReadOnlyList<MonthlyTotal> Rows { get; } = rows;
