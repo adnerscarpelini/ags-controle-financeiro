@@ -46,7 +46,7 @@
     }
     else
     {
-        <MudTable T="FixedRow" Items="Visible" Elevation="0" Hover="true" Class="data-table" Breakpoint="AppTables.Breakpoint(Viewport.IsMobile)" SortLabel="@AppTables.SortLabel" aria-label="Lançamentos fixos">
+        <MudTable T="FixedRow" Items="Visible" Elevation="0" Hover="true" Class="data-table" Breakpoint="AppTables.Breakpoint(IsMobile)" SortLabel="@AppTables.SortLabel" aria-label="Lançamentos fixos">
             <HeaderContent>
                 <MudTh Class="col-select"><input id="fixed-select-all" type="checkbox" class="row-select" aria-label="Selecionar todos" checked="@AllSelected" @onchange="ToggleAll" /></MudTh>
                 <MudTh>Dia</MudTh>
@@ -59,7 +59,7 @@
             <RowTemplate Context="row">
                 <MudTd Class="col-select"><input type="checkbox" class="row-select" aria-label="Selecionar @row.Title" checked="@_selected.Contains(row.Id)" @onchange="args => Toggle(row, args)" /></MudTd>
                 <MudTd DataLabel="Dia" data-fixed-day>@row.Day</MudTd>
-                <MudTd DataLabel="Descrição" Class="col-description">
+                <MudTd DataLabel="Nome" Class="col-description">
                     <span class="row-title">@row.Title</span>
                     @if (row.Note.Length > 0) { <span class="row-note">@row.Note</span> }
                 </MudTd>
@@ -88,6 +88,9 @@
     private bool _loaded;
     private bool _busy;
     private string? _error;
+
+    [CascadingParameter(Name = "IsMobile")]
+    public bool IsMobile { get; set; }
 
     private IReadOnlyList<FixedRow> Visible => _rows.Where(x => _filter switch
     {

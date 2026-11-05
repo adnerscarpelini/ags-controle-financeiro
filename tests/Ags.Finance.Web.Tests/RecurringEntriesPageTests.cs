@@ -3,6 +3,7 @@ using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
 using Ags.Finance.Web.Components.Pages;
 using Bunit;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -35,6 +36,19 @@ public sealed class RecurringEntriesPageTests
         Assert.Equal("-R$ 50,00", Assert.Single(page.FindAll("[data-fixed-amount]")).TextContent);
         await page.Find("[data-filter=income]").ClickAsync(new MouseEventArgs());
         Assert.Equal("R$ 1.000,00", Assert.Single(page.FindAll("[data-fixed-amount]")).TextContent);
+    }
+
+    [Fact]
+    public async Task OnThePhoneTheTableTurnsIntoLabeledRows()
+    {
+        await using var ui = await EntryUi.CreateAsync();
+        await SeedAsync(ui);
+
+        var page = ui.Context.Render<CascadingValue<bool>>(parameters => parameters
+            .Add(x => x.Name, "IsMobile").Add(x => x.Value, true).AddChildContent<RecurringEntries>());
+
+        page.WaitForAssertion(() => Assert.Equal(3, page.FindAll("[data-fixed-amount]").Count));
+        Assert.Contains("mud-md-table", page.Find(".data-table").ClassList);
     }
 
     [Fact]
