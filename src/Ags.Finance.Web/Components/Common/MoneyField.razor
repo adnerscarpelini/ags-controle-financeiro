@@ -1,17 +1,18 @@
-@* Campo de valor em reais: formato pt-BR e teclado numérico no celular. *@
+@* Campo de valor em reais: formato pt-BR enquanto se digita (wwwroot/js/money-mask.js) e teclado numérico no celular. *@
 @using System.Globalization
 
-<div class="money-field @Class">
+<div class="money-field @Class" data-money-allow-negative="@(Min < 0)">
     <label for="@Id">@Label</label>
-    <MudNumericField @ref="_field" T="decimal" InputId="@Id" Value="Value" ValueChanged="ValueChanged" Min="@Min" Format="N2" Culture="s_culture"
-                     HideSpinButtons="true" Immediate="true" InputMode="DecimalMode" Variant="Variant.Text" Adornment="Adornment.Start" AdornmentText="R$"
-                     AutoFocus="AutoFocus" Disabled="Disabled" />
+    <MudTextField @ref="_field" T="string" InputId="@Id" Value="_text" ValueChanged="TextChangedAsync" Immediate="true" InputMode="DecimalMode" Variant="Variant.Text"
+                  Adornment="Adornment.Start" AdornmentText="R$" AutoFocus="AutoFocus" Disabled="Disabled" />
 </div>
 
 @code {
     private const InputMode DecimalMode = InputMode.@decimal;
     private static readonly CultureInfo s_culture = CultureInfo.GetCultureInfo("pt-BR");
-    private MudNumericField<decimal>? _field;
+    private MudTextField<string>? _field;
+    private string _text = Format(0);
+    private decimal _shown;
 
     [Parameter, EditorRequired]
     public string Id { get; set; } = string.Empty;
@@ -44,4 +45,24 @@
             await _field.FocusAsync();
         }
     }
+
+    protected override void OnParametersSet()
+    {
+        if (Value != _shown)
+        {
+            _shown = Value;
+            _text = Format(Value);
+        }
+    }
+
+    private async Task TextChangedAsync(string? text)
+    {
+        _text = text ?? string.Empty;
+        _shown = Math.Max(Parse(_text), Min);
+        await ValueChanged.InvokeAsync(_shown);
+    }
+
+    private static string Format(decimal value) => value.ToString("N2", s_culture);
+
+    private static decimal Parse(string text) => decimal.TryParse(text, NumberStyles.Number, s_culture, out var value) ? value : 0;
 }

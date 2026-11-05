@@ -167,6 +167,7 @@ public sealed partial class LayoutPagesTests : IDisposable
     [InlineData("/_content/MudBlazor/MudBlazor.min.js")]
     [InlineData("/js/viewport.js")]
     [InlineData("/js/pickers.js")]
+    [InlineData("/js/money-mask.js")]
     [InlineData("/js/logo-crop.js")]
     public async Task StaticAssetsAreServedByTheApplication(string path)
     {
