@@ -6,6 +6,11 @@
 
 Aplicação web pessoal em .NET 10, ASP.NET Core e Blazor, acessada pelo computador e celular na rede local.
 
+![Dashboard com dados fictícios: comportamento e orçamento do mês, pendências dos próximos dias e atrasadas](docs/screenshots/dashboard.png)
+
+> **[Veja a galeria de telas →](docs/screenshots/README.md)** Lançamentos, cartões, faturas, planejamento, relatórios,
+> reembolsos, celular e tema claro, todos com dados fictícios.
+
 O destino aprovado é **Docker Compose + PostgreSQL**, no Linux ou Windows via WSL 2.
 A aplicação roda com **Docker Compose + PostgreSQL** ([#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60),
 [#59](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/59)), com backup e recuperação

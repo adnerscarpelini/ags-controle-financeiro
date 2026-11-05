@@ -1,5 +1,6 @@
 # Documentação
 
+- [Galeria de telas com dados fictícios (#135)](screenshots/README.md)
 - [Protótipo da nova interface (#95–#103)](architecture/ui-prototype.md)
 - [Consulta de pendências e baixa (#57)](transactions/pending-entries.md)
 - [Ajustes de saldo (#48)](transactions/balance-adjustments.md)
