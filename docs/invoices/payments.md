@@ -43,6 +43,8 @@ antecipado mantém a fatura Aberta; saldo zero/crédito não altera a situação
 Em Fechada, a confirmação de pagamento pode incluir uma escolha explícita de
 quitação, aceita somente se o saldo final for zero/crédito. Há também Confirmar
 quitação para Fechada com saldo zero/crédito, sem criar pagamento ou débito zerado.
+Nesse caso ela é a ação principal, no card do cartão e no detalhe da fatura, no lugar
+de Pagar fatura ([#131](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/131)). Pagamento de valor zero é recusado já no formulário.
 PaidAt registra o instante da quitação. Repetir a confirmação não cria movimento.
 
 ## Reabertura com desfazimento (#93)

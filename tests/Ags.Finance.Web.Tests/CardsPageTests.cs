@@ -107,6 +107,66 @@ public sealed class CardsPageTests
     }
 
     [Fact]
+    public async Task AClosedInvoiceWithoutBalanceOffersTheSettlementInsteadOfThePayment()
+    {
+        await using var ui = await EntryUi.CreateAsync();
+        await CloseAsync(ui);
+        var page = OpenCards(ui);
+
+        Assert.Empty(page.FindAll("[data-pay-invoice]"));
+        Assert.Contains("sem saldo a pagar", page.Find("[data-pending-invoice]").TextContent, StringComparison.Ordinal);
+
+        _ = page.Find("[data-settle-invoice]").ClickAsync(new MouseEventArgs());
+        ui.Dialogs.WaitForElement("[data-confirm-ok]");
+        await ui.Dialogs.Find("[data-confirm-ok]").ClickAsync(new MouseEventArgs());
+
+        page.WaitForAssertion(() => Assert.Empty(page.FindAll("[data-settle-invoice]")));
+        var invoices = await ui.Context.Services.GetRequiredService<IInvoiceCatalog>().GetAsync();
+        Assert.Equal(InvoiceStatus.Paid, invoices.Single(x => x.CardExternalId == ui.Card && x.Month == s_september).Status);
+        Assert.Empty(await ui.Context.Services.GetRequiredService<IAccountMovementCatalog>().GetAsync());
+    }
+
+    [Fact]
+    public async Task AnOpenInvoiceWithoutBalanceDoesNotOfferTheSettlement()
+    {
+        await using var ui = await EntryUi.CreateAsync();
+
+        var page = OpenCards(ui);
+
+        Assert.Empty(page.FindAll("[data-settle-invoice]"));
+        Assert.Empty(page.FindAll("[data-pending-invoice]"));
+    }
+
+    [Fact]
+    public async Task TheDetailOfAClosedInvoiceWithoutBalanceHasTheSettlementAsTheMainAction()
+    {
+        await using var ui = await EntryUi.CreateAsync();
+        await CloseAsync(ui);
+
+        var page = OpenDetail(ui);
+
+        page.WaitForAssertion(() => Assert.NotEmpty(page.FindAll("[data-invoice-action='settle']")));
+        Assert.Empty(page.FindAll("[data-invoice-action='pay']"));
+    }
+
+    [Fact]
+    public async Task APaymentOfZeroIsStoppedInTheFormWithAWayOut()
+    {
+        await using var ui = await EntryUi.CreateAsync();
+        await CloseAsync(ui);
+        var page = OpenDetail(ui);
+        page.WaitForAssertion(() => Assert.NotEmpty(page.FindAll("[data-invoice-menu] button")));
+
+        await ChooseAsync(ui, page.Find("[data-invoice-menu] button"), "Pagar parcial");
+        ui.Dialogs.WaitForElement("#invoice-payment-form");
+        ui.Dialogs.WaitForAssertion(() => Assert.Equal(ui.Account.ToString(), ui.Dialogs.Find("#payment-account").GetAttribute("value")));
+        await ui.Dialogs.Find("#invoice-payment-form").SubmitAsync(EventArgs.Empty);
+
+        ui.Dialogs.WaitForAssertion(() => Assert.Contains("Confirmar quitação", ui.Dialogs.Find("[data-entry-error]").TextContent, StringComparison.Ordinal));
+        Assert.Empty(ui.Dialogs.FindAll("[data-payment-review]"));
+    }
+
+    [Fact]
     public async Task ClickingTheCardOpensTheCorrespondingInvoice()
     {
         await using var ui = await EntryUi.CreateAsync();
