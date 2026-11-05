@@ -40,8 +40,7 @@ ocorrência desde já.
 período exibido; meses anteriores mostram `-`. Não usa o saldo das contas, e o rótulo avisa isso.
 
 **Cores.** Na tabela de categorias, a intensidade é o valor dividido pelo maior valor de categoria do mesmo tipo
-no período, e as subcategorias usam a mesma escala. É diferente do [mapa de calor](heat-map.md), que compara
-cada linha com ela mesma. A cor só reforça o valor, que sempre aparece em texto.
+no período, e as subcategorias usam a mesma escala. A cor só reforça o valor, que sempre aparece em texto.
 
 **Interface.** No celular, a coluna de nomes fica fixa e os meses rolam na horizontal. [Ocultar
 valores](../web/hide-values.md) cobre o texto das células e o detalhe, inclusive `title` e `aria-label`.

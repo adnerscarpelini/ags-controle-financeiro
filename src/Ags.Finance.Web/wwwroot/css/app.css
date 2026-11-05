@@ -918,16 +918,6 @@ input[type="file"]::file-selector-button {
 .bar-expense { background: var(--color-expense); }
 .bar-income { background: var(--color-income); }
 
-.heat-head h2 { margin-bottom: var(--space-3); }
-.heat-unit { color: var(--color-text-secondary); font-size: 13px; }
-.heat-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
-.heat-map { font-size: 12.5px; }
-.heat-map th, .heat-map td { white-space: nowrap; }
-.table-scroll .heat-map td, .table-scroll .heat-map tbody th, .table-scroll .heat-map thead th { padding: 7px 6px; font-size: 12.5px; }
-.heat-map .heat-sub { padding-left: var(--space-3); font-weight: 400; color: var(--color-text-secondary); }
-.heat-map .heat-selected { font-weight: 600; }
-.heat-map .heat-separator th { padding-top: var(--space-4); text-align: left; color: var(--color-text-secondary); }
-
 .planning-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); margin-bottom: var(--space-3); }
 .planning-table th, .planning-table td { white-space: nowrap; }
 .planning-table th:first-child { position: sticky; left: 0; z-index: 1; background: var(--color-card); }

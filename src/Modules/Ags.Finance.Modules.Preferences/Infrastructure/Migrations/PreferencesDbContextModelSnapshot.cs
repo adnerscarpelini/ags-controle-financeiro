@@ -28,7 +28,6 @@ internal sealed class PreferencesDbContextModelSnapshot : ModelSnapshot
             b.Property<bool>("ShowPending").HasColumnType("boolean");
             b.Property<bool>("ShowCategories").HasColumnType("boolean");
             b.Property<bool>("ShowInvoices").HasColumnType("boolean");
-            b.Property<bool>("ShowHeatMap").HasColumnType("boolean");
             b.Property<int>("PageSize").HasColumnType("integer");
             b.Property<int>("SessionHours").HasColumnType("integer");
             b.HasKey("Id");

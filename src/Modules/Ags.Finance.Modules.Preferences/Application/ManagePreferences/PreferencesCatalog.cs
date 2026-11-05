@@ -27,7 +27,6 @@ internal sealed class PreferencesCatalog(IPreferencesStore store) : IPreferences
             preferences.Sections.Pending,
             preferences.Sections.Categories,
             preferences.Sections.Invoices,
-            preferences.Sections.HeatMap,
             preferences.PageSize,
             preferences.SessionHours));
         if (error is not null) { return new(error); }
@@ -42,7 +41,7 @@ internal sealed class PreferencesCatalog(IPreferencesStore store) : IPreferences
         (RecurringInvoiceMode)(int)x.RecurringMode,
         x.PendingWindowDays,
         x.TopCategories,
-        new(x.ShowSummary, x.ShowPending, x.ShowCategories, x.ShowInvoices, x.ShowHeatMap),
+        new(x.ShowSummary, x.ShowPending, x.ShowCategories, x.ShowInvoices),
         x.PageSize,
         x.SessionHours);
 }

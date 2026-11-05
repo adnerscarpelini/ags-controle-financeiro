@@ -27,11 +27,11 @@ public enum RecurringInvoiceMode
 }
 
 /// <summary>Quais seções o dashboard exibe.</summary>
-public sealed record DashboardSections(bool Summary, bool Pending, bool Categories, bool Invoices, bool HeatMap)
+public sealed record DashboardSections(bool Summary, bool Pending, bool Categories, bool Invoices)
 {
-    public static DashboardSections All { get; } = new(true, true, true, true, true);
+    public static DashboardSections All { get; } = new(true, true, true, true);
 
-    public bool AnyVisible => Summary || Pending || Categories || Invoices || HeatMap;
+    public bool AnyVisible => Summary || Pending || Categories || Invoices;
 }
 
 /// <summary>As parametrizações do aplicativo. Os valores permitidos de cada campo numérico estão em <see cref="PreferenceOptions"/>.</summary>

@@ -47,7 +47,7 @@ public sealed class PreferencesTests : IAsyncLifetime
     public async Task SavedPreferencesAreReadBackByAnotherScope()
     {
         var chosen = new AppPreferences(ThemePreference.Auto, StartPage.Invoices, RecurringInvoiceMode.SumUpfront, 30, 5,
-            new(true, false, true, false, true), 25, 168);
+            new(true, false, true, false), 25, 168);
 
         var result = await Preferences.SaveAsync(chosen);
 
@@ -110,7 +110,7 @@ public sealed class PreferencesTests : IAsyncLifetime
     [Fact]
     public async Task AllSectionsOffIsAllowedAndReportsNothingVisible()
     {
-        var none = new DashboardSections(false, false, false, false, false);
+        var none = new DashboardSections(false, false, false, false);
 
         var result = await Preferences.SaveAsync(AppPreferences.Default with { Sections = none });
 

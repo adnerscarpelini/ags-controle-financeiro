@@ -73,7 +73,7 @@ Tokens translúcidos (`--color-fill`, `--color-fill-strong` e os `-soft`) cuidam
 - Fonte Inter servida pela própria aplicação; nada é carregado de CDN.
 - Abaixo de 768 px de largura, o menu lateral vira uma gaveta com a mesma árvore e o conteúdo ocupa a tela inteira, sem rolagem horizontal da página. O **+ Novo** fica sempre acessível, em botão flutuante. Alvos de toque com pelo menos 44 px.
 - No celular, janelas de formulário ocupam a tela inteira, com as ações fixas no rodapé (`AppDialogs`). Tabelas viram linhas com rótulos (`AppTables`); em Lançamentos, cada linha mostra descrição, data, situação e valor, com as ações em menu e a ordenação em um seletor. Planejamento e a visão de 19 meses mantêm a primeira coluna fixa, com os meses rolando na horizontal.
-- Gráficos com uma biblioteca web escolhida na issue que os introduz, usando as mesmas cores. Valores com dígitos tabulares e alinhados à direita. O mapa de calor mostra a unidade uma vez e `-` em mês sem valor.
+- Gráficos com uma biblioteca web escolhida na issue que os introduz, usando as mesmas cores. Valores com dígitos tabulares e alinhados à direita.
 - Cultura `pt-BR`: `R$ 1.234,56` e `dd/MM/yyyy`.
 - Cantos de 8 em controles, 12 em cards e 14 em janelas, espaçamento em múltiplos de 4, sombras leves só em menus e janelas.
 - Cor nunca é o único sinal: valores negativos também levam o sinal de menos.

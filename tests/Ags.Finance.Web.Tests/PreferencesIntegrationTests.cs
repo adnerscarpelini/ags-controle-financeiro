@@ -85,7 +85,7 @@ public sealed class PreferencesIntegrationTests : IDisposable
         Assert.Contains("id=\"preferences-form\"", html, StringComparison.Ordinal);
         Assert.Matches("name=\"pref-theme\" value=\"dark\"[^>]*checked", html);
         Assert.Matches("name=\"pref-recurring\" value=\"on-date\"[^>]*checked", html);
-        foreach (var id in new[] { "pref-start-page", "pref-pending-window", "pref-top-categories", "pref-page-size", "pref-session-hours", "pref-section-heatmap" })
+        foreach (var id in new[] { "pref-start-page", "pref-pending-window", "pref-top-categories", "pref-page-size", "pref-session-hours", "pref-section-categories" })
         {
             Assert.Contains($"id=\"{id}\"", html, StringComparison.Ordinal);
         }
@@ -98,13 +98,13 @@ public sealed class PreferencesIntegrationTests : IDisposable
     [Fact]
     public async Task DashboardShowsOnlyTheEnabledSections()
     {
-        await SaveAsync(x => x with { Sections = new(Summary: true, Pending: false, Categories: true, Invoices: false, HeatMap: true) });
+        await SaveAsync(x => x with { Sections = new(Summary: true, Pending: false, Categories: true, Invoices: false) });
         using var browser = await _factory.CreateSignedInBrowserAsync();
 
         var html = await browser.GetHtmlAsync("/dashboard");
 
         Assert.Contains("id=\"summary-title\"", html, StringComparison.Ordinal);
-        Assert.Contains("id=\"heat-map-title\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"expense-categories-title\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"pending-title\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"invoice-report-title\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-testid=\"no-sections\"", html, StringComparison.Ordinal);
@@ -113,7 +113,7 @@ public sealed class PreferencesIntegrationTests : IDisposable
     [Fact]
     public async Task DashboardWithEverySectionOffExplainsAndLinksToTheSettings()
     {
-        await SaveAsync(x => x with { Sections = new(false, false, false, false, false) });
+        await SaveAsync(x => x with { Sections = new(false, false, false, false) });
         using var browser = await _factory.CreateSignedInBrowserAsync();
 
         var html = await browser.GetHtmlAsync("/dashboard");

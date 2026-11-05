@@ -38,13 +38,13 @@ public sealed class PreferencesSettingsTests
             page.Find("#pref-top-categories").Change("5");
             page.Find("#pref-page-size").Change("25");
             page.Find("#pref-session-hours").Change("168");
-            page.Find("#pref-section-heatmap").Change(false);
+            page.Find("#pref-section-categories").Change(false);
             await page.Find("#preferences-form").SubmitAsync(EventArgs.Empty);
 
             page.WaitForAssertion(() => Assert.Equal("Preferências salvas.", page.Find("[data-testid=preferences-message]").TextContent));
             var saved = await context.Services.GetRequiredService<IPreferences>().GetAsync();
             Assert.Equal(new AppPreferences(ThemePreference.Light, StartPage.Invoices, RecurringInvoiceMode.SumUpfront, 15, 5,
-                new(true, true, true, true, false), 25, 168), saved);
+                new(true, true, false, true), 25, 168), saved);
             context.JSInterop.VerifyInvoke("agsTheme.apply");
         }
     }
@@ -76,7 +76,7 @@ public sealed class PreferencesSettingsTests
         await using (database)
         await using (context)
         {
-            var chosen = AppPreferences.Default with { Theme = ThemePreference.Auto, PageSize = 200, Sections = new(false, true, true, true, true) };
+            var chosen = AppPreferences.Default with { Theme = ThemePreference.Auto, PageSize = 200, Sections = new(false, true, true, true) };
             await context.Services.GetRequiredService<IPreferences>().SaveAsync(chosen);
 
             var page = context.Render<PreferencesSettings>();

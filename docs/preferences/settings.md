@@ -26,7 +26,7 @@ mensagem e o que estava salvo é mantido.
 | Faturas | Recorrentes do cartão na fatura aberta | Somar só na data, Somar desde já | Somar só na data |
 | Dashboard | Janela de pendências | 7, 15 ou 30 dias | 7 |
 | Dashboard | Maiores categorias no gráfico | 5, 10 ou 20 | 10 |
-| Dashboard | Seções visíveis | Resumo, Pendências, Categorias, Faturas, Mapa de calor | Todas |
+| Dashboard | Seções visíveis | Resumo, Pendências, Categorias, Faturas | Todas |
 | Lançamentos | Itens por página | 25, 50, 100 ou 200 | 50 |
 | Segurança | Duração da sessão sem "Manter conectado" | 12 h, 24 h ou 7 dias | 12 h |
 
