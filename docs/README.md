@@ -35,7 +35,6 @@
 - [Resumo do mês (#24)](reports/monthly-summary.md)
 - [Despesas e receitas por categoria (#25)](reports/category-report.md)
 - [Faturas no dashboard (#112)](reports/invoices-dashboard.md)
-- [Mapa de calor de despesas (#27)](reports/heat-map.md)
 - [Planejamento mensal com metas (#94)](reports/monthly-planning.md)
 - [Relatórios: visão de 19 meses (#77/#94)](reports/planning.md)
 - [Pendências do dashboard: hoje até 7, 15 ou 30 dias (#58/#69)](reports/pending-agenda.md)

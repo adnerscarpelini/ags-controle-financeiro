@@ -30,7 +30,6 @@ internal readonly record struct PreferenceValues(
     bool ShowPending,
     bool ShowCategories,
     bool ShowInvoices,
-    bool ShowHeatMap,
     int PageSize,
     int SessionHours);
 
@@ -60,8 +59,6 @@ internal sealed class UserPreferences : Entity
 
     public bool ShowInvoices { get; private set; }
 
-    public bool ShowHeatMap { get; private set; }
-
     public int PageSize { get; private set; }
 
     public int SessionHours { get; private set; }
@@ -86,7 +83,6 @@ internal sealed class UserPreferences : Entity
         ShowPending = values.ShowPending;
         ShowCategories = values.ShowCategories;
         ShowInvoices = values.ShowInvoices;
-        ShowHeatMap = values.ShowHeatMap;
         PageSize = values.PageSize;
         SessionHours = values.SessionHours;
         return null;

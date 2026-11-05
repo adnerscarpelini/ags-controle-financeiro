@@ -1,6 +1,5 @@
 using Ags.Finance.Modules.Reports.Application;
 using Ags.Finance.Modules.Reports.Application.CategoryReport;
-using Ags.Finance.Modules.Reports.Application.HeatMap;
 using Ags.Finance.Modules.Reports.Application.MonthlyPlanning;
 using Ags.Finance.Modules.Reports.Application.MonthlySummary;
 using Ags.Finance.Modules.Reports.Application.PendingAgenda;
@@ -17,7 +16,6 @@ public static class DependencyInjection
         services.AddScoped<LedgerSource>();
         services.AddScoped<IMonthlySummaries, MonthlySummaries>();
         services.AddScoped<ICategoryReports, CategoryReports>();
-        services.AddScoped<IHeatMapReports, HeatMapReports>();
         services.AddScoped<IPendingAgenda, PendingAgendaReport>();
         services.AddScoped<IPlanningReports, PlanningReports>();
         services.AddScoped<IMonthlyPlanReports, MonthlyPlanReports>();

@@ -72,7 +72,6 @@
             <label class="choice"><input id="pref-section-pending" class="switch" type="checkbox" role="switch" @bind="_showPending" /> Pendências</label>
             <label class="choice"><input id="pref-section-categories" class="switch" type="checkbox" role="switch" @bind="_showCategories" /> Categorias</label>
             <label class="choice"><input id="pref-section-invoices" class="switch" type="checkbox" role="switch" @bind="_showInvoices" /> Faturas</label>
-            <label class="choice"><input id="pref-section-heatmap" class="switch" type="checkbox" role="switch" @bind="_showHeatMap" /> Mapa de calor</label>
         </fieldset>
     </div>
 
@@ -119,14 +118,13 @@
     private bool _showPending;
     private bool _showCategories;
     private bool _showInvoices;
-    private bool _showHeatMap;
     private int _pageSize;
     private int _sessionHours;
     private string? _preferencesMessage;
     private bool _preferencesSaved;
     private bool _savingPreferences;
 
-    private string Snapshot() => string.Join('|', _theme, _startPage, _recurring, _pendingWindowDays, _topCategories, _showSummary, _showPending, _showCategories, _showInvoices, _showHeatMap, _pageSize, _sessionHours);
+    private string Snapshot() => string.Join('|', _theme, _startPage, _recurring, _pendingWindowDays, _topCategories, _showSummary, _showPending, _showCategories, _showInvoices, _pageSize, _sessionHours);
 
     protected override async Task OnInitializedAsync()
     {
@@ -137,8 +135,8 @@
         _recurring = saved.RecurringInvoices;
         _pendingWindowDays = saved.PendingWindowDays;
         _topCategories = saved.TopCategories;
-        (_showSummary, _showPending, _showCategories, _showInvoices, _showHeatMap) =
-            (saved.Sections.Summary, saved.Sections.Pending, saved.Sections.Categories, saved.Sections.Invoices, saved.Sections.HeatMap);
+        (_showSummary, _showPending, _showCategories, _showInvoices) =
+            (saved.Sections.Summary, saved.Sections.Pending, saved.Sections.Categories, saved.Sections.Invoices);
         _pageSize = saved.PageSize;
         _sessionHours = saved.SessionHours;
         _savedSnapshot = Snapshot();
@@ -162,7 +160,7 @@
         try
         {
             var result = await Preferences.SaveAsync(new AppPreferences(_theme, _startPage, _recurring, _pendingWindowDays, _topCategories,
-                new DashboardSections(_showSummary, _showPending, _showCategories, _showInvoices, _showHeatMap), _pageSize, _sessionHours));
+                new DashboardSections(_showSummary, _showPending, _showCategories, _showInvoices), _pageSize, _sessionHours));
             _preferencesSaved = result.Succeeded;
             _preferencesMessage = result.Error ?? "Preferências salvas.";
             if (result.Succeeded)

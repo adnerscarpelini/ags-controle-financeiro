@@ -17,7 +17,7 @@
     [Parameter, EditorRequired] public PlanningCell Cell { get; set; } = default!;
     [Parameter, EditorRequired] public string RowName { get; set; } = string.Empty;
     [Parameter, EditorRequired] public string MonthName { get; set; } = string.Empty;
-    /// <summary>Linha de total de despesas: o valor aparece com sinal negativo, como no mapa de calor.</summary>
+    /// <summary>Linha de total de despesas: o valor aparece com sinal negativo.</summary>
     [Parameter] public bool ShowAsNegative { get; set; }
     /// <summary>Token da cor do calor; sem ele a célula não é colorida.</summary>
     [Parameter] public string? HeatColor { get; set; }
