@@ -65,6 +65,7 @@
             </MudTh>
             <MudTh>Despesa</MudTh>
             <MudTh>Pessoa</MudTh>
+            <MudTh Class="numeric">Valor da conta</MudTh>
             <MudTh>Percentual</MudTh>
             <MudTh Class="numeric">A receber</MudTh>
             <MudTh Class="numeric">Recebido</MudTh>
@@ -80,9 +81,10 @@
             </MudTd>
             <MudTd DataLabel="Despesa" Class="col-description">
                 <span class="row-title">@item.Description</span>
-                <span class="row-note">@item.Date.ToString("dd/MM/yyyy") · @item.Classification.Replace(" > ", " › ", StringComparison.Ordinal) · Mês @item.Month · @item.ExpenseAmount × @Percent(item.Percent)@(item.IsExpenseEffective ? string.Empty : " · Despesa ainda pendente")</span>
+                <span class="row-note">@item.Date.ToString("dd/MM/yyyy") · @item.Classification.Replace(" > ", " › ", StringComparison.Ordinal) · Mês @item.Month@(item.IsExpenseEffective ? string.Empty : " · Despesa ainda pendente")</span>
             </MudTd>
             <MudTd DataLabel="Pessoa">@item.PersonName</MudTd>
+            <MudTd DataLabel="Valor da conta" Class="@($"numeric {ValueColor.Neutral}")" data-expense-amount>@item.ExpenseAmount</MudTd>
             <MudTd DataLabel="Percentual">@Percent(item.Percent)</MudTd>
             <MudTd DataLabel="A receber" Class="@($"numeric {ValueColor.Income(item.Expected)}")">@item.Expected</MudTd>
             <MudTd DataLabel="Recebido" Class="@($"numeric {(item.Received is { } amount ? ValueColor.Income(amount) : ValueColor.Neutral)}")">@(item.Received is { } received ? received.ToString() : "—")</MudTd>

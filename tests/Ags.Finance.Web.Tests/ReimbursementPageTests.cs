@@ -68,7 +68,10 @@ public sealed class ReimbursementPageTests : IAsyncLifetime
 
         Assert.Equal("Outubro de 2026", page.Find("[data-month-label]").TextContent);
         var text = page.Find("[aria-label=Reembolsos]").TextContent;
-        Assert.Contains("R$ 142,90 × 50%", text, StringComparison.Ordinal);
+        var headers = page.FindAll("[aria-label=Reembolsos] thead th").Select(x => x.TextContent.Trim()).ToList();
+        Assert.Equal(["Despesa", "Pessoa", "Valor da conta", "Percentual", "A receber"], headers.Skip(1).Take(5));
+        Assert.Contains(page.FindAll("[data-expense-amount]"), x => x.TextContent == "R$ 142,90");
+        Assert.DoesNotContain("×", text, StringComparison.Ordinal);
         Assert.Contains("R$ 71,45", text, StringComparison.Ordinal);
         Assert.Contains("Pendente", text, StringComparison.Ordinal);
         Assert.Equal("R$ 171,45", page.Find("[data-stat='expected'] .stat-value").TextContent);
