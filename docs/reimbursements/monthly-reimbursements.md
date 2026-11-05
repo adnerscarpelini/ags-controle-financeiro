@@ -10,6 +10,11 @@ encontrar pendências antigas. Um aviso mostra o total pendente de meses anterio
 percentual, arredondado ao centavo item a item; o total é a soma dos itens arredondados.
 Item com esperado R$ 0,00 não aparece.
 
+**Grade ([#133](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/133)).** Mostra despesa, pessoa, valor integral da conta, percentual, valor a receber,
+recebido e situação. O valor da conta fica numa coluna própria, sem sinal e em cor neutra,
+para a pessoa conferir com as próprias anotações. No item recebido, ele é o valor gravado no
+recebimento.
+
 **Entrada no mês.** A despesa entra pelo mês de referência, Efetivada ou Pendente; a despesa
 ainda pendente é indicada no item. Escolher um mês gera as ocorrências recorrentes dele.
 
