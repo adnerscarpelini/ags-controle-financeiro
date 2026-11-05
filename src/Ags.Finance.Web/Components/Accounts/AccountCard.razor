@@ -6,8 +6,10 @@
 <article class="entity-card @(Account.IsActive ? null : "entity-card-archived")" data-account-card="@Account.Name">
     <header class="entity-card-head">
         @if (Bank is not null) { <BankLogo Bank="Bank" /> }
-        <h2 class="catalog-color color-@Account.Color">@Account.Name</h2>
-        @if (!Account.IsActive) { <span class="tag" data-archived-tag>Arquivada</span> }
+        <div class="entity-card-title">
+            <h2 class="catalog-color color-@Account.Color">@Account.Name</h2>
+            @if (!Account.IsActive) { <span class="tag" data-archived-tag>Arquivada</span> }
+        </div>
         <div data-account-menu>
             <MudMenu Icon="@Icons.Material.Outlined.MoreVert" AriaLabel="@($"Ações da conta {Account.Name}")" Size="Size.Small" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
                 @if (Account.IsActive)
