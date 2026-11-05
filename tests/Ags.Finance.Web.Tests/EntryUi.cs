@@ -6,6 +6,7 @@ using Ags.Finance.Modules.Invoices;
 using Ags.Finance.Modules.Preferences;
 using Ags.Finance.Modules.Reimbursements;
 using Ags.Finance.Modules.Reimbursements.Contracts;
+using Ags.Finance.Modules.Reports;
 using Ags.Finance.Modules.Transactions;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.SharedKernel;
@@ -89,6 +90,7 @@ internal sealed class EntryUi : IAsyncDisposable
             .AddReimbursementsModule(database.ConnectionString)
             .AddInvoicesModule(database.ConnectionString)
             .AddPreferencesModule(database.ConnectionString)
+            .AddReportsModule()
             .AddAttachmentsModule(database.ConnectionString, new AttachmentStorageOptions(attachments));
         await context.Services.MigrateAccountsModuleAsync();
         await context.Services.MigrateAttachmentsModuleAsync();
