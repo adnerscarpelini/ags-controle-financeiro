@@ -1,0 +1,100 @@
+@* Confirma ou edita um mês de uma transferência recorrente. Confirmar movimenta as contas; editar pergunta o alcance. *@
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.SharedKernel
+@using Ags.Finance.Web.Components.Entries
+@inject IRecurringTransferCatalog Transfers
+@inject IAccountCatalog Accounts
+@inject EntryChangeNotifier EntryChanges
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <form id="recurring-transfer-form" class="entry-column" @onsubmit="SaveAsync" @onsubmit:preventDefault>
+            <MoneyField Id="recurring-transfer-amount" Label="Valor" @bind-Value="_amount" Class="amount-neutral" AutoFocus="true" />
+            <div class="field"><label for="recurring-transfer-date">Data</label><input id="recurring-transfer-date" class="input input-date" type="date" @bind="_date" required /></div>
+            @if (Confirming)
+            {
+                <p class="form-note" data-recurring-transfer-accounts>@Name(_source) → @Name(_destination). As duas contas serão movimentadas.</p>
+            }
+            else
+            {
+                <div class="field">
+                    <label for="recurring-transfer-source">Conta de origem</label>
+                    <select id="recurring-transfer-source" class="input" @bind="_source">
+                        @foreach (var account in _accounts.Where(x => (x.IsActive && x.Kind == AccountKind.Checking) || x.ExternalId == _source)) { <option value="@account.ExternalId">@account.Name</option> }
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="recurring-transfer-destination">Conta de destino</label>
+                    <select id="recurring-transfer-destination" class="input" @bind="_destination">
+                        @foreach (var account in _accounts.Where(x => x.IsActive || x.ExternalId == _destination)) { <option value="@account.ExternalId">@account.Name</option> }
+                    </select>
+                </div>
+            }
+        </form>
+        @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-confirm-cancel Disabled="@_busy" OnClick="() => Dialog?.Cancel()">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" form="recurring-transfer-form" data-save Disabled="@(_busy || _amount <= 0)">@(Confirming ? "Confirmar transferência" : "Salvar")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private decimal _amount;
+    private DateOnly _date;
+    private Guid _source;
+    private Guid _destination;
+    private bool _busy;
+    private string? _error;
+
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public RecurringTransferOccurrence Occurrence { get; set; } = default!;
+
+    [Parameter]
+    public bool Confirming { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _amount = Occurrence.Amount.Amount;
+        _date = Occurrence.Date;
+        _source = Occurrence.SourceAccountExternalId;
+        _destination = Occurrence.DestinationAccountExternalId;
+        _accounts = await Accounts.GetAccountsAsync(false);
+    }
+
+    private string Name(Guid id) => _accounts.FirstOrDefault(x => x.ExternalId == id)?.Name ?? "Conta registrada";
+
+    private async Task SaveAsync()
+    {
+        if (_busy || _amount <= 0) { return; }
+        ClassificationResult result;
+        if (Confirming)
+        {
+            _busy = true;
+            result = await Transfers.ConfirmAsync(Occurrence.ExternalId, _date, new Money(_amount));
+        }
+        else
+        {
+            var choice = await RecurringEditScopeDialog.AskAsync(Dialogs, true, _date.Day, isTransfer: true);
+            if (choice is null) { return; }
+            _busy = true;
+            result = await Transfers.EditAsync(Occurrence.ExternalId, new(_source, _destination, _date, new Money(_amount), choice.Scope, choice.Scope == RecurringEditScope.OnlyThis ? null : choice.Day));
+        }
+
+        _busy = false;
+        _error = result.Error;
+        if (result.Succeeded)
+        {
+            Snackbar.Add(Confirming ? "Transferência confirmada." : "Transferência alterada.", Severity.Success);
+            EntryChanges.Notify();
+            Dialog?.Close(DialogResult.Ok(true));
+        }
+    }
+}

@@ -35,6 +35,10 @@ public static class DependencyInjection
         services.AddScoped<IMerchantCatalog, MerchantCatalog>();
         services.AddScoped<IAccountMovementStore, AccountMovementStore>();
         services.AddScoped<IAccountMovementCatalog, AccountMovementCatalog>();
+        services.AddScoped<IRecurringTransferStore, RecurringTransferStore>();
+        services.AddScoped<RecurringTransferCatalog>();
+        services.AddScoped<IRecurringTransferCatalog>(provider => provider.GetRequiredService<RecurringTransferCatalog>());
+        services.AddScoped<IRecurringTransferForecast>(provider => provider.GetRequiredService<RecurringTransferCatalog>());
         services.AddScoped<IMonthlyPlanStore, MonthlyPlanStore>();
         services.AddScoped<IMonthlyPlanCatalog, MonthlyPlanCatalog>();
         services.AddScoped<IEntryStore, EntryStore>();

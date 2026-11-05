@@ -1,12 +1,13 @@
 using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Attachments.Contracts;
+using Ags.Finance.Modules.Transactions.Application.ManageAccountMovements;
 using Ags.Finance.Modules.Transactions.Contracts;
 using Ags.Finance.Modules.Transactions.Domain;
 using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Transactions.Application.CreateEntry;
 
-internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementStore cashMovements, IClassificationCatalog classifications, IMerchantCatalog merchants, IAccountCatalog accounts, ICardLastDigitsCatalog cardDigits, IReferenceMonthCalculator calendar, TimeProvider clock, IFinancialOperation operations, IInvoiceWriteGuard invoices, IReimbursementWriteGuard reimbursements, IAttachmentCatalog? attachments = null) : IEntryCatalog
+internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementStore cashMovements, IRecurringTransferForecast transferForecast, IClassificationCatalog classifications, IMerchantCatalog merchants, IAccountCatalog accounts, ICardLastDigitsCatalog cardDigits, IReferenceMonthCalculator calendar, TimeProvider clock, IFinancialOperation operations, IInvoiceWriteGuard invoices, IReimbursementWriteGuard reimbursements, IAttachmentCatalog? attachments = null) : IEntryCatalog
 {
     public Task<ClassificationResult> CreateAsync(CreateEntryRequest request, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(token => CreateCoreAsync(request, token), x => x.Succeeded, cancellationToken);
@@ -164,6 +165,7 @@ internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementSt
             current += (await GetBalanceCoreAsync(account, referenceDate, cancellationToken))?.EffectiveBalance ?? Money.Zero;
             var query = await QueryCoreAsync(new(Month: month, AccountExternalId: account, PendingRecurringOnly: true, Page: 1, PageSize: 1), cancellationToken);
             pending += query.Balance;
+            pending += await transferForecast.GetPendingEffectAsync(account, month, cancellationToken);
         }
 
         return new(current, pending);

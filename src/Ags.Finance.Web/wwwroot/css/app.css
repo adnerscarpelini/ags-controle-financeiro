@@ -926,6 +926,14 @@ input[type="file"]::file-selector-button {
 .bar-expense { background: var(--color-expense); }
 .bar-income { background: var(--color-income); }
 
+.panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-3); }
+.panel-head h2 { margin: 0; }
+.recurring-transfers { margin-top: var(--space-4); }
+.recurring-transfer-list { list-style: none; padding: 0; margin: 0; }
+.recurring-transfer-list li { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-top: 1px solid var(--color-border); }
+.recurring-transfer-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.recurring-transfer-accounts { overflow-wrap: anywhere; }
+
 .planning-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); margin-bottom: var(--space-3); }
 .planning-table th, .planning-table td { white-space: nowrap; }
 .planning-table th:first-child { position: sticky; left: 0; z-index: 1; background: var(--color-card); }
