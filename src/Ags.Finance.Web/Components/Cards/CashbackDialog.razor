@@ -22,7 +22,7 @@
                 @foreach (var card in _cards.Where(x => _available.Contains(x.ExternalId) || x.ExternalId == _originalCard)) { <option value="@card.ExternalId">@card.Name</option> }
             </select></div>
             <div class="field"><label for="allowance-month">Mês da fatura</label><input id="allowance-month" class="input" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" /></div>
-            <div class="field"><label for="allowance-date">Data do recebimento ou abatimento</label><input id="allowance-date" class="input" type="date" @bind="_date" /></div>
+            <div class="field"><label for="allowance-date">Data do recebimento ou abatimento</label><input id="allowance-date" class="input" type="date" @bind="_date" required /></div>
             <div class="field"><label for="allowance-kind">Tipo</label><select id="allowance-kind" class="input" @bind="_kind"><option value="@InvoicePaymentKind.Cashback">Cashback</option><option value="@InvoicePaymentKind.Discount">Desconto</option></select></div>
             <MoneyField Id="allowance-amount" Label="Valor" @bind-Value="_amount" />
             <div class="field"><label for="allowance-details">Detalhes</label><input id="allowance-details" class="input" maxlength="1000" @bind="_details" /></div>

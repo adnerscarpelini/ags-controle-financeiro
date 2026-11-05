@@ -43,6 +43,8 @@ A imagem aparece numa área quadrada com o círculo final marcado: arrastar posi
 
 Nenhum controle aberto pode ter a aparência do Windows ou do navegador. `wwwroot/js/pickers.js` mantém os elementos HTML e o `@bind` do Blazor, mas substitui a parte aberta: lista do select, calendário, seletor de mês, sugestões de `datalist`, mensagens de validação e dicas de `title`. Ao escolher, grava o valor no campo e dispara `input` e `change`.
 
+A data digitada não chega ao Blazor a cada tecla ([#127](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/127)). Enquanto os segmentos estão pela metade o campo nativo vale vazio, e o `@bind` de um `DateOnly` trocaria esse vazio por 01/01/0001. `pickers.js` retém os eventos do teclado e só entrega o valor ao sair do campo ou no Enter. Data incompleta ou obrigatória vazia não é entregue: num formulário a validação avisa ao salvar; fora dele o campo volta ao último valor. Campo ligado a `DateOnly` sem nulo precisa de `required`.
+
 A exceção é a janela de escolha de arquivos, que pertence ao sistema operacional. O campo em si segue os tokens.
 
 Os campos de valor formatam em reais enquanto se digita, com os dígitos entrando pela direita: 123456 vira `1.234,56` (`wwwroot/js/money-mask.js`, [#121](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/121)). Ao entrar no campo, o valor fica selecionado, e os dígitos entram sempre pelo fim, mesmo depois de clicar no meio ou usar as setas. Onde o campo aceita negativo, o sinal de menos inverte o sinal. O script também devolve o foco ao campo em AutoFocus, porque a janela da biblioteca e o menu que a abriu o tiram dele.

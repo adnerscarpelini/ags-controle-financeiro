@@ -406,6 +406,46 @@
 
     document.addEventListener("focusin", function (e) {
         if (e.target instanceof HTMLInputElement && e.target.getAttribute("list")) { adoptDatalist(e.target); }
+        if (isDateField(e.target)) { dateCommitted.set(e.target, e.target.value); }
+    }, true);
+
+    // Data digitada: enquanto os segmentos estão pela metade o campo vale vazio, e o @bind trocaria esse vazio por 01/01/0001.
+    // O que vem do teclado fica retido e só chega ao Blazor ao sair do campo ou no Enter. A escolha pelo calendário passa direto.
+    var dateCommitted = new WeakMap();
+
+    function commitDate(el) {
+        var last = dateCommitted.has(el) ? dateCommitted.get(el) : el.value;
+        if (el.validity.badInput || (el.value === "" && el.required)) {
+            // Num formulário o campo fica como está e a validação avisa ao salvar. Fora dele, nada avisaria: volta ao último valor.
+            if (!el.form) { el.value = last; }
+            return;
+        }
+        if (el.value !== last) {
+            el.dispatchEvent(new Event("input", { bubbles: true }));
+            el.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+    }
+
+    function holdTypedDate(e) {
+        if (!isDateField(e.target)) { return; }
+        if (e.isTrusted) {
+            hideTip();
+            // Quem digita não usa o calendário, que ficaria mostrando a data antiga sobre os campos.
+            if (anchor === e.target) { close(); }
+            e.stopPropagation();
+        } else {
+            dateCommitted.set(e.target, e.target.value);
+        }
+    }
+
+    // No window: o Blazor escuta change na captura do document, e parar ali não impediria o handler dele.
+    window.addEventListener("input", holdTypedDate, true);
+    window.addEventListener("change", holdTypedDate, true);
+    document.addEventListener("focusout", function (e) {
+        if (isDateField(e.target)) { commitDate(e.target); }
+    }, true);
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && isDateField(e.target)) { commitDate(e.target); }
     }, true);
 
     document.addEventListener("input", function (e) {
