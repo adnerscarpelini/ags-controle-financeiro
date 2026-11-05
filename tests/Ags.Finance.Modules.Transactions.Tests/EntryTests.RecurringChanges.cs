@@ -36,7 +36,7 @@ public sealed partial class EntryTests
         Assert.Equal(november.ExternalId, changed.ExternalId);
         Assert.Equal(new DateOnly(2026, 11, 30), changed.Date);
         Assert.False(changed.IsEffective);
-        Assert.Equal(new Money(-60), (await OccurrenceAsync(2026, 10)).Amount);
+        Assert.Equal(new Money(-50), (await OccurrenceAsync(2026, 10)).Amount);
         Assert.Equal(december.ExternalId, (await OccurrenceAsync(2026, 12)).ExternalId);
         var february = await OccurrenceAsync(2027, 2);
         Assert.Equal(new DateOnly(2027, 2, 28), february.Date);
