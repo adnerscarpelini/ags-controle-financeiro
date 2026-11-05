@@ -35,3 +35,5 @@ movidas: detalhes podem mudar, mas data/cartão ficam protegidos. Registros ante
 **+ Novo > Despesa cartão** abre a [janela de lançamento](cash-entries.md#janela-de-lançamento-97) com cartão e fatura no lugar de conta e Pago. A fatura aparece em opções com mês e situação: as protegidas ficam indisponíveis, e "Carregar próximas faturas" traz mais meses. Em **Mais detalhes** ficam Parcelado, Despesa fixa, final do cartão, reembolso, observação e anexo.
 
 Na edição, o campo Cartão também oferece "Sem cartão", como antes.
+
+**Faturas na janela.** A escolha mostra as faturas Abertas e só a Fechada ou Paga mais recente, desabilitada, para indicar que ela já fechou. Para lançar nela, é preciso reabrir a fatura. Na edição, a fatura da compra continua visível ([#120](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/120)).
