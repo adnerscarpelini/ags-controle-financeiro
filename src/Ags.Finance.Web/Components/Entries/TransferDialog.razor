@@ -29,10 +29,10 @@
                 </div>
             </div>
             <div class="field">
-                <label for="transfer-source">Conta de origem <HelpTip Text="O valor sai desta conta corrente. A conta pode ficar negativa." /></label>
+                <label for="transfer-source">Conta de origem <HelpTip Text="O valor sai desta conta, que pode ser corrente, poupança ou investimento, como num resgate. A conta pode ficar negativa." /></label>
                 <select id="transfer-source" class="input" @bind="_source">
                     <option value="@Guid.Empty">Selecione</option>
-                    @foreach (var account in _accounts.Where(x => x.IsActive && x.Kind == AccountKind.Checking)) { <option value="@account.ExternalId">@account.Name</option> }
+                    @foreach (var account in _accounts.Where(x => x.IsActive)) { <option value="@account.ExternalId">@account.Name</option> }
                 </select>
             </div>
             <div class="field">
@@ -107,7 +107,7 @@
     {
         _date = Today;
         _accounts = await Accounts.GetAccountsAsync(false);
-        if (SourceExternalId is { } source && _accounts.Any(x => x.ExternalId == source && x.IsActive && x.Kind == AccountKind.Checking)) { _source = source; }
+        if (SourceExternalId is { } source && _accounts.Any(x => x.ExternalId == source && x.IsActive)) { _source = source; }
         _loaded = true;
     }
 

@@ -20,7 +20,7 @@
             <div class="field"><label for="account-name">Nome da conta</label><input id="account-name" class="input" maxlength="100" @bind="_name" @bind:event="oninput" /></div>
             <div class="field-row">
                 <div class="field">
-                    <label for="account-kind">Tipo <HelpTip Text="Só conta corrente tem saldo inicial e paga fatura de cartão. Investimento e poupança recebem transferências." /></label>
+                    <label for="account-kind">Tipo <HelpTip Text="Só conta corrente tem saldo inicial e paga fatura de cartão. Investimento e poupança enviam e recebem transferências." /></label>
                     <select id="account-kind" class="input" @bind="_kind">
                         <option value="@AccountKind.Checking">Corrente</option>
                         <option value="@AccountKind.Investment">Investimento</option>

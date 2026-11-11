@@ -1,9 +1,10 @@
 # Transferências e movimentos de caixa
 
 A [#46](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/46)
-acrescenta Transferências e saldos ao menu. A origem precisa ser corrente ativa;
-o destino, qualquer outra conta ativa, inclusive outra corrente
-([#124](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/124)). São exigidos contas distintas, data e
+acrescenta Transferências e saldos ao menu. Origem e destino são contas ativas
+distintas de qualquer tipo: corrente, poupança ou investimento
+([#124](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/124)). Sair de poupança ou investimento
+para a corrente representa um resgate, também fora de receitas e despesas. São exigidos contas distintas, data e
 valor positivo. A confirmação mostra os dados; cancelar não grava nada.
 Saldo insuficiente não bloqueia a operação.
 

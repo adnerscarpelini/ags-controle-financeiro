@@ -50,17 +50,36 @@ public sealed partial class EntryTests
         Assert.Equal(new Money(1000), (await Entries.GetBalanceAsync(_accountId, date.AddDays(-1)))?.EffectiveBalance);
     }
 
+    [Theory]
+    [InlineData(AccountKind.Investment)]
+    [InlineData(AccountKind.Savings)]
+    public async Task RedemptionFromInvestmentOrSavingsMovesBothBalancesAndStaysOutOfTheBudget(AccountKind kind)
+    {
+        var reserve = await DestinationAsync(kind);
+        var date = new DateOnly(2026, 11, 1);
+
+        var result = await Movements.TransferAsync(new(Guid.CreateVersion7(), reserve, _accountId, date, new Money(150)));
+
+        Assert.True(result.Succeeded, result.Error);
+        Assert.Equal(new Money(50), (await Entries.GetBalanceAsync(reserve, date))?.EffectiveBalance);
+        Assert.Equal(new Money(1150), (await Entries.GetBalanceAsync(_accountId, date))?.EffectiveBalance);
+        var budget = await Entries.QueryAsync(new(Month: new ReferenceMonth(2026, 11)));
+        Assert.Equal(Money.Zero, budget.Income);
+        Assert.Equal(Money.Zero, budget.Expenses);
+    }
+
     [Fact]
     public async Task InvalidOrInactiveAccountsNeverProduceOneLeg()
     {
         var destination = await DestinationAsync();
         var request = new TransferRequest(Guid.CreateVersion7(), _accountId, destination, new DateOnly(2026, 11, 1), new Money(300));
-        foreach (var invalid in new[] { request with { Amount = Money.Zero }, request with { Amount = new Money(-1) }, request with { DestinationAccountExternalId = _accountId }, request with { SourceAccountExternalId = Guid.NewGuid() }, request with { SourceAccountExternalId = destination, DestinationAccountExternalId = _accountId } })
+        foreach (var invalid in new[] { request with { Amount = Money.Zero }, request with { Amount = new Money(-1) }, request with { DestinationAccountExternalId = _accountId }, request with { SourceAccountExternalId = Guid.NewGuid() } })
         {
             Assert.False((await Movements.TransferAsync(invalid)).Succeeded);
         }
         await Provider.GetRequiredService<IAccountCatalog>().DeactivateAccountAsync(destination);
         Assert.False((await Movements.TransferAsync(request)).Succeeded);
+        Assert.False((await Movements.TransferAsync(request with { SourceAccountExternalId = destination, DestinationAccountExternalId = _accountId })).Succeeded);
         Assert.Empty(await Movements.GetAsync());
     }
 
