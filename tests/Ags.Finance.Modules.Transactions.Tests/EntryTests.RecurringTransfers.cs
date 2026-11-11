@@ -37,6 +37,22 @@ public sealed partial class EntryTests
     }
 
     [Fact]
+    public async Task RecurringRedemptionFromInvestmentMovesBalancesOnlyWhenConfirmed()
+    {
+        var reserve = await DestinationAsync(AccountKind.Investment, 500);
+        var series = await Transfers.CreateAsync(new(reserve, _accountId, new DateOnly(2026, 11, 5), new Money(100), null, false));
+        Assert.True(series.Succeeded, series.Error);
+        var occurrence = Assert.Single(await Transfers.GetMonthAsync(s_recurringFirst));
+        Assert.Equal(new Money(500), await BalanceAsync(reserve, occurrence.Date));
+
+        var confirmed = await Transfers.ConfirmAsync(occurrence.ExternalId, occurrence.Date, occurrence.Amount);
+
+        Assert.True(confirmed.Succeeded, confirmed.Error);
+        Assert.Equal(new Money(400), await BalanceAsync(reserve, occurrence.Date));
+        Assert.Equal(new Money(1100), await BalanceAsync(_accountId, occurrence.Date));
+    }
+
+    [Fact]
     public async Task SameOrArchivedAccountsAreRejectedWithoutMovingBalances()
     {
         var destination = await SecondCheckingAsync();

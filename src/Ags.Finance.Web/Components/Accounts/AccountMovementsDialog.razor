@@ -31,7 +31,7 @@
     </DialogContent>
     <DialogActions>
         <MudButton data-dialog-done OnClick="() => Dialog?.Close(DialogResult.Ok(true))">Fechar</MudButton>
-        @if (Account.IsActive && Account.Kind == AccountKind.Checking)
+        @if (Account.IsActive)
         {
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.SwapHoriz" data-new-transfer OnClick="() => EntryWindows.ShowTransferAsync(Account.ExternalId)">Nova transferência</MudButton>
         }

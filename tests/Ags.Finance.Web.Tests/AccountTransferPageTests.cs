@@ -65,7 +65,28 @@ public sealed class AccountTransferPageTests
         scenario.Dialogs.WaitForAssertion(() => Assert.Equal("Escolha a conta de origem.", scenario.Dialogs.Find("[data-entry-missing]").TextContent));
         await scenario.Dialogs.Find("#transfer-source").ChangeAsync(scenario.Source.ToString());
         scenario.Dialogs.WaitForAssertion(() => Assert.Equal("Escolha a conta de destino.", scenario.Dialogs.Find("[data-entry-missing]").TextContent));
-        Assert.DoesNotContain("Reserva Exemplo", scenario.Dialogs.Find("#transfer-source").TextContent, StringComparison.Ordinal);
+        Assert.DoesNotContain("Corrente Exemplo", scenario.Dialogs.Find("#transfer-destination").TextContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AnInvestmentAccountCanBeTheSourceOfARedemption()
+    {
+        await using var scenario = await CreateAsync();
+        await scenario.OpenAsync();
+        scenario.Dialogs.WaitForAssertion(() => Assert.Contains("Reserva Exemplo", scenario.Dialogs.Find("#transfer-source").TextContent, StringComparison.Ordinal));
+        scenario.Dialogs.Find("#transfer-amount").Input("40");
+        await scenario.Dialogs.Find("#transfer-source").ChangeAsync(scenario.Destination.ToString());
+        await scenario.Dialogs.Find("#transfer-destination").ChangeAsync(scenario.Source.ToString());
+        scenario.Dialogs.WaitForAssertion(() => Assert.False(scenario.Dialogs.Find("[data-save]").HasAttribute("disabled")));
+
+        _ = scenario.Dialogs.Find("[data-save-new]").ClickAsync(new MouseEventArgs());
+        scenario.Dialogs.WaitForAssertion(() => Assert.NotEmpty(scenario.Dialogs.FindAll("[data-confirm-ok]")));
+        await scenario.Dialogs.Find("[data-confirm-ok]").ClickAsync(new MouseEventArgs());
+
+        scenario.Dialogs.WaitForAssertion(() => Assert.Contains("Transferência registrada", scenario.Dialogs.Find("[data-entry-success]").TextContent, StringComparison.Ordinal));
+        var movements = await scenario.Movements.GetAsync();
+        Assert.Equal(new Money(-40), movements.Single(x => x.AccountExternalId == scenario.Destination).Amount);
+        Assert.Equal(new Money(40), movements.Single(x => x.AccountExternalId == scenario.Source).Amount);
     }
 
     [Fact]

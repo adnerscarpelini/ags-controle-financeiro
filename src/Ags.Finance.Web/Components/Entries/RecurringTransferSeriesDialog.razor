@@ -15,7 +15,7 @@
             <div class="field">
                 <label for="recurring-transfer-series-source">Conta de origem</label>
                 <select id="recurring-transfer-series-source" class="input" @bind="_source">
-                    @foreach (var account in _accounts.Where(x => (x.IsActive && x.Kind == AccountKind.Checking) || x.ExternalId == Series.SourceAccountExternalId)) { <option value="@account.ExternalId">@account.Name</option> }
+                    @foreach (var account in _accounts.Where(x => x.IsActive || x.ExternalId == Series.SourceAccountExternalId)) { <option value="@account.ExternalId">@account.Name</option> }
                 </select>
             </div>
             <div class="field">

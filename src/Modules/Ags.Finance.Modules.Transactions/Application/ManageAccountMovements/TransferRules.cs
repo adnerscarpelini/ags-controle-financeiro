@@ -3,7 +3,7 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Transactions.Application.ManageAccountMovements;
 
-/// <summary>Regras comuns às transferências avulsas e recorrentes: origem é conta corrente ativa; destino, qualquer outra conta ativa.</summary>
+/// <summary>Regras comuns às transferências avulsas e recorrentes: origem e destino são contas ativas distintas, de qualquer tipo.</summary>
 internal static class TransferRules
 {
     public static async Task<string?> CheckAsync(IAccountCatalog accounts, Guid source, Guid destination, DateOnly date, Money amount, CancellationToken cancellationToken)
@@ -14,8 +14,8 @@ internal static class TransferRules
         }
 
         var available = await accounts.GetAccountsAsync(cancellationToken: cancellationToken);
-        return available.FirstOrDefault(x => x.ExternalId == source)?.Kind != AccountKind.Checking || available.All(x => x.ExternalId != destination)
-            ? "Selecione uma conta corrente ativa na origem e outra conta ativa no destino."
+        return available.All(x => x.ExternalId != source) || available.All(x => x.ExternalId != destination)
+            ? "Selecione contas ativas na origem e no destino."
             : null;
     }
 }
