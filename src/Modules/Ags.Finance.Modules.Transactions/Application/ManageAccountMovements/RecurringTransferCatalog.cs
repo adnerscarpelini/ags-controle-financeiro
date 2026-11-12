@@ -6,10 +6,14 @@ using Ags.Finance.SharedKernel;
 
 namespace Ags.Finance.Modules.Transactions.Application.ManageAccountMovements;
 
-/// <summary>O efeito das transferências pendentes no saldo previsto de uma conta, dentro da operação de quem pergunta.</summary>
+/// <summary>Consultas às transferências recorrentes feitas dentro da operação de quem pergunta.</summary>
 internal interface IRecurringTransferForecast
 {
+    /// <summary>O efeito das transferências pendentes no saldo previsto de uma conta.</summary>
     Task<Money> GetPendingEffectAsync(Guid accountExternalId, ReferenceMonth month, CancellationToken cancellationToken);
+
+    /// <summary>Todas as ocorrências, geradas até o mês atual ou até <paramref name="month"/>, o que vier depois.</summary>
+    Task<IReadOnlyList<(RecurringTransferOccurrence Occurrence, Guid? OperationExternalId)>> GetOccurrencesAsync(ReferenceMonth month, CancellationToken cancellationToken);
 }
 
 internal sealed class RecurringTransferCatalog(IRecurringTransferStore store, IAccountMovementStore movements, IAccountCatalog accounts, IFinancialOperation operations, TimeProvider clock)
@@ -55,6 +59,9 @@ internal sealed class RecurringTransferCatalog(IRecurringTransferStore store, IA
         return new Money(pending.Where(x => x.DestinationAccountExternalId == accountExternalId).Sum(x => x.Amount.Amount)
             - pending.Where(x => x.SourceAccountExternalId == accountExternalId).Sum(x => x.Amount.Amount));
     }
+
+    public async Task<IReadOnlyList<(RecurringTransferOccurrence Occurrence, Guid? OperationExternalId)>> GetOccurrencesAsync(ReferenceMonth month, CancellationToken cancellationToken)
+        => (await EnsureThroughAsync(month.FirstDay, cancellationToken)).Select(x => (Describe(x), x.OperationExternalId)).ToList();
 
     public Task<ClassificationResult> ConfirmAsync(Guid occurrenceExternalId, DateOnly date, Money amount, CancellationToken cancellationToken = default)
         => operations.ExecuteAsync(async token =>

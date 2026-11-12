@@ -33,7 +33,7 @@ internal sealed class SavedFilterCatalog(ISavedFilterStore store, IEntryCatalog 
         return new(externalId, null);
     }
 
-    public async Task<EntryQueryResult> RunAsync(Guid externalId, ReferenceMonth? month = null, DateOnly? fromDate = null, DateOnly? toDate = null, int page = 1, int pageSize = 100, EntrySortColumn? sortColumn = null, bool sortDescending = true, bool groupCardEntries = false, CancellationToken cancellationToken = default)
+    public async Task<EntryQueryResult> RunAsync(Guid externalId, ReferenceMonth? month = null, DateOnly? fromDate = null, DateOnly? toDate = null, int page = 1, int pageSize = 100, EntrySortColumn? sortColumn = null, bool sortDescending = true, bool groupCardEntries = false, bool includeAccountMovements = false, CancellationToken cancellationToken = default)
     {
         var filter = await FindAsync(externalId, cancellationToken);
         if (filter is null) { return new([], default, default, default, 0, 1, pageSize, "Filtro não encontrado."); }
@@ -41,7 +41,8 @@ internal sealed class SavedFilterCatalog(ISavedFilterStore store, IEntryCatalog 
         var c = filter.Criteria;
         return await entries.QueryAsync(new(month, fromDate, toDate, Text: c.Text, IsEffective: c.IsEffective, Page: page, PageSize: pageSize,
             AccountExternalIds: c.AccountExternalIds, CardExternalIds: c.CardExternalIds, CardLastDigitsExternalIds: c.CardLastDigitsExternalIds,
-            CategoryExternalIds: c.CategoryExternalIds, SubcategoryExternalIds: c.SubcategoryExternalIds, MerchantExternalIds: c.MerchantExternalIds, SortColumn: sortColumn, SortDescending: sortDescending, GroupCardEntries: groupCardEntries), cancellationToken);
+            CategoryExternalIds: c.CategoryExternalIds, SubcategoryExternalIds: c.SubcategoryExternalIds, MerchantExternalIds: c.MerchantExternalIds, SortColumn: sortColumn, SortDescending: sortDescending, GroupCardEntries: groupCardEntries,
+            IncludeAccountMovements: includeAccountMovements), cancellationToken);
     }
 
     private static SavedFilterDetails Describe(SavedFilter x)

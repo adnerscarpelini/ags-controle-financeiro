@@ -1,0 +1,68 @@
+@* Ações de um mês de transferência recorrente: Confirmar e Editar quando pendente, Desfazer quando confirmado, e Excluir. Usado em Contas e em Lançamentos. *@
+@using Ags.Finance.Modules.Transactions.Contracts
+@using Ags.Finance.Web.Components.Accounts
+@using Ags.Finance.Web.Components.Layout
+@inject IRecurringTransferCatalog Transfers
+@inject IDialogService Dialogs
+@inject ViewportState Viewport
+@inject ISnackbar Snackbar
+@inject EntryChangeNotifier EntryChanges
+
+<RowActions Actions="Actions" />
+
+@code {
+    [Parameter, EditorRequired]
+    public RecurringTransferOccurrence Occurrence { get; set; } = default!;
+
+    /// <summary>Contas, data e valor, mostrados na confirmação de desfazer.</summary>
+    [Parameter, EditorRequired]
+    public string Summary { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string?> ErrorChanged { get; set; }
+
+    private IReadOnlyList<RowAction> Actions
+    {
+        get
+        {
+            var actions = new List<RowAction>();
+            if (Occurrence.IsConfirmed)
+            {
+                actions.Add(new("Desfazer", Icons.Material.Outlined.Undo, "undo", EventCallback.Factory.Create(this, UndoAsync), "Desfazer a transferência e restaurar os saldos"));
+            }
+            else
+            {
+                actions.Add(new("Confirmar", Icons.Material.Outlined.Check, "confirm", EventCallback.Factory.Create(this, () => OpenAsync(confirm: true)), "Confirmar esta transferência"));
+                actions.Add(new("Editar", Icons.Material.Outlined.Edit, "edit", EventCallback.Factory.Create(this, () => OpenAsync(confirm: false))));
+            }
+
+            actions.Add(new("Excluir", Icons.Material.Outlined.Delete, "delete", EventCallback.Factory.Create(this, DeleteAsync)));
+            return actions;
+        }
+    }
+
+    private async Task OpenAsync(bool confirm)
+    {
+        var parameters = new DialogParameters<RecurringTransferDialog> { { x => x.Occurrence, Occurrence }, { x => x.Confirming, confirm } };
+        await Dialogs.ShowAsync<RecurringTransferDialog>(confirm ? "Confirmar transferência" : "Editar transferência", parameters, AppDialogs.Options(Viewport, MaxWidth.ExtraSmall));
+    }
+
+    private async Task UndoAsync()
+    {
+        var message = $"{Summary}. Os saldos voltam ao que eram, e ela fica pendente.";
+        if (!await ConfirmDialog.AskAsync(Dialogs, "Desfazer transferência", message, "Desfazer")) { return; }
+        var result = await Transfers.UndoAsync(Occurrence.ExternalId);
+        await ErrorChanged.InvokeAsync(result.Error);
+        if (result.Succeeded)
+        {
+            Snackbar.Add("Transferência desfeita.", Severity.Success);
+            EntryChanges.Notify();
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        var parameters = new DialogParameters<RecurringTransferDeleteDialog> { { x => x.Occurrence, Occurrence } };
+        await Dialogs.ShowAsync<RecurringTransferDeleteDialog>("Excluir transferência", parameters, AppDialogs.Options(Viewport, MaxWidth.ExtraSmall));
+    }
+}

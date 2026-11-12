@@ -77,8 +77,8 @@
                 <div class="field"><label for="filter-subcategory">Subcategoria</label><select id="filter-subcategory" class="input" @bind="_filterSubcategory" @bind:after="ApplyFiltersAsync">
                     <option value="@Guid.Empty">Todas</option>@foreach (var item in _filterSubcategories.Where(x => _filterCategory == Guid.Empty || x.CategoryExternalId == _filterCategory)) { <option value="@item.ExternalId">@item.Name</option> }
                 </select></div>
-                <div class="field"><label for="filter-kind">Tipo</label><select id="filter-kind" class="input" @bind="_filterKind" @bind:after="ApplyFiltersAsync">
-                    <option value="">Receitas e despesas</option><option value="@CategoryKind.Income">Receita</option><option value="@CategoryKind.Expense">Despesa</option>
+                <div class="field"><label for="filter-kind">Tipo</label><select id="filter-kind" class="input" @bind="_filterKind" @bind:after="FilterKindChangedAsync">
+                    <option value="">Todos</option><option value="@CategoryKind.Income">Receita</option><option value="@CategoryKind.Expense">Despesa</option>
                 </select></div>
                 <div class="field"><label for="filter-effective">Situação</label><select id="filter-effective" class="input" value="@(_filterEffective?.ToString().ToLowerInvariant() ?? string.Empty)" @onchange="EffectiveFilterChangedAsync">
                     <option value="">Todas</option><option value="true">Pago ou Recebido</option><option value="false">Pendente</option>
@@ -188,6 +188,24 @@
                         </div>
                     </li>
                 }
+                else if (row.Movement is { } movement)
+                {
+                    <li class="entry-card" data-entry-card data-movement="@movement.Kind">
+                        <MovementStatusIcon Movement="movement" Today="Today" />
+                        <div class="entry-card-text">
+                            <span class="row-title">@movement.Description</span>
+                            <span class="row-note" data-entry-card-meta>@movement.Date.ToString("dd/MM/yyyy") · @MovementSituation(movement)</span>
+                            @if (MovementNote(movement) is { Length: > 0 } note) { <span class="row-note">@note</span> }
+                        </div>
+                        <div class="entry-card-side">
+                            <span class="numeric value-amount @ValueColor.Neutral" data-entry-card-amount>@Signed(movement.Amount)</span>
+                            @if (movement.RecurringOccurrence is { } occurrence)
+                            {
+                                <RecurringTransferActions Occurrence="occurrence" Summary="@TransferSummary(occurrence)" ErrorChanged="error => _message = error" />
+                            }
+                        </div>
+                    </li>
+                }
             }
         </ul>
     }
@@ -247,6 +265,25 @@
                         }
                     </MudTd>
                 }
+                else if (row.Movement is { } movement)
+                {
+                    <MudTd Class="col-select"></MudTd>
+                    <MudTd DataLabel="Situação"><MovementStatusIcon Movement="movement" Today="Today" /></MudTd>
+                    <MudTd DataLabel="Data">@movement.Date.ToString("dd/MM/yyyy")</MudTd>
+                    <MudTd DataLabel="Descrição" Class="col-description">
+                        <span class="row-title" data-movement="@movement.Kind">@movement.Description</span>
+                        @if (MovementNote(movement) is { Length: > 0 } note) { <span class="row-note">@note</span> }
+                    </MudTd>
+                    <MudTd DataLabel="Categoria">@movement.Classification</MudTd>
+                    <MudTd DataLabel="Conta ou cartão">@AccountName(movement.AccountExternalId)</MudTd>
+                    <MudTd DataLabel="Valor" Class="@($"numeric value-amount {ValueColor.Neutral}")">@Signed(movement.Amount)</MudTd>
+                    <MudTd DataLabel="Ações" Class="col-actions">
+                        @if (movement.RecurringOccurrence is { } occurrence)
+                        {
+                            <RecurringTransferActions Occurrence="occurrence" Summary="@TransferSummary(occurrence)" ErrorChanged="error => _message = error" />
+                        }
+                    </MudTd>
+                }
             </RowTemplate>
             <NoRecordsContent>
                 <EmptyState Icon="@Icons.Material.Outlined.List" Message="Nenhum lançamento neste mês ou filtro." ActionText="Novo lançamento" OnAction="() => EntryWindows.ShowNewAsync(EntryDialogType.Expense)" />
@@ -260,7 +297,7 @@
                 @foreach (var size in PreferenceOptions.PageSizes) { <option value="@size">@size</option> }
             </select>
         </div>
-        <span data-page-summary>@_query.TotalCount @(_query.GroupedRows is null ? "lançamentos" : "linhas") · Página @_query.Page de @_query.TotalPages</span>
+        <span data-page-summary>@_query.TotalCount @(_groupCardEntries ? "linhas" : "lançamentos") · Página @_query.Page de @_query.TotalPages</span>
         <MudIconButton Icon="@Icons.Material.Outlined.ChevronLeft" aria-label="Página anterior" data-page-previous Disabled="@(_query.Page <= 1 || _queryBusy || _busy)" OnClick="() => ChangePageAsync(_query.Page - 1)" />
         <MudIconButton Icon="@Icons.Material.Outlined.ChevronRight" aria-label="Próxima página" data-page-next Disabled="@(_query.Page >= _query.TotalPages || _queryBusy || _busy)" OnClick="() => ChangePageAsync(_query.Page + 1)" />
         <span class="spacer"></span>
@@ -272,7 +309,7 @@
 @code {
     private sealed record TypeOption(string Value, string Label);
 
-    private static readonly TypeOption[] s_typeFilters = [new("all", "Todas"), new("income", "Receitas"), new("expense", "Despesas"), new("pending", "Pendentes")];
+    private static readonly TypeOption[] s_typeFilters = [new("all", "Todas"), new("income", "Receitas"), new("expense", "Despesas"), new("transfers", "Transferências"), new("pending", "Pendentes")];
 
     [SupplyParameterFromQuery(Name = "situacao")]
     public string? Situation { get; set; }
@@ -294,6 +331,7 @@
 
     private string TypeFilter => (_pendingOnly, _filterKind) switch
     {
+        _ when _movementsOnly => "transfers",
         (true, null) => "pending",
         (false, CategoryKind.Income) => "income",
         (false, CategoryKind.Expense) => "expense",
@@ -329,6 +367,7 @@
     {
         _savedFilterId = Guid.Empty;
         _pendingOnly = value == "pending";
+        _movementsOnly = value == "transfers";
         _filterKind = value switch { "income" => CategoryKind.Income, "expense" => CategoryKind.Expense, _ => null };
         await ApplyFiltersAsync();
     }
@@ -428,9 +467,28 @@
     private string SourceName(EntryDetails entry)
     {
         if (entry.CardExternalId is { } card) { return _filterCards.FirstOrDefault(x => x.ExternalId == card)?.Name ?? "Cartão registrado"; }
-        var account = _filterAccounts.FirstOrDefault(x => x.ExternalId == entry.AccountExternalId);
+        return AccountName(entry.AccountExternalId);
+    }
+
+    private string AccountName(Guid externalId)
+    {
+        var account = _filterAccounts.FirstOrDefault(x => x.ExternalId == externalId);
         return account is null ? "Conta registrada" : account.Name + (!account.IsActive ? " (arquivada)" : string.Empty);
     }
+
+    private string MovementNote(EntryMovement movement)
+    {
+        var notes = new List<string>();
+        if (!movement.IsEffective) { notes.Add(movement.Date < Today ? "Atrasada" : movement.Date == Today ? "Hoje" : "Futura"); }
+        if (movement.Details.Length > 0) { notes.Add(movement.Details); }
+        return string.Join(" · ", notes);
+    }
+
+    private static string MovementSituation(EntryMovement movement) => movement.IsEffective
+        ? movement.Kind == EntryMovementKind.BalanceAdjustment ? "Ajustado" : "Transferido" : "Pendente";
+
+    private string TransferSummary(RecurringTransferOccurrence occurrence)
+        => $"{AccountName(occurrence.SourceAccountExternalId)} → {AccountName(occurrence.DestinationAccountExternalId)} · {occurrence.Date:dd/MM/yyyy} · {occurrence.Amount}";
 
     public void Dispose() => EntryChanges.Changed -= EntriesChangedAsync;
 }
