@@ -43,4 +43,4 @@ A [#124](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/124) 
 - **Editar** pergunta o alcance: Somente esta ou Esta e as futuras em aberto. Só o que mudou se propaga. Mês confirmado precisa ser desfeito antes.
 - **Excluir** pergunta o alcance: Somente esta, que não recria o mês, Esta e as seguintes ou Todas. Meses confirmados continuam no histórico.
 
-A tela de Contas lista os meses da série. Pendentes entram no saldo previsto das duas contas e na lista de pendências do Dashboard, fora dos totais a receber e a pagar. Transferência continua fora de receitas, despesas e orçamento, e não aparece em Lançamentos nem no CSV.
+A tela de Contas lista os meses da série. Pendentes entram no saldo previsto das duas contas e na lista de pendências do Dashboard, fora dos totais a receber e a pagar. Transferência continua fora de receitas, despesas e orçamento, e não entra no CSV. Desde a [#141](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/141), aparece em Lançamentos como duas linhas neutras; veja [Filtros e totais dos lançamentos](entry-filters.md#transferências-e-ajustes-de-saldo).

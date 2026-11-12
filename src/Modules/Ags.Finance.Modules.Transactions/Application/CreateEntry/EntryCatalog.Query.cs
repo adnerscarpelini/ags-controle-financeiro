@@ -16,19 +16,6 @@ internal sealed partial class EntryCatalog
         => new[] { filter.AccountExternalIds, filter.CardExternalIds, filter.CardLastDigitsExternalIds, filter.CategoryExternalIds, filter.SubcategoryExternalIds, filter.MerchantExternalIds }
             .Any(x => x is { Count: > 200 });
 
-    // Os ajustes de fatura não são linhas da tabela de lançamentos: a ordem escolhida é refeita depois de intercalá-los.
-    private static IReadOnlyList<EntryDetails> SortMerged(IReadOnlyList<EntryDetails> entries, EntryFilter filter) => (filter.SortColumn, filter.SortDescending) switch
-    {
-        (EntrySortColumn.Description, true) => entries.OrderByDescending(x => x.MerchantName, StringComparer.CurrentCulture).ToList(),
-        (EntrySortColumn.Description, false) => entries.OrderBy(x => x.MerchantName, StringComparer.CurrentCulture).ToList(),
-        (EntrySortColumn.Category, true) => entries.OrderByDescending(x => x.Classification, StringComparer.CurrentCulture).ToList(),
-        (EntrySortColumn.Category, false) => entries.OrderBy(x => x.Classification, StringComparer.CurrentCulture).ToList(),
-        (EntrySortColumn.Amount, true) => entries.OrderByDescending(x => x.Amount.Amount).ToList(),
-        (EntrySortColumn.Amount, false) => entries.OrderBy(x => x.Amount.Amount).ToList(),
-        (EntrySortColumn.Date, false) => entries.OrderBy(x => x.Date).ToList(),
-        _ => entries,
-    };
-
     private async Task<EntryQueryResult> QueryCoreAsync(EntryFilter filter, CancellationToken cancellationToken)
     {
         if (filter.Month is { Year: 0 } || filter.FromDate > filter.ToDate || filter.Page < 1 || filter.PageSize is < 1 or > 200
@@ -38,32 +25,47 @@ internal sealed partial class EntryCatalog
         }
         var generated = await GenerateRecurringAsync(filter, cancellationToken);
         if (!generated.Succeeded) { return new([], default, default, default, 0, 1, filter.PageSize, generated.Error); }
+        var movements = (await GetMovementsAsync(filter, cancellationToken)).Select(x => new EntryRow(null, Movement: x)).ToList();
+        if (filter.AccountMovementsOnly) { return MovementsOnly(movements, filter); }
         var adjustments = (await store.GetInvoiceAdjustmentsAsync(cancellationToken)).Where(x => MatchesAdjustment(x, filter)).ToList();
-        if (filter.GroupCardEntries && !filter.PendingRecurringOnly) { return await QueryGroupedAsync(filter, adjustments, cancellationToken); }
+        if (filter.GroupCardEntries && !filter.PendingRecurringOnly) { return await QueryGroupedAsync(filter, adjustments, movements, cancellationToken); }
         var page = await store.QueryAsync(filter, cancellationToken);
-        if (adjustments.Count > 0)
+        var extras = adjustments.Count + movements.Count;
+        if (extras > 0)
         {
-            var totalCount = page.TotalCount + adjustments.Count;
+            // Ajustes de fatura e movimentos não são linhas da tabela de lançamentos: a janela lida do banco cobre a página
+            // em qualquer posição em que eles caiam, e a ordem escolhida é refeita depois de intercalá-los.
+            var totalCount = page.TotalCount + extras;
             var number = Math.Min(filter.Page, Math.Max(1, (int)Math.Ceiling(totalCount / (decimal)filter.PageSize)));
             var targetOffset = (number - 1) * filter.PageSize;
-            var normalOffset = Math.Max(0, targetOffset - adjustments.Count);
-            var window = await store.QueryAsync(filter, cancellationToken, normalOffset, filter.PageSize + adjustments.Count);
-            var merged = SortMerged(await DescribeWithAdjustmentsAsync(window.Entries, adjustments, cancellationToken), filter);
-            var expenses = window.Expenses - new Ags.Finance.SharedKernel.Money(adjustments.Sum(x => x.ExpenseDifference.Amount));
-            return new(merged.Skip(targetOffset - normalOffset).Take(filter.PageSize).ToList(), window.Income, expenses,
-                window.Income + expenses, totalCount, number, filter.PageSize);
+            var normalOffset = Math.Max(0, targetOffset - extras);
+            var window = await store.QueryAsync(filter, cancellationToken, normalOffset, filter.PageSize + extras);
+            var entries = (await DescribeWithAdjustmentsAsync(window.Entries, adjustments, cancellationToken)).Select(x => new EntryRow(x));
+            var rows = SortRows([.. entries, .. movements], filter).Skip(targetOffset - normalOffset).Take(filter.PageSize).ToList();
+            var expenses = window.Expenses - new Money(adjustments.Sum(x => x.ExpenseDifference.Amount));
+            return new(rows.Select(x => x.Entry).OfType<EntryDetails>().ToList(), window.Income, expenses, window.Income + expenses, totalCount, number, filter.PageSize,
+                GroupedRows: movements.Count > 0 ? rows : null);
         }
         var described = await DescribeAsync(page.Entries, cancellationToken);
         return new(described, page.Income, page.Expenses, page.Income + page.Expenses, page.TotalCount, page.Page, filter.PageSize);
     }
 
+    // Só movimentos: nada de receitas ou despesas, então os totais ficam zerados.
+    private static EntryQueryResult MovementsOnly(IReadOnlyList<EntryRow> movements, EntryFilter filter)
+    {
+        var rows = SortRows(movements, filter);
+        var number = Math.Min(filter.Page, Math.Max(1, (int)Math.Ceiling(rows.Count / (decimal)filter.PageSize)));
+        var pageRows = rows.Skip((number - 1) * filter.PageSize).Take(filter.PageSize).ToList();
+        return new([], Money.Zero, Money.Zero, Money.Zero, rows.Count, number, filter.PageSize, GroupedRows: pageRows);
+    }
+
     // O agrupamento vale para o resultado inteiro, não para uma página: a soma de um cartão não pode depender de onde a página corta.
-    private async Task<EntryQueryResult> QueryGroupedAsync(EntryFilter filter, IReadOnlyList<InvoiceAdjustment> adjustments, CancellationToken cancellationToken)
+    private async Task<EntryQueryResult> QueryGroupedAsync(EntryFilter filter, IReadOnlyList<InvoiceAdjustment> adjustments, IReadOnlyList<EntryRow> movements, CancellationToken cancellationToken)
     {
         var all = await store.QueryAsync(filter, cancellationToken, 0, int.MaxValue);
-        var described = SortMerged(await DescribeWithAdjustmentsAsync(all.Entries, adjustments, cancellationToken), filter);
+        var described = await DescribeWithAdjustmentsAsync(all.Entries, adjustments, cancellationToken);
         var cards = (await accounts.GetCreditCardsAsync(false, cancellationToken)).ToDictionary(x => x.ExternalId, x => x.Name);
-        var rows = SortGrouped(GroupByCard(described, cards), filter);
+        var rows = SortRows([.. GroupByCard(described, cards), .. movements], filter);
         var number = Math.Min(filter.Page, Math.Max(1, (int)Math.Ceiling(rows.Count / (decimal)filter.PageSize)));
         var pageRows = rows.Skip((number - 1) * filter.PageSize).Take(filter.PageSize).ToList();
         var expenses = all.Expenses - new Money(adjustments.Sum(x => x.ExpenseDifference.Amount));
@@ -81,12 +83,13 @@ internal sealed partial class EntryCatalog
         return rows;
     }
 
-    private static List<EntryRow> SortGrouped(List<EntryRow> rows, EntryFilter filter)
+    // Ordenação estável: lançamentos de mesma chave mantêm a ordem do banco, e os movimentos vêm depois deles.
+    private static List<EntryRow> SortRows(IReadOnlyList<EntryRow> rows, EntryFilter filter)
     {
-        static DateOnly DateOf(EntryRow row) => row.CardGroup?.LastDate ?? row.Entry?.Date ?? default;
-        static decimal AmountOf(EntryRow row) => (row.CardGroup?.Amount ?? row.Entry?.Amount ?? default).Amount;
-        static string NameOf(EntryRow row) => row.CardGroup?.CardName ?? row.Entry?.MerchantName ?? string.Empty;
-        static string CategoryOf(EntryRow row) => row.Entry?.Classification ?? string.Empty;
+        static DateOnly DateOf(EntryRow row) => row.CardGroup?.LastDate ?? row.Entry?.Date ?? row.Movement?.Date ?? default;
+        static decimal AmountOf(EntryRow row) => (row.CardGroup?.Amount ?? row.Entry?.Amount ?? row.Movement?.Amount ?? default).Amount;
+        static string NameOf(EntryRow row) => row.CardGroup?.CardName ?? row.Entry?.MerchantName ?? row.Movement?.Description ?? string.Empty;
+        static string CategoryOf(EntryRow row) => row.Entry?.Classification ?? row.Movement?.Classification ?? string.Empty;
         return (filter.SortColumn, filter.SortDescending) switch
         {
             (EntrySortColumn.Description, true) => rows.OrderByDescending(NameOf, StringComparer.CurrentCulture).ToList(),
@@ -96,6 +99,7 @@ internal sealed partial class EntryCatalog
             (EntrySortColumn.Amount, true) => rows.OrderByDescending(AmountOf).ToList(),
             (EntrySortColumn.Amount, false) => rows.OrderBy(AmountOf).ToList(),
             (EntrySortColumn.Date, false) => rows.OrderBy(DateOf).ToList(),
+            (null, _) when filter.PendingRecurringOnly => rows.OrderBy(DateOf).ToList(),
             _ => rows.OrderByDescending(DateOf).ToList(),
         };
     }

@@ -7,7 +7,7 @@
 - [Transferências e movimentos de caixa (#46)](transactions/account-transfers.md)
 - [Séries, ocorrências, alcance e baixa manual (#16/#17/#56)](transactions/recurrences.md)
 
-- [Filtros e totais dos lançamentos (#15)](transactions/entry-filters.md)
+- [Filtros e totais dos lançamentos (#15, #141)](transactions/entry-filters.md)
 
 - [Edição, exclusão e movimentação de lançamentos (#14)](transactions/entry-changes.md)
 

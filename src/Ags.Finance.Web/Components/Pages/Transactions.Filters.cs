@@ -22,6 +22,7 @@ public partial class Transactions
     private ReferenceMonth _month;
     private bool _allMonths;
     private bool _pendingOnly;
+    private bool _movementsOnly;
     private DateOnly? _filterFrom;
     private DateOnly? _filterTo;
     private Guid _filterAccount;
@@ -96,6 +97,13 @@ public partial class Transactions
         await ApplyFiltersAsync();
     }
 
+    // Receita ou despesa não combina com o chip Transferências: escolher um tipo volta aos lançamentos.
+    private async Task FilterKindChangedAsync()
+    {
+        if (_filterKind is not null) { _movementsOnly = false; }
+        await ApplyFiltersAsync();
+    }
+
     private async Task EffectiveFilterChangedAsync(ChangeEventArgs args)
     {
         _filterEffective = bool.TryParse(args.Value?.ToString(), out var effective) ? effective : null;
@@ -128,9 +136,10 @@ public partial class Transactions
         {
             var filter = new EntryFilter(QueryMonth, _filterFrom, _filterTo, Optional(_filterAccount), Optional(_filterCard), Optional(_filterFinal),
                 Optional(_filterCategory), Optional(_filterSubcategory), _filterText, _filterEffective, _filterKind, _page, _pageSize,
-                SortColumn: _sortColumn, SortDescending: _sortDescending, GroupCardEntries: _groupCardEntries);
+                SortColumn: _sortColumn, SortDescending: _sortDescending, GroupCardEntries: _groupCardEntries,
+                IncludeAccountMovements: true, AccountMovementsOnly: _movementsOnly);
             var result = _savedFilterId != Guid.Empty
-                ? await SavedFilterCatalog.RunAsync(_savedFilterId, QueryMonth, _filterFrom, _filterTo, _page, _pageSize, _sortColumn, _sortDescending, groupCardEntries: _groupCardEntries)
+                ? await SavedFilterCatalog.RunAsync(_savedFilterId, QueryMonth, _filterFrom, _filterTo, _page, _pageSize, _sortColumn, _sortDescending, groupCardEntries: _groupCardEntries, includeAccountMovements: true)
                 : _pendingOnly ? await Entries.QueryPendingAsync(filter) : await Entries.QueryAsync(filter);
             var attachments = await EntryDocuments.ListAsync();
             var forecast = await Entries.GetBalanceForecastAsync(null, Today, _month);
@@ -154,6 +163,7 @@ public partial class Transactions
     {
         _allMonths = false;
         _pendingOnly = false;
+        _movementsOnly = false;
         _filterFrom = null;
         _filterTo = null;
         _filterEffective = null;

@@ -31,7 +31,7 @@ totais e composição dos DTOs, exigindo menos de um segundo.
 
 [#98](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/98): a consulta abre no mês atual, com a tabela logo abaixo dos cards.
 
-- **Tipo:** Todas, Receitas, Despesas e Pendentes. **Busca** e **Filtros** ficam recolhidos em botões com tooltip; o painel traz Todos os meses, De, Até, conta, cartão, final, categoria, subcategoria, tipo, situação e [filtros salvos](saved-filters.md). Filtros ativos viram etiquetas removíveis.
+- **Tipo:** Todas, Receitas, Despesas, Transferências e Pendentes. **Busca** e **Filtros** ficam recolhidos em botões com tooltip; o painel traz Todos os meses, De, Até, conta, cartão, final, categoria, subcategoria, tipo, situação e [filtros salvos](saved-filters.md). Filtros ativos viram etiquetas removíveis.
 - **Cards:** Saldo atual, Receitas, Despesas e Balanço mensal. Receitas, Despesas e Balanço acompanham o período e os filtros. Zero não mostra sinal.
 - **Período:** o seletor `< Novembro de 2026 >` muda cards e tabela juntos. Com De, Até ou Todos os meses, ele fica desligado.
 - **Tabela:** seleção, Situação, Data, Descrição, Categoria (`Categoria › Subcategoria`), Conta ou cartão, Valor e Ações. A situação é um ícone com tooltip, como "Pago em 03/11/2026" ou "Pendente desde 12/12/2026".
@@ -51,3 +51,15 @@ A opção **Agrupar cartões** ([#129](https://github.com/adnerscarpelini/ags-co
 - **Cards e totais não mudam:** o agrupamento altera só as linhas. O rodapé passa a contar linhas em vez de lançamentos.
 - **Ordem e páginas:** o agrupamento vale para o resultado inteiro, antes da paginação, então a soma não depende da página. Nesse modo a consulta carrega todos os lançamentos do filtro e monta a página em memória. Na ordem por data, a linha usa a data do lançamento mais recente; na ordem por categoria, ela não tem categoria própria.
 - **Pendentes** não muda: lançamentos de cartão não têm baixa e não aparecem nessa visão.
+
+## Transferências e ajustes de saldo
+
+A [#141](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/141) mostra em Lançamentos os movimentos de conta que não são receita nem despesa.
+
+- **Linhas:** cada transferência vira duas linhas, a saída na origem (`Transferência para <destino>`, `-R$`) e a entrada no destino (`Transferência de <origem>`, `+R$`), com a categoria `Transferência`. Cada ajuste de saldo vira uma linha na conta ajustada, com a diferença e a categoria `Ajuste de saldo`. Os valores ficam em cor neutra, com sinal, e entram pela data do movimento.
+- **Totais:** Receitas, Despesas e Balanço mensal não mudam. Saldo atual e Saldo previsto já consideravam esses movimentos.
+- **Tipo:** `Todas` inclui os movimentos; `Transferências` mostra só eles, com totais zerados; `Receitas` e `Despesas` não os incluem. `Pendentes` inclui os meses pendentes de transferências recorrentes.
+- **Filtros:** conta mostra só a linha daquela conta; cartão, final, categoria, subcategoria, tipo e reembolso escondem os movimentos, que não têm esses dados. Período, situação e busca valem normalmente; a busca ignora acentos e procura na descrição e na categoria. Um filtro salvo também mostra os movimentos que passam pelos critérios dele.
+- **Ações:** um mês de transferência recorrente tem as mesmas ações da tela de Contas (Confirmar, Editar, Desfazer e Excluir), pelo componente compartilhado `RecurringTransferActions`. Transferência avulsa e ajuste não têm ações nem seleção.
+- **Fora do escopo:** pagamentos de fatura, o CSV e os demais consumidores da consulta. Só a tela pede os movimentos, com `EntryFilter.IncludeAccountMovements`; `AccountMovementsOnly` corresponde ao chip.
+- **Consulta:** os movimentos são montados em memória a partir de `AccountMovement` e `TransferOccurrence`, no mesmo módulo, e intercalados com a página do banco pela mesma janela usada nos ajustes de fatura. A ordem escolhida é refeita depois da intercalação; com o agrupamento de cartões, eles continuam como linhas próprias.

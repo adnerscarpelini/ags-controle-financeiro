@@ -1,0 +1,36 @@
+@* Situação de uma transferência ou ajuste de saldo em Lançamentos, no mesmo formato de EntryStatusIcon. *@
+@using Ags.Finance.Modules.Transactions.Contracts
+
+<MudTooltip Text="@Text">
+    <span class="status-icon status-@Tone @(IsLate ? "status-late" : null)" tabindex="0" role="img" aria-label="@Text" data-status="@Tone">
+        <MudIcon Icon="@IconPath" Size="Size.Small" aria-hidden="true" />
+    </span>
+</MudTooltip>
+
+@code {
+    [Parameter, EditorRequired]
+    public EntryMovement Movement { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public DateOnly Today { get; set; }
+
+    private bool IsLate => !Movement.IsEffective && Movement.Date < Today;
+
+    private string Tone => Movement.IsEffective ? "done" : "pending";
+
+    private string IconPath => Movement.IsEffective ? Icons.Material.Outlined.Check : Icons.Material.Outlined.Schedule;
+
+    private string Text
+    {
+        get
+        {
+            if (Movement.IsEffective)
+            {
+                return Movement.Kind == EntryMovementKind.BalanceAdjustment ? $"Ajustado em {Movement.Date:dd/MM/yyyy}" : $"Transferido em {Movement.Date:dd/MM/yyyy}";
+            }
+
+            var timing = Movement.Date < Today ? "Atrasada" : Movement.Date == Today ? "Hoje" : "Futura";
+            return $"Transferência pendente em {Movement.Date:dd/MM/yyyy} · {timing}";
+        }
+    }
+}
