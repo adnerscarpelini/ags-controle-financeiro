@@ -12,42 +12,14 @@ public sealed class MonthlySummaryTests : ReportFixture
     private IMonthlySummaries Summaries => Provider.GetRequiredService<IMonthlySummaries>();
 
     [Fact]
-    public async Task BalanceAndSavedPercentComeFromIncomeAndExpenses()
+    public async Task IncomeAndExpensesComeOnlyFromTheReferenceMonth()
     {
+        await AddAsync(new ReferenceMonth(2026, 9), 500m);
         await AddAsync(s_october, 10000m, income: true);
         await AddAsync(s_october, 8000m);
-        var summary = await Summaries.GetAsync(s_october);
-        Assert.Equal((new Money(10000m), new Money(8000m), new Money(2000m), 20m), (summary.Income, summary.Expenses, summary.Balance, summary.SavedPercent));
-    }
-
-    [Fact]
-    public async Task MonthWithoutIncomeHasNoSavedPercentInsteadOfAnError()
-    {
-        await AddAsync(s_october, 50m);
-        var summary = await Summaries.GetAsync(s_october);
-        Assert.Null(summary.SavedPercent);
-        Assert.Equal(new Money(-50m), summary.Balance);
-    }
-
-    [Fact]
-    public async Task YearAverageDividesByMonthsWithExpensesAndPreviousMonthIsReported()
-    {
-        await AddAsync(new ReferenceMonth(2026, 1), 100m);
-        await AddAsync(new ReferenceMonth(2026, 3), 300m);
-        await AddAsync(new ReferenceMonth(2026, 9), 500m);
-        await AddAsync(s_october, 200m);
         await AddAsync(new ReferenceMonth(2026, 11), 9999m);
         var summary = await Summaries.GetAsync(s_october);
-        Assert.Equal((new Money(275m), 4, new Money(500m)), (summary.YearAverageExpenses, summary.MonthsWithExpenses, summary.PreviousMonthExpenses));
-    }
-
-    [Fact]
-    public async Task PreviousMonthOfJanuaryIsDecemberOfTheYearBefore()
-    {
-        await AddAsync(new ReferenceMonth(2025, 12), 70m);
-        await AddAsync(new ReferenceMonth(2026, 1), 10m);
-        var summary = await Summaries.GetAsync(new ReferenceMonth(2026, 1));
-        Assert.Equal((new Money(70m), new Money(10m)), (summary.PreviousMonthExpenses, summary.YearAverageExpenses));
+        Assert.Equal((new Money(10000m), new Money(8000m)), (summary.Income, summary.Expenses));
     }
 
     [Fact]
@@ -71,7 +43,7 @@ public sealed class MonthlySummaryTests : ReportFixture
         Assert.True(purchase.Succeeded, purchase.Error);
         Assert.True((await Entries.AdjustInvoiceAsync(new(Guid.CreateVersion7(), card, s_october, new Money(100.01m)))).Succeeded);
         var raised = await Summaries.GetAsync(s_october);
-        Assert.Equal((new Money(100.01m), Money.Zero, new Money(-100.01m)), (raised.Expenses, raised.Income, raised.Balance));
+        Assert.Equal((new Money(100.01m), Money.Zero), (raised.Expenses, raised.Income));
         Assert.True((await Entries.AdjustInvoiceAsync(new(Guid.CreateVersion7(), card, s_october, new Money(99.99m)))).Succeeded);
         var lowered = await Summaries.GetAsync(s_october);
         Assert.Equal((new Money(99.99m), Money.Zero), (lowered.Expenses, lowered.Income));

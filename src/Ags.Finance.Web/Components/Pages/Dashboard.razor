@@ -7,32 +7,48 @@
 @inject IPreferences Preferences
 @inject EntryChangeNotifier EntryChanges
 
-<div class="page-head">
-    <PageHeader Title="Dashboard" />
-    <div class="page-head-actions">
-        <MonthPicker Value="_month" ValueChanged="month => _month = month" />
-    </div>
-</div>
+@* Duas faixas (issue 143): "Hoje" mostra a posição atual e não depende de mês; "Mês" tem o seletor, que só afeta os totais e as categorias. *@
+<div class="page-head"><PageHeader Title="Dashboard" /></div>
 @if (!_sections.AnyVisible)
 {
     <section class="panel" data-testid="no-sections"><EmptyState Icon="@Icons.Material.Outlined.Home" Message="Nenhuma seção do dashboard está visível." /><p class="form-note center">Escolha o que exibir em <a href="configuracoes">Configurações</a>.</p></section>
 }
-@if (_sections.Summary)
+@if (_sections.Summary || _sections.Invoices || _sections.Pending)
 {
-    <BehaviorCards @key="@($"behavior-{_version}")" Month="_month" />
-    <SummaryCards @key="@($"summary-{_version}")" Month="_month" />
+    <section class="dashboard-band" aria-labelledby="today-title" data-band="today">
+        <div class="band-head">
+            <h2 id="today-title">Hoje</h2>
+            <span class="band-note">Sua situação em @_today.ToString("dd/MM/yyyy", s_culture)</span>
+        </div>
+        @if (_sections.Summary || _sections.Invoices)
+        {
+            <div class="dashboard-columns">
+                @if (_sections.Summary) { <CheckingAccountsSummary @key="@($"accounts-{_version}")" /> }
+                @if (_sections.Invoices) { <CardInvoicesSummary @key="@($"invoices-{_version}")" Month="_currentMonth" /> }
+            </div>
+        }
+        @if (_sections.Pending) { <PendingSection @key="@($"pending-{_version}")" /> }
+    </section>
 }
-@if (_sections.Pending) { <PendingSection @key="@($"pending-{_version}")" /> }
-@if (_sections.Invoices || _sections.Summary)
+@if (_sections.Summary || _sections.Categories)
 {
-    <div class="dashboard-columns">
-        @if (_sections.Invoices) { <CardInvoicesSummary @key="@($"invoices-{_version}")" Month="_month" /> }
-        @if (_sections.Summary) { <CheckingAccountsSummary @key="@($"accounts-{_version}")" Month="_month" /> }
-    </div>
+    <section class="dashboard-band" aria-labelledby="month-title" data-band="month">
+        <div class="band-head">
+            <h2 id="month-title">Mês</h2>
+            <div class="page-head-actions">
+                <MonthPicker Value="_month" ValueChanged="month => _month = month" />
+            </div>
+        </div>
+        @if (_sections.Summary) { <MonthTotals @key="@($"totals-{_version}")" Month="_month" /> }
+        @if (_sections.Categories) { <CategorySection @key="@($"categories-{_version}")" Month="_month" TopCount="_topCategories" /> }
+    </section>
 }
-@if (_sections.Categories) { <CategorySection @key="@($"categories-{_version}")" Month="_month" TopCount="_topCategories" /> }
 
 @code {
+    private static readonly System.Globalization.CultureInfo s_culture = System.Globalization.CultureInfo.GetCultureInfo("pt-BR");
+
+    private DateOnly _today;
+    private ReferenceMonth _currentMonth;
     private ReferenceMonth _month;
     private DashboardSections _sections = DashboardSections.All;
     private int _topCategories = AppPreferences.Default.TopCategories;
@@ -43,7 +59,9 @@
     protected override async Task OnInitializedAsync()
     {
         EntryChanges.Changed += EntriesChangedAsync;
-        _month = ReferenceMonth.FromDate(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime));
+        _today = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+        _currentMonth = ReferenceMonth.FromDate(_today);
+        _month = _currentMonth;
         var preferences = await Preferences.GetAsync();
         _sections = preferences.Sections;
         _topCategories = preferences.TopCategories;
