@@ -31,7 +31,8 @@
                                 @if (row.Dates is { } dates)
                                 {
                                     <span class="row-note">
-                                        @if (row.Invoice.Status == InvoiceStatus.Open) { <span>Fecha em @dates.ClosingDate.ToString("dd/MM", s_culture) · </span> }
+                                        @* Depois do corte e antes do fechamento automático, a fatura ainda é Aberta, mas a data de fechamento já passou: não a anuncia. *@
+                                        @if (row.Invoice.Status == InvoiceStatus.Open && dates.ClosingDate >= _today) { <span>Fecha em @dates.ClosingDate.ToString("dd/MM", s_culture) · </span> }
                                         <span class="@(dates.DueDate < _today ? ValueColor.Negative : null)" data-invoice-due>@(dates.DueDate < _today ? "Venceu em" : "Vence em") @dates.DueDate.ToString("dd/MM/yyyy", s_culture)</span>
                                     </span>
                                 }
