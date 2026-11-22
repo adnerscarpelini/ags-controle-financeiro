@@ -6,7 +6,7 @@
 
 Aplicação web pessoal em .NET 10, ASP.NET Core e Blazor, acessada pelo computador e celular na rede local.
 
-![Dashboard com dados fictícios: comportamento e orçamento do mês, pendências dos próximos dias e atrasadas](docs/screenshots/dashboard.png)
+![Dashboard com dados fictícios, ainda no layout anterior às faixas Hoje e Mês: comportamento e orçamento do mês, pendências dos próximos dias e atrasadas](docs/screenshots/dashboard.png)
 
 > **[Veja a galeria de telas →](docs/screenshots/README.md)** Lançamentos, cartões, faturas, planejamento, relatórios,
 > reembolsos, celular e tema claro, todos com dados fictícios.
@@ -23,7 +23,7 @@ fechamento e reabertura de faturas, compras parceladas e séries mensais previst
 Há cadastro e histórico anual de cashback/desconto, com abatimento das faturas.
 Pagamentos têm débito atômico e quitação explícita, com consulta de saldos e parcelas futuras. Ajustes de fatura preservam compras e pagamentos; antecipação move as últimas parcelas futuras para a fatura atual.
 Contas/cartões têm arquivamento reversível, logos locais com recorte circular e carteira visual responsiva.
-Reembolsos têm pessoas com percentual padrão, indicação de pessoa e percentual na despesa, análise do mês e recebimento com lançamento em conta corrente. O dashboard mostra o comportamento do mês (gastos pela data da despesa), o orçamento do mês, categorias contra a média, faturas por cartão e pendências dos próximos dias. Tema, tela inicial, seções do dashboard, paginação e a forma de somar as recorrentes do cartão na fatura são preferências da tela de configurações; o botão do olhinho oculta os valores na tela, por dispositivo.
+Reembolsos têm pessoas com percentual padrão, indicação de pessoa e percentual na despesa, análise do mês e recebimento com lançamento em conta corrente. O dashboard tem duas faixas: **Hoje**, com o saldo das contas correntes, as faturas a pagar (Fechadas com saldo e a Aberta atual de cada cartão) e as pendências dos próximos dias e atrasadas; e **Mês**, com receitas, gasto no mês (pela data da despesa), a pagar no mês e as categorias contra a média. Tema, tela inicial, seções do dashboard, paginação e a forma de somar as recorrentes do cartão na fatura são preferências da tela de configurações; o botão do olhinho oculta os valores na tela, por dispositivo.
 A aplicação pode ser instalada como PWA no celular (validação em aparelho e na rede local ainda pendente).
 
 Importação/exportação são somente por **CSV no layout oficial do sistema** (cadastros e lançamentos).
