@@ -167,6 +167,21 @@ public sealed class DashboardSummariesTests
     }
 
     [Fact]
+    public async Task AnOpenInvoicePastItsCutoffDoesNotAnnounceAClosingDateInThePast()
+    {
+        await using var ui = await EntryUi.CreateAsync();
+        Assert.True((await ui.Entries.CreateAsync(new(new DateOnly(2026, 8, 30), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(100), string.Empty, s_september, ui.Card))).Succeeded);
+        ui.SetNow(new DateTimeOffset(2026, 9, 5, 12, 0, 0, TimeSpan.Zero));
+
+        var section = ui.Context.Render<CardInvoicesSummary>();
+
+        section.WaitForAssertion(() => Assert.Equal("R$ 100,00", section.Find("[data-invoice-remaining]").TextContent));
+        Assert.Equal("Aberta", section.Find("[data-invoice-status]").TextContent);
+        Assert.DoesNotContain("Fecha em", section.Find("[data-card-invoice]").TextContent, StringComparison.Ordinal);
+        Assert.Equal("Vence em 10/09/2026", section.Find("[data-invoice-due]").TextContent);
+    }
+
+    [Fact]
     public async Task AnArchivedCardKeepsItsPayableInvoice()
     {
         await using var ui = await EntryUi.CreateAsync();
