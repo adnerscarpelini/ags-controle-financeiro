@@ -30,7 +30,7 @@ Total e saldo em `/faturas`, valor sugerido em "Pagar", saldos de `/compromissos
 do dashboard. A composição da fatura mostra as previstas num grupo próprio, nas duas
 opções. A confirmação de fechamento mostra o total com as previstas, porque fechar protege todas elas.
 
-O card de faturas do dashboard mostra **Previsto** (#112) com `ForecastTotal` quando as previstas ficam fora do total; quando já estão somadas, a linha não aparece.
+O card de faturas a pagar do dashboard (#144) usa o total conforme a preferência e não mostra mais a linha **Previsto** da #112; o previsto continua na tela da fatura.
 
 ## O que não muda
 

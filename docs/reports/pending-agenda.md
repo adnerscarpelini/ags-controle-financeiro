@@ -12,8 +12,8 @@ totais separados, fora dos totais da janela.
 
 **Hoje.** Vem de `TimeProvider.GetLocalNow()`, ou seja, do fuso de negócio configurado na
 distribuição Docker (`TZ`, [#59](../web/docker-deployment.md)); não é a data UTC do container
-nem a do navegador. A auditoria continua em UTC. O seletor de mês de referência do dashboard não
-desloca a janela: a seção não recebe o mês.
+nem a do navegador. A auditoria continua em UTC. A seção fica na faixa Hoje
+([#143](dashboard.md)); o seletor de mês, na faixa Mês, não desloca a janela: a seção não recebe o mês.
 
 **Fonte.** Reports consome `IEntryCatalog.QueryPendingAsync` (a visão de pendentes da #57)
 com paginação interna; não lê tabelas de Transactions. Mostra data, descrição, valor e

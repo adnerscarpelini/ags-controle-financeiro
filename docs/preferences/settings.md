@@ -26,7 +26,7 @@ mensagem e o que estava salvo é mantido.
 | Faturas | Recorrentes do cartão na fatura aberta | Somar só na data, Somar desde já | Somar só na data |
 | Dashboard | Janela de pendências | 7, 15 ou 30 dias | 7 |
 | Dashboard | Maiores categorias no gráfico | 5, 10 ou 20 | 10 |
-| Dashboard | Seções visíveis | Resumo, Pendências, Categorias, Faturas | Todas |
+| Dashboard | Seções visíveis | Contas e totais do mês, Pendências, Categorias, Faturas a pagar | Todas |
 | Lançamentos | Itens por página | 25, 50, 100 ou 200 | 50 |
 | Lançamentos | Agrupar por cartão | Ligado, desligado | Desligado |
 | Segurança | Duração da sessão sem "Manter conectado" | 12 h, 24 h ou 7 dias | 12 h |
@@ -53,8 +53,10 @@ Ver [Recorrentes previstas na fatura](../invoices/recurring-forecast.md).
 - **Janela de pendências:** o intervalo é fechado, de hoje até hoje + (N − 1) dias. O título da seção
   acompanha o N. Ver [Pendências do dashboard](../reports/pending-agenda.md).
 - **Maiores categorias:** muda só a quantidade do gráfico; a tabela de categorias continua completa.
-- **Seções visíveis:** a seção desligada some do dashboard. Com todas desligadas, aparece um aviso com
-  link para `/configuracoes`.
+- **Seções visíveis:** a seção desligada some do dashboard. "Contas e totais do mês" controla o card de
+  contas correntes da faixa Hoje e os totais da faixa Mês; uma faixa some quando nenhuma das suas seções
+  está ligada (#143, ver [Dashboard](../reports/dashboard.md#seções-visíveis)). Com todas desligadas,
+  aparece um aviso com link para `/configuracoes`.
 - **Itens por página:** tamanho da consulta de `/lancamentos` (também ao aplicar filtros salvos) e de `/pendentes` (#71). Os
   totais continuam somando todos os lançamentos do filtro.
 - **Agrupar por cartão:** também muda na própria tela de Lançamentos e é gravada na hora. Ver
