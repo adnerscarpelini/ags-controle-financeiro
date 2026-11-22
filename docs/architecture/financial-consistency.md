@@ -36,7 +36,7 @@ pelo pagamento da fatura, sem nova despesa (#19/#51).
 
 A visão completa de pendentes (#57) inclui receitas e despesas. O dashboard (#58) usa a data
 prevista entre hoje e hoje + (N − 1) dias, com N escolhido nas preferências (#69; padrão 7), e com atrasados separados, no fuso de negócio configurado.
-O seletor de mês de referência não desloca essa janela.
+O seletor de mês de referência não desloca essa janela: as pendências ficam na faixa Hoje (#143).
 
 ## Faturas, pagamentos e ajustes
 

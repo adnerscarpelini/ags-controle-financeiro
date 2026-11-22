@@ -33,7 +33,7 @@ Aprovada na [#112](https://github.com/adnerscarpelini/ags-controle-financeiro/is
 
 ## Dashboard
 
-Acima de "Despesas por categoria" ficam dois cards lado a lado (#112): as faturas de cada cartão no mês, com vencimento, valor a pagar, total gasto, abatimentos (pagamentos, antecipações, cashback e descontos), limite usado e total a pagar, e o saldo atual e previsto de cada conta corrente. Poupança e investimentos não aparecem nem entram no total. Os cards seguem as preferências de seção Faturas e Resumo do mês.
+O Dashboard tem duas faixas (#143). **Hoje**, sem mês, abre com dois cards lado a lado: o saldo atual das contas correntes, com o total em destaque (poupança e investimentos não aparecem nem entram no total), e as faturas a pagar (#144), com o restante de cada fatura em destaque e "Total · abatido" abaixo; seguem os próximos dias e os atrasados. **Mês** tem o seletor de mês à direita do título da faixa, os totais do mês (Receitas, Gasto no mês e A pagar no mês) e as tabelas de categorias. Detalhes em [Dashboard: faixas Hoje e Mês](../reports/dashboard.md).
 
 ## Recorte do logo
 

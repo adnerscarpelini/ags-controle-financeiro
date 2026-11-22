@@ -1,8 +1,8 @@
 # Despesas e receitas por categoria contra a média
 
 A [#25](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/25) mostra
-onde o mês saiu do padrão (`ICategoryReports`, em `Reports.Contracts`; seção do
-dashboard).
+onde o mês saiu do padrão (`ICategoryReports`, em `Reports.Contracts`; faixa Mês
+do [dashboard](dashboard.md)).
 
 **Base.** As despesas mostram onde se gastou no mês, pela data da despesa, e a soma
 das linhas é igual ao gasto do [comportamento do mês](monthly-behavior.md). Quem quer
@@ -21,8 +21,9 @@ desenhadas com HTML/CSS próprios (sem biblioteca nem CDN).
 
 **Média no ano.** Soma da categoria de janeiro até o mês selecionado dividida pelo
 número de meses desse intervalo com algum lançamento do mesmo tipo (despesa para a
-tabela de despesas, receita para a de receitas), a mesma regra das médias do dashboard.
-Nas despesas, esses meses também são os da data.
+tabela de despesas, receita para a de receitas). Nas despesas, esses meses também são os da
+data. Na #143 os cards de média saíram do Dashboard, mas estas colunas de mês anterior, média e
+diferença continuam: o usuário avaliou que as tabelas funcionam bem.
 
 **Cores.** Despesa acima da média é destacada na cor de despesa e abaixo na de receita;
 nas receitas é o inverso. O sinal (+/−) acompanha a diferença, para a cor não ser o

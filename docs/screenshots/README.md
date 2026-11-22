@@ -9,9 +9,11 @@ Origem: [#135](https://github.com/adnerscarpelini/ags-controle-financeiro/issues
 
 ## Dashboard
 
-Comportamento do mês pela data da despesa, orçamento do mês, pendências dos próximos dias e atrasadas.
+Faixa Hoje com o saldo das contas correntes, as faturas a pagar, as pendências dos próximos dias e as atrasadas; faixa Mês com receitas, gasto e a pagar no mês e as categorias ([#143](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/143)).
 
-![Dashboard com o comportamento e o orçamento de novembro, pendências dos próximos 7 dias e uma despesa atrasada](dashboard.png)
+> A imagem abaixo ainda mostra o layout anterior à #143 (comportamento e orçamento do mês) e precisa ser regerada, assim como `dashboard-mobile.png` e `dashboard-light.png`.
+
+![Dashboard no layout anterior, com o comportamento e o orçamento de novembro, pendências dos próximos 7 dias e uma despesa atrasada](dashboard.png)
 
 ## Lançamentos
 
