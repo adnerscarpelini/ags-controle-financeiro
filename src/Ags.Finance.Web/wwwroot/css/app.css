@@ -1128,11 +1128,14 @@ input[type="file"]::file-selector-button {
 .summary-name { color: var(--color-text-primary); font-weight: 500; }
 a.summary-name:hover { color: var(--color-accent-hover); }
 .summary-value { font-weight: 600; white-space: nowrap; }
+/* Fatura a pagar: o que falta em destaque e, abaixo, o total e o abatido em letra menor (issue 144). */
+.summary-amounts { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+.summary-amounts .summary-value { font-size: 16px; }
+.summary-breakdown-line { color: var(--color-text-secondary); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 480px) {
+    .summary-breakdown-line { white-space: normal; }
+}
 .summary-hero { display: block; margin-bottom: var(--space-4); font-size: 30px; font-weight: 600; letter-spacing: -.028em; line-height: 1.15; }
-.summary-breakdown { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px var(--space-3); color: var(--color-text-secondary); font-size: 12.5px; font-variant-numeric: tabular-nums; }
-.summary-total { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--color-border); font-weight: 600; }
-.summary-total strong { font-weight: 600; }
-.summary-total .entity-card-values { flex: 1; max-width: 70%; font-weight: 500; }
 .summary-link { align-self: flex-start; margin-top: auto; padding-top: var(--space-3); font-size: 13px; }
 .dashboard-columns > :only-child { grid-column: 1 / -1; }
 

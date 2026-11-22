@@ -54,4 +54,10 @@ public interface IInvoiceCatalog
 
     Task<IReadOnlyList<CardLimit>> GetCardLimitsAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<InvoiceDetails>> GetMonthAsync(ReferenceMonth month, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Faturas que ainda pedem pagamento hoje: Fechadas com saldo a pagar e, de cada cartão, a Aberta atual (a que recebe uma compra feita hoje)
+    /// ou anterior a ela, desde que tenha gasto ou abatimento. Faturas Pagas e Abertas futuras ficam de fora. Ordenadas pelo vencimento.
+    /// </summary>
+    Task<IReadOnlyList<InvoiceDetails>> GetPayableAsync(CancellationToken cancellationToken = default);
 }

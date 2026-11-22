@@ -26,6 +26,8 @@ internal sealed class EntryUi : IAsyncDisposable
 
     private readonly string _attachments;
 
+    private FixedClock _clock = new(DateTimeOffset.MinValue);
+
     private EntryUi(PostgresTestDatabase database, BunitContext context, string attachments)
     {
         _database = database;
@@ -84,7 +86,8 @@ internal sealed class EntryUi : IAsyncDisposable
         var context = new BunitContext().UseAppUi();
         var attachments = Path.Combine(Path.GetTempPath(), "ags-entry-ui-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(attachments);
-        context.Services.AddSingleton<TimeProvider>(new FixedClock(now ?? new DateTimeOffset(2026, 9, 1, 12, 0, 0, TimeSpan.Zero)))
+        var clock = new FixedClock(now ?? new DateTimeOffset(2026, 9, 1, 12, 0, 0, TimeSpan.Zero));
+        context.Services.AddSingleton<TimeProvider>(clock)
             .AddAccountsModule(database.ConnectionString)
             .AddTransactionsModule(database.ConnectionString)
             .AddReimbursementsModule(database.ConnectionString)
@@ -99,7 +102,7 @@ internal sealed class EntryUi : IAsyncDisposable
         await context.Services.MigrateInvoicesModuleAsync();
         await context.Services.MigratePreferencesModuleAsync();
 
-        var ui = new EntryUi(database, context, attachments);
+        var ui = new EntryUi(database, context, attachments) { _clock = clock };
         await ui.SeedAsync();
         ui.Popovers = context.Render<MudPopoverProvider>();
         ui.Dialogs = context.Render<MudDialogProvider>();
@@ -176,9 +179,14 @@ internal sealed class EntryUi : IAsyncDisposable
     public async Task<Guid> AddPersonAsync(decimal percent = 50m) =>
         (await Context.Services.GetRequiredService<IPersonCatalog>().SaveAsync(null, "Pessoa Exemplo", percent)).ExternalId!.Value;
 
+    /// <summary>Avança o relógio do cenário, por exemplo para passar do vencimento de uma fatura criada antes.</summary>
+    public void SetNow(DateTimeOffset now) => _clock.Now = now;
+
     private sealed class FixedClock(DateTimeOffset now) : TimeProvider
     {
-        public override DateTimeOffset GetUtcNow() => now;
+        public DateTimeOffset Now { get; set; } = now;
+
+        public override DateTimeOffset GetUtcNow() => Now;
 
         public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
     }

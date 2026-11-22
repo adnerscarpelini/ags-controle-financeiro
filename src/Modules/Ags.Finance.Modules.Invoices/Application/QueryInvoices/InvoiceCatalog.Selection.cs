@@ -1,3 +1,4 @@
+using Ags.Finance.Modules.Accounts.Contracts;
 using Ags.Finance.Modules.Invoices.Contracts;
 using Ags.Finance.Modules.Invoices.Domain;
 using Ags.Finance.SharedKernel;
@@ -28,18 +29,8 @@ internal sealed partial class InvoiceCatalog
             if (calculated.Month is not { } month) { return new InvoiceSelection(null, null, [], calculated.Error); }
             var states = (await store.GetAsync(token)).Where(x => x.CardExternalId == cardExternalId).ToDictionary(x => x.Month);
             var card = (await accounts.GetCreditCardsAsync(false, token)).Single(x => x.ExternalId == cardExternalId);
-            Contracts.InvoiceStatus Status(ReferenceMonth candidate)
-            {
-                if (states.TryGetValue(candidate, out var state) && state.Status != Domain.InvoiceStatus.Open) { return (Contracts.InvoiceStatus)state.Status; }
-                var cutoff = InvoiceClosingDate.Cutoff(candidate, card.ClosingDay, card.DueDay, card.IncludesClosingDay, clock.LocalTimeZone);
-                return states.GetValueOrDefault(candidate)?.AutoCloseSuppressed != true && cutoff <= clock.GetUtcNow() ? Contracts.InvoiceStatus.Closed : Contracts.InvoiceStatus.Open;
-            }
-            var suggested = month;
-            while (Status(suggested) != Contracts.InvoiceStatus.Open)
-            {
-                if (suggested == new ReferenceMonth(9999, 12)) { return new InvoiceSelection(month, null, [], "Não há fatura Aberta no calendário suportado."); }
-                suggested = suggested.AddMonths(1);
-            }
+            Contracts.InvoiceStatus Status(ReferenceMonth candidate) => CalendarStatus(candidate, states, card);
+            if (FirstOpenMonth(month, states, card) is not { } suggested) { return new InvoiceSelection(month, null, [], "Não há fatura Aberta no calendário suportado."); }
             var maximum = new ReferenceMonth(9999, 12);
             var end = through is { Year: > 0 } requested && requested > suggested ? requested : new ReferenceMonth(suggested.Year, suggested.Month).AddMonths(Math.Min(12, (9999 - suggested.Year) * 12 + 12 - suggested.Month));
             var candidates = states.Keys.Append(month).Append(suggested).ToHashSet();
@@ -50,4 +41,25 @@ internal sealed partial class InvoiceCatalog
             }
             return new InvoiceSelection(month, suggested, candidates.Order().Select(x => new SelectableInvoice(x, Status(x))).ToList());
         }, x => x.Error is null, cancellationToken);
+
+    /// <summary>Situação pelo calendário do cartão: a gravada, se não for Aberta; senão Fechada a partir do corte, salvo reabertura que suprime o fechamento automático.</summary>
+    private Contracts.InvoiceStatus CalendarStatus(ReferenceMonth candidate, IReadOnlyDictionary<ReferenceMonth, Invoice> states, CreditCardDetails card)
+    {
+        if (states.TryGetValue(candidate, out var state) && state.Status != Domain.InvoiceStatus.Open) { return (Contracts.InvoiceStatus)state.Status; }
+        var cutoff = InvoiceClosingDate.Cutoff(candidate, card.ClosingDay, card.DueDay, card.IncludesClosingDay, clock.LocalTimeZone);
+        return states.GetValueOrDefault(candidate)?.AutoCloseSuppressed != true && cutoff <= clock.GetUtcNow() ? Contracts.InvoiceStatus.Closed : Contracts.InvoiceStatus.Open;
+    }
+
+    /// <summary>Primeira fatura Aberta a partir de <paramref name="month"/>: a que recebe uma compra nova. Null quando o calendário suportado acaba.</summary>
+    private ReferenceMonth? FirstOpenMonth(ReferenceMonth month, IReadOnlyDictionary<ReferenceMonth, Invoice> states, CreditCardDetails card)
+    {
+        var candidate = month;
+        while (CalendarStatus(candidate, states, card) != Contracts.InvoiceStatus.Open)
+        {
+            if (candidate == new ReferenceMonth(9999, 12)) { return null; }
+            candidate = candidate.AddMonths(1);
+        }
+
+        return candidate;
+    }
 }
