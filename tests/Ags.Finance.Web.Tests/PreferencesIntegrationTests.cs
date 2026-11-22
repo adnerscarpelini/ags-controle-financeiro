@@ -103,11 +103,11 @@ public sealed class PreferencesIntegrationTests : IDisposable
 
         var html = await browser.GetHtmlAsync("/dashboard");
 
-        Assert.Contains("id=\"summary-title\"", html, StringComparison.Ordinal);
-        Assert.Contains("id=\"behavior-title\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"checking-accounts-title\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-month-totals", html, StringComparison.Ordinal);
         Assert.Contains("id=\"expense-categories-title\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("id=\"pending-title\"", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("id=\"invoice-report-title\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"card-invoices-title\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-testid=\"no-sections\"", html, StringComparison.Ordinal);
     }
 
@@ -121,8 +121,8 @@ public sealed class PreferencesIntegrationTests : IDisposable
 
         Assert.Contains("data-testid=\"no-sections\"", html, StringComparison.Ordinal);
         Assert.Contains("href=\"configuracoes\"", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("id=\"summary-title\"", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("id=\"behavior-title\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"today-title\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"month-title\"", html, StringComparison.Ordinal);
     }
 
     [Theory]

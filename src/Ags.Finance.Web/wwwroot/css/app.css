@@ -783,6 +783,13 @@ input[type="file"]::file-selector-button {
 
 .dashboard-section { display: flex; flex-direction: column; gap: var(--space-3); }
 
+/* Faixas do Dashboard (issue 143): "Hoje" com a posição atual e "Mês" com o seletor. */
+.dashboard-band { display: flex; flex-direction: column; gap: var(--space-4); margin-bottom: var(--space-8); }
+.dashboard-band > .dashboard-columns { margin: 0; }
+.band-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-3); }
+.band-head h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.band-note { color: var(--color-text-secondary); font-size: 13px; }
+
 /* Controle segmentado neutro para abas e filtros. */
 .chips { display: inline-flex; align-self: flex-start; gap: 2px; max-width: 100%; padding: 2px; border: 0; border-radius: 9px; background: var(--color-fill); overflow-x: auto; scrollbar-width: none; }
 .chip { flex: none; min-height: 28px; padding: 0 11px; border: 0; border-radius: 7px; background: transparent; color: var(--color-text-secondary); font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; }
@@ -810,21 +817,10 @@ input[type="file"]::file-selector-button {
 .stat-note { color: var(--color-text-secondary); font-size: 12.5px; }
 .stat-hero .stat-value { font-size: 30px; letter-spacing: -.028em; line-height: 1.15; }
 .stat-value { white-space: nowrap; }
-/* Resumo: saldo e % guardado na primeira linha e os outros quatro totais na segunda. */
-.stat-cards-summary { grid-template-columns: repeat(12, minmax(0, 1fr)); }
-.stat-cards-summary .stat-card { grid-column: span 3; }
-.stat-cards-summary .stat-hero { grid-column: span 8; }
-.stat-cards-summary .stat-hero + .stat-card { grid-column: span 4; }
-@media (max-width: 1100px) {
-    .stat-cards-summary .stat-card { grid-column: span 6; }
-}
-/* Comportamento: o gasto do mês em destaque e as duas comparações ao lado. */
-.stat-cards-behavior { grid-template-columns: repeat(12, minmax(0, 1fr)); }
-.stat-cards-behavior .stat-card { grid-column: span 3; }
-.stat-cards-behavior .stat-hero { grid-column: span 6; }
-@media (max-width: 1100px) {
-    .stat-cards-behavior .stat-card { grid-column: span 6; }
-    .stat-cards-behavior .stat-hero { grid-column: 1 / -1; }
+/* Totais do mês no Dashboard: receitas, gasto e o que cai no mês lado a lado (issue 143). */
+.stat-cards-month { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 700px) {
+    .stat-cards-month { grid-template-columns: minmax(0, 1fr); }
 }
 .panel .stat-cards { margin-bottom: var(--space-3); }
 .panel .stat-value { font-size: 17px; letter-spacing: -.014em; }
@@ -1132,9 +1128,8 @@ input[type="file"]::file-selector-button {
 .summary-name { color: var(--color-text-primary); font-weight: 500; }
 a.summary-name:hover { color: var(--color-accent-hover); }
 .summary-value { font-weight: 600; white-space: nowrap; }
+.summary-hero { display: block; margin-bottom: var(--space-4); font-size: 30px; font-weight: 600; letter-spacing: -.028em; line-height: 1.15; }
 .summary-breakdown { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px var(--space-3); color: var(--color-text-secondary); font-size: 12.5px; font-variant-numeric: tabular-nums; }
-.summary-limit { display: flex; flex-direction: column; gap: 5px; }
-.summary-limit-text { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px var(--space-2); color: var(--color-text-secondary); font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .summary-total { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4); margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--color-border); font-weight: 600; }
 .summary-total strong { font-weight: 600; }
 .summary-total .entity-card-values { flex: 1; max-width: 70%; font-weight: 500; }
@@ -1309,8 +1304,7 @@ a.summary-name:hover { color: var(--color-accent-hover); }
     .data-table .mud-table-cell { overflow-wrap: anywhere; }
     .split-main, .split-aside { flex-basis: 100%; }
     .split-aside { flex-direction: row; flex-wrap: wrap; }
-    .stat-cards:not(.stat-cards-summary, .stat-cards-behavior) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .stat-cards-summary .stat-hero, .stat-cards-summary .stat-hero + .stat-card { grid-column: 1 / -1; }
+    .stat-cards:not(.stat-cards-month) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .dashboard-columns { grid-template-columns: minmax(0, 1fr); }
     .panel { padding: var(--space-4); }
     .stat-card { padding: var(--space-3); }

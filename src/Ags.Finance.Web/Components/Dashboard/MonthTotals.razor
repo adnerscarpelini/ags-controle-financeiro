@@ -1,0 +1,34 @@
+@* Totais do mês escolhido no Dashboard (issue 143): receitas e o que cai no mês vêm do resumo (issue 24); o gasto, da data da compra (issue 117). *@
+@using Ags.Finance.Modules.Reports.Contracts
+@using Ags.Finance.SharedKernel
+@inject IMonthlySummaries Summaries
+@inject IMonthlyBehaviors Behaviors
+
+<section class="dashboard-section" aria-label="Totais de @MonthPicker.Label(Month)" data-month-totals>
+    @if (_summary is { } summary && _behavior is { } behavior)
+    {
+        <div class="stat-cards stat-cards-month">
+            <StatCard ValueClass="@ValueColor.Income(summary.Income)" Label="Receitas" Help="Receitas com mês de referência no mês escolhido." Value="@summary.Income.ToString()" Testid="income" />
+            <StatCard ValueClass="@ValueColor.Expense(behavior.Spent)" Label="Gasto no mês" Help="O que você comprou neste mês, em qualquer forma de pagamento. A fatura não importa, e a compra parcelada conta inteira no mês da compra." Value="@Negative(behavior.Spent).ToString()" Testid="spent" />
+            <StatCard ValueClass="@ValueColor.Expense(summary.Expenses)" Label="A pagar no mês" Help="Tudo o que cai neste mês: contas fora do cartão e as faturas do mês. No cartão, a compra conta no mês da fatura." Value="@Negative(summary.Expenses).ToString()" Testid="expenses" />
+        </div>
+    }
+</section>
+
+@code {
+    private MonthlySummary? _summary;
+    private MonthlyBehavior? _behavior;
+    private ReferenceMonth _loaded;
+
+    [Parameter, EditorRequired] public ReferenceMonth Month { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_summary is not null && _loaded == Month) { return; }
+        _loaded = Month;
+        _summary = await Summaries.GetAsync(Month);
+        _behavior = await Behaviors.GetAsync(Month);
+    }
+
+    private static Money Negative(Money expenses) => expenses.IsZero ? expenses : -expenses;
+}

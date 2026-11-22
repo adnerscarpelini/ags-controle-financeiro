@@ -1,4 +1,4 @@
-@* Fatura de cada cartão no mês escolhido: o que falta pagar, o total gasto, os abatimentos e o limite usado.
+@* Fatura de cada cartão no mês escolhido: o que falta pagar, o total gasto e os abatimentos.
    Cartão arquivado continua aqui enquanto tiver fatura no mês (#53). *@
 @using System.Globalization
 @using Ags.Finance.Modules.Accounts.Contracts
@@ -42,13 +42,6 @@
                                 }
                             </div>
                         }
-                        @if (row.Limit is { } limit)
-                        {
-                            <div class="summary-limit">
-                                <div class="bar-track" role="progressbar" aria-label="Limite usado de @row.Card.Name" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@limit.UsedPercent"><span class="bar-fill limit-fill" style="width:@limit.UsedPercent%"></span></div>
-                                <div class="summary-limit-text"><span data-limit-used>@limit.UsedPercent%</span><span>Limite disponível: <span class="@ValueColor.Balance(limit.Available)" data-limit-available>@limit.Available</span> <HelpTip Text="O limite cadastrado menos o saldo restante das faturas ainda não pagas, inclusive parcelas futuras." /></span></div>
-                            </div>
-                        }
                     </li>
                 }
             </ul>
@@ -64,7 +57,7 @@
 @code {
     private static readonly CultureInfo s_culture = CultureInfo.GetCultureInfo("pt-BR");
 
-    private sealed record Row(CreditCardDetails Card, BankDetails? Bank, InvoiceDetails? Invoice, InvoiceDates? Dates, CardLimit? Limit)
+    private sealed record Row(CreditCardDetails Card, BankDetails? Bank, InvoiceDetails? Invoice, InvoiceDates? Dates)
     {
         public Money Total => Invoice?.Total ?? Money.Zero;
 
@@ -89,7 +82,6 @@
         var accounts = await Accounts.GetAccountsAsync(activeOnly: false);
         var cards = await Accounts.GetCreditCardsAsync(activeOnly: false);
         var invoices = await Invoices.GetMonthAsync(Month);
-        var limits = await Invoices.GetCardLimitsAsync();
         var rows = new List<Row>();
         foreach (var card in cards.Where(x => x.IsAvailable || invoices.Any(invoice => invoice.CardExternalId == x.ExternalId)))
         {
@@ -98,8 +90,7 @@
                 card,
                 banks.FirstOrDefault(x => x.ExternalId == account?.BankExternalId),
                 invoices.FirstOrDefault(x => x.CardExternalId == card.ExternalId),
-                await Invoices.GetDatesAsync(card.ExternalId, Month),
-                limits.FirstOrDefault(x => x.CardExternalId == card.ExternalId)));
+                await Invoices.GetDatesAsync(card.ExternalId, Month)));
         }
 
         _rows = rows;

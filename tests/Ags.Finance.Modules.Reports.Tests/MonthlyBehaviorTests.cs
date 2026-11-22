@@ -33,7 +33,6 @@ public sealed class MonthlyBehaviorTests : ReportFixture
         await PurchaseAsync(card, new DateOnly(2026, 10, 20), 300m, installments: 3);
 
         Assert.Equal(new Money(300m), (await Behaviors.GetAsync(s_october)).Spent);
-        Assert.Equal(new Money(300m), (await Behaviors.GetAsync(s_november)).PreviousMonthSpent);
         Assert.Equal(Money.Zero, (await Behaviors.GetAsync(s_november)).Spent);
         Assert.Equal(Money.Zero, (await Behaviors.GetAsync(new ReferenceMonth(2026, 12))).Spent);
     }
@@ -62,36 +61,11 @@ public sealed class MonthlyBehaviorTests : ReportFixture
     }
 
     [Fact]
-    public async Task YearAverageDividesByMonthsWithSpendingAndIgnoresLaterMonths()
+    public async Task AMonthWithoutPurchasesIsZeroEvenAfterASpendingMonth()
     {
-        await AddAsync(new ReferenceMonth(2026, 1), 100m);
-        await AddAsync(new ReferenceMonth(2026, 3), 300m);
         await AddAsync(s_september, 500m);
-        await AddAsync(s_october, 200m);
-        await AddAsync(s_november, 9999m);
 
-        var behavior = await Behaviors.GetAsync(s_october);
-
-        Assert.Equal((new Money(275m), 4, new Money(500m)), (behavior.YearAverageSpent, behavior.MonthsWithSpending, behavior.PreviousMonthSpent));
-    }
-
-    [Fact]
-    public async Task PreviousMonthOfJanuaryIsDecemberOfTheYearBeforeAndStaysOutOfTheAverage()
-    {
-        await AddAsync(new ReferenceMonth(2025, 12), 70m);
-        await AddAsync(new ReferenceMonth(2026, 1), 10m);
-
-        var behavior = await Behaviors.GetAsync(new ReferenceMonth(2026, 1));
-
-        Assert.Equal((new Money(70m), new Money(10m), 1), (behavior.PreviousMonthSpent, behavior.YearAverageSpent, behavior.MonthsWithSpending));
-    }
-
-    [Fact]
-    public async Task AMonthWithoutPurchasesIsZero()
-    {
-        var behavior = await Behaviors.GetAsync(s_october);
-
-        Assert.Equal((Money.Zero, Money.Zero, Money.Zero, 0), (behavior.Spent, behavior.PreviousMonthSpent, behavior.YearAverageSpent, behavior.MonthsWithSpending));
+        Assert.Equal(Money.Zero, (await Behaviors.GetAsync(s_october)).Spent);
     }
 
     [Fact]
