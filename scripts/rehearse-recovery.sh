@@ -29,8 +29,10 @@ compose() { # compose <instância> <argumentos...>
 
 write_env() { # write_env <instância> <porta>
     local instance=$1 port=$2
-    install -d -m 0700 "$WORK/$instance-backups"
-    install -d -m 0700 "$WORK/$instance-attachments"
+    # A pasta de backup da instalação B já existe (recebeu a cópia, com dono 1654): só cria o que falta, sem mudar a permissão
+    # de pasta alheia, o que o install das versões novas do coreutils (Ubuntu 26.04) recusa.
+    [ -d "$WORK/$instance-backups" ] || install -d -m 0700 "$WORK/$instance-backups"
+    [ -d "$WORK/$instance-attachments" ] || install -d -m 0700 "$WORK/$instance-attachments"
     # O processo da imagem roda como o UID 1654 (usuário "app") e precisa ser dono da pasta de backup.
     docker run --rm -v "$WORK/$instance-backups:/d" -v "$WORK/$instance-attachments:/a" alpine:3 chown 1654:1654 /d /a
     cat > "$WORK/$instance.env" <<ENV
