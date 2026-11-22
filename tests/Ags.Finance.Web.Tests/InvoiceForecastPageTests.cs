@@ -43,25 +43,19 @@ public sealed class InvoiceForecastPageTests
     }
 
     [Theory]
-    [InlineData(RecurringInvoiceMode.SumOnDate, "R$ 100,00", "R$ 50,00")]
-    [InlineData(RecurringInvoiceMode.SumUpfront, "R$ 150,00", null)]
-    public async Task DashboardInvoiceCardShowsTheForecastLeftOutOfTheTotal(RecurringInvoiceMode mode, string invoice, string? forecast)
+    [InlineData(RecurringInvoiceMode.SumOnDate, "R$ 100,00")]
+    [InlineData(RecurringInvoiceMode.SumUpfront, "R$ 150,00")]
+    public async Task DashboardPayableInvoiceUsesTheInvoiceTotalOfThePreferenceWithoutAForecastLine(RecurringInvoiceMode mode, string invoice)
     {
         await using var database = await PostgresTestDatabase.CreateAsync();
         await using var context = new BunitContext().UseAppUi();
         await SetUpAsync(context, database, mode);
 
-        var section = context.Render<CardInvoicesSummary>(parameters => parameters.Add(x => x.Month, new ReferenceMonth(2026, 10)));
+        var section = context.Render<CardInvoicesSummary>();
 
         section.WaitForAssertion(() => Assert.Equal(invoice, section.Find("[data-invoice-total]").TextContent));
-        if (forecast is null)
-        {
-            Assert.Empty(section.FindAll("[data-invoice-forecast]"));
-        }
-        else
-        {
-            Assert.Equal(forecast, section.Find("[data-invoice-forecast]").TextContent);
-        }
+        Assert.Equal("10/2026", section.Find("[data-card-invoice]").GetAttribute("data-invoice-month"));
+        Assert.DoesNotContain("Previsto", section.Markup, StringComparison.Ordinal);
     }
 
     private sealed class FixedClock(DateTimeOffset now) : TimeProvider

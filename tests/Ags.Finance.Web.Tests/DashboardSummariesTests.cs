@@ -96,67 +96,87 @@ public sealed class DashboardSummariesTests
     }
 
     [Fact]
-    public async Task ACardWithoutPurchasesShowsAZeroInvoice()
+    public async Task WithoutPayableInvoicesTheCardSaysSoAndTheTotalIsZero()
     {
         await using var ui = await EntryUi.CreateAsync();
 
-        var section = ui.Context.Render<CardInvoicesSummary>(parameters => parameters.Add(x => x.Month, s_september));
+        var section = ui.Context.Render<CardInvoicesSummary>();
 
-        section.WaitForAssertion(() => Assert.NotEmpty(section.FindAll("[data-card-invoice]")));
-        Assert.Equal("Fatura zerada", section.Find("[data-invoice-due-text]").TextContent);
+        section.WaitForAssertion(() => Assert.NotEmpty(section.FindAll("[data-no-payable]")));
+        Assert.Equal("Nenhuma fatura a pagar.", section.Find("[data-no-payable]").TextContent);
         Assert.Equal("R$ 0,00", section.Find("[data-invoices-total]").TextContent);
         Assert.Contains("value-neutral", section.Find("[data-invoices-total]").ClassList);
-        Assert.Empty(section.FindAll("[data-invoice-status]"));
-        Assert.Empty(section.FindAll("[data-invoice-deductions]"));
+        Assert.Empty(section.FindAll("[data-card-invoice]"));
     }
 
     [Fact]
-    public async Task AnInvoiceShowsItsDueDateTotalAndUsedLimit()
+    public async Task AnOpenInvoiceHighlightsWhatIsLeftWithTheTotalAndDeductionsBelow()
     {
         await using var ui = await EntryUi.CreateAsync();
-        Assert.True((await ui.Entries.CreateAsync(new(new DateOnly(2026, 8, 30), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(100), string.Empty, s_september, ui.Card))).Succeeded);
+        Assert.True((await ui.Entries.CreateAsync(new(new DateOnly(2026, 8, 30), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(2000), string.Empty, s_september, ui.Card))).Succeeded);
+        var payments = ui.Context.Services.GetRequiredService<IInvoicePaymentCatalog>();
+        Assert.True((await payments.ConfirmPaymentAsync(new(Guid.CreateVersion7(), ui.Card, s_september, ui.Account, new DateOnly(2026, 9, 1), new Money(500), false))).Succeeded);
 
-        var section = ui.Context.Render<CardInvoicesSummary>(parameters => parameters.Add(x => x.Month, s_september));
+        var section = ui.Context.Render<CardInvoicesSummary>();
 
-        section.WaitForAssertion(() => Assert.Contains("Vence em", section.Find("[data-invoice-due-text]").TextContent, StringComparison.Ordinal));
-        Assert.Equal("R$ 100,00", section.Find("[data-invoice-total]").TextContent);
-        Assert.Equal("R$ 100,00", section.Find("[data-invoice-remaining]").TextContent);
-        Assert.Equal("R$ 0,00", section.Find("[data-invoice-deductions]").TextContent);
-        Assert.Contains("value-negative", section.Find("[data-invoice-total]").ClassList);
+        section.WaitForAssertion(() => Assert.Equal("R$ 1.500,00", section.Find("[data-invoice-remaining]").TextContent));
+        Assert.Contains("value-negative", section.Find("[data-invoice-remaining]").ClassList);
+        Assert.Equal("R$ 2.000,00", section.Find("[data-invoice-total]").TextContent);
+        Assert.Equal("R$ 500,00", section.Find("[data-invoice-deductions]").TextContent);
+        Assert.Equal("R$ 1.500,00", section.Find("[data-invoices-total]").TextContent);
         Assert.Equal("Aberta", section.Find("[data-invoice-status]").TextContent);
+        Assert.Contains("Fecha em 03/09", section.Find("[data-card-invoice] .row-note").TextContent, StringComparison.Ordinal);
+        Assert.Equal("Vence em 10/09/2026", section.Find("[data-invoice-due]").TextContent);
         Assert.Empty(section.FindAll("[data-limit-available]"));
     }
 
     [Fact]
-    public async Task AnAnticipatedPaymentKeepsTheFullSpendingAndReducesWhatIsLeftToPay()
+    public async Task WithoutDeductionsOnlyTheTotalAppearsBelow()
     {
         await using var ui = await EntryUi.CreateAsync();
         Assert.True((await ui.Entries.CreateAsync(new(new DateOnly(2026, 8, 30), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(100), string.Empty, s_september, ui.Card))).Succeeded);
-        var payments = ui.Context.Services.GetRequiredService<IInvoicePaymentCatalog>();
-        Assert.True((await payments.ConfirmPaymentAsync(new(Guid.CreateVersion7(), ui.Card, s_september, ui.Account, new DateOnly(2026, 9, 1), new Money(30), false))).Succeeded);
 
-        var section = ui.Context.Render<CardInvoicesSummary>(parameters => parameters.Add(x => x.Month, s_september));
+        var section = ui.Context.Render<CardInvoicesSummary>();
 
-        section.WaitForAssertion(() => Assert.Equal("R$ 70,00", section.Find("[data-invoice-remaining]").TextContent));
-        Assert.Equal("R$ 100,00", section.Find("[data-invoice-total]").TextContent);
-        Assert.Equal("R$ 30,00", section.Find("[data-invoice-deductions]").TextContent);
-        Assert.Contains("value-positive", section.Find("[data-invoice-deductions]").ClassList);
-        Assert.Equal("R$ 70,00", section.Find("[data-invoices-total]").TextContent);
-        Assert.Equal("Aberta", section.Find("[data-invoice-status]").TextContent);
+        section.WaitForAssertion(() => Assert.Equal("R$ 100,00", section.Find("[data-invoice-total]").TextContent));
+        Assert.Empty(section.FindAll("[data-invoice-deductions]"));
+        Assert.DoesNotContain("abatido", section.Find("[data-card-invoice]").TextContent, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task AnArchivedCardStaysWhileItHasAnInvoiceInTheMonth()
+    public async Task AClosedInvoicePastItsDueDateComesFirstWithTheDueDateInRed()
+    {
+        await using var ui = await EntryUi.CreateAsync();
+        Assert.True((await ui.Entries.CreateAsync(new(new DateOnly(2026, 8, 30), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(100), string.Empty, s_september, ui.Card))).Succeeded);
+        ui.SetNow(new DateTimeOffset(2026, 9, 15, 12, 0, 0, TimeSpan.Zero));
+        Assert.True((await ui.Context.Services.GetRequiredService<IInvoiceLifecycle>().CloseAsync(ui.Card, s_september)).Succeeded);
+        Assert.True((await ui.Entries.CreateAsync(new(new DateOnly(2026, 9, 15), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(40), CardExternalId: ui.Card))).Succeeded);
+
+        var section = ui.Context.Render<CardInvoicesSummary>();
+
+        section.WaitForAssertion(() => Assert.Equal(2, section.FindAll("[data-card-invoice]").Count));
+        var closed = section.FindAll("[data-card-invoice]")[0];
+        Assert.Equal("Fechada", closed.QuerySelector("[data-invoice-status]")!.TextContent);
+        Assert.Equal("Venceu em 10/09/2026", closed.QuerySelector("[data-invoice-due]")!.TextContent);
+        Assert.Contains("value-negative", closed.QuerySelector("[data-invoice-due]")!.ClassList);
+        Assert.DoesNotContain("Fecha em", closed.TextContent, StringComparison.Ordinal);
+        var open = section.FindAll("[data-card-invoice]")[1];
+        Assert.Equal("Aberta", open.QuerySelector("[data-invoice-status]")!.TextContent);
+        Assert.DoesNotContain("value-negative", open.QuerySelector("[data-invoice-due]")!.ClassList);
+        Assert.Equal("R$ 140,00", section.Find("[data-invoices-total]").TextContent);
+    }
+
+    [Fact]
+    public async Task AnArchivedCardKeepsItsPayableInvoice()
     {
         await using var ui = await EntryUi.CreateAsync();
         Assert.True((await ui.Entries.CreateAsync(new(new DateOnly(2026, 8, 30), ui.Merchant, ui.ExpenseSubcategory, ui.Account, new Money(100), string.Empty, s_september, ui.Card))).Succeeded);
         var accounts = ui.Context.Services.GetRequiredService<IAccountCatalog>();
         Assert.Null((await accounts.DeactivateCreditCardAsync(ui.Card)).Error);
 
-        var withInvoice = ui.Context.Render<CardInvoicesSummary>(parameters => parameters.Add(x => x.Month, s_september));
-        withInvoice.WaitForAssertion(() => Assert.Contains("(arquivado)", withInvoice.Find("[data-card-invoice]").TextContent, StringComparison.Ordinal));
+        var section = ui.Context.Render<CardInvoicesSummary>();
 
-        var withoutInvoice = ui.Context.Render<CardInvoicesSummary>(parameters => parameters.Add(x => x.Month, new ReferenceMonth(2026, 3)));
-        withoutInvoice.WaitForAssertion(() => Assert.Contains("Nenhum cartão", withoutInvoice.Markup, StringComparison.Ordinal));
+        section.WaitForAssertion(() => Assert.Contains("(arquivado)", section.Find("[data-card-invoice]").TextContent, StringComparison.Ordinal));
+        Assert.Equal("R$ 100,00", section.Find("[data-invoices-total]").TextContent);
     }
 }

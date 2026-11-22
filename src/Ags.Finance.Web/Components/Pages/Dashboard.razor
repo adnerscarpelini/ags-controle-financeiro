@@ -24,7 +24,7 @@
         {
             <div class="dashboard-columns">
                 @if (_sections.Summary) { <CheckingAccountsSummary @key="@($"accounts-{_version}")" /> }
-                @if (_sections.Invoices) { <CardInvoicesSummary @key="@($"invoices-{_version}")" Month="_currentMonth" /> }
+                @if (_sections.Invoices) { <CardInvoicesSummary @key="@($"invoices-{_version}")" /> }
             </div>
         }
         @if (_sections.Pending) { <PendingSection @key="@($"pending-{_version}")" /> }
@@ -48,7 +48,6 @@
     private static readonly System.Globalization.CultureInfo s_culture = System.Globalization.CultureInfo.GetCultureInfo("pt-BR");
 
     private DateOnly _today;
-    private ReferenceMonth _currentMonth;
     private ReferenceMonth _month;
     private DashboardSections _sections = DashboardSections.All;
     private int _topCategories = AppPreferences.Default.TopCategories;
@@ -60,8 +59,7 @@
     {
         EntryChanges.Changed += EntriesChangedAsync;
         _today = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
-        _currentMonth = ReferenceMonth.FromDate(_today);
-        _month = _currentMonth;
+        _month = ReferenceMonth.FromDate(_today);
         var preferences = await Preferences.GetAsync();
         _sections = preferences.Sections;
         _topCategories = preferences.TopCategories;
