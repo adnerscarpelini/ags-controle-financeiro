@@ -1132,8 +1132,15 @@ a.summary-name:hover { color: var(--color-accent-hover); }
 .summary-amounts { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
 .summary-amounts .summary-value { font-size: 16px; }
 .summary-breakdown-line { color: var(--color-text-secondary); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-@media (max-width: 480px) {
-    .summary-breakdown-line { white-space: normal; }
+/* No celular, o valor fica ao lado do nome e o total/abatido desce para a linha de baixo, ocupando a largura toda. */
+@media (max-width: 600px) {
+    .summary-head { display: grid; grid-template-areas: "logo title value" "logo breakdown breakdown"; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; column-gap: 10px; row-gap: 2px; }
+    .summary-head > .bank-logo { grid-area: logo; align-self: center; }
+    .summary-head > .summary-title { grid-area: title; }
+    .summary-head > .summary-amounts { display: contents; }
+    .summary-amounts .summary-value { grid-area: value; text-align: right; }
+    .summary-breakdown-line { grid-area: breakdown; white-space: normal; text-align: left; }
+    .summary-title .row-note > span { white-space: nowrap; }
 }
 .summary-hero { display: block; margin-bottom: var(--space-4); font-size: 30px; font-weight: 600; letter-spacing: -.028em; line-height: 1.15; }
 .summary-link { align-self: flex-start; margin-top: auto; padding-top: var(--space-3); font-size: 13px; }
