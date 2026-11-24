@@ -12,6 +12,14 @@
             </MudMenu>
         </MudTooltip>
     }
+    else if (Floating)
+    {
+        @* No celular, o botão flutua no canto inferior direito: o menu abre para cima, alinhado à direita e com a largura das opções. *@
+        <MudMenu Label="Novo" StartIcon="@Icons.Material.Outlined.Add" Color="Color.Primary" Variant="Variant.Filled"
+                 AnchorOrigin="Origin.TopRight" TransformOrigin="Origin.BottomRight">
+            @Options
+        </MudMenu>
+    }
     else
     {
         <MudMenu Label="Novo" StartIcon="@Icons.Material.Outlined.Add" Color="Color.Primary" Variant="Variant.Filled" FullWidth="true" RelativeWidth="DropdownWidth.Relative"
@@ -24,6 +32,9 @@
 @code {
     [Parameter]
     public bool Collapsed { get; set; }
+
+    [Parameter]
+    public bool Floating { get; set; }
 
     [Parameter]
     public EventCallback OnChosen { get; set; }
