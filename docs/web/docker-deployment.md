@@ -11,7 +11,7 @@ O que não foi comprovado está em [Limites da validação](#limites-da-validaç
 
 | Peça | Detalhe |
 | --- | --- |
-| Serviços | `db` (`postgres:18.6-alpine`) e `app` (imagem `ghcr.io/adnerscarpelini/ags-controle-financeiro:<versão>`, .NET 10 em Ubuntu 24.04, usuário sem root `app`, UID 1654) |
+| Serviços | `db` (`postgres:18.7-alpine`) e `app` (imagem `ghcr.io/adnerscarpelini/ags-controle-financeiro:<versão>`, .NET 10 em Ubuntu 24.04, usuário sem root `app`, UID 1654) |
 | Rede | Só o HTTPS do `app` é publicado (porta `5280` por padrão, `AGS_PORT`). O `db` não publica porta: só o `app` o alcança pela rede interna do Compose |
 | Volumes | `db-data` (dados do PostgreSQL), `app-data` (`/data`: certificado e chaves do Data Protection; logos ficam no PostgreSQL) a pasta de backup do host (`AGS_BACKUP_DIR`, `/backups`) e a pasta própria de anexos (`AGS_ATTACHMENTS_DIR`, `/attachments`), quatro destinos separados |
 | Processo | `dotnet Ags.Finance.Web.dll` direto no container (PID 1), `SIGTERM` com parada graciosa (30 s), logs em stdout/stderr, `restart: unless-stopped` |
@@ -189,6 +189,9 @@ O ensaio também valida anexos, download autenticado, ZIP com `SHA256SUMS` e res
 3. `docker compose up -d`: o novo container aplica as migrations pendentes e preserva os dados.
 
 Voltar à imagem anterior **não desfaz** migrations do banco: para voltar atrás, restaure o backup anterior à atualização.
+Quando a versão nova troca a imagem do banco dentro da mesma versão principal (por exemplo `postgres:18.6` → `18.7`, com correções
+de segurança, [#151](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/151)), o passo 1 continua obrigatório: o
+`docker compose up -d` recria o container `db` com a nova imagem sobre o mesmo volume `db-data`, sem dump nem restauração.
 A atualização de versão principal do PostgreSQL (por exemplo 18 → 19) tem procedimento próprio: backup, nova instalação com a
 nova imagem do banco e restauração. Imagens são versionadas por tag; releases publicam em GHCR (`vX.Y.Z`).
 

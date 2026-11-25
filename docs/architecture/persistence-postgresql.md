@@ -29,7 +29,7 @@ conversão do SQLite e sem manter dois providers.
   arquivos da aplicação. Logos normalizados ficam no próprio banco (#54). Dados ativos não ficam em pasta sincronizada.
 - Pacotes: `Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.3 (provider do EF Core 10, nos módulos) e `Npgsql`
   10.0.3 (verificação de prontidão no host e nos testes). As versões ficam em `Directory.Packages.props`.
-- Versão do servidor: PostgreSQL 18 (os testes e o CI fixam `postgres:18.6-alpine`). Atualizar o major
+- Versão do servidor: PostgreSQL 18 (os testes e o CI fixam `postgres:18.7-alpine`). Atualizar o major
   do banco exige procedimento próprio.
 
 ## Implementação

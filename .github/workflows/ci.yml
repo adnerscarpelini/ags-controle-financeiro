@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:18.6-alpine
+        image: postgres:18.7-alpine
         env:
           # Senha descartável do PostgreSQL de teste do CI; o serviço só existe durante o job.
           POSTGRES_PASSWORD: ags_test_only
