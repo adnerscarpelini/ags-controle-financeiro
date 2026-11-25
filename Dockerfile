@@ -2,7 +2,7 @@
 # Imagem Linux da aplicação. Build em dois estágios; o runtime roda sem root e já traz o cliente do
 # PostgreSQL 18 (pg_dump/pg_restore) usado pelo backup.
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0.402 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.404 AS build
 WORKDIR /src
 
 # Restauração primeiro, só com os arquivos de projeto, para aproveitar o cache de camadas.
@@ -28,7 +28,7 @@ RUN dotnet publish src/Ags.Finance.Web/Ags.Finance.Web.csproj \
         --configuration Release --no-restore --output /app \
         -p:Version=${VERSION} -p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.14-noble AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.15-noble AS runtime
 
 # Cliente do PostgreSQL na mesma versão principal do servidor do Compose (18), para backup e restauração.
 RUN apt-get update \
