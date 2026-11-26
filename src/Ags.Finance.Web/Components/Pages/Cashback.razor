@@ -1,6 +1,217 @@
 @page "/cashback"
-@inject NavigationManager Navigation
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Invoices.Contracts
+@using Ags.Finance.SharedKernel
+@using Ags.Finance.Web.Components.Cards
+@using Ags.Finance.Web.Components.Layout
+@implements IDisposable
+@inject ICashbackCatalog Catalog
+@inject IAccountCatalog Accounts
+@inject TimeProvider Clock
+@inject EntryChangeNotifier EntryChanges
+@inject IDialogService Dialogs
+@inject ViewportState Viewport
+@inject ISnackbar Snackbar
+
+<div class="page-head">
+    <PageHeader Title="Cashback" />
+    <HelpTip Text="O cashback de cada fatura pelo mês de vencimento: em dezembro aparece a fatura que vence em dezembro, com as compras de novembro. Previsto e A receber são calculados das compras; só o recebimento é gravado e pode ser desfeito." />
+</div>
+
+@if (_message is not null) { <p class="form-error" role="alert" data-cashback-error>@_message</p> }
+
+<section class="stat-cards" aria-label="Totais do cashback do mês">
+    <StatCard ValueClass="@ValueColor.Income(ExpectedTotal)" Label="Previsto" Help="Soma do previsto das faturas do mês: o percentual gravado em cada compra." Value="@ExpectedTotal.ToString()" Testid="cashback-expected" />
+    <StatCard ValueClass="@ValueColor.Income(ToReceiveTotal)" Label="A receber" Help="Previsto das faturas Pagas que ainda não tiveram o cashback confirmado." Value="@ToReceiveTotal.ToString()" Testid="cashback-to-receive" />
+    <StatCard ValueClass="@ValueColor.Income(ReceivedTotal)" Label="Recebido" Help="O que o banco de fato devolveu nas faturas do mês." Value="@ReceivedTotal.ToString()" Testid="cashback-received" />
+</section>
+
+<section class="panel data-panel">
+    <MonthPicker Value="_month" ValueChanged="MonthChangedAsync" PreviousLabel="Mês anterior" NextLabel="Próximo mês" />
+    <MudTable T="CashbackItem" Items="_items" Elevation="0" Hover="true" Class="data-table" Breakpoint="AppTables.Breakpoint(IsMobile)" aria-label="Cashback das faturas">
+        <HeaderContent>
+            <MudTh>Cartão e fatura</MudTh>
+            <MudTh Class="numeric">Previsto</MudTh>
+            <MudTh Class="numeric">Recebido</MudTh>
+            <MudTh>Situação</MudTh>
+            <MudTh>Ações</MudTh>
+        </HeaderContent>
+        <RowTemplate Context="item">
+            <MudTd DataLabel="Cartão e fatura" Class="col-description">
+                <span class="row-title">@item.CardName</span>
+                <span class="row-note">Fatura @item.Month · @InvoiceStatusLabel(item.InvoiceStatus)@(item.Receipt is { } note ? $" · {DestinationText(note)}" : string.Empty)</span>
+            </MudTd>
+            <MudTd DataLabel="Previsto" Class="@($"numeric {ValueColor.Income(Expected(item))}")" data-cashback-row-expected>@Expected(item)</MudTd>
+            <MudTd DataLabel="Recebido" Class="@($"numeric {(item.Receipt is { } shown ? ValueColor.Income(shown.Received) : ValueColor.Neutral)}")" data-cashback-row-received>@(item.Receipt is { } receipt ? receipt.Received.ToString() : "—")</MudTd>
+            <MudTd DataLabel="Situação"><span class="tag @(item.Status == CashbackStatus.ToReceive ? "status-pending" : null)" data-cashback-status>@StatusLabel(item)</span></MudTd>
+            <MudTd DataLabel="Ações" Class="col-actions">
+                @if (item.Status == CashbackStatus.ToReceive)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" data-receive-cashback Disabled="@_busy" OnClick="() => OpenReceiveAsync(item)">Receber</MudButton>
+                }
+                else if (item.Receipt is { } undoable)
+                {
+                    <MudButton Variant="Variant.Text" Size="Size.Small" data-undo-cashback Disabled="@_busy" OnClick="() => AskUndoAsync(item, undoable)">Desfazer recebimento</MudButton>
+                }
+                else
+                {
+                    <HelpTip Text="O cashback pode ser recebido depois que a fatura estiver Paga." />
+                }
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <EmptyState Icon="@Icons.Material.Outlined.Savings" Message="Nenhum cashback neste mês. Ligue Usa cashback no cadastro do cartão para acompanhar aqui." />
+        </NoRecordsContent>
+    </MudTable>
+</section>
+
+<section class="panel" aria-labelledby="cashback-year-title">
+    <div class="panel-head">
+        <h2 id="cashback-year-title">Recebido em @_year</h2>
+        <div class="field"><label for="cashback-year" class="visually-hidden">Ano do recebimento</label><input id="cashback-year" class="input" type="number" inputmode="numeric" min="1" max="9999" @bind="_year" @bind:after="LoadHistoryAsync" /></div>
+    </div>
+    <p data-cashback-year-total>Total recebido: <span class="numeric @ValueColor.Income(YearTotal)">@YearTotal</span></p>
+    <ul class="catalog-list" aria-label="Cashback recebido por cartão">
+        @foreach (var card in _history.GroupBy(x => x.CardName).OrderBy(x => x.Key, StringComparer.CurrentCulture))
+        {
+            var total = new Money(card.Sum(x => x.Amount.Amount));
+            <li class="list-row"><span>@card.Key</span><span class="numeric @ValueColor.Income(total)">@total</span></li>
+        }
+    </ul>
+    <MudTable T="CashbackHistoryItem" Items="_history" Elevation="0" Class="data-table" Breakpoint="AppTables.Breakpoint(IsMobile)" aria-label="Histórico de cashback recebido">
+        <HeaderContent>
+            <MudTh>Data</MudTh>
+            <MudTh>Cartão e fatura</MudTh>
+            <MudTh>Destino</MudTh>
+            <MudTh Class="numeric">Valor</MudTh>
+        </HeaderContent>
+        <RowTemplate Context="item">
+            <MudTd DataLabel="Data">@item.Date.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd DataLabel="Cartão e fatura">@item.CardName · Fatura @item.Month</MudTd>
+            <MudTd DataLabel="Destino" data-history-destination>@HistoryDestination(item)</MudTd>
+            <MudTd DataLabel="Valor" Class="@($"numeric {ValueColor.Income(item.Amount)}")">@item.Amount</MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <EmptyState Icon="@Icons.Material.Outlined.Savings" Message="Nenhum cashback recebido neste ano." />
+        </NoRecordsContent>
+    </MudTable>
+</section>
 
 @code {
-    protected override void OnInitialized() => Navigation.NavigateTo("/cartoes?abrir=cashback", replace: true);
+    [CascadingParameter(Name = "IsMobile")]
+    public bool IsMobile { get; set; }
+
+    private IReadOnlyList<CashbackItem> _items = [];
+    private IReadOnlyList<CashbackHistoryItem> _history = [];
+    private IReadOnlyList<AccountDetails> _accounts = [];
+    private IReadOnlyList<CreditCardDetails> _cards = [];
+    private ReferenceMonth _month;
+    private int _year;
+    private bool _busy;
+    private string? _message;
+
+    private Money ExpectedTotal => new(_items.Sum(x => Expected(x).Amount));
+    private Money ToReceiveTotal => new(_items.Where(x => x.Status == CashbackStatus.ToReceive).Sum(x => x.Expected.Amount));
+    private Money ReceivedTotal => new(_items.Sum(x => x.Receipt?.Received.Amount ?? 0));
+    private Money YearTotal => new(_history.Sum(x => x.Amount.Amount));
+
+    protected override async Task OnInitializedAsync()
+    {
+        var today = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+        _month = ReferenceMonth.FromDate(today);
+        _year = today.Year;
+        EntryChanges.Changed += OnEntriesChanged;
+        await LoadAsync();
+    }
+
+    public void Dispose() => EntryChanges.Changed -= OnEntriesChanged;
+
+    private Task OnEntriesChanged() => InvokeAsync(LoadAsync);
+
+    /// <summary>Com recebimento, vale o previsto gravado na confirmação; antes dela, o previsto atual das compras.</summary>
+    private static Money Expected(CashbackItem item) => item.Receipt?.Expected ?? item.Expected;
+
+    private async Task MonthChangedAsync(ReferenceMonth month)
+    {
+        _month = month;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _busy = true;
+        try
+        {
+            _accounts = await Accounts.GetAccountsAsync(false);
+            _cards = await Accounts.GetCreditCardsAsync(false);
+            _items = await Catalog.GetMonthAsync(_month);
+            _history = await Catalog.GetHistoryAsync(_year);
+        }
+        finally { _busy = false; }
+        StateHasChanged();
+    }
+
+    private async Task LoadHistoryAsync() => _history = await Catalog.GetHistoryAsync(_year);
+
+    private async Task OpenReceiveAsync(CashbackItem item)
+    {
+        var parameters = new DialogParameters<CashbackReceiptDialog>
+        {
+            { x => x.Item, item },
+            { x => x.Accounts, _accounts.Where(x => x.IsActive && x.Kind == AccountKind.Checking).ToList() },
+            { x => x.DefaultAccountExternalId, _cards.FirstOrDefault(x => x.ExternalId == item.CardExternalId)?.AccountExternalId },
+        };
+        // Ao confirmar, a janela avisa EntryChangeNotifier e o painel recarrega.
+        await Dialogs.ShowAsync<CashbackReceiptDialog>("Receber cashback", parameters, AppDialogs.Options(Viewport, MaxWidth.Small));
+    }
+
+    private async Task AskUndoAsync(CashbackItem item, CashbackReceiptDetails receipt)
+    {
+        var effect = receipt.Destination switch
+        {
+            CashbackDestination.Account => $"A receita de {receipt.Received} será excluída da conta {AccountName(receipt.AccountExternalId)}.",
+            CashbackDestination.Invoice => $"O abatimento de {receipt.Received} sai da fatura {receipt.TargetMonth}.",
+            _ => "Este recebimento não gerou lançamento.",
+        };
+        if (!await ConfirmDialog.AskAsync(Dialogs, "Desfazer recebimento", $"{item.CardName} · Fatura {item.Month}. {effect} O cashback volta a A receber.", "Desfazer recebimento")) { return; }
+        _busy = true;
+        try
+        {
+            var result = await Catalog.UndoAsync(receipt.ExternalId);
+            _message = result.Error;
+            if (result.Succeeded)
+            {
+                EntryChanges.Notify();
+                Snackbar.Add("Recebimento desfeito.", Severity.Success);
+            }
+        }
+        finally { _busy = false; }
+        await LoadAsync();
+    }
+
+    private string AccountName(Guid? id) => _accounts.FirstOrDefault(x => x.ExternalId == id)?.Name ?? "escolhida";
+
+    private string DestinationText(CashbackReceiptDetails receipt) => receipt.Destination switch
+    {
+        CashbackDestination.Account => $"Recebido em {receipt.Date:dd/MM/yyyy} na conta {AccountName(receipt.AccountExternalId)}",
+        CashbackDestination.Invoice => $"Abatido na fatura {receipt.TargetMonth} em {receipt.Date:dd/MM/yyyy}",
+        _ => $"Encerrado sem valor em {receipt.Date:dd/MM/yyyy}",
+    };
+
+    private static string HistoryDestination(CashbackHistoryItem item) => item.IsManual ? "Cashback lançado manualmente"
+        : item.Destination == CashbackDestination.Account ? "Conta corrente" : $"Abatimento na fatura {item.TargetMonth}";
+
+    private static string StatusLabel(CashbackItem item) => item.Status switch
+    {
+        CashbackStatus.Received => "Recebido",
+        CashbackStatus.ToReceive => "A receber",
+        _ => "Previsto",
+    };
+
+    private static string InvoiceStatusLabel(InvoiceStatus status) => status switch
+    {
+        InvoiceStatus.Paid => "Paga",
+        InvoiceStatus.Closed => "Fechada",
+        _ => "Aberta",
+    };
 }

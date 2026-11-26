@@ -33,6 +33,8 @@ Cartões exigem conta corrente ativa, nome, bandeira Visa/Mastercard/Elo, limite
 negativo, cor, fechamento e vencimento entre 1 e 31. A opção de incluir o dia do
 fechamento é explícita; conferir os valores com o emissor ao configurar o cartão.
 A cor é escolhida por amostra: cinco principais e "Outras cores" com a paleta completa, usando os tokens do tema (#112).
+A chave **Usa cashback** pede o percentual, maior que 0 e até 100, com até duas casas; desligada, nada é gravado.
+O percentual vale para as compras novas e é preservado ao arquivar e desarquivar ([Cashback dos cartões, #153](../invoices/cashback.md)).
 
 ## Decisões de design
 

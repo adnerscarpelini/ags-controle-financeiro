@@ -28,6 +28,11 @@ internal sealed class TransactionEntry : Entity
     public Guid? ReimbursementPersonExternalId { get; private set; }
     public decimal? ReimbursementPercent { get; private set; }
 
+    /// <summary>Percentual de cashback do cartão gravado no lançamento da compra; zero fora do cartão ou sem cashback.</summary>
+    public decimal CashbackPercent { get; private set; }
+
+    public Money ExpectedCashback => CashbackCalculation.Expected(Amount, CashbackPercent);
+
     public string? Update(DateOnly date, ReferenceMonth month, Guid merchantExternalId, Guid subcategoryExternalId, Guid accountExternalId, CategoryKind kind, Money amount, string details, bool allowZeroAmount = false)
     {
         if (date == DateOnly.MinValue || month.Year == 0 || merchantExternalId == Guid.Empty || subcategoryExternalId == Guid.Empty || accountExternalId == Guid.Empty)
@@ -105,13 +110,15 @@ internal sealed class TransactionEntry : Entity
         NormalizedDetails = prepared.NormalizedDetails;
         ReimbursementPersonExternalId = prepared.ReimbursementPersonExternalId;
         ReimbursementPercent = prepared.ReimbursementPercent;
+        CashbackPercent = prepared.CashbackPercent;
         if (IsEffective && dateChanged) { EffectiveDate = prepared.Date; }
     }
 
-    public void SetCard(Guid cardExternalId, Guid? cardLastDigitsExternalId)
+    public void SetCard(Guid cardExternalId, Guid? cardLastDigitsExternalId, decimal cashbackPercent = 0)
     {
         CardExternalId = cardExternalId;
         CardLastDigitsExternalId = cardLastDigitsExternalId;
+        CashbackPercent = Kind == CategoryKind.Expense && cashbackPercent is > 0 and <= 100 ? cashbackPercent : 0;
     }
 
     public void SetInstallment(Guid purchaseExternalId, int number, Money part)

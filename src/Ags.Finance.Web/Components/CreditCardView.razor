@@ -22,6 +22,7 @@
         <span>@(Bank?.Name ?? "Banco não localizado") · @(Account?.Name ?? "Conta não localizada") · @Card.Brand</span>
         @if (Finals.Count == 0) { <span>Sem final cadastrado</span> }
         @foreach (var final in Finals) { <span>Final <strong class="numeric">@final.Digits</strong>@(string.IsNullOrWhiteSpace(final.Label) ? string.Empty : $" · {final.Label}")</span> }
+        @if (Card.CashbackPercent is { } cashback) { <span data-card-cashback>Cashback @cashback.ToString("0.##", System.Globalization.CultureInfo.GetCultureInfo("pt-BR"))%</span> }
         @if (!Card.IsAvailable) { <span class="wallet-card-status" data-card-status>@AvailabilityText</span> }
     </p>
     @if (Invoice is { } invoice)

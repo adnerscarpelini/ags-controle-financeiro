@@ -46,15 +46,44 @@ internal sealed class InvoicesDbContextModelSnapshot : ModelSnapshot
             b.Property<int>("Kind").HasColumnType("integer");
             b.Property<Guid?>("AccountExternalId").HasColumnType("uuid");
             b.Property<string>("Details").IsRequired().HasMaxLength(1000).HasColumnType("character varying(1000)");
+            b.Property<Guid?>("CashbackReceiptExternalId").HasColumnType("uuid");
             b.HasKey("Id");
             b.HasIndex("ExternalId").IsUnique();
             b.HasIndex("ConfirmationId").IsUnique();
+            b.HasIndex("CashbackReceiptExternalId").IsUnique();
             b.HasIndex("InvoiceExternalId");
             b.ToTable("invoice_payments", "invoices");
         });
         modelBuilder.Entity("Ags.Finance.Modules.Invoices.Domain.InvoicePayment", b =>
         {
             b.HasOne("Ags.Finance.Modules.Invoices.Domain.Invoice", null).WithMany().HasForeignKey("InvoiceExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+        });
+        modelBuilder.Entity("Ags.Finance.Modules.Invoices.Domain.CashbackReceipt", b =>
+        {
+            b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint").HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+            b.Property<Guid>("ExternalId").HasColumnType("uuid");
+            b.Property<DateTimeOffset>("CreatedAt").HasColumnType("timestamp with time zone");
+            b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("timestamp with time zone");
+            b.Property<Guid>("ConfirmationId").HasColumnType("uuid");
+            b.Property<Guid>("InvoiceExternalId").HasColumnType("uuid");
+            b.Property<DateOnly>("Date").HasColumnType("date");
+            b.Property<long>("Expected").HasColumnType("bigint");
+            b.Property<long>("Received").HasColumnType("bigint");
+            b.Property<int>("Destination").HasColumnType("integer");
+            b.Property<Guid?>("AccountExternalId").HasColumnType("uuid");
+            b.Property<Guid?>("IncomeEntryExternalId").HasColumnType("uuid");
+            b.Property<Guid?>("TargetInvoiceExternalId").HasColumnType("uuid");
+            b.HasKey("Id");
+            b.HasIndex("ExternalId").IsUnique();
+            b.HasIndex("ConfirmationId").IsUnique();
+            b.HasIndex("InvoiceExternalId").IsUnique();
+            b.HasIndex("TargetInvoiceExternalId");
+            b.ToTable("cashback_receipts", "invoices");
+        });
+        modelBuilder.Entity("Ags.Finance.Modules.Invoices.Domain.CashbackReceipt", b =>
+        {
+            b.HasOne("Ags.Finance.Modules.Invoices.Domain.Invoice", null).WithMany().HasForeignKey("InvoiceExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+            b.HasOne("Ags.Finance.Modules.Invoices.Domain.Invoice", null).WithMany().HasForeignKey("TargetInvoiceExternalId").HasPrincipalKey("ExternalId").OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity("Ags.Finance.Modules.Invoices.Domain.InstallmentAnticipation", b =>
         {

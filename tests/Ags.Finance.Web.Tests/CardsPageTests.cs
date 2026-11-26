@@ -353,7 +353,7 @@ public sealed class CardsPageTests
 
     [Theory]
     [InlineData("Histórico", "Cashback:")]
-    [InlineData("Cashback e descontos", "Novo cashback ou desconto")]
+    [InlineData("Descontos", "Novo desconto")]
     [InlineData("Compromissos", "Em aberto por cartão")]
     [InlineData("Anexos", "Documentos anexados")]
     public async Task EveryInvoiceFunctionIsReachableFromTheDetailMenu(string item, string expected)
@@ -555,13 +555,13 @@ public sealed class CardsPageTests
     }
 
     [Fact]
-    public async Task CashbackIsCreatedEditedAndDeletedAfterConfirmationAndTheInvoiceShowsTheCredit()
+    public async Task DiscountIsCreatedEditedAndDeletedAfterConfirmationAndTheInvoiceShowsTheCredit()
     {
         await using var ui = await EntryUi.CreateAsync();
         var page = OpenCards(ui);
-        await ChooseAsync(ui, page.Find(".page-head-actions .mud-menu button"), "Cashback e descontos");
+        await ChooseAsync(ui, page.Find(".page-head-actions .mud-menu button"), "Descontos");
         ui.Dialogs.WaitForAssertion(() => Assert.Contains("Cartão Exemplo", ui.Dialogs.Find("#allowance-card").TextContent, StringComparison.Ordinal));
-        var history = "[aria-label='Histórico de abatimentos'] tbody tr";
+        var history = "[aria-label='Histórico de descontos'] tbody tr";
         await ui.Dialogs.Find("#allowance-card").ChangeAsync(ui.Card.ToString());
         ui.Dialogs.Find("#allowance-amount").Input("8");
         ui.Dialogs.WaitForAssertion(() => Assert.Equal(8m, ui.Dialogs.FindComponent<MoneyField>().Instance.Value));
@@ -573,7 +573,7 @@ public sealed class CardsPageTests
         ui.Dialogs.WaitForAssertion(() => Assert.Equal(10m, ui.Dialogs.FindComponent<MoneyField>().Instance.Value));
         await ui.Dialogs.Find("#allowance-form").SubmitAsync(EventArgs.Empty);
         ui.Dialogs.WaitForAssertion(() => Assert.Contains("R$ 10,00", ui.Dialogs.Find(history).TextContent, StringComparison.Ordinal));
-        Assert.Contains("R$ 10,00", ui.Dialogs.Find("[data-cashback-total]").TextContent, StringComparison.Ordinal);
+        Assert.Contains("R$ 10,00", ui.Dialogs.Find("[data-discount-total]").TextContent, StringComparison.Ordinal);
 
         var invoice = Assert.Single(await ui.Context.Services.GetRequiredService<IInvoiceCatalog>().GetAsync());
         Assert.Equal(InvoiceStatus.Open, invoice.Status);
@@ -588,14 +588,14 @@ public sealed class CardsPageTests
         _ = ui.Dialogs.Find($"{history} [data-action=delete]").ClickAsync(new MouseEventArgs());
         ui.Dialogs.WaitForAssertion(() => Assert.NotEmpty(ui.Dialogs.FindAll("[data-confirm-ok]")));
         await ui.Dialogs.Find("[data-confirm-ok]").ClickAsync(new MouseEventArgs());
-        ui.Dialogs.WaitForAssertion(() => Assert.Contains("Nenhum abatimento", ui.Dialogs.Markup, StringComparison.Ordinal));
+        ui.Dialogs.WaitForAssertion(() => Assert.Contains("Nenhum desconto", ui.Dialogs.Markup, StringComparison.Ordinal));
     }
 
     [Fact]
     public async Task TheDetailIdentifiesACredit()
     {
         await using var ui = await EntryUi.CreateAsync();
-        var saved = await ui.Context.Services.GetRequiredService<IInvoicePaymentCatalog>().SaveAllowanceAsync(null, new(Guid.CreateVersion7(), ui.Card, s_september, new DateOnly(2026, 9, 1), new Money(10), InvoicePaymentKind.Cashback));
+        var saved = await ui.Context.Services.GetRequiredService<IInvoicePaymentCatalog>().SaveAllowanceAsync(null, new(Guid.CreateVersion7(), ui.Card, s_september, new DateOnly(2026, 9, 1), new Money(10), InvoicePaymentKind.Discount));
         Assert.True(saved.Succeeded, saved.Error);
 
         var page = OpenDetail(ui);
@@ -617,7 +617,7 @@ public sealed class CardsPageTests
     }
 
     [Theory]
-    [InlineData("cashback", "Novo cashback ou desconto")]
+    [InlineData("descontos", "Novo desconto")]
     [InlineData("compromissos", "Em aberto por cartão")]
     public async Task TheOldRoutesOpenTheCorrespondingWindow(string query, string expected)
     {
@@ -627,6 +627,18 @@ public sealed class CardsPageTests
         ui.Context.Render<Cards>();
 
         ui.Dialogs.WaitForAssertion(() => Assert.Contains(expected, ui.Dialogs.Markup, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task TheOldCashbackLinkGoesToTheCashbackPanel()
+    {
+        await using var ui = await EntryUi.CreateAsync();
+        var navigation = ui.Context.Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/cartoes?abrir=cashback");
+
+        var page = ui.Context.Render<Cards>();
+
+        page.WaitForAssertion(() => Assert.EndsWith("/cashback", navigation.Uri, StringComparison.Ordinal));
     }
 
     [Fact]

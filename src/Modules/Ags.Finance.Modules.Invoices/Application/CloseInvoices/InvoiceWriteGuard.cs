@@ -12,6 +12,10 @@ internal sealed class InvoiceWriteGuard(IInvoiceStore store, IAccountCatalog acc
 
     public async Task<string?> RequireAdjustmentAsync(Guid cardExternalId, ReferenceMonth month, CancellationToken cancellationToken = default)
         => (await store.FindAsync(cardExternalId, month, cancellationToken))?.Status == InvoiceStatus.Paid ? "Fatura Paga não permite ajuste de total." : null;
+    public async Task<string?> RequireEntryChangeAsync(Guid entryExternalId, CancellationToken cancellationToken = default)
+        => (await store.GetCashbackReceiptsAsync(cancellationToken)).Any(x => x.IncomeEntryExternalId == entryExternalId)
+            ? "Este lançamento foi gerado por um recebimento de cashback. Para corrigi-lo, desfaça o recebimento no painel de Cashback." : null;
+
     public Task<string?> RequireOpenAsync(Guid cardExternalId, ReferenceMonth month, CancellationToken cancellationToken = default)
         => RequireCoreAsync(cardExternalId, month, null, true, cancellationToken);
 

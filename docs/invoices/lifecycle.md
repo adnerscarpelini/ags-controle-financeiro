@@ -35,7 +35,7 @@ serializa validação e gravação, sem dependência inversa entre módulos.
 Reabrir sem pagamentos usa o ciclo normal da Fechada. A #93 permite reabrir Paga
 ou qualquer fatura com pagamento confirmado, inclusive Aberta, desfazendo todos
 os pagamentos e restaurando os débitos nas contas originais. Descontos/cashbacks
-permanecem. A reabertura suprime o fechamento automático até fechamento manual,
+permanecem, assim como o recebimento de cashback da fatura ([#153](cashback.md)). A reabertura suprime o fechamento automático até fechamento manual,
 mesmo depois do corte; não recalcula nem move compras. Histórico e anexos são preservados.
 
 O fechamento automático pausa durante a manutenção de restauração. Logs de falha
@@ -56,4 +56,6 @@ após um período desligado; não podem modificar Fechada/Paga. Ver as
 | Fechada | Protegidas, com a explicação | Reabrir, Ajustar e Pagar | Pagar parcial e, com saldo zero ou crédito, Confirmar quitação |
 | Paga | Protegidas, com a explicação | Reabrir | |
 
-O menu sempre oferece Histórico, Cashback e descontos, Compromissos, Anexos e Exportar, este por [Arquivos CSV](../web/layout-and-navigation.md). `/faturas`, `/compromissos` e `/cashback` redirecionam para Cartões, abrindo a janela correspondente.
+O menu sempre oferece Histórico, Cashback (link para o [painel de cashback](cashback.md)), Descontos, Compromissos, Anexos e Exportar, este por [Arquivos CSV](../web/layout-and-navigation.md). `/faturas` e `/compromissos` redirecionam para Cartões, abrindo a janela correspondente; `/cashback` é o painel próprio (#153).
+
+Quando o cartão usa cashback ou a fatura tem previsto, a tabela ganha a coluna Cashback e o resumo, o total Cashback previsto ([#153](cashback.md)).

@@ -50,7 +50,7 @@ O seletor de mês de referência não desloca essa janela: as pendências ficam 
   não entram nessas faturas por caminhos alternativos, como parcelas, recorrências ou CSV.
 - Reabrir é manual. Com pagamentos confirmados, a #93 desfaz todos na mesma
   operação, inclusive parciais/antecipados em Aberta, e restaura os débitos nas contas
-  originais; mantém descontos, cashback, histórico e anexos.
+  originais; mantém descontos, cashback (inclusive o recebimento confirmado, #153), histórico e anexos.
 - Antecipar pagamento não fecha uma fatura Aberta por si só; ela ainda pode receber compras.
 - Saldo restante zero ou negativo não muda a situação automaticamente para Paga,
   inclusive ao fechar ou ajustar o total. Exigir confirmação explícita de quitação,
@@ -65,10 +65,27 @@ O seletor de mês de referência não desloca essa janela: as pendências ficam 
   Não reabre a fatura, altera compras originais ou modifica pagamentos; não é InvoicePayment.
 
 A #19 implementa a política aprovada de abatimentos: criar, editar e excluir
-Cashback/Desconto é permitido em Aberta/Fechada e bloqueado em Paga, inclusive na
-origem e no destino de uma mudança. Pagamentos são desfeitos somente pela reabertura conjunta da #93.
+Desconto é permitido em Aberta/Fechada e bloqueado em Paga, inclusive na
+origem e no destino de uma mudança. Desde a #153, Cashback não é mais lançado por esses
+comandos (ver abaixo); os lançados à mão antes dela ficam somente leitura e continuam abatendo.
+Pagamentos são desfeitos somente pela reabertura conjunta da #93.
 O débito atômico e a quitação explícita da #51 estão implementados; pagamentos
 confirmados não podem ser editados ou excluídos pelos comandos de abatimento.
+
+## Cashback (#153)
+
+- O percentual é configuração do cartão (Accounts) e fica **gravado em cada compra** no ato do
+  lançamento (Transactions); mudar o cartão não recalcula o histórico. O previsto é derivado:
+  valor absoluto × percentual, arredondado em centavos pela regra de `Money`. Ajuste de fatura não
+  gera cashback, e o previsto da fatura nunca é negativo.
+- Previsto e A receber são derivados da situação da fatura (Aberta/Fechada e Paga); só o
+  recebimento é gravado, em Invoices, um por fatura, no mesmo modelo dos reembolsos.
+- O recebimento em conta corrente é **receita** (Cashback › Cashback recebido), protegida contra
+  edição e exclusão em Lançamentos; o recebimento como abatimento é um `InvoicePayment` Cashback na
+  fatura Aberta do mesmo cartão, sem receita. Cada recebimento usa um único destino.
+- Recebimento, receita e abatimento usam uma única operação financeira, com confirmação idempotente.
+  Desfazer abatimento é bloqueado com o destino Pago; reabrir a fatura de origem não desfaz o recebimento.
+- Detalhes em [Cashback dos cartões](../invoices/cashback.md).
 
 ## Reembolsos (#78–#83)
 

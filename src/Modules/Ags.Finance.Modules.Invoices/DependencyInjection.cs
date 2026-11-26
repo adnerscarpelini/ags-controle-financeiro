@@ -5,6 +5,7 @@ using Ags.Finance.Modules.Invoices.Application.CloseInvoices;
 using Ags.Finance.Modules.Invoices.Application.ManageAttachments;
 using Ags.Finance.Modules.Invoices.Application.ManagePayments;
 using Ags.Finance.Modules.Invoices.Application.QueryInvoices;
+using Ags.Finance.Modules.Invoices.Application.ReceiveCashback;
 using Ags.Finance.Modules.Invoices.Contracts;
 using Ags.Finance.Modules.Invoices.Infrastructure;
 using Ags.Finance.Modules.Transactions.Contracts;
@@ -35,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped<IInvoiceAdjustmentCatalog, InvoiceAdjustmentCatalog>();
         services.AddScoped<IInvoiceAnticipationCatalog, InvoiceAnticipationCatalog>();
         services.AddScoped<IInvoicePaymentCatalog, InvoicePaymentCatalog>();
+        services.AddScoped<ICashbackCatalog, CashbackCatalog>();
         services.AddScoped<IInvoiceStore, InvoiceStore>();
         services.AddScoped<IInvoiceLifecycle, InvoiceLifecycle>();
         services.AddScoped<IInvoiceWriteGuard, InvoiceWriteGuard>();

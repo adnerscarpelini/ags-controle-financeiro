@@ -38,5 +38,6 @@ internal sealed class CreditCardConfiguration : IEntityTypeConfiguration<CreditC
         builder.ToTable("credit_cards");
         builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
         builder.Property(x => x.Color).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.CashbackPercent).HasPrecision(5, 2);
     }
 }

@@ -109,8 +109,10 @@ internal sealed partial class EntryCatalog
     private Task<string?> RequireSourceOpenAsync(TransactionEntry entry, CancellationToken cancellationToken)
         => entry.CardExternalId is { } card ? invoices.RequireOpenAsync(card, entry.Month, cancellationToken) : Task.FromResult<string?>(null);
 
+    /// <summary>Lançamentos ligados a outro módulo: reembolso recebido (Reimbursements) e receita de cashback recebido (Invoices).</summary>
     private async Task<string?> RequireReimbursementChangeAsync(TransactionEntry entry, bool changesProtectedData, CancellationToken cancellationToken)
-        => await reimbursements.RequireEntryChangeAsync(entry.ExternalId, changesProtectedData, cancellationToken) is { } error ? $"Lançamento de {entry.Date:dd/MM/yyyy}: {error}" : null;
+        => (await invoices.RequireEntryChangeAsync(entry.ExternalId, cancellationToken) ?? await reimbursements.RequireEntryChangeAsync(entry.ExternalId, changesProtectedData, cancellationToken))
+            is { } error ? $"Lançamento de {entry.Date:dd/MM/yyyy}: {error}" : null;
 
     private static bool ChangesProtectedData(TransactionEntry entry, TransactionEntry updated, bool keepAmount)
         => (!keepAmount && updated.Amount != entry.Amount) || updated.Kind != entry.Kind

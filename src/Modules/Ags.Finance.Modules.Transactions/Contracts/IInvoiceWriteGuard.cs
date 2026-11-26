@@ -6,6 +6,9 @@ public interface IInvoiceWriteGuard
 {
     Task<bool> IsAnticipatedAsync(Guid entryExternalId, CancellationToken cancellationToken = default);
     Task<string?> RequireAdjustmentAsync(Guid cardExternalId, ReferenceMonth month, CancellationToken cancellationToken = default);
+    /// <summary>Consultado antes de alterar ou excluir um lançamento: a receita gerada por um recebimento de cashback só muda pelo painel de Cashback.</summary>
+    Task<string?> RequireEntryChangeAsync(Guid entryExternalId, CancellationToken cancellationToken = default);
+
     Task<string?> RequireOpenAsync(Guid cardExternalId, ReferenceMonth month, CancellationToken cancellationToken = default);
     Task<string?> RequireRecurringAsync(Guid cardExternalId, ReferenceMonth month, DateTimeOffset plannedAt, CancellationToken cancellationToken = default);
 

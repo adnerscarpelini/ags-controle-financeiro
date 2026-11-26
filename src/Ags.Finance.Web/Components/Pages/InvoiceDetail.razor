@@ -52,7 +52,8 @@
                     @if (_invoice.Status == InvoiceStatus.Open) { <MudMenuItem Icon="@Icons.Material.Outlined.Payments" OnClick="OpenPaymentAsync">Pagar antecipado</MudMenuItem> }
                     @if (_invoice.Status == InvoiceStatus.Closed) { <MudMenuItem Icon="@Icons.Material.Outlined.Payments" OnClick="OpenPaymentAsync">Pagar parcial</MudMenuItem> }
                     <MudMenuItem Icon="@Icons.Material.Outlined.History" OnClick="OpenHistoryAsync">Histórico</MudMenuItem>
-                    <MudMenuItem Icon="@Icons.Material.Outlined.Savings" OnClick="OpenAllowanceAsync">Cashback e descontos</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Savings" Href="cashback">Cashback</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Outlined.Discount" OnClick="OpenAllowanceAsync">Descontos</MudMenuItem>
                     <MudMenuItem Icon="@Icons.Material.Outlined.EventNote" OnClick="OpenObligationsAsync">Compromissos</MudMenuItem>
                     <MudMenuItem Icon="@Icons.Material.Outlined.AttachFile" OnClick="OpenAttachmentsAsync">Anexos</MudMenuItem>
                     <MudMenuItem Icon="@Icons.Material.Outlined.Download" Href="arquivos-csv">Exportar</MudMenuItem>
@@ -75,6 +76,7 @@
                     <MudTh>Descrição</MudTh>
                     <MudTh>Categoria</MudTh>
                     <MudTh Class="numeric">Valor</MudTh>
+                    @if (ShowsCashback) { <MudTh Class="numeric">Cashback <HelpTip Text="Previsto pelo percentual gravado na compra, no momento do lançamento." /></MudTh> }
                     <MudTh>Ações</MudTh>
                 </HeaderContent>
                 <RowTemplate Context="entry">
@@ -85,6 +87,10 @@
                     </MudTd>
                     <MudTd DataLabel="Categoria">@entry.Classification.Replace(" > ", " › ", StringComparison.Ordinal)</MudTd>
                     <MudTd DataLabel="Valor" Class="@($"numeric {ValueColor.Balance(entry.Amount)} {(IsForecast(entry) ? "invoice-forecast" : null)}")">@Purchase(entry)</MudTd>
+                    @if (ShowsCashback)
+                    {
+                        <MudTd DataLabel="Cashback" Class="@($"numeric {ValueColor.Income(entry.ExpectedCashback)}")" data-entry-cashback>@CashbackText(entry)</MudTd>
+                    }
                     <MudTd DataLabel="Ações" Class="col-actions">
                         @if (entry.IsInvoiceAdjustment)
                         {
@@ -108,6 +114,10 @@
         <aside class="split-aside" aria-label="Resumo da fatura">
             <StatCard ValueClass="@ValueColor.Expense(_invoice.Total)" Label="Valor da fatura" Value="@_invoice.Total.ToString()" Note="@ForecastNote" Testid="invoice-total" />
             <StatCard ValueClass="@ValueColor.Owed(_invoice.RemainingBalance)" Label="Saldo restante" Help="Total menos pagamentos, cashback e descontos. Saldo zero ou crédito sem confirmação de quitação não significa fatura Paga." Value="@RemainingText" Testid="invoice-remaining" />
+            @if (ShowsCashback)
+            {
+                <StatCard ValueClass="@ValueColor.Income(_invoice.ExpectedCashback)" Label="Cashback previsto" Help="Soma do cashback das compras pelo percentual gravado em cada uma. O recebimento é confirmado no painel de Cashback depois que a fatura estiver Paga." Value="@_invoice.ExpectedCashback.ToString()" Testid="invoice-cashback" />
+            }
             <StatCard Label="Situação" Help="Aberta recebe compras. Fechada aguarda pagamento. Paga está quitada e pode ser reaberta, o que desfaz o pagamento." Value="@StatusLabel(_invoice.Status)" Testid="invoice-status" />
             @if (_dates is { } dates)
             {
@@ -148,6 +158,12 @@
     private bool HasInvoice => _loaded && _card is not null;
 
     private bool CanReopen => _invoice.Status != InvoiceStatus.Open || _invoice.HasConfirmedPayment;
+
+    /// <summary>A coluna e o total de cashback aparecem no cartão com cashback ou na fatura que já tem previsto gravado.</summary>
+    private bool ShowsCashback => _card?.UsesCashback == true || _invoice.ExpectedCashback.Amount > 0;
+
+    private static string CashbackText(EntryDetails entry)
+        => entry.CashbackPercent > 0 ? $"{entry.ExpectedCashback} ({entry.CashbackPercent.ToString("0.##", CultureInfo.GetCultureInfo("pt-BR"))}%)" : "—";
 
     private bool CanSettle => _invoice.Status == InvoiceStatus.Closed && _invoice.RemainingBalance.Amount <= 0;
 
@@ -302,8 +318,8 @@
 
     private async Task OpenAllowanceAsync()
     {
-        var parameters = new DialogParameters<CashbackDialog> { { x => x.CardExternalId, CardExternalId }, { x => x.Month, _month } };
-        await Dialogs.ShowAsync<CashbackDialog>("Cashback e descontos", parameters, AppDialogs.Options(Viewport, MaxWidth.Medium));
+        var parameters = new DialogParameters<DiscountsDialog> { { x => x.CardExternalId, CardExternalId }, { x => x.Month, _month } };
+        await Dialogs.ShowAsync<DiscountsDialog>("Descontos", parameters, AppDialogs.Options(Viewport, MaxWidth.Medium));
     }
 
     private async Task OpenObligationsAsync() =>

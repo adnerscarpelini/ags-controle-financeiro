@@ -6,19 +6,23 @@ confirmação, fatura, data, valor positivo, detalhes e conta debitada quando ho
 A referência à fatura tem FK dentro do schema invoices; cartões e contas continuam
 referenciados apenas por ExternalId, sem FK entre módulos.
 
-Cashback e desconto podem ser criados, editados, movidos e excluídos em faturas
-Abertas/Fechadas. Em Paga, essas ações são bloqueadas, tanto na origem quanto no
+Desconto pode ser criado, editado, movido e excluído em faturas Abertas/Fechadas, na
+janela **Descontos**. Em Paga, essas ações são bloqueadas, tanto na origem quanto no
 destino de uma edição. Esta política foi aprovada pelo usuário na implementação.
 Pagamentos não usam os comandos de abatimento; são desfeitos pela reabertura da #93.
 
-A área Cashback permite registrar os dois tipos de abatimento e consultar o
-histórico por cartão e ano de recebimento. O total anual e a discriminação por
-cartão somam apenas Cashback, sem incluir descontos ou pagamentos.
+Desde a [#153](cashback.md), Cashback não é mais lançado à mão: `SaveAllowance` e
+`DeleteAllowance` recusam o tipo, e o cashback é confirmado no [painel de cashback](cashback.md),
+como receita em conta corrente ou abatimento na fatura Aberta do mesmo cartão. O abatimento
+gerado ali aparece no histórico como "Cashback recebido" e só é desfeito pelo painel. Cashbacks
+lançados manualmente antes da #153 continuam abatendo suas faturas, somente leitura, como
+"Cashback lançado manualmente"; o histórico anual de cashback passou para o painel.
 A fatura mostra total bruto, cashback, descontos, pagamentos e saldo restante,
 com histórico de data, valor, tipo, detalhes e conta efetivamente debitada.
 Saldo negativo aparece como crédito com texto e o token Warning.
 
-Abatimentos não geram receita, despesa ou débito em conta; também não mudam a
+Abatimentos não geram receita, despesa ou débito em conta (o recebimento de cashback em
+conta corrente é uma receita criada pelo painel, não um abatimento); também não mudam a
 situação da fatura automaticamente. Saldo zero/crédito continua exigindo quitação
 explícita. A confirmação usa transação financeira e identidade estável para não
 duplicar o cadastro por clique repetido; falhas revertem também uma nova fatura.
@@ -58,7 +62,8 @@ A confirmação remove os débitos de Transactions e grava UndoneAt nos pagament
 sem apagar suas linhas, identificadores, confirmações ou anexos. Cada valor volta à
 conta originalmente debitada, mesmo arquivada. A fatura volta a Aberta, sem PaidAt
 ou pagamento confirmado, e suprime fechamento automático até fechamento manual.
-Cashback e desconto permanecem. Antecipação de parcelas não é desfeita.
+Cashback e desconto permanecem, assim como o recebimento de cashback da fatura reaberta (#153).
+Antecipação de parcelas não é desfeita.
 
 O histórico identifica Desfeito e todas as somas, inclusive saldo restante, compromissos
 e Reports, ignoram esses pagamentos. Repetir a reabertura não devolve dinheiro duas

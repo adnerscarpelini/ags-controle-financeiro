@@ -16,7 +16,7 @@ internal sealed partial class AccountCatalog(IAccountsStore store, TimeProvider 
         var accounts = await store.GetAccountsAsync(cancellationToken);
         return (await store.GetCreditCardsAsync(cancellationToken))
             .Where(x => !activeOnly || (x.IsActive && accounts.Any(a => a.ExternalId == x.AccountExternalId && a.IsActive)))
-            .Select(x => new CreditCardDetails(x.ExternalId, x.AccountExternalId, x.Name, (Contracts.CardBrand)x.Brand, x.CreditLimit, x.ClosingDay, x.DueDay, x.IncludesClosingDay, x.Color, x.IsActive, accounts.Any(a => a.ExternalId == x.AccountExternalId && a.IsActive))).ToList();
+            .Select(x => new CreditCardDetails(x.ExternalId, x.AccountExternalId, x.Name, (Contracts.CardBrand)x.Brand, x.CreditLimit, x.ClosingDay, x.DueDay, x.IncludesClosingDay, x.Color, x.IsActive, accounts.Any(a => a.ExternalId == x.AccountExternalId && a.IsActive), x.CashbackPercent)).ToList();
     }
 
     public Task<CatalogResult> SaveAccountAsync(SaveAccountRequest request, CancellationToken cancellationToken = default)
@@ -89,6 +89,7 @@ internal sealed partial class AccountCatalog(IAccountsStore store, TimeProvider 
             return new(null, "Selecione uma conta corrente ativa cadastrada.");
         }
         var error = card.Update(request.AccountExternalId, request.Name, (CardBrand)request.Brand, request.CreditLimit, request.ClosingDay, request.DueDay, request.IncludesClosingDay, request.Color);
+        if (error is null && request.Cashback is { } cashback) { error = card.SetCashback(cashback.Percent); }
         return error is null ? await PersistAsync(card, cancellationToken) : new(null, error);
     }
 

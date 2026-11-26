@@ -42,7 +42,8 @@ internal sealed partial class EntryCatalog
         var definitions = (await store.GetRecurringAsync(cancellationToken)).Where(x => x.IsActive && (!filter.PendingRecurringOnly || x.CardExternalId is null)).ToList();
         if (definitions.Count == 0) { return new(0, 0); }
         var existing = RecurringOccurrencePlanner.ExistingOccurrences(await store.GetAsync(cancellationToken));
-        var plan = await new RecurringOccurrencePlanner(calendar, clock).PlanAsync(definitions, existing, filter, invoices.RequireRecurringAsync, cancellationToken);
+        var cashback = (await accounts.GetCreditCardsAsync(false, cancellationToken)).Where(x => x.CashbackPercent is not null).ToDictionary(x => x.ExternalId, x => x.CashbackPercent!.Value);
+        var plan = await new RecurringOccurrencePlanner(calendar, clock).PlanAsync(definitions, existing, filter, invoices.RequireRecurringAsync, cancellationToken, cashback);
         if (plan.Error is not null) { return new(0, 0, plan.Error); }
         await store.AddOccurrencesAsync(plan.Entries, cancellationToken);
         return new(plan.Entries.Count, plan.ProtectedCount);

@@ -41,7 +41,7 @@ internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementSt
             var entry = new TransactionEntry();
             error = entry.Update(template.Date, month, template.MerchantExternalId, template.SubcategoryExternalId, template.AccountExternalId, template.Kind, request.Amount, template.Details);
             if (error is not null) { return new(null, error); }
-            entry.SetCard(cardId, template.CardLastDigitsExternalId);
+            entry.SetCard(cardId, template.CardLastDigitsExternalId, template.CashbackPercent);
             entry.SetEffective(template.Date, clock.GetUtcNow());
             entry.SetInstallment(purchase.ExternalId, index + 1, parts[index]);
             error = entry.SetReimbursement(template.ReimbursementPersonExternalId, template.ReimbursementPercent);
@@ -107,7 +107,12 @@ internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementSt
             if (error is not null) { return (null, error); }
         }
         entry.SetEffective(request.Date, clock.GetUtcNow());
-        if (card is not null) { entry.SetCard(card.ExternalId, request.CardLastDigitsExternalId); }
+        if (card is not null)
+        {
+            // O percentual é o do cartão no ato da compra: a edição no mesmo cartão o preserva, mesmo que o cadastro tenha mudado.
+            var cashback = original is not null && original.CardExternalId == card.ExternalId ? original.CashbackPercent : card.CashbackPercent ?? 0;
+            entry.SetCard(card.ExternalId, request.CardLastDigitsExternalId, cashback);
+        }
         return (entry, null);
     }
 
@@ -134,7 +139,7 @@ internal sealed partial class EntryCatalog(IEntryStore store, IAccountMovementSt
                 x.SubcategoryExternalId, subcategory.CategoryExternalId, subcategory.DisplayName, x.AccountExternalId, (Contracts.CategoryKind)x.Kind,
                 x.Amount, x.Details, x.IsEffective, x.EffectiveDate, x.EffectiveAt, x.CardExternalId, x.CardLastDigitsExternalId, x.InstallmentPurchaseExternalId, x.InstallmentNumber,
                 x.InstallmentPurchaseExternalId is { } purchaseId ? purchases[purchaseId].Count : null, x.RecurringEntryExternalId, x.OccurrenceMonth, Reimbursement: ReimbursementOf(x), RepetitionExternalId: x.RepetitionExternalId, RepetitionNumber: x.RepetitionNumber,
-                RepetitionCount: x.RepetitionExternalId is { } repetitionId ? repetitions[repetitionId].Count : null);
+                RepetitionCount: x.RepetitionExternalId is { } repetitionId ? repetitions[repetitionId].Count : null, CashbackPercent: x.CashbackPercent, ExpectedCashback: x.ExpectedCashback);
         }).ToList();
     }
 

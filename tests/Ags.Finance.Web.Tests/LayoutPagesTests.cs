@@ -69,7 +69,6 @@ public sealed partial class LayoutPagesTests : IDisposable
     [InlineData("/faturas", "/cartoes")]
     [InlineData("/cadastros/contas-cartoes", "/contas")]
     [InlineData("/compromissos", "/cartoes?abrir=compromissos")]
-    [InlineData("/cashback", "/cartoes?abrir=cashback")]
     public async Task TheOldInvoiceRoutesRedirectToCards(string route, string target)
     {
         using var browser = await _factory.CreateSignedInBrowserAsync();
