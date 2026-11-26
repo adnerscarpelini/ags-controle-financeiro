@@ -7,7 +7,7 @@
         @if (Bank is not null) { <BankLogo Bank="Bank" /> }
         <div class="entity-card-title">
             <h2 class="catalog-color color-@Card.Color">@Card.Name</h2>
-            @if (Invoice is { } shown) { <span class="tag" data-invoice-status>Fatura @StatusLabel(shown.Status)</span> }
+            @if (Invoice is { } shown) { <span class="tag @StatusClass(shown.Status)" data-invoice-status>Fatura @StatusLabel(shown.Status)</span> }
         </div>
         <div data-card-menu @onclick:stopPropagation="true">
             <MudMenu Icon="@Icons.Material.Outlined.MoreVert" AriaLabel="@($"Ações do cartão {Card.Name}")" Size="Size.Small" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
@@ -122,4 +122,6 @@
     private string AvailabilityText => !Card.IsActive ? "Arquivado individualmente" : "Indisponível: conta arquivada";
 
     private static string StatusLabel(InvoiceStatus status) => status switch { InvoiceStatus.Closed => "fechada", InvoiceStatus.Paid => "paga", _ => "aberta" };
+
+    private static string StatusClass(InvoiceStatus status) => status switch { InvoiceStatus.Closed => "tag-closed", InvoiceStatus.Paid => "tag-paid", _ => "tag-open" };
 }

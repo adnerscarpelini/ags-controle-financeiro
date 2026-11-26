@@ -194,7 +194,7 @@ public sealed class AccessControlTests : IDisposable
     [Theory]
     [InlineData("/css/app.css")]
     [InlineData("/css/tokens.css")]
-    [InlineData("/fonts/inter-latin-variable.woff2")]
+    [InlineData("/fonts/geist-latin-variable.woff2")]
     [InlineData("/img/favicon.png")]
     [InlineData("/_framework/blazor.web.js")]
     [InlineData("/login")]

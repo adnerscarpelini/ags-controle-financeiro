@@ -34,9 +34,9 @@ public sealed class AppThemeTests
     }
 
     [Fact]
-    public void TheThemeUsesTheLocalInterFont()
+    public void TheThemeUsesTheLocalGeistFont()
     {
-        Assert.Equal("Inter", AppTheme.Instance.Typography.Default.FontFamily![0]);
+        Assert.Equal("Geist", AppTheme.Instance.Typography.Default.FontFamily![0]);
     }
 
     private static string Hex(MudColor color) => color.Value[..7];

@@ -1,3 +1,4 @@
+@using System.Globalization
 @using Ags.Finance.Modules.Reports.Contracts
 
 @if (Items.Count == 0)
@@ -9,7 +10,9 @@ else
     <ul class="catalog-list" aria-label="@Label">
         @foreach (var item in Items.Skip((_page - 1) * PageSize).Take(PageSize))
         {
-            <li><span>@item.Date.ToString("dd/MM/yyyy") · @item.Description · @item.AccountName</span>
+            <li class="pending-item">
+                <span class="date-block @(Late ? "date-block-late" : null)" aria-hidden="true"><b>@item.Date.ToString("dd", s_culture)</b><span>@item.Date.ToString("MMM", s_culture).TrimEnd('.')</span></span>
+                <span class="pending-text"><span class="row-title">@item.Description</span><span class="row-note">@item.Date.ToString("dd/MM/yyyy", s_culture) · @item.AccountName</span></span>
                 @if (item.IsTransfer)
                 {
                     <span class="numeric value-neutral">@item.Amount</span>
@@ -33,6 +36,7 @@ else
 
 @code {
     private const int PageSize = 10;
+    private static readonly CultureInfo s_culture = CultureInfo.GetCultureInfo("pt-BR");
 
     private int _page = 1;
 
@@ -41,6 +45,9 @@ else
     [Parameter, EditorRequired] public IReadOnlyList<PendingItem> Items { get; set; } = [];
     [Parameter, EditorRequired] public string Empty { get; set; } = string.Empty;
     [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+
+    /// <summary>Lista de atrasados: o bloco da data ganha o fundo suave de alerta.</summary>
+    [Parameter] public bool Late { get; set; }
 
     // A lista pode encolher depois de uma baixa: a página atual nunca passa da última.
     protected override void OnParametersSet() => _page = Math.Min(_page, TotalPages);

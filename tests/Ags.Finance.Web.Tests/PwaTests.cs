@@ -40,7 +40,7 @@ public sealed class PwaTests
         var tokens = await Text(anonymous, "/css/tokens.css");
         // O manifesto usa a paleta escura (o lado escuro de light-dark(claro, escuro)).
         Assert.Matches($@"--color-background: light-dark\(#[0-9A-Fa-f]{{6}}, {System.Text.RegularExpressions.Regex.Escape(root.GetProperty("background_color").GetString()!)}\)", tokens);
-        Assert.Matches($@"--color-accent: light-dark\(#[0-9A-Fa-f]{{6}}, {System.Text.RegularExpressions.Regex.Escape(root.GetProperty("theme_color").GetString()!)}\)", tokens);
+        Assert.Matches($@"--color-accent-solid: light-dark\(#[0-9A-Fa-f]{{6}}, {System.Text.RegularExpressions.Regex.Escape(root.GetProperty("theme_color").GetString()!)}\)", tokens);
         var icons = root.GetProperty("icons").EnumerateArray().ToList();
         Assert.Contains(icons, x => x.GetProperty("purpose").GetString() == "any" && x.GetProperty("sizes").GetString() == "192x192");
         Assert.Contains(icons, x => x.GetProperty("purpose").GetString() == "any" && x.GetProperty("sizes").GetString() == "512x512");

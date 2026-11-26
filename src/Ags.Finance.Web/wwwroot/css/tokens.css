@@ -9,21 +9,25 @@
 :root {
     color-scheme: dark;
 
-    /* Paleta: light-dark(claro, escuro) */
-    --color-background: light-dark(#FFFFFF, #141415);
-    --color-sidebar: light-dark(#F7F7F6, #1A1A1C);
-    --color-card: light-dark(#F7F7F6, #1B1B1D);
-    --color-surface: light-dark(#FEFEFE, #222224);
-    --color-surface-raised: light-dark(#F2F2F1, #2C2C2F);
-    --color-border: light-dark(#E8E8E7, #2C2C2E);
-    --color-border-strong: light-dark(#D1D1CF, #48484A);
-    --color-text-primary: light-dark(#1D1D1F, #F5F5F7);
-    --color-text-secondary: light-dark(#6A6A6F, #A1A1A6);
-    --color-accent: light-dark(#0B7A55, #30C48D);
-    --color-accent-hover: light-dark(#09684A, #4AD6A1);
-    --color-income: light-dark(#0A7450, #4AD6A2);
-    --color-expense: light-dark(#C4372E, #FF8177);
-    --color-warning: light-dark(#946200, #E5B13A);
+    /* Paleta: light-dark(claro, escuro). Grafite com leve tom violeta e roxo como cor de marca (#154). */
+    --color-background: light-dark(#F7F7FA, #0B0B10);
+    --color-sidebar: light-dark(#FFFFFF, #0F0F16);
+    --color-card: light-dark(#FFFFFF, #14141C);
+    --color-surface: light-dark(#FFFFFF, #1B1B25);
+    --color-surface-raised: light-dark(#F1F1F6, #22222E);
+    --color-border: light-dark(#ECECF2, #24242E);
+    --color-border-strong: light-dark(#D9D9E3, #3A3A48);
+    --color-text-primary: light-dark(#16161E, #F3F3F8);
+    --color-text-secondary: light-dark(#5D5D70, #9C9CB0);
+    /* Roxo em texto e ícone (link, foco, item ativo); o sólido é o fundo do botão principal, com texto branco. */
+    --color-accent: light-dark(#6544E0, #9A8AFF);
+    --color-accent-hover: light-dark(#5534D0, #B4A8FF);
+    --color-accent-solid: light-dark(#6544E0, #7150F2);
+    --color-accent-solid-hover: light-dark(#5534D0, #6A47EA);
+    --color-on-accent: #FFFFFF;
+    --color-income: light-dark(#0A7A4B, #3DDC97);
+    --color-expense: light-dark(#C82A43, #FF6B81);
+    --color-warning: light-dark(#8F5E00, #F4B740);
 
     /* Cores de banco: somente em texto, em peso normal */
     --color-bank-itau: light-dark(#9A3412, #FB923C);
@@ -94,27 +98,33 @@
     --swatch-pine: #1F7F72;
     --color-cat-pine: light-dark(#1E7A6D, #5BA298);
 
-    /* Preenchimentos translúcidos: campos, hover e estados ativos neutros */
-    --color-fill: light-dark(rgb(0 0 0 / 0.045), rgb(255 255 255 / 0.06));
-    --color-fill-strong: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.11));
-    --color-accent-soft: light-dark(rgb(11 122 85 / 0.1), rgb(48 196 141 / 0.14));
-    --color-expense-soft: light-dark(rgb(196 55 46 / 0.09), rgb(255 129 119 / 0.13));
-    --color-warning-soft: light-dark(rgb(148 98 0 / 0.1), rgb(229 177 58 / 0.13));
-    --color-segment-on: light-dark(#FFFFFF, #3A3A3D);
+    /* Preenchimentos translúcidos: campos, hover, trilhos e versões suaves das cores de estado */
+    --color-fill: light-dark(rgb(20 20 40 / 0.04), rgb(255 255 255 / 0.05));
+    --color-fill-strong: light-dark(rgb(20 20 40 / 0.075), rgb(255 255 255 / 0.09));
+    --color-accent-soft: light-dark(rgb(101 68 224 / 0.09), rgb(140 118 255 / 0.15));
+    --color-income-soft: light-dark(rgb(10 122 75 / 0.09), rgb(61 220 151 / 0.12));
+    --color-expense-soft: light-dark(rgb(200 42 67 / 0.08), rgb(255 107 129 / 0.12));
+    --color-warning-soft: light-dark(rgb(143 94 0 / 0.1), rgb(244 183 64 / 0.13));
+    --color-glow: light-dark(rgb(101 68 224 / 0.1), rgb(124 92 255 / 0.24));
+    --color-segment-on: light-dark(#FFFFFF, #2E2E3C);
     --color-knob: #FFFFFF;
     --color-crop-mask: rgb(0 0 0 / 0.5);
 
     /* Película que escurece o conteúdo atrás da gaveta e das janelas */
-    --color-scrim: light-dark(rgb(0 0 0 / 0.28), rgb(0 0 0 / 0.55));
+    --color-scrim: light-dark(rgb(10 10 30 / 0.32), rgb(0 0 0 / 0.6));
 
-    /* Sombras leves, só em menus, janelas e no segmento ativo */
-    --shadow-raised: light-dark(0 1px 2px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.4)), light-dark(0 12px 32px rgb(0 0 0 / 0.12), 0 16px 40px rgb(0 0 0 / 0.5));
-    --shadow-segment: 0 1px 2px rgb(0 0 0 / 0.2);
+    /* Profundidade: borda fina e brilho interno nos cards; sombra forte só em menus e janelas */
+    --shadow-card: 0 1px 2px light-dark(rgb(20 20 50 / 0.04), rgb(0 0 0 / 0.2)), inset 0 1px 0 light-dark(rgb(255 255 255 / 0), rgb(255 255 255 / 0.04));
+    --shadow-raised: 0 1px 2px light-dark(rgb(20 20 50 / 0.06), rgb(0 0 0 / 0.4)), 0 18px 44px -10px light-dark(rgb(20 20 50 / 0.16), rgb(0 0 0 / 0.65));
+    --shadow-segment: 0 1px 2px light-dark(rgb(20 20 50 / 0.12), rgb(0 0 0 / 0.35));
+    --shadow-accent: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 6px 18px -6px var(--color-glow);
 
     /* Forma e espaçamento (múltiplos de 4) */
-    --radius: 12px;
-    --radius-small: 8px;
-    --radius-large: 14px;
+    --radius: 16px;
+    --radius-section: 18px;
+    --radius-small: 10px;
+    --radius-menu: 14px;
+    --radius-large: 20px;
     --space-1: 4px;
     --space-2: 8px;
     --space-3: 12px;
@@ -125,11 +135,11 @@
     --space-10: 40px;
 
     /* Tipografia */
-    --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-sans: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
     /* Layout */
-    --sidebar-width: 232px;
-    --control-height: 32px;
+    --sidebar-width: 248px;
+    --control-height: 36px;
     --touch-target: 44px;
 }
 

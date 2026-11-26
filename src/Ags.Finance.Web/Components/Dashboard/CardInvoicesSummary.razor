@@ -10,7 +10,7 @@
 @inject TimeProvider Clock
 
 <section class="panel summary-panel" aria-labelledby="card-invoices-title">
-    <h2 id="card-invoices-title">Faturas a pagar <HelpTip Text="O que falta pagar das faturas Abertas atuais e das Fechadas ainda não pagas: total gasto menos pagamentos, antecipações, cashback e descontos. Faturas pagas e parcelas de meses futuros não aparecem." /></h2>
+    <h2 id="card-invoices-title"><span class="heading-icon heading-icon-expense" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.CreditCard" /></span>Faturas a pagar <HelpTip Text="O que falta pagar das faturas Abertas atuais e das Fechadas ainda não pagas: total gasto menos pagamentos, antecipações, cashback e descontos. Faturas pagas e parcelas de meses futuros não aparecem." /></h2>
     @if (_rows is { } rows)
     {
         <strong class="numeric summary-hero @ValueColor.Owed(Sum(rows))" data-invoices-total>@Sum(rows)</strong>
@@ -27,7 +27,7 @@
                         <div class="summary-head">
                             @if (row.Bank is not null) { <BankLogo Bank="row.Bank" /> }
                             <div class="summary-title">
-                                <span><a class="summary-name" href="@InvoiceDetail.Url(row.Invoice.CardExternalId, row.Invoice.Month)">@row.Invoice.CardName</a>@(row.Archived ? " (arquivado)" : null) <span class="tag" data-invoice-status>@StatusLabel(row.Invoice.Status)</span></span>
+                                <span><a class="summary-name" href="@InvoiceDetail.Url(row.Invoice.CardExternalId, row.Invoice.Month)">@row.Invoice.CardName</a>@(row.Archived ? " (arquivado)" : null) <span class="tag @StatusClass(row.Invoice.Status)" data-invoice-status>@StatusLabel(row.Invoice.Status)</span></span>
                                 @if (row.Dates is { } dates)
                                 {
                                     <span class="row-note">
@@ -85,4 +85,6 @@
     private static Money Sum(IEnumerable<Row> rows) => new(rows.Sum(x => x.Invoice.RemainingBalance.Amount));
 
     private static string StatusLabel(InvoiceStatus status) => status == InvoiceStatus.Closed ? "Fechada" : "Aberta";
+
+    private static string StatusClass(InvoiceStatus status) => status == InvoiceStatus.Closed ? "tag-closed" : "tag-open";
 }
