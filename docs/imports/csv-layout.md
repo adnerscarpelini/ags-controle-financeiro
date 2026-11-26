@@ -139,6 +139,9 @@ importação não reabre nem altera pagamentos.
 Qualquer receita ou despesa fora do cartão pode ser Pendente (`is_effective=false`,
 sem `effective_date`) ou Paga/Recebida (`is_effective=true`, com a data da baixa).
 Compras no cartão continuam sempre pagas na data da compra, sem baixa manual.
+Elas gravam o percentual de cashback vigente do cartão no momento da importação ([#153](../invoices/cashback.md));
+o percentual não é coluna de `transactions` nem de `cards`. Cartões importados chegam sem cashback; o percentual é configurado
+na janela do cartão, antes de importar as compras que devem gravá-lo.
 Os nomes internos e as colunas não mudam. Importar não cria pagamento de fatura.
 
 **Parcelas.** O grupo precisa estar completo: as N parcelas, numeradas de 1 a N, mesmo cartão, data, descrição e classificação de despesa,

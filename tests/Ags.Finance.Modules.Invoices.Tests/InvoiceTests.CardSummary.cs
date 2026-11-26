@@ -33,7 +33,7 @@ public sealed partial class InvoiceTests
 
         Assert.Equal(new Money(50), Assert.Single(await Catalog.GetCardLimitsAsync()).Used);
 
-        var credit = await payments.SaveAllowanceAsync(null, new(Guid.CreateVersion7(), _cardId, new ReferenceMonth(2026, 11), new DateOnly(2026, 9, 20), new Money(80), InvoicePaymentKind.Cashback));
+        var credit = await payments.SaveAllowanceAsync(null, new(Guid.CreateVersion7(), _cardId, new ReferenceMonth(2026, 11), new DateOnly(2026, 9, 20), new Money(80), InvoicePaymentKind.Discount));
         Assert.True(credit.Succeeded, credit.Error);
         Assert.Equal(Money.Zero, Assert.Single(await Catalog.GetCardLimitsAsync()).Used);
     }

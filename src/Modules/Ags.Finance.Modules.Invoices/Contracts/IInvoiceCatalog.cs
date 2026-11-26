@@ -11,6 +11,9 @@ public sealed record InvoiceDetails(Guid CardExternalId, string CardName, Refere
     public Money DiscountsTotal => new(PaymentHistory.Where(x => x.Kind == InvoicePaymentKind.Discount).Sum(x => x.Amount.Amount));
     public Money RemainingBalance => Total - PaymentsTotal - CashbackTotal - DiscountsTotal;
 
+    /// <summary>Cashback previsto: soma do previsto de cada compra pelo percentual gravado nela. Ajustes de fatura não geram cashback; nunca negativo.</summary>
+    public Money ExpectedCashback => new(Math.Max(0, Entries.Where(x => !x.IsInvoiceAdjustment).Sum(x => x.ExpectedCashback.Amount)));
+
     /// <summary>
     /// Ocorrências recorrentes do cartão com data posterior a hoje numa fatura Aberta (subconjunto de <see cref="Entries"/>).
     /// Fatura Fechada ou Paga nunca tem previstas: o total inclui todas as ocorrências.

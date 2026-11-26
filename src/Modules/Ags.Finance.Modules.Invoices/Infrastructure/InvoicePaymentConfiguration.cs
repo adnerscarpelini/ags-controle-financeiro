@@ -11,6 +11,7 @@ internal sealed class InvoicePaymentConfiguration : IEntityTypeConfiguration<Inv
         builder.ToTable("invoice_payments");
         builder.Property(x => x.Details).HasMaxLength(1000).IsRequired();
         builder.HasIndex(x => x.ConfirmationId).IsUnique();
+        builder.HasIndex(x => x.CashbackReceiptExternalId).IsUnique();
         builder.HasOne<Invoice>().WithMany().HasForeignKey(x => x.InvoiceExternalId).HasPrincipalKey(x => x.ExternalId).OnDelete(DeleteBehavior.Restrict);
     }
 }

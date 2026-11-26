@@ -115,6 +115,7 @@ internal sealed class TransactionsDbContextModelSnapshot : ModelSnapshot
             b.Property<DateTimeOffset?>("EffectiveAt").HasColumnType("timestamp with time zone");
             b.Property<Guid?>("ReimbursementPersonExternalId").HasColumnType("uuid");
             b.Property<decimal?>("ReimbursementPercent").HasPrecision(5, 2).HasColumnType("numeric(5,2)");
+            b.Property<decimal>("CashbackPercent").HasPrecision(5, 2).HasColumnType("numeric(5,2)");
             b.HasKey("Id");
             b.HasIndex("ExternalId").IsUnique();
             b.HasIndex("Month");

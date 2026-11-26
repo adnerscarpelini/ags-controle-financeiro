@@ -1,4 +1,4 @@
-@* Cashback e descontos: abatimentos reduzem o saldo restante, sem gerar receita, despesa ou débito em conta. *@
+@* Descontos: abatimentos reduzem o saldo restante, sem gerar receita, despesa ou débito em conta. O cashback fica no painel de Cashback. *@
 @using System.Globalization
 @using Ags.Finance.Modules.Accounts.Contracts
 @using Ags.Finance.Modules.Invoices.Contracts
@@ -15,20 +15,19 @@
 <MudDialog Class="app-dialog">
     <DialogContent>
         @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
-        <h3>@(_editing is null ? "Novo cashback ou desconto" : "Editar abatimento")</h3>
-        <p class="form-note">Abatimentos reduzem o saldo restante, sem gerar receita, despesa ou débito em conta. Faturas Pagas bloqueiam criação, edição e exclusão.</p>
+        <h3>@(_editing is null ? "Novo desconto" : "Editar desconto")</h3>
+        <p class="form-note">Descontos reduzem o saldo restante, sem gerar receita, despesa ou débito em conta. Faturas Pagas bloqueiam criação, edição e exclusão. O cashback é confirmado no <a href="cashback">painel de Cashback</a>.</p>
         <form id="allowance-form" class="catalog-fields" @onsubmit="SaveAsync" @onsubmit:preventDefault>
             <div class="field"><label for="allowance-card">Cartão</label><select id="allowance-card" class="input" @bind="_card"><option value="@Guid.Empty">Selecione</option>
                 @foreach (var card in _cards.Where(x => _available.Contains(x.ExternalId) || x.ExternalId == _originalCard)) { <option value="@card.ExternalId">@card.Name</option> }
             </select></div>
             <div class="field"><label for="allowance-month">Mês da fatura</label><input id="allowance-month" class="input" type="month" value="@_month" @onchange="args => _month = args.Value?.ToString() ?? string.Empty" /></div>
             <div class="field"><label for="allowance-date">Data do recebimento ou abatimento</label><input id="allowance-date" class="input" type="date" @bind="_date" required /></div>
-            <div class="field"><label for="allowance-kind">Tipo</label><select id="allowance-kind" class="input" @bind="_kind"><option value="@InvoicePaymentKind.Cashback">Cashback</option><option value="@InvoicePaymentKind.Discount">Desconto</option></select></div>
             <MoneyField Id="allowance-amount" Label="Valor" @bind-Value="_amount" />
             <div class="field"><label for="allowance-details">Detalhes</label><input id="allowance-details" class="input" maxlength="1000" @bind="_details" /></div>
         </form>
         <div class="filters-actions">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" form="allowance-form" data-save Disabled="@_busy">Salvar abatimento</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" form="allowance-form" data-save Disabled="@_busy">Salvar desconto</MudButton>
             <MudButton data-reset Disabled="@_busy" OnClick="Reset">Limpar</MudButton>
         </div>
         <h3>Histórico anual</h3>
@@ -36,30 +35,22 @@
             <div class="field"><label for="cashback-year">Ano do recebimento</label><input id="cashback-year" class="input" type="number" inputmode="numeric" min="1" max="9999" @bind="_year" @bind:after="ReloadAsync" /></div>
             <div class="field"><label for="cashback-card">Cartão</label><select id="cashback-card" class="input" @bind="_filterCard" @bind:after="ReloadAsync"><option value="@Guid.Empty">Todos</option>@foreach (var card in _cards) { <option value="@card.ExternalId">@card.Name</option> }</select></div>
         </form>
-        <p data-cashback-total>Total de cashback recebido em @_year: <span class="numeric @ValueColor.Income(new Money(_history.Where(x => x.Kind == InvoicePaymentKind.Cashback).Sum(x => x.Amount.Amount)))">@(new Money(_history.Where(x => x.Kind == InvoicePaymentKind.Cashback).Sum(x => x.Amount.Amount)))</span></p>
-        <ul class="catalog-list" aria-label="Cashback por cartão">
-            @foreach (var card in _history.Where(x => x.Kind == InvoicePaymentKind.Cashback).GroupBy(x => x.CardExternalId))
-            {
-                <li class="list-row"><span>@CardName(card.Key)</span><span class="numeric @ValueColor.Income(new Money(card.Sum(x => x.Amount.Amount)))">@(new Money(card.Sum(x => x.Amount.Amount)))</span></li>
-            }
-        </ul>
-        <MudTable T="InvoicePaymentDetails" Items="_history" Elevation="0" Class="data-table" Breakpoint="AppTables.Breakpoint(Viewport.IsMobile)" aria-label="Histórico de abatimentos">
+        <p data-discount-total>Total de descontos em @_year: <span class="numeric @ValueColor.Income(new Money(_history.Sum(x => x.Amount.Amount)))">@(new Money(_history.Sum(x => x.Amount.Amount)))</span></p>
+        <MudTable T="InvoicePaymentDetails" Items="_history" Elevation="0" Class="data-table" Breakpoint="AppTables.Breakpoint(Viewport.IsMobile)" aria-label="Histórico de descontos">
             <HeaderContent>
                 <MudTh>Data</MudTh>
                 <MudTh>Cartão e fatura</MudTh>
-                <MudTh>Tipo</MudTh>
                 <MudTh Class="numeric">Valor</MudTh>
                 <MudTh>Ações</MudTh>
             </HeaderContent>
             <RowTemplate Context="item">
                 <MudTd DataLabel="Data">@item.Date.ToString("dd/MM/yyyy")</MudTd>
                 <MudTd DataLabel="Cartão e fatura">@CardName(item.CardExternalId) · Fatura @item.Month @if (item.Details.Length > 0) { <span class="row-note">@item.Details</span> }</MudTd>
-                <MudTd DataLabel="Tipo">@TypeLabel(item.Kind)</MudTd>
                 <MudTd DataLabel="Valor" Class="@($"numeric {ValueColor.Income(item.Amount)}")">@item.Amount</MudTd>
                 <MudTd DataLabel="Ações" Class="col-actions">
                     @if (_invoices.Any(x => x.CardExternalId == item.CardExternalId && x.Month == item.Month && x.Status == InvoiceStatus.Paid))
                     {
-                        <span class="row-note" data-allowance-protected>Fatura Paga · abatimento protegido</span>
+                        <span class="row-note" data-allowance-protected>Fatura Paga · desconto protegido</span>
                     }
                     else
                     {
@@ -68,7 +59,7 @@
                 </MudTd>
             </RowTemplate>
             <NoRecordsContent>
-                <EmptyState Icon="@Icons.Material.Outlined.Savings" Message="Nenhum abatimento neste ano." />
+                <EmptyState Icon="@Icons.Material.Outlined.Savings" Message="Nenhum desconto neste ano." />
             </NoRecordsContent>
         </MudTable>
     </DialogContent>
@@ -99,7 +90,6 @@
     private Guid? _editing;
     private DateOnly _date;
     private string _month = string.Empty;
-    private InvoicePaymentKind _kind = InvoicePaymentKind.Cashback;
     private decimal _amount;
     private string _details = string.Empty;
     private int _year;
@@ -119,7 +109,7 @@
     {
         _cards = await Accounts.GetCreditCardsAsync(false);
         _available = (await Accounts.GetCreditCardsAsync()).Select(x => x.ExternalId).ToHashSet();
-        _history = (await Payments.GetHistoryAsync(_filterCard == Guid.Empty ? null : _filterCard, _year)).Where(x => x.Kind != InvoicePaymentKind.Payment).ToList();
+        _history = (await Payments.GetHistoryAsync(_filterCard == Guid.Empty ? null : _filterCard, _year)).Where(x => x.Kind == InvoicePaymentKind.Discount).ToList();
         _invoices = await Invoices.GetAsync();
     }
 
@@ -130,8 +120,6 @@
     ];
 
     private string CardName(Guid id) => _cards.FirstOrDefault(x => x.ExternalId == id)?.Name ?? "Cartão registrado";
-
-    private static string TypeLabel(InvoicePaymentKind kind) => kind == InvoicePaymentKind.Cashback ? "Cashback" : "Desconto";
 
     private void Reset()
     {
@@ -150,7 +138,6 @@
         _card = item.CardExternalId;
         _date = item.Date;
         _month = item.Month.FirstDay.ToString("yyyy-MM", CultureInfo.InvariantCulture);
-        _kind = item.Kind;
         _amount = item.Amount.Amount;
         _details = item.Details;
     }
@@ -167,11 +154,11 @@
         _busy = true;
         try
         {
-            var result = await Payments.SaveAllowanceAsync(_editing, new(_confirmation, _card, ReferenceMonth.FromDate(month), _date, new Money(_amount), _kind, _details));
+            var result = await Payments.SaveAllowanceAsync(_editing, new(_confirmation, _card, ReferenceMonth.FromDate(month), _date, new Money(_amount), InvoicePaymentKind.Discount, _details));
             _error = result.Error;
             if (result.Succeeded)
             {
-                Snackbar.Add("Abatimento salvo.", Severity.Success);
+                Snackbar.Add("Desconto salvo.", Severity.Success);
                 Notifier.Notify();
                 Reset();
                 await ReloadAsync();
@@ -183,7 +170,7 @@
     private async Task DeleteAsync(InvoicePaymentDetails item)
     {
         if (_busy) { return; }
-        if (!await ConfirmDialog.AskAsync(Dialogs, "Excluir abatimento", $"{TypeLabel(item.Kind)} · {item.Date:dd/MM/yyyy} · {item.Amount}", "Confirmar exclusão", destructive: true)) { return; }
+        if (!await ConfirmDialog.AskAsync(Dialogs, "Excluir desconto", $"Desconto · {item.Date:dd/MM/yyyy} · {item.Amount}", "Confirmar exclusão", destructive: true)) { return; }
         _busy = true;
         try
         {
@@ -191,7 +178,7 @@
             _error = result.Error;
             if (result.Succeeded)
             {
-                Snackbar.Add("Abatimento excluído.", Severity.Success);
+                Snackbar.Add("Desconto excluído.", Severity.Success);
                 Notifier.Notify();
                 Reset();
                 await ReloadAsync();

@@ -5,7 +5,11 @@ namespace Ags.Finance.Modules.Invoices.Contracts;
 public enum InvoicePaymentKind { Payment, Cashback, Discount }
 public sealed record ConfirmInvoicePaymentRequest(Guid ConfirmationId, Guid CardExternalId, ReferenceMonth Month, Guid AccountExternalId, DateOnly Date, Money Amount, bool ConfirmSettlement = false, string Details = "");
 public sealed record AllowanceRequest(Guid ConfirmationId, Guid CardExternalId, ReferenceMonth Month, DateOnly Date, Money Amount, InvoicePaymentKind Kind, string Details = "");
-public sealed record InvoicePaymentDetails(Guid ExternalId, Guid ConfirmationId, Guid CardExternalId, ReferenceMonth Month, DateOnly Date, Money Amount, InvoicePaymentKind Kind, Guid? AccountExternalId, string Details, DateTimeOffset ConfirmedAt, DateTimeOffset? UndoneAt = null);
+public sealed record InvoicePaymentDetails(Guid ExternalId, Guid ConfirmationId, Guid CardExternalId, ReferenceMonth Month, DateOnly Date, Money Amount, InvoicePaymentKind Kind, Guid? AccountExternalId, string Details, DateTimeOffset ConfirmedAt, DateTimeOffset? UndoneAt = null, Guid? CashbackReceiptExternalId = null)
+{
+    /// <summary>Cashback lançado manualmente antes do painel de Cashback: continua abatendo a fatura, somente leitura.</summary>
+    public bool IsManualCashback => Kind == InvoicePaymentKind.Cashback && CashbackReceiptExternalId is null;
+}
 public sealed record InvoicePaymentResult(Guid? ExternalId, string? Error)
 {
     public bool Succeeded => Error is null;

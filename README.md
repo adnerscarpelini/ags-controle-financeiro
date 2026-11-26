@@ -20,7 +20,7 @@ O conceito central é o **mês contábil**, quando o valor pesa no orçamento. C
 contas com saldo inicial, cartões/finais, categorias, descrições, calendário de compras,
 HTTPS e login estão implementados. Há lançamentos à vista e no cartão e consulta,
 fechamento e reabertura de faturas, compras parceladas e séries mensais previstas com edição por alcance, baixa manual, visão de pendências, transferências e ajustes de saldo de contas.
-Há cadastro e histórico anual de cashback/desconto, com abatimento das faturas.
+Descontos abatem as faturas. O cashback tem percentual no cartão, previsto gravado em cada compra e um painel por mês da fatura, com recebimento em conta corrente ou abatimento na fatura Aberta e histórico anual.
 Pagamentos têm débito atômico e quitação explícita, com consulta de saldos e parcelas futuras. Ajustes de fatura preservam compras e pagamentos; antecipação move as últimas parcelas futuras para a fatura atual.
 Contas/cartões têm arquivamento reversível, logos locais com recorte circular e carteira visual responsiva.
 Reembolsos têm pessoas com percentual padrão, indicação de pessoa e percentual na despesa, análise do mês e recebimento com lançamento em conta corrente. O dashboard tem duas faixas: **Hoje**, com o saldo das contas correntes, as faturas a pagar (Fechadas com saldo e a Aberta atual de cada cartão) e as pendências dos próximos dias e atrasadas; e **Mês**, com receitas, gasto no mês (pela data da despesa), a pagar no mês e as categorias contra a média. Tema, tela inicial, seções do dashboard, paginação e a forma de somar as recorrentes do cartão na fatura são preferências da tela de configurações; o botão do olhinho oculta os valores na tela, por dispositivo.

@@ -51,7 +51,9 @@ public sealed partial class InvoiceTests
         var other = (await accounts.SaveAccountAsync(new(null, bank.ExternalId, "Outra Conta", AccountKind.Checking, "green", new Money(100), new DateOnly(2026, 9, 1)))).ExternalId!.Value;
         Assert.True((await Payments.ConfirmPaymentAsync(Payment(30))).Succeeded);
         Assert.True((await Payments.ConfirmPaymentAsync(Payment(20) with { AccountExternalId = other })).Succeeded);
-        Assert.True((await Payments.SaveAllowanceAsync(null, Allowance(5) with { Kind = allowanceKind })).Succeeded);
+        Assert.True((await Payments.SaveAllowanceAsync(null, Allowance(5))).Succeeded);
+        // O cashback manual antigo só existe gravado; hoje o cashback vem do painel.
+        if (allowanceKind == InvoicePaymentKind.Cashback) { await (_database ?? throw new InvalidOperationException()).ExecuteAsync("UPDATE invoices.invoice_payments SET \"Kind\" = 1 WHERE \"Kind\" = 2"); }
         await accounts.DeactivateAccountAsync(_accountId);
         _clock.Now = new DateTimeOffset(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
         Assert.True((await Payments.ReopenUndoingPaymentsAsync(_cardId, new ReferenceMonth(2026, 10))).Succeeded);

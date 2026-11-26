@@ -9,11 +9,11 @@ namespace Ags.Finance.Modules.Invoices.Tests;
 public sealed partial class InvoiceTests
 {
     private IInvoicePaymentCatalog Payments => Provider.GetRequiredService<IInvoicePaymentCatalog>();
-    private AllowanceRequest Allowance(decimal amount = 8, InvoicePaymentKind kind = InvoicePaymentKind.Cashback)
+    private AllowanceRequest Allowance(decimal amount = 8, InvoicePaymentKind kind = InvoicePaymentKind.Discount)
         => new(Guid.CreateVersion7(), _cardId, new ReferenceMonth(2026, 10), new DateOnly(2026, 9, 1), new Money(amount), kind);
 
     [Fact]
-    public async Task CashbackAndDiscountReduceRemainingBalanceWithoutChangingExpensesOrCash()
+    public async Task DiscountsReduceRemainingBalanceWithoutChangingExpensesOrCash()
     {
         var entries = Provider.GetRequiredService<IEntryCatalog>();
         await entries.CreateAsync(Purchase(100));
@@ -23,8 +23,8 @@ public sealed partial class InvoiceTests
         Assert.True((await Payments.SaveAllowanceAsync(null, Allowance(2, InvoicePaymentKind.Discount))).Succeeded);
         var invoice = Assert.Single(await Catalog.GetAsync());
         Assert.Equal(new Money(100), invoice.Total);
-        Assert.Equal(new Money(8), invoice.CashbackTotal);
-        Assert.Equal(new Money(2), invoice.DiscountsTotal);
+        Assert.Equal(Money.Zero, invoice.CashbackTotal);
+        Assert.Equal(new Money(10), invoice.DiscountsTotal);
         Assert.Equal(new Money(90), invoice.RemainingBalance);
         Assert.Equal(2, invoice.PaymentHistory.Count);
         Assert.Single(await entries.GetAsync());
@@ -55,13 +55,13 @@ public sealed partial class InvoiceTests
     }
 
     [Fact]
-    public async Task YearFilterUsesReceiptDateAndCashbackCreditDoesNotMarkInvoicePaid()
+    public async Task YearFilterUsesReceiptDateAndAllowanceCreditDoesNotMarkInvoicePaid()
     {
         await Payments.SaveAllowanceAsync(null, Allowance(8) with { Date = new DateOnly(2025, 12, 31) });
         await Payments.SaveAllowanceAsync(null, Allowance(12) with { Date = new DateOnly(2026, 1, 1) });
         await Payments.SaveAllowanceAsync(null, Allowance(3, InvoicePaymentKind.Discount));
-        var annual = await Payments.GetHistoryAsync(_cardId, 2026, InvoicePaymentKind.Cashback);
-        Assert.Equal(new Money(12), Assert.Single(annual).Amount);
+        var annual = await Payments.GetHistoryAsync(_cardId, 2026, InvoicePaymentKind.Discount);
+        Assert.Equal([new Money(12), new Money(3)], annual.Select(x => x.Amount).Order().Reverse());
         var invoice = Assert.Single(await Catalog.GetAsync());
         Assert.Equal(new Money(-23), invoice.RemainingBalance);
         Assert.Equal(InvoiceStatus.Open, invoice.Status);
@@ -88,6 +88,31 @@ public sealed partial class InvoiceTests
         Assert.False((await Payments.SaveAllowanceAsync(created.ExternalId, request)).Succeeded);
         Assert.False((await Payments.DeleteAllowanceAsync(created.ExternalId!.Value)).Succeeded);
         Assert.Equal(InvoicePaymentKind.Payment, Assert.Single(await Payments.GetHistoryAsync()).Kind);
+    }
+
+    [Fact]
+    public async Task ManualCashbackIsRejectedBecauseItIsConfirmedInTheCashbackPanel()
+    {
+        var created = await Payments.SaveAllowanceAsync(null, Allowance(8, InvoicePaymentKind.Cashback));
+        Assert.False(created.Succeeded);
+        Assert.Contains("painel de Cashback", created.Error, StringComparison.Ordinal);
+        Assert.Empty(await Payments.GetHistoryAsync());
+        Assert.Empty(await Catalog.GetAsync());
+    }
+
+    [Fact]
+    public async Task LegacyManualCashbackKeepsReducingTheInvoiceButIsReadOnly()
+    {
+        var created = await Payments.SaveAllowanceAsync(null, Allowance(8));
+        // Cashback lançado manualmente antes do painel: mesmo registro, com o tipo Cashback.
+        await (_database ?? throw new InvalidOperationException()).ExecuteAsync("UPDATE invoices.invoice_payments SET \"Kind\" = 1");
+        var invoice = Assert.Single(await Catalog.GetAsync());
+        Assert.Equal(new Money(8), invoice.CashbackTotal);
+        Assert.Equal(new Money(-8), invoice.RemainingBalance);
+        Assert.True(Assert.Single(invoice.PaymentHistory).IsManualCashback);
+        Assert.False((await Payments.SaveAllowanceAsync(created.ExternalId, Allowance(10))).Succeeded);
+        Assert.False((await Payments.DeleteAllowanceAsync(created.ExternalId!.Value)).Succeeded);
+        Assert.Equal(new Money(8), Assert.Single(await Payments.GetHistoryAsync()).Amount);
     }
 
     [Fact]

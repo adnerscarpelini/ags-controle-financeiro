@@ -67,7 +67,7 @@ public sealed partial class InvoiceTests
     }
 
     [Fact]
-    public async Task CashbackOnlySettlementCreatesNoPaymentOrDebit()
+    public async Task AllowanceOnlySettlementCreatesNoPaymentOrDebit()
     {
         await Provider.GetRequiredService<IEntryCatalog>().CreateAsync(Purchase(100));
         await Payments.SaveAllowanceAsync(null, Allowance(100));

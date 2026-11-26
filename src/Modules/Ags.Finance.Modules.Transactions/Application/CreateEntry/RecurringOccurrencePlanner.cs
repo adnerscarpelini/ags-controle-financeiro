@@ -21,7 +21,8 @@ internal sealed class RecurringOccurrencePlanner(IReferenceMonthCalculator calen
             .Select(x => (Series: x.RecurringEntryExternalId!.Value, Month: x.OccurrenceMonth!.Value)).ToHashSet();
 
     /// <summary>As ocorrências calculadas entram em <paramref name="existing"/>, então chamadas seguidas com o mesmo conjunto não repetem uma ocorrência.</summary>
-    public async Task<PlannedOccurrences> PlanAsync(IReadOnlyList<RecurringEntry> definitions, HashSet<(Guid Series, DateOnly Month)> existing, EntryFilter filter, RecurringInvoiceCheck check, CancellationToken cancellationToken)
+    /// <param name="cashbackPercents">Percentual atual de cashback por cartão, gravado na ocorrência gerada; ausente vale zero.</param>
+    public async Task<PlannedOccurrences> PlanAsync(IReadOnlyList<RecurringEntry> definitions, HashSet<(Guid Series, DateOnly Month)> existing, EntryFilter filter, RecurringInvoiceCheck check, CancellationToken cancellationToken, IReadOnlyDictionary<Guid, decimal>? cashbackPercents = null)
     {
         var current = EntryCatalog.FirstDay(DateOnly.FromDateTime(clock.GetLocalNow().DateTime));
         var generated = new List<TransactionEntry>();
@@ -63,7 +64,7 @@ internal sealed class RecurringOccurrencePlanner(IReferenceMonthCalculator calen
                 var error = entry.Update(date, referenceMonth, series.MerchantExternalId, series.SubcategoryExternalId, series.AccountExternalId, series.Kind, series.Amount, series.Details);
                 error ??= entry.SetReimbursement(series.ReimbursementPersonExternalId, series.ReimbursementPercent);
                 if (error is not null) { return new([], 0, error); }
-                if (series.CardExternalId is { } cardId) { entry.SetCard(cardId, series.CardLastDigitsExternalId); entry.SetEffective(date, clock.GetUtcNow()); }
+                if (series.CardExternalId is { } cardId) { entry.SetCard(cardId, series.CardLastDigitsExternalId, cashbackPercents?.GetValueOrDefault(cardId) ?? 0); entry.SetEffective(date, clock.GetUtcNow()); }
                 else { entry.SetPending(); }
                 entry.SetRecurring(series.ExternalId, period);
                 generated.Add(entry);

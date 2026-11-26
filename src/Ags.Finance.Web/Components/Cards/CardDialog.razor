@@ -33,6 +33,14 @@
             </div>
             <CatalogColor Id="card-color" @bind-Value="_color" />
             <label class="checkbox"><input id="card-includes-closing" type="checkbox" @bind="_includesClosingDay" />Compras no dia do fechamento entram na fatura que fecha</label>
+            <label class="checkbox"><input id="card-uses-cashback" type="checkbox" @bind="_usesCashback" />Usa cashback <HelpTip Text="O percentual fica gravado em cada compra no momento do lançamento. Alterá-lo vale só para as compras novas." /></label>
+            @if (_usesCashback)
+            {
+                <div class="field">
+                    <label for="card-cashback-percent">Percentual de cashback (%)</label>
+                    <input id="card-cashback-percent" class="input" type="number" inputmode="decimal" step="0.01" min="0.01" max="100" @bind="_cashbackPercent" />
+                </div>
+            }
         </form>
         @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
     </DialogContent>
@@ -58,6 +66,8 @@
     private int _closingDay = 3;
     private int _dueDay = 10;
     private bool _includesClosingDay;
+    private bool _usesCashback;
+    private decimal _cashbackPercent;
     private string _color = string.Empty;
     private bool _busy;
     private string? _error;
@@ -74,6 +84,8 @@
             _dueDay = card.DueDay;
             _includesClosingDay = card.IncludesClosingDay;
             _color = card.Color;
+            _usesCashback = card.UsesCashback;
+            _cashbackPercent = card.CashbackPercent ?? 0;
         }
 
         _accounts = (await Catalog.GetAccountsAsync(activeOnly: false)).Where(x => x.Kind == AccountKind.Checking && (x.IsActive || x.ExternalId == _account)).ToList();
@@ -86,7 +98,8 @@
         _error = null;
         try
         {
-            var result = await Catalog.SaveCreditCardAsync(new(Card?.ExternalId, _account, _name, _brand, new Money(_limit), _closingDay, _dueDay, _includesClosingDay, _color));
+            var result = await Catalog.SaveCreditCardAsync(new(Card?.ExternalId, _account, _name, _brand, new Money(_limit), _closingDay, _dueDay, _includesClosingDay, _color,
+                Cashback: _usesCashback ? new CardCashback(_cashbackPercent) : CardCashback.None));
             if (!result.Succeeded)
             {
                 _error = result.Error;

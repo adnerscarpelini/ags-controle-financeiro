@@ -25,7 +25,8 @@
         </div>
         <MudMenu Icon="@Icons.Material.Outlined.MoreVert" AriaLabel="Mais ações de cartões" Variant="Variant.Outlined" data-cards-more>
             <MudMenuItem Icon="@Icons.Material.Outlined.EventNote" OnClick="OpenObligationsAsync">Saldos de faturas e parcelas futuras</MudMenuItem>
-            <MudMenuItem Icon="@Icons.Material.Outlined.Savings" OnClick="OpenCashbackAsync">Cashback e descontos</MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Outlined.Savings" Href="cashback">Cashback</MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Outlined.Discount" OnClick="OpenDiscountsAsync">Descontos</MudMenuItem>
         </MudMenu>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Add" data-new-card OnClick="() => OpenCardAsync(null)">Novo cartão</MudButton>
     </div>
@@ -113,7 +114,9 @@ else
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) { return; }
-        if (string.Equals(OpenOnLoad, "cashback", StringComparison.OrdinalIgnoreCase)) { await OpenCashbackAsync(); }
+        // Links antigos de /cartoes?abrir=cashback levam ao painel de Cashback.
+        if (string.Equals(OpenOnLoad, "cashback", StringComparison.OrdinalIgnoreCase)) { Navigation.NavigateTo("/cashback", replace: true); return; }
+        if (string.Equals(OpenOnLoad, "descontos", StringComparison.OrdinalIgnoreCase)) { await OpenDiscountsAsync(); }
         if (string.Equals(OpenOnLoad, "compromissos", StringComparison.OrdinalIgnoreCase)) { await OpenObligationsAsync(); }
     }
 
@@ -212,8 +215,8 @@ else
     private async Task OpenObligationsAsync() =>
         await Dialogs.ShowAsync<InvoiceObligationsDialog>("Saldos de faturas e parcelas futuras", new DialogParameters(), AppDialogs.Options(Viewport, MaxWidth.Medium));
 
-    private async Task OpenCashbackAsync() =>
-        await Dialogs.ShowAsync<CashbackDialog>("Cashback e descontos", new DialogParameters(), AppDialogs.Options(Viewport, MaxWidth.Medium));
+    private async Task OpenDiscountsAsync() =>
+        await Dialogs.ShowAsync<DiscountsDialog>("Descontos", new DialogParameters(), AppDialogs.Options(Viewport, MaxWidth.Medium));
 
     private async Task ToggleArchiveAsync(CreditCardDetails card)
     {

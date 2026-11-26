@@ -19,6 +19,7 @@
 
 - [Pagamentos, abatimentos, débito e quitação (#19/#51)](invoices/payments.md)
 - [Consulta e composição de faturas (#18)](invoices/composition.md)
+- [Cashback dos cartões: percentual, previsto, painel e recebimento (#153)](invoices/cashback.md)
 
 - [Compras no cartão e escolha de fatura (#12)](transactions/card-entries.md)
 

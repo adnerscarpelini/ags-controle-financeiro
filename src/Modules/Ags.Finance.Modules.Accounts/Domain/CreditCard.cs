@@ -17,6 +17,9 @@ internal sealed class CreditCard : Entity
     public string Color { get; private set; } = string.Empty;
     public bool IsActive { get; private set; } = true;
 
+    /// <summary>Percentual de cashback das compras novas; nulo quando o cartão não usa cashback.</summary>
+    public decimal? CashbackPercent { get; private set; }
+
     public static CreditCard Create() => new();
     public string? Update(Guid accountExternalId, string name, CardBrand brand, Money creditLimit, int closingDay, int dueDay, bool includesClosingDay, string color)
     {
@@ -58,6 +61,16 @@ internal sealed class CreditCard : Entity
         Color = color;
         return null;
     }
+    public string? SetCashback(decimal? percent)
+    {
+        if (percent is { } value && (value <= 0 || value > 100 || decimal.Round(value, 2) != value))
+        {
+            return "Informe um percentual de cashback maior que 0 e até 100, com até duas casas decimais.";
+        }
+        CashbackPercent = percent;
+        return null;
+    }
+
     public void Deactivate() => IsActive = false;
     public void Reactivate() => IsActive = true;
 }

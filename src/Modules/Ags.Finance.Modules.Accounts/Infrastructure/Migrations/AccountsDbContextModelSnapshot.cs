@@ -63,6 +63,7 @@ internal sealed class AccountsDbContextModelSnapshot : ModelSnapshot
             b.Property<bool>("IncludesClosingDay").HasColumnType("boolean");
             b.Property<string>("Color").IsRequired().HasMaxLength(20).HasColumnType("character varying(20)");
             b.Property<bool>("IsActive").HasColumnType("boolean");
+            b.Property<decimal?>("CashbackPercent").HasPrecision(5, 2).HasColumnType("numeric(5,2)");
             b.Property<Guid>("ExternalId").HasColumnType("uuid");
             b.Property<DateTimeOffset>("CreatedAt").HasColumnType("timestamp with time zone");
             b.Property<DateTimeOffset>("UpdatedAt").HasColumnType("timestamp with time zone");

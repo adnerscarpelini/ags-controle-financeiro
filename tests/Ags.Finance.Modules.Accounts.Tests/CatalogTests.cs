@@ -159,6 +159,36 @@ public sealed partial class CatalogTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task CardCashbackIsOptionalValidatedAndKeptWhenNotInformed()
+    {
+        var accountId = await CreateAccountAsync();
+        var created = await Catalog.SaveCreditCardAsync(Card(accountId) with { Cashback = new CardCashback(1.5m) });
+        Assert.True(created.Succeeded, created.Error);
+        var card = Assert.Single(await Catalog.GetCreditCardsAsync());
+        Assert.True(card.UsesCashback);
+        Assert.Equal(1.5m, card.CashbackPercent);
+
+        foreach (var invalid in new[] { 0m, -1m, 100.01m, 1.555m })
+        {
+            Assert.False((await Catalog.SaveCreditCardAsync(Card(accountId) with { ExternalId = card.ExternalId, Cashback = new CardCashback(invalid) })).Succeeded);
+        }
+        Assert.Equal(1.5m, Assert.Single(await Catalog.GetCreditCardsAsync()).CashbackPercent);
+
+        // Sem configuração no pedido (como na importação CSV), o cashback atual é mantido.
+        Assert.True((await Catalog.SaveCreditCardAsync(Card(accountId) with { ExternalId = card.ExternalId, Name = "Renomeado" })).Succeeded);
+        Assert.Equal(1.5m, Assert.Single(await Catalog.GetCreditCardsAsync()).CashbackPercent);
+
+        Assert.True((await Catalog.DeactivateCreditCardAsync(card.ExternalId)).Succeeded);
+        Assert.True((await Catalog.ReactivateCreditCardAsync(card.ExternalId)).Succeeded);
+        Assert.Equal(1.5m, Assert.Single(await Catalog.GetCreditCardsAsync()).CashbackPercent);
+
+        Assert.True((await Catalog.SaveCreditCardAsync(Card(accountId) with { ExternalId = card.ExternalId, Cashback = CardCashback.None })).Succeeded);
+        var disabled = Assert.Single(await Catalog.GetCreditCardsAsync());
+        Assert.False(disabled.UsesCashback);
+        Assert.Null(disabled.CashbackPercent);
+    }
+
+    [Fact]
     public async Task CannotTurnACardPaymentAccountIntoAnInvestment()
     {
         var accountId = await CreateAccountAsync();

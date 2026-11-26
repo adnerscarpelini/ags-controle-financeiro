@@ -24,6 +24,6 @@ Edição, atualização dos finais, callbacks e arquivamento foram exercitados e
 
 No cabeçalho, o nome do cartão quebra somente entre palavras. O selo da fatura fica ao lado do nome quando cabe e, senão, desce para a linha de baixo; o card de conta segue a mesma regra com o selo "Arquivada" ([#137](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/137)).
 
-O menu ⋮ do card traz Editar, Finais do cartão, Histórico de faturas e Arquivar. **Ver cartões arquivados** mostra os arquivados e os indisponíveis pela conta. O resumo lateral mostra a próxima fatura a vencer, o limite disponível e o valor total das faturas.
+O menu ⋮ do card traz Editar, Finais do cartão, Histórico de faturas e Arquivar. O menu de mais ações da tela traz Saldos de faturas e parcelas futuras, **Cashback** (abre o [painel](../invoices/cashback.md)) e **Descontos**. Cartão com cashback mostra "Cashback 1,5%" na carteira (#153). **Ver cartões arquivados** mostra os arquivados e os indisponíveis pela conta. O resumo lateral mostra a próxima fatura a vencer, o limite disponível e o valor total das faturas.
 
 O limite usado vem de `IInvoiceCatalog.GetCardLimitsAsync`: saldo restante das faturas ainda não pagas, inclusive parcelas futuras. Crédito de uma fatura não reduz outra.

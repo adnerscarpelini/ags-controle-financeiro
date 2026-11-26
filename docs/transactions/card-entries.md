@@ -37,3 +37,7 @@ movidas: detalhes podem mudar, mas data/cartão ficam protegidos. Registros ante
 Na edição, o campo Cartão também oferece "Sem cartão", como antes.
 
 **Faturas na janela.** A escolha mostra as faturas Abertas e só a Fechada ou Paga mais recente, desabilitada, para indicar que ela já fechou. Para lançar nela, é preciso reabrir a fatura. Na edição, a fatura da compra continua visível ([#120](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/120)).
+
+## Percentual de cashback (#153)
+
+Toda despesa de cartão grava o percentual de cashback vigente do cartão no ato do lançamento (0 sem cashback). Editar no mesmo cartão preserva o percentual; trocar de cartão grava o do novo. Parcelas gravam em cada parte, ocorrências recorrentes gravam o percentual do cartão quando são geradas, e a importação CSV grava o vigente. O previsto, as regras de arredondamento e o recebimento estão em [Cashback dos cartões](../invoices/cashback.md).

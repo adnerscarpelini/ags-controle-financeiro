@@ -11,6 +11,8 @@ internal sealed class EntryConfiguration : IEntityTypeConfiguration<TransactionE
         builder.ToTable("entries");
         builder.Property(x => x.Details).HasMaxLength(1000).IsRequired();
         builder.Property(x => x.ReimbursementPercent).HasPrecision(5, 2);
+        builder.Property(x => x.CashbackPercent).HasPrecision(5, 2);
+        builder.Ignore(x => x.ExpectedCashback);
         builder.HasIndex(x => x.Month);
         builder.HasIndex(x => x.ReimbursementPersonExternalId);
         builder.HasIndex(x => new { x.Date, x.Id });

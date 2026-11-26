@@ -1,0 +1,112 @@
+@* Confirmar o cashback de uma fatura Paga: o valor que o banco devolveu e onde ele entrou. *@
+@using System.Globalization
+@using Ags.Finance.Modules.Accounts.Contracts
+@using Ags.Finance.Modules.Invoices.Contracts
+@using Ags.Finance.SharedKernel
+@inject ICashbackCatalog Cashback
+@inject TimeProvider Clock
+@inject EntryChangeNotifier Notifier
+@inject ISnackbar Snackbar
+
+<MudDialog Class="app-dialog">
+    <DialogContent>
+        <div class="entry-column" aria-label="Receber cashback">
+            <p class="form-note">@Item.CardName · Fatura @Item.Month · Previsto: <span class="numeric @ValueColor.Income(Item.Expected)" data-receipt-expected>@Item.Expected</span></p>
+            <div class="field-row">
+                <div class="field"><label for="cashback-date">Data do recebimento</label><input id="cashback-date" class="input" type="date" @bind="_date" required /></div>
+                <div class="field">
+                    <label for="cashback-received">Valor recebido (R$) <HelpTip Text="O banco pode devolver um valor diferente do previsto. R$ 0,00 encerra o cashback sem lançamento." /></label>
+                    <input id="cashback-received" class="input" type="number" inputmode="decimal" step="0.01" min="0" @bind="_received" @bind:event="oninput" />
+                </div>
+            </div>
+            @if (_received > 0)
+            {
+                <fieldset class="field" aria-label="Destino do cashback">
+                    <legend>Onde o cashback entrou</legend>
+                    <label class="checkbox"><input type="radio" name="cashback-destination" data-destination="account" checked="@(_destination == CashbackDestination.Account)" @onchange="() => _destination = CashbackDestination.Account" />Conta corrente <HelpTip Text="Cria uma receita Recebida em Cashback › Cashback recebido, na conta escolhida." /></label>
+                    <label class="checkbox"><input type="radio" name="cashback-destination" data-destination="invoice" checked="@(_destination == CashbackDestination.Invoice)" disabled="@(_targets.Count == 0)" @onchange="() => _destination = CashbackDestination.Invoice" />Abatimento na fatura Aberta <HelpTip Text="Reduz o saldo restante de uma fatura Aberta do mesmo cartão, sem criar receita." /></label>
+                    @if (_targets.Count == 0) { <p class="form-note" data-no-open-invoice>O cartão não tem fatura Aberta para receber o abatimento.</p> }
+                </fieldset>
+                @if (_destination == CashbackDestination.Account)
+                {
+                    <div class="field">
+                        <label for="cashback-account">Conta corrente</label>
+                        <select id="cashback-account" class="input" @bind="_account">
+                            <option value="@Guid.Empty">Selecione</option>@foreach (var account in Accounts) { <option value="@account.ExternalId">@account.Name</option> }
+                        </select>
+                    </div>
+                }
+                else
+                {
+                    <div class="field">
+                        <label for="cashback-target">Fatura que recebe o abatimento</label>
+                        <select id="cashback-target" class="input" @bind="_target">
+                            @foreach (var month in _targets) { <option value="@Key(month)">Fatura @month</option> }
+                        </select>
+                    </div>
+                }
+            }
+            @if (_error is not null) { <p class="form-error" role="alert" data-entry-error>@_error</p> }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton data-dialog-cancel Disabled="@_busy" OnClick="() => Dialog?.Cancel()">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" data-confirm-ok Disabled="@_busy" OnClick="ConfirmAsync">Confirmar recebimento</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter, EditorRequired]
+    public CashbackItem Item { get; set; } = default!;
+
+    /// <summary>Contas correntes ativas; a vinculada ao cartão vem pré-selecionada.</summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<AccountDetails> Accounts { get; set; } = [];
+
+    [Parameter]
+    public Guid? DefaultAccountExternalId { get; set; }
+
+    private readonly Guid _confirmation = Guid.CreateVersion7();
+    private IReadOnlyList<ReferenceMonth> _targets = [];
+    private DateOnly _date;
+    private decimal _received;
+    private CashbackDestination _destination = CashbackDestination.Account;
+    private Guid _account;
+    private string _target = string.Empty;
+    private bool _busy;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _date = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime);
+        _received = decimal.Parse(Item.Expected.Amount.ToString("0.##", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+        _account = DefaultAccountExternalId is { } linked && Accounts.Any(x => x.ExternalId == linked) ? linked : Guid.Empty;
+        _targets = await Cashback.GetTargetInvoicesAsync(Item.CardExternalId, _date);
+        _target = _targets.Count > 0 ? Key(_targets[0]) : string.Empty;
+    }
+
+    private static string Key(ReferenceMonth month) => month.FirstDay.ToString("yyyy-MM", CultureInfo.InvariantCulture);
+
+    private async Task ConfirmAsync()
+    {
+        if (_busy) { return; }
+        _busy = true;
+        try
+        {
+            var target = _targets.FirstOrDefault(x => Key(x) == _target);
+            var destination = _received > 0 ? _destination : CashbackDestination.None;
+            var result = await Cashback.ReceiveAsync(new(_confirmation, Item.CardExternalId, Item.Month, _date, new Money(_received), destination,
+                destination == CashbackDestination.Account && _account != Guid.Empty ? _account : null,
+                destination == CashbackDestination.Invoice && target.Year > 0 ? target : null));
+            _error = result.Error;
+            if (!result.Succeeded) { return; }
+            Notifier.Notify();
+            Snackbar.Add("Cashback recebido.", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(true));
+        }
+        finally { _busy = false; }
+    }
+}
