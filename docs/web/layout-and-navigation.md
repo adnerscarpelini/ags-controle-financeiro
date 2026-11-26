@@ -12,7 +12,7 @@ Origem: [#5](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/5
 - Abaixo de 768 px o menu vira uma gaveta: some da tela, abre pelo botão da barra superior e fecha ao escolher um item ou tocar na película escura. O **+ Novo** continua acessível em um botão flutuante. O conteúdo ocupa a largura inteira, janelas abrem em tela cheia com as ações no rodapé, e tabelas viram listas em linhas. Alvos de toque têm pelo menos 44 px (#103).
 - A cultura da aplicação é `pt-BR` em todos os circuitos (`Program.cs`): `R$ 1.234,56` e `dd/MM/yyyy`, independentemente da cultura do sistema ou do navegador.
 - Endereço inexistente responde 404 com a página **Página não encontrada** (`Components/Pages/NotFound.razor`), dentro do layout e com o menu. Sem login, o visitante vai para a tela de login.
-- Nada vem da internet: CSS, JS e ícones do [MudBlazor](../architecture/ui-library.md), fonte Inter e demais recursos são servidos pela própria aplicação.
+- Nada vem da internet: CSS, JS e ícones do [MudBlazor](../architecture/ui-library.md), fonte Geist e demais recursos são servidos pela própria aplicação.
 - A estrutura usa `MudLayout`, `MudAppBar`, `MudDrawer` e `MudMainContent`. A barra superior só aparece abaixo de 768 px; a película da gaveta é a da biblioteca.
 - O tema do MudBlazor acompanha a preferência: `ThemeState` avisa o layout ao salvar em Configurações, e o modo automático segue o sistema (#95). A observação do sistema é feita por `agsTheme.watchSystem`, com `ObserveSystemDarkModeChange` desligado: ligado, a biblioteca trocaria a paleta sozinha e ignoraria o tema escolhido.
 - CSS, JS e demais arquivos estáticos saem com `Cache-Control: no-cache`: o navegador revalida a cada carga, e uma atualização da aplicação chega sem limpar o cache.
@@ -23,7 +23,7 @@ Origem: [#5](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/5
 | --- | --- |
 | `wwwroot/css/tokens.css` | Único lugar com cores literais: paleta nos temas escuro e claro (`light-dark()`), cores de banco, película da gaveta, espaçamento, raio e fonte, como variáveis CSS. |
 | `wwwroot/css/app.css` | Estilos de estrutura e de componentes, só com `var(--...)`. Inclui `.numeric` (dígitos tabulares, alinhado à direita), `.income` e `.expense`. |
-| `wwwroot/fonts/inter-latin-variable.woff2` | Inter variável (subconjunto latino), licença OFL em `Inter-LICENSE.txt`. |
+| `wwwroot/fonts/geist-latin-variable.woff2` | Geist variável (subconjunto latino), licença OFL em `Geist-LICENSE.txt` ([#154](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/154)). |
 | `wwwroot/img/favicon.png` | Favicon e marca do menu, gerado a partir do `logo.png` da raiz (64 × 64). |
 | `Components/Layout/MainLayout.razor` | Provedores do MudBlazor e estrutura com barra superior, menu e conteúdo; guarda o estado da gaveta e o tema. |
 | `Components/Layout/AppTheme.cs` | `MudTheme` com os mesmos valores de `tokens.css`. |

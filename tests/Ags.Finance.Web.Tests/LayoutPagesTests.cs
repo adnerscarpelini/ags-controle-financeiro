@@ -160,7 +160,7 @@ public sealed partial class LayoutPagesTests : IDisposable
     [Theory]
     [InlineData("/css/tokens.css")]
     [InlineData("/css/app.css")]
-    [InlineData("/fonts/inter-latin-variable.woff2")]
+    [InlineData("/fonts/geist-latin-variable.woff2")]
     [InlineData("/img/favicon.png")]
     [InlineData("/_content/MudBlazor/MudBlazor.min.css")]
     [InlineData("/_content/MudBlazor/MudBlazor.min.js")]

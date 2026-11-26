@@ -88,7 +88,7 @@
             <MudTd DataLabel="Percentual">@Percent(item.Percent)</MudTd>
             <MudTd DataLabel="A receber" Class="@($"numeric {ValueColor.Income(item.Expected)}")">@item.Expected</MudTd>
             <MudTd DataLabel="Recebido" Class="@($"numeric {(item.Received is { } amount ? ValueColor.Income(amount) : ValueColor.Neutral)}")">@(item.Received is { } received ? received.ToString() : "—")</MudTd>
-            <MudTd DataLabel="Situação"><span class="tag">@(item.ReceivedDate is { } receivedDate ? $"Recebido em {receivedDate:dd/MM/yyyy}" : "Pendente")</span></MudTd>
+            <MudTd DataLabel="Situação"><span class="tag @(item.ReceivedDate is null ? "tag-pending" : "tag-paid")">@(item.ReceivedDate is { } receivedDate ? $"Recebido em {receivedDate:dd/MM/yyyy}" : "Pendente")</span></MudTd>
             <MudTd DataLabel="Ações" Class="col-actions">
                 @if (item.ReceiptExternalId is { } receipt)
                 {

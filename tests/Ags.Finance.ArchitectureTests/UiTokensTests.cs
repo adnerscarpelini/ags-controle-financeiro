@@ -9,6 +9,7 @@ namespace Ags.Finance.ArchitectureTests;
 public sealed partial class UiTokensTests
 {
     private const string TokensFile = "tokens.css";
+    private const string OnAccent = "#FFFFFF";
 
     [Fact]
     public void OnlyTheTokensFileDeclaresLiteralColors()
@@ -33,17 +34,19 @@ public sealed partial class UiTokensTests
 
         string[] dark =
         [
-            "--color-background: #141415",
-            "--color-surface: #222224",
-            "--color-surface-raised: #2C2C2F",
-            "--color-border: #2C2C2E",
-            "--color-text-primary: #F5F5F7",
-            "--color-text-secondary: #A1A1A6",
-            "--color-accent: #30C48D",
-            "--color-accent-hover: #4AD6A1",
-            "--color-income: #4AD6A2",
-            "--color-expense: #FF8177",
-            "--color-warning: #E5B13A",
+            "--color-background: #0B0B10",
+            "--color-surface: #1B1B25",
+            "--color-surface-raised: #22222E",
+            "--color-border: #24242E",
+            "--color-text-primary: #F3F3F8",
+            "--color-text-secondary: #9C9CB0",
+            "--color-accent: #9A8AFF",
+            "--color-accent-hover: #B4A8FF",
+            "--color-accent-solid: #7150F2",
+            "--color-accent-solid-hover: #6A47EA",
+            "--color-income: #3DDC97",
+            "--color-expense: #FF6B81",
+            "--color-warning: #F4B740",
             "--color-bank-itau: #FB923C",
             "--color-bank-nubank: #A78BFA",
             "--color-bank-bradesco: #F87171",
@@ -71,6 +74,7 @@ public sealed partial class UiTokensTests
         text = [.. text, .. palette.Keys.Where(x => x.StartsWith("--color-cat-", StringComparison.Ordinal))];
 
         var failures = new List<string>();
+        Assert.Contains($"--color-on-accent: {OnAccent};", ReadTokens(), StringComparison.Ordinal);
         foreach (var theme in new[] { "light", "dark" })
         {
             string Pick(string token) => theme == "light" ? palette[token].Light : palette[token].Dark;
@@ -83,9 +87,9 @@ public sealed partial class UiTokensTests
                 }
             }
 
-            // Rótulo do botão: a cor de fundo da página sobre o accent (e o accent em hover).
-            Check(failures, theme, "--color-background", "--color-accent", Pick("--color-background"), Pick("--color-accent"));
-            Check(failures, theme, "--color-background", "--color-accent-hover", Pick("--color-background"), Pick("--color-accent-hover"));
+            // Rótulo do botão principal: branco sobre o roxo sólido (e sobre o roxo do hover).
+            Check(failures, theme, OnAccent, "--color-accent-solid", OnAccent, Pick("--color-accent-solid"));
+            Check(failures, theme, OnAccent, "--color-accent-solid-hover", OnAccent, Pick("--color-accent-solid-hover"));
         }
 
         Assert.True(failures.Count == 0, "Contraste abaixo de 4,5:1: " + string.Join("; ", failures));
@@ -109,10 +113,12 @@ public sealed partial class UiTokensTests
         }
     }
 
+    private static string ReadTokens() => File.ReadAllText(Path.Combine(
+        ProjectFiles.FindRepositoryRoot(), "src", "Ags.Finance.Web", "wwwroot", "css", TokensFile));
+
     private static Dictionary<string, (string Light, string Dark)> Palette()
     {
-        var tokens = File.ReadAllText(Path.Combine(
-            ProjectFiles.FindRepositoryRoot(), "src", "Ags.Finance.Web", "wwwroot", "css", TokensFile));
+        var tokens = ReadTokens();
         return PaletteRegex().Matches(tokens).ToDictionary(match => match.Groups["name"].Value, match => (match.Groups["light"].Value, match.Groups["dark"].Value));
     }
 

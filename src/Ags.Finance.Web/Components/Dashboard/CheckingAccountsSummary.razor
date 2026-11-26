@@ -6,8 +6,8 @@
 @inject IEntryCatalog Entries
 @inject TimeProvider Clock
 
-<section class="panel summary-panel" aria-labelledby="checking-accounts-title">
-    <h2 id="checking-accounts-title">Saldo nas contas correntes <HelpTip Text="Saldo atual das contas correntes ativas. Poupança e investimentos ficam de fora." /></h2>
+<section class="panel panel-highlight summary-panel" aria-labelledby="checking-accounts-title">
+    <h2 id="checking-accounts-title"><span class="heading-icon heading-icon-accent" aria-hidden="true"><MudIcon Icon="@Icons.Material.Outlined.AccountBalance" /></span>Saldo nas contas correntes <HelpTip Text="Saldo atual das contas correntes ativas. Poupança e investimentos ficam de fora." /></h2>
     @if (_rows is { } rows)
     {
         <strong class="numeric summary-hero @ValueColor.Balance(Sum(rows))" data-current-total>@Sum(rows)</strong>

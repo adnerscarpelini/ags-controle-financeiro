@@ -11,7 +11,7 @@ A interface misturava cadastro e consulta, quase não tinha tabelas e obrigava a
 Adotar **MudBlazor 9.12.0** (licença MIT, com alvo `net10.0`) no Blazor Web App atual, em Interactive Server.
 
 - `AddMudServices()` em `Program.cs`; provedores (`MudThemeProvider`, `MudPopoverProvider`, `MudDialogProvider`, `MudSnackbarProvider`) em `MainLayout.razor`.
-- CSS e JS vêm de `_content/MudBlazor/`, servidos pela própria aplicação. Nada de CDN nem de Google Fonts: a fonte continua a Inter local e os ícones são os SVG da biblioteca (`Icons.Material.Outlined.*`). `LayoutPagesTests` confere a ausência de referências externas.
+- CSS e JS vêm de `_content/MudBlazor/`, servidos pela própria aplicação. Nada de CDN nem de Google Fonts: a fonte é a Geist local ([#154](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/154)) e os ícones são os SVG da biblioteca (`Icons.Material.Outlined.*`). `LayoutPagesTests` confere a ausência de referências externas.
 - A página de login é HTML puro, sem circuito, e não carrega a biblioteca.
 - `wwwroot/css/tokens.css` continua a fonte de verdade das cores. `Components/Layout/AppTheme.cs` repete os valores porque o `MudTheme` calcula variações e não aceita `var()`; `AppThemeTests` falha se os dois divergirem.
 - O tema segue a preferência: `ThemeState` avisa o layout ao salvar em Configurações, e `auto` usa `MudThemeProvider.GetSystemDarkModeAsync`, acompanhando mudanças do sistema.
