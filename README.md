@@ -1,15 +1,15 @@
 <p align="center">
-  <img src="logo.png" alt="Logo do ags-controle-financeiro: carteira verde com moeda e gráfico em alta" width="160">
+  <img src="logo.png" alt="Logo do ags-controle-financeiro: carteira roxa com moeda e gráfico em alta" width="160">
 </p>
 
 <h1 align="center">ags-controle-financeiro</h1>
 
 Aplicação web pessoal em .NET 10, ASP.NET Core e Blazor, acessada pelo computador e celular na rede local.
 
-![Dashboard com dados fictícios, ainda no layout anterior às faixas Hoje e Mês: comportamento e orçamento do mês, pendências dos próximos dias e atrasadas](docs/screenshots/dashboard.png)
+![Dashboard com dados fictícios: faixa Hoje com o saldo das contas correntes e as faturas a pagar](docs/screenshots/dashboard.png)
 
-> **[Veja a galeria de telas →](docs/screenshots/README.md)** Lançamentos, cartões, faturas, planejamento, relatórios,
-> reembolsos, celular e tema claro, todos com dados fictícios.
+> **[Veja a galeria de telas →](docs/screenshots/README.md)** Lançamentos, cartões, faturas, cashback, planejamento,
+> relatórios, reembolsos, celular e tema claro, todos com dados fictícios.
 
 O destino aprovado é **Docker Compose + PostgreSQL**, no Linux ou Windows via WSL 2.
 A aplicação roda com **Docker Compose + PostgreSQL** ([#60](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/60),
