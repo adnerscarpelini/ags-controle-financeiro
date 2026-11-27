@@ -4,22 +4,27 @@ Prints da aplicação com **dados fictícios** do universo Star Wars: bancos, co
 e lançamentos foram inventados só para a demonstração. Nenhum dado financeiro real aparece aqui.
 Os nomes são usados apenas como texto, sem logos ou marcas oficiais.
 
-As telas estão no tema escuro (o padrão), num computador a 1440x900, salvo quando indicado.
-Origem: [#135](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/135).
+As telas estão no tema escuro (o padrão), com a identidade visual roxa da
+[#154](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/154), num computador a 1440x900, salvo quando
+indicado. Origem: [#135](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/135); prints refeitos após a
+#153 (cashback) e a #154.
 
 ## Dashboard
 
-Faixa Hoje com o saldo das contas correntes, as faturas a pagar, as pendências dos próximos dias e as atrasadas; faixa Mês com receitas, gasto e a pagar no mês e as categorias ([#143](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/143)).
+Faixa Hoje com o saldo das contas correntes, as faturas a pagar, as pendências dos próximos dias e as atrasadas
+([#143](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/143)).
 
-> A imagem abaixo ainda mostra o layout anterior à #143 (comportamento e orçamento do mês) e precisa ser regerada, assim como `dashboard-mobile.png` e `dashboard-light.png`.
+![Dashboard com a faixa Hoje: saldo nas contas correntes, faturas a pagar fechadas e abertas, próximos 7 dias e atrasados](dashboard.png)
 
-![Dashboard no layout anterior, com o comportamento e o orçamento de novembro, pendências dos próximos 7 dias e uma despesa atrasada](dashboard.png)
+Mais abaixo, a faixa Mês com seletor: receitas, gasto e a pagar no mês, despesas por categoria e receitas por origem.
+
+![Faixa Mês do Dashboard com receitas, gasto e a pagar de novembro e as despesas por categoria comparadas ao mês anterior e à média](dashboard-month.png)
 
 ## Lançamentos
 
 Receitas e despesas do mês, com situação (pago, pendente, atrasado ou cartão), categoria, conta ou cartão e totais.
 
-![Lista de lançamentos de novembro com saldo atual, receitas, despesas e balanço mensal](transactions.png)
+![Lista de lançamentos de novembro com saldo atual, receitas, despesas, balanço mensal e um cashback recebido](transactions.png)
 
 ## Lançamentos com Agrupar cartões
 
@@ -29,51 +34,65 @@ Os itens de cada cartão viram uma linha por cartão e fatura, com a soma; os to
 
 ## Lançamentos fixos
 
-Receitas, despesas e transferências recorrentes, no cartão ou na conta, com o dia de cada mês.
+Receitas e despesas recorrentes, no cartão ou na conta, com o dia de cada mês.
 
-![Lançamentos fixos com aluguel, internet, assinatura, soldo e transferência mensal](recurring-entries.png)
+![Lançamentos fixos com plano da HoloNet, soldo, aluguel do hangar e mensalidade do treinamento Jedi](recurring-entries.png)
 
 ## Contas
 
-Saldo atual e previsto de cada conta e as transferências recorrentes do mês.
+Saldo atual e previsto de cada conta, com os totais.
 
-![Contas correntes e poupança com saldos e uma transferência recorrente pendente](accounts.png)
+![Contas correntes, investimento e poupança com saldo atual e previsto](accounts.png)
 
 ## Cartões
 
-Carteira de cartões com a fatura aberta, o vencimento, o limite disponível e a fatura fechada a pagar.
+Carteira de cartões com a fatura aberta, o vencimento, o limite disponível, o percentual de cashback e a fatura fechada a
+pagar.
 
-![Cartões com fatura aberta, limite disponível e aviso da fatura fechada](cards.png)
+![Cartões com fatura aberta, cashback de 1,5% e 1%, limite disponível e aviso da fatura fechada](cards.png)
 
 ## Detalhe da fatura
 
-Compras de uma fatura Fechada, com parcela, recorrência, fechamento, vencimento e saldo restante.
+Compras de uma fatura Fechada, com parcela, a coluna Cashback, o cashback previsto, fechamento, vencimento e saldo
+restante ([#153](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/153)).
 
-![Fatura fechada de novembro com compras, parcela 3 de 6 e ações de reabrir, ajustar e pagar](invoice-detail.png)
+![Fatura fechada de dezembro com compras, parcela 3 de 4, cashback de 1% por compra e ações de reabrir, ajustar e pagar](invoice-detail.png)
+
+## Cashback
+
+Painel do cashback pelo mês da fatura: previsto, a receber e recebido, uma linha por cartão e o histórico do ano
+([#153](https://github.com/adnerscarpelini/ags-controle-financeiro/issues/153)).
+
+![Painel de cashback de novembro com um cashback a receber, um recebido e o histórico recebido em 2026](cashback.png)
+
+A ação Receber, disponível com a fatura Paga, confirma a data, o valor e o destino: conta corrente ou abatimento na
+fatura Aberta.
+
+![Janela Receber cashback com data, valor previsto e destino em conta corrente](cashback-receive.png)
 
 ## Planejamento
 
 Orçamento do mês com metas por categoria, despesas pagas e previstas e o que resta ou excedeu.
 
-![Planejamento de novembro com metas por categoria e progresso](planning.png)
+![Planejamento de novembro com metas por categoria, uma categoria excedida e os totais do mês](planning.png)
 
 ## Relatórios: visão de 19 meses
 
 Receitas, despesas e saldo por mês, abertos por categoria, com previstas em itálico.
 
-![Visão de 19 meses com receitas e despesas por categoria](reports-19-months.png)
+![Visão de 19 meses com receitas, inclusive cashback, e despesas por categoria](reports-19-months.png)
 
 ## Reembolsos
 
 Despesas divididas com outras pessoas, com o percentual, o valor a receber e a situação de cada uma.
 
-![Reembolsos com um recebido e três pendentes de Han Solo, Chewbacca e Leia Organa](reimbursements.png)
+![Reembolsos de todos os meses com um recebido de Han Solo e um pendente de Chewbacca](reimbursements.png)
 
-## Nova despesa
+## Nova despesa no cartão
 
-Janela de lançamento com valor, situação, data, descrição, categoria e conta.
+Janela de lançamento com valor, data, descrição, categoria, cartão e a fatura em que a compra entra.
 
-![Janela de nova despesa preenchida sobre a tela de lançamentos](new-expense.png)
+![Janela de nova despesa no cartão preenchida, com a fatura 12/2026 Aberta selecionada](new-expense.png)
 
 ## Configurações
 
