@@ -1374,7 +1374,7 @@ a.summary-name:hover { color: var(--color-accent-hover); }
     .sidebar.mud-drawer:not(.mud-drawer-temporary) { display: none; }
 
     .content { gap: var(--space-3); padding: var(--space-4) var(--space-4) calc(var(--space-8) * 3); }
-    .page-head h1 { width: 100%; font-size: 26px; }
+    .page-head h1 { min-width: 0; font-size: 26px; }
     .page-head-actions { width: 100%; margin-left: 0; }
     .page-head-actions .mud-button-root { flex: 1 1 auto; }
     .registry-search { width: 100%; }
@@ -1400,6 +1400,13 @@ a.summary-name:hover { color: var(--color-accent-hover); }
     .table-footer .spacer { display: none; }
     .data-table .numeric { text-align: right; }
     .data-table .mud-table-cell { overflow-wrap: anywhere; }
+
+    /* Linha em cartão: rótulo inteiro à esquerda; título e observação da descrição empilhados à direita */
+    .data-table .mud-table-body .mud-table-cell::before { flex: 0 0 auto; max-width: 45%; overflow-wrap: normal; }
+    .data-table .mud-table-body .col-actions { width: auto; }
+    .data-table .mud-table-body .mud-table-cell.col-description { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: var(--space-4); align-items: center; }
+    .data-table .mud-table-body .mud-table-cell.col-description::before { grid-row: 1 / span 2; max-width: none; }
+    .data-table .mud-table-body .mud-table-cell.col-description > * { grid-column: 2; text-align: right; overflow-wrap: break-word; }
     .split-main, .split-aside { flex-basis: 100%; }
     .split-aside { flex-direction: row; flex-wrap: wrap; }
     .stat-cards:not(.stat-cards-month) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
